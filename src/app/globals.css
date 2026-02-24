@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  /* Colors */
+  --color-primary: #2563EB;
+  --color-secondary: #10B981;
+  --color-background: #F8FAFC;
+  --color-surface: #FFFFFF;
+  --color-text-main: #0F172A;
+  --color-text-muted: #64748B;
+
+  /* Breakpoints */
+  --breakpoint-mobile: 320px;
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1024px;
+}
+
+/* Typography Utilities */
+@layer utilities {
+  .text-heading-1 {
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 700;
+  }
+  .text-heading-2 {
+    font-size: 20px;
+    line-height: 28px;
+    font-weight: 600;
+  }
+  .text-body-base {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 400;
+  }
+  .text-body-medium {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+  }
+  .text-caption {
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 500;
+  }
+}
+
+/* Base Styles */
+@layer base {
+  body {
+    @apply bg-background text-text-main;
+  }
+}
