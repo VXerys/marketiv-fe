@@ -9,10 +9,20 @@
   --color-text-main: #0F172A;
   --color-text-muted: #64748B;
 
+  /* Brand Colors */
+  --color-brand-coral: #E8654A;
+  --color-brand-navy: #1B2A4A;
+  --color-brand-dark: #0D1B2A;
+  --color-brand-overlay: rgba(0, 0, 0, 0.35);
+  --color-brand-whatsapp: #25D366;
+
   /* Breakpoints */
   --breakpoint-mobile: 320px;
   --breakpoint-tablet: 768px;
   --breakpoint-desktop: 1024px;
+
+  /* Font Family */
+  --font-poppins: var(--font-poppins);
 }
 
 /* Typography Utilities */
@@ -26,6 +36,24 @@
     font-size: 20px;
     line-height: 28px;
     font-weight: 600;
+  }
+  .text-hero {
+    font-size: clamp(28px, 5vw, 52px);
+    line-height: 1.15;
+    font-weight: 700;
+  }
+  .text-hero-subtitle {
+    font-size: clamp(14px, 2vw, 18px);
+    line-height: 1.6;
+    font-weight: 500;
+    font-style: italic;
+  }
+  .text-nav-link {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
   }
   .text-body-base {
     font-size: 14px;
