@@ -25,7 +25,7 @@ id (PK)
 role (umkm|creator|admin)
 name
 email
-phone
+phone (Diisi saat Register UMKM)
 avatar
 status
 created_at
@@ -78,8 +78,8 @@ umkm_profiles
 id (PK)
 user_id (FK)
 
-business_name
-category
+business_name (Diisi saat Register)
+category (Diisi saat Register)
 description
 logo_url
 location

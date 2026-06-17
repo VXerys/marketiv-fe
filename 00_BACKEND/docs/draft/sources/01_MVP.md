@@ -129,30 +129,50 @@ Data:
 
 * Email
 * Password
+* Role Query (?role=umkm atau ?role=creator)
 
 Action:
 
-* Login
+* Login Manual (UMKM / Creator)
+* Google Login (Khusus Content Creator)
 
 ---
 
-### Register
+### Register UMKM
+
+Endpoint: `/register?role=umkm`
 
 Data:
 
-* Nama
+* Nama usaha
+* Kategori usaha
+* Email
+* Nomor HP
+* Password
+
+---
+
+### Register Creator
+
+Endpoint: `/register?role=creator`
+
+Data:
+
+* Nama lengkap
 * Email
 * Password
-* Role
 
-Pilihan role:
-
-* UMKM
-* Creator
+Atau bisa langsung menggunakan **Google OAuth Register/Login**.
 
 ---
 
 ### Verifikasi Email
+
+Flow baru setelah register:
+
+* Halaman pemberitahuan "Check Inbox"
+* Terdapat notifikasi bahwa batas link verifikasi hanya berlaku 10 menit
+* Terdapat teks/tombol "Kirim ulang link"
 
 Data:
 
@@ -161,6 +181,7 @@ Data:
 Action:
 
 * Verify
+* Resend Link
 
 ---
 

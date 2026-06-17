@@ -46,8 +46,9 @@ dan akhirnya refactor berkali-kali.
 /
 Landing Page
 
-/login
-/register
+/login (beserta ?role=umkm atau ?role=creator)
+/register (beserta ?role=umkm atau ?role=creator)
+/verify-email (Screen Check Inbox & Resend Link 10 menit)
 /forgot-password
 
 /creator

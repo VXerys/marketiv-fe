@@ -149,8 +149,10 @@ src/routes/
 /pricing
 /contact
 
-/login
-/register
+/login?role=umkm
+/login?role=creator
+/register?role=umkm
+/register?role=creator
 ```
 
 ---
@@ -623,7 +625,7 @@ src/lib/appwrite/
 
 ├── client.js
 
-├── account.js
+├── account.js (Termasuk setup Google OAuth Provider)
 ├── database.js
 ├── storage.js
 ├── functions.js

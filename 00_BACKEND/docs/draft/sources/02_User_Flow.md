@@ -9,20 +9,21 @@
 ```text
 Landing Page
 ↓
-Klik Daftar
-↓
-Pilih Sebagai UMKM
+Klik Daftar UMKM (/register?role=umkm)
 ↓
 Isi:
-- Nama UMKM
-- Nama Pemilik
+- Nama Usaha
+- Kategori Usaha
 - Email
+- Nomor HP
 - Password
 
 ↓
 Submit
 ↓
-Verifikasi Email
+Verifikasi Email (Link Valid 10 Menit)
+├─ Halaman Check Inbox
+└─ Opsi Kirim Ulang Link
 ↓
 Account Created
 ↓
@@ -36,19 +37,20 @@ Login
 ```text
 Landing Page
 ↓
-Klik Daftar
-↓
-Pilih Sebagai Creator
+Klik Daftar Creator (/register?role=creator)
 ↓
 Isi:
-- Nama
+- Nama Lengkap
 - Email
 - Password
+(Atau Daftar Menggunakan Google OAuth)
 
 ↓
 Submit
 ↓
-Verifikasi Email
+Verifikasi Email (Link Valid 10 Menit)
+├─ Halaman Check Inbox
+└─ Opsi Kirim Ulang Link
 ↓
 Account Created
 ↓
@@ -60,13 +62,10 @@ Login
 # LOGIN FLOW
 
 ```text
-Login
+Login (/login?role=umkm atau ?role=creator)
 ↓
-Email + Password
-
-atau
-
-Google Login
+UMKM: Email + Password
+Creator: Email + Password ATAU Google Login
 ↓
 Success
 ↓
@@ -108,8 +107,8 @@ Wizard Onboarding
 Step 1
 
 ```text
-Nama UMKM
-Kategori
+Nama UMKM (Pre-filled dari Register)
+Kategori (Pre-filled dari Register)
 Deskripsi
 ```
 

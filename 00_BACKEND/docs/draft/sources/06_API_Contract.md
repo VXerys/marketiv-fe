@@ -61,20 +61,21 @@ Admin Service
 
 # 1. Auth Service
 
-## Register
+## Register UMKM
 
 ```typescript
-registerUser()
+registerUMKM()
 ```
 
 Input
 
 ```json
 {
-  "name": "",
+  "businessName": "",
+  "category": "",
   "email": "",
-  "password": "",
-  "role": "umkm"
+  "phone": "",
+  "password": ""
 }
 ```
 
@@ -83,7 +84,35 @@ Process
 ```text
 Create Appwrite Auth User
 ↓
-Create Profile
+Create UMKM Profile
+↓
+Create Wallet
+```
+
+---
+
+## Register Creator
+
+```typescript
+registerCreator()
+```
+
+Input
+
+```json
+{
+  "name": "",
+  "email": "",
+  "password": ""
+}
+```
+
+Process
+
+```text
+Create Appwrite Auth User (atau via Google OAuth)
+↓
+Create Creator Profile
 ↓
 Create Wallet
 ```
@@ -93,10 +122,19 @@ Create Wallet
 ## Login
 
 ```typescript
-loginUser()
+loginUser(email, password, role)
+loginWithGoogle() // Khusus Creator
 ```
 
-Return
+## Auth Utilities
+
+```typescript
+verifyEmailToken(token)
+resendVerificationLink(email)
+forgotPassword(email)
+```
+
+Return Data Login
 
 ```json
 {

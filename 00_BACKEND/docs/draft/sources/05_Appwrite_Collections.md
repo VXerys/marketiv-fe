@@ -75,7 +75,7 @@ Tetapi kita tetap membutuhkan profile collection.
   "role": "umkm",
   "status": "active",
   "email": "",
-  "phone": "",
+  "phone": "", // Wajib diisi saat Register untuk UMKM
   "createdAt": ""
 }
 ```
@@ -89,8 +89,8 @@ Tetapi kita tetap membutuhkan profile collection.
   "$id": "",
   "userId": "",
 
-  "businessName": "",
-  "category": "",
+  "businessName": "", // Diisi saat Register
+  "category": "", // Diisi saat Register
   "description": "",
 
   "city": "",
