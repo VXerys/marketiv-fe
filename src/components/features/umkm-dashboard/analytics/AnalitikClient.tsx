@@ -15,12 +15,31 @@ const VIEWS_DATA = [
 
 const TOP_CAMPAIGNS = [
   { name: "Brand Awareness — Bakso Pak Dedi", views: "1.1jt", roi: "+182%", color: "#f97316" },
-  { name: "Promo Lebaran 2026", views: "1.8jt", roi: "+240%", color: "#16a34a" },
-  { name: "Bakso Spesial Ramadan", views: "842rb", roi: "+156%", color: "#2563eb" },
-  { name: "Kolaborasi Food Blogger Jakarta", views: "520rb", roi: "+98%", color: "#7c3aed" },
+  { name: "Promo Lebaran 2026",               views: "1.8jt", roi: "+240%", color: "#16a34a" },
+  { name: "Bakso Spesial Ramadan",             views: "842rb", roi: "+156%", color: "#2563eb" },
+  { name: "Kolaborasi Food Blogger Jakarta",   views: "520rb", roi: "+98%",  color: "#7c3aed" },
 ];
 
-const formatViews = (v: number) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}jt` : v >= 1000 ? `${Math.round(v / 1000)}rb` : String(v);
+const KPI_CARDS = [
+  { icon: Eye,       label: "Total Views",  value: "2.4jt",  growth: "+38%",  iconBg: "#f0f6ff", iconColor: "#2563eb", iconBorder: "rgba(37,99,235,.18)"  },
+  { icon: Users,     label: "Total Kreator", value: "28",     growth: "+16%",  iconBg: "#f1fbf5", iconColor: "#16a34a", iconBorder: "rgba(22,163,74,.18)"  },
+  { icon: TrendingUp, label: "Rata-rata ROI", value: "+169%", growth: "+22%", iconBg: "#fff7ed", iconColor: "#ea580c", iconBorder: "rgba(234,88,12,.18)"  },
+  { icon: Star,      label: "Avg. Rating",  value: "4.8",    growth: "+0.2",  iconBg: "#fffbeb", iconColor: "#d97706", iconBorder: "rgba(217,119,6,.18)"  },
+];
+
+const formatViews = (v: number) =>
+  v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}jt` : v >= 1_000 ? `${Math.round(v / 1_000)}rb` : String(v);
+
+const TOOLTIP_STYLE = {
+  borderRadius: 16,
+  border: "1px solid rgba(17,24,39,.10)",
+  boxShadow: "0 12px 28px rgba(15,23,42,.10)",
+  fontFamily: "var(--font-plus-jakarta-sans), sans-serif",
+  fontSize: ".82rem",
+};
+
+const AXIS_TICK = { fontSize: 12, fill: "#737f91", fontWeight: 700 } as const;
+const Y_AXIS_TICK = { fontSize: 11, fill: "#737f91", fontWeight: 700 } as const;
 
 interface AnalitikClientProps {
   businessName: string;
@@ -30,81 +49,96 @@ export function AnalitikClient({ businessName }: AnalitikClientProps) {
   return (
     <UmkmDashboardChrome businessName={businessName}>
       <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto space-y-6 max-w-7xl mx-auto w-full">
+
         {/* Header */}
         <div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "#ea580c", fontSize: ".74rem", fontWeight: 900, letterSpacing: ".12em", textTransform: "uppercase", marginBottom: 6 }}>
-            <span style={{ width: 18, height: 2, borderRadius: 999, background: "#f97316", display: "block" }} />
+          <div className="inline-flex items-center gap-2 text-orange-600 text-[.74rem] font-[900] tracking-[.12em] uppercase mb-1.5">
+            <span className="w-[18px] h-0.5 rounded-full bg-orange-500 block shrink-0" />
             Performa Bisnis
           </div>
-          <h2 style={{ fontFamily: "var(--font-plus-jakarta-sans), Sora, sans-serif", fontSize: "clamp(1.4rem, 2.5vw, 2rem)", fontWeight: 700, letterSpacing: "-.06em", color: "#182033", margin: 0 }}>
-            Analitik & Insight
+          <h2 className="text-[clamp(1.4rem,2.5vw,2rem)] font-[700] tracking-[-0.06em] text-ink-900 m-0 font-display">
+            Analitik &amp; Insight
           </h2>
         </div>
 
-        {/* KPI row */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14 }}>
-          {[
-            { icon: Eye, label: "Total Views", value: "2.4jt", growth: "+38%", color: "#2563eb", bg: "#f0f6ff", border: "rgba(37,99,235,.18)" },
-            { icon: Users, label: "Total Kreator", value: "28", growth: "+16%", color: "#16a34a", bg: "#f1fbf5", border: "rgba(22,163,74,.18)" },
-            { icon: TrendingUp, label: "Rata-rata ROI", value: "+169%", growth: "+22%", color: "#ea580c", bg: "#fff7ed", border: "rgba(234,88,12,.18)" },
-            { icon: Star, label: "Avg. Rating", value: "4.8", growth: "+0.2", color: "#d97706", bg: "#fffbeb", border: "rgba(217,119,6,.18)" },
-          ].map((k) => (
-            <div key={k.label} style={{ padding: "18px 20px", borderRadius: 22, background: `linear-gradient(180deg, ${k.bg}, #ffffff)`, border: `1px solid ${k.border}`, boxShadow: "0 6px 18px rgba(15,23,42,.05)", transition: ".22s cubic-bezier(.2,.8,.2,1)" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = "translateY(-3px)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 14px 34px rgba(15,23,42,.09)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = "translateY(0)"; (e.currentTarget as HTMLElement).style.boxShadow = "0 6px 18px rgba(15,23,42,.05)"; }}
-            >
-              <div style={{ width: 40, height: 40, borderRadius: 14, background: k.bg, border: `1px solid ${k.border}`, display: "grid", placeItems: "center", marginBottom: 14 }}>
-                <k.icon size={17} color={k.color} />
+        {/* KPI row — .metric-card handles hover via CSS */}
+        <div className="dashboard-rule-grid">
+          {KPI_CARDS.map((k) => (
+            <div key={k.label} className="metric-card">
+              <div className="metric-top">
+                <div
+                  className="metric-icon"
+                  style={{ background: k.iconBg, borderColor: k.iconBorder, color: k.iconColor }}
+                >
+                  <k.icon size={17} />
+                </div>
               </div>
-              <div style={{ color: "#737f91", fontSize: ".78rem", fontWeight: 760, marginBottom: 5 }}>{k.label}</div>
-              <div style={{ fontFamily: "var(--font-plus-jakarta-sans), Sora, sans-serif", fontSize: "1.5rem", fontWeight: 700, letterSpacing: "-.06em", color: "#182033", marginBottom: 5 }}>{k.value}</div>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#177b42", fontSize: ".74rem", fontWeight: 800, background: "#f1fbf5", border: "1px solid rgba(22,163,74,.20)", padding: "2px 8px", borderRadius: 999 }}>
-                <ArrowUp size={11} /> {k.growth}
+              <div className="metric-label">{k.label}</div>
+              <div className="metric-value">{k.value}</div>
+              <div className="metric-note">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 border border-green-200/60 text-green-700 text-[.74rem] font-[800]">
+                  <ArrowUp size={11} /> {k.growth}
+                </span>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Charts row */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 20 }} className="chart-grid">
-          {/* Views chart */}
-          <div style={{ padding: "22px", borderRadius: 24, background: "rgba(255,255,255,.92)", border: "1px solid rgba(17,24,39,.08)", boxShadow: "0 8px 24px rgba(15,23,42,.06)" }}>
-            <div style={{ marginBottom: 20 }}>
-              <h3 style={{ fontFamily: "var(--font-plus-jakarta-sans), Sora, sans-serif", fontSize: "1.05rem", fontWeight: 700, letterSpacing: "-.04em", color: "#182033", margin: "0 0 4px" }}>Total Views per Bulan</h3>
-              <span style={{ color: "#737f91", fontSize: ".78rem" }}>Januari – Juni 2026</span>
+        {/* Charts — .chart-grid handles 1→2 col at lg */}
+        <div className="chart-grid">
+          {/* Views AreaChart */}
+          <div className="chart-card-container">
+            <div className="mb-5">
+              <h3 className="text-[1.05rem] font-[700] tracking-[-0.04em] text-ink-900 m-0 mb-1 font-display">
+                Total Views per Bulan
+              </h3>
+              <span className="text-[.78rem] text-ink-500">Januari – Juni 2026</span>
             </div>
-            <div style={{ width: "100%", height: 220 }}>
+            <div className="chart-inner">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={VIEWS_DATA} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
                   <defs>
                     <linearGradient id="viewsGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f97316" stopOpacity={0.18} />
-                      <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                      <stop offset="5%"  stopColor="#f97316" stopOpacity={0.18} />
+                      <stop offset="95%" stopColor="#f97316" stopOpacity={0}    />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(17,24,39,.06)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#737f91", fontWeight: 700 }} axisLine={false} tickLine={false} />
-                  <YAxis tickFormatter={formatViews} tick={{ fontSize: 11, fill: "#737f91", fontWeight: 700 }} axisLine={false} tickLine={false} />
-                  <Tooltip formatter={(v: unknown) => [formatViews(Number(v)), "Views"]} contentStyle={{ borderRadius: 16, border: "1px solid rgba(17,24,39,.10)", boxShadow: "0 12px 28px rgba(15,23,42,.10)", fontFamily: "var(--font-plus-jakarta-sans), sans-serif", fontSize: ".82rem" }} />
-                  <Area type="monotone" dataKey="views" stroke="#f97316" strokeWidth={2.5} fill="url(#viewsGrad)" dot={{ fill: "#f97316", r: 4, strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                  <XAxis dataKey="month" tick={AXIS_TICK}   axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={formatViews} tick={Y_AXIS_TICK} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    formatter={(v: unknown) => [formatViews(Number(v)), "Views"]}
+                    contentStyle={TOOLTIP_STYLE}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="views"
+                    stroke="#f97316"
+                    strokeWidth={2.5}
+                    fill="url(#viewsGrad)"
+                    dot={{ fill: "#f97316", r: 4, strokeWidth: 0 }}
+                    activeDot={{ r: 6 }}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          {/* Kreator chart */}
-          <div style={{ padding: "22px", borderRadius: 24, background: "rgba(255,255,255,.92)", border: "1px solid rgba(17,24,39,.08)", boxShadow: "0 8px 24px rgba(15,23,42,.06)" }}>
-            <div style={{ marginBottom: 20 }}>
-              <h3 style={{ fontFamily: "var(--font-plus-jakarta-sans), Sora, sans-serif", fontSize: "1.05rem", fontWeight: 700, letterSpacing: "-.04em", color: "#182033", margin: "0 0 4px" }}>Kreator Bergabung</h3>
-              <span style={{ color: "#737f91", fontSize: ".78rem" }}>Akumulasi per bulan</span>
+          {/* Kreator BarChart */}
+          <div className="chart-card-container">
+            <div className="mb-5">
+              <h3 className="text-[1.05rem] font-[700] tracking-[-0.04em] text-ink-900 m-0 mb-1 font-display">
+                Kreator Bergabung
+              </h3>
+              <span className="text-[.78rem] text-ink-500">Akumulasi per bulan</span>
             </div>
-            <div style={{ width: "100%", height: 220 }}>
+            <div className="chart-inner">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={VIEWS_DATA} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(17,24,39,.06)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#737f91", fontWeight: 700 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: "#737f91", fontWeight: 700 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: 16, border: "1px solid rgba(17,24,39,.10)", boxShadow: "0 12px 28px rgba(15,23,42,.10)", fontFamily: "var(--font-plus-jakarta-sans), sans-serif", fontSize: ".82rem" }} />
+                  <XAxis dataKey="month" tick={AXIS_TICK}   axisLine={false} tickLine={false} />
+                  <YAxis                 tick={Y_AXIS_TICK}  axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} />
                   <Bar dataKey="kreator" fill="#1e3a5f" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -113,15 +147,28 @@ export function AnalitikClient({ businessName }: AnalitikClientProps) {
         </div>
 
         {/* Top campaigns */}
-        <div style={{ padding: "22px", borderRadius: 24, background: "rgba(255,255,255,.92)", border: "1px solid rgba(17,24,39,.08)", boxShadow: "0 8px 24px rgba(15,23,42,.06)" }}>
-          <h3 style={{ fontFamily: "var(--font-plus-jakarta-sans), Sora, sans-serif", fontSize: "1.05rem", fontWeight: 700, letterSpacing: "-.04em", color: "#182033", margin: "0 0 18px" }}>Campaign Terbaik</h3>
-          <div style={{ display: "grid", gap: 10 }}>
+        <div className="chart-card-container">
+          <h3 className="text-[1.05rem] font-[700] tracking-[-0.04em] text-ink-900 mb-4 font-display">
+            Campaign Terbaik
+          </h3>
+          <div className="grid gap-2.5">
             {TOP_CAMPAIGNS.map((c, i) => (
-              <div key={c.name} style={{ display: "grid", gridTemplateColumns: "28px 1fr auto auto", gap: 14, alignItems: "center", padding: "13px 16px", borderRadius: 16, background: "#f8fafc", border: "1px solid rgba(17,24,39,.06)" }}>
-                <span style={{ width: 28, height: 28, borderRadius: 10, display: "grid", placeItems: "center", background: `${c.color}18`, color: c.color, fontFamily: "var(--font-plus-jakarta-sans), Sora, sans-serif", fontSize: ".8rem", fontWeight: 800 }}>{i + 1}</span>
-                <strong style={{ fontSize: ".86rem", letterSpacing: "-.018em", color: "#182033" }}>{c.name}</strong>
-                <span style={{ color: "#737f91", fontSize: ".82rem", fontWeight: 700, whiteSpace: "nowrap" }}>{c.views} views</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, minHeight: 24, padding: "0 9px", borderRadius: 999, background: "#f1fbf5", border: "1px solid rgba(22,163,74,.20)", color: "#177b42", fontSize: ".74rem", fontWeight: 800, whiteSpace: "nowrap" }}>
+              <div
+                key={c.name}
+                className="grid items-center gap-3.5 p-3 sm:p-4 rounded-2xl bg-ink-100/60 border border-ink-900/[.06]"
+                style={{ gridTemplateColumns: "28px 1fr auto auto" }}
+              >
+                <span
+                  className="w-7 h-7 rounded-[10px] grid place-items-center text-[.8rem] font-[800] font-display shrink-0"
+                  style={{ background: `${c.color}18`, color: c.color }}
+                >
+                  {i + 1}
+                </span>
+                <strong className="text-[.86rem] tracking-tight text-ink-900 truncate min-w-0">
+                  {c.name}
+                </strong>
+                <span className="text-[.82rem] font-[700] text-ink-500 whitespace-nowrap">{c.views} views</span>
+                <span className="inline-flex items-center gap-1 min-h-[24px] px-2 rounded-full bg-green-50 border border-green-200/60 text-green-700 text-[.74rem] font-[800] whitespace-nowrap">
                   <ArrowUp size={10} /> {c.roi}
                 </span>
               </div>
@@ -129,11 +176,6 @@ export function AnalitikClient({ businessName }: AnalitikClientProps) {
           </div>
         </div>
 
-        <style jsx>{`
-          @media (min-width: 900px) {
-            .chart-grid { grid-template-columns: 1fr 1fr !important; }
-          }
-        `}</style>
       </div>
     </UmkmDashboardChrome>
   );
