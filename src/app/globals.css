@@ -1004,6 +1004,17 @@
   align-items: center;
 }
 
+/* --- Bento Grid (12-column, used for ActiveCampaignCard / EscrowSummaryCard layout) --- */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .bento-grid { gap: 24px; }
+}
+
 /* --- Responsive Card Grid (1→2→3→4 columns) --- */
 .responsive-card-grid {
   display: grid;
