@@ -150,7 +150,7 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
           />
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+          <div className="dashboard-rule-grid mb-7">
             <CreatorMetricCard
               label="Negosiasi Aktif"
               value={countNegotiation}
