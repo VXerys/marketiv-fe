@@ -1,7 +1,6 @@
 "use client";
 
 import { Campaign } from "@/types/umkm-dashboard.types";
-import { DashboardCard } from "../../shared";
 
 interface CampaignHealthChecklistCardProps {
   campaign: Campaign;
@@ -81,7 +80,7 @@ export function CampaignHealthChecklistCard({
   };
 
   return (
-    <DashboardCard variant="default">
+    <div className="panel">
       <div className="p-5 border-b border-border-soft">
         <h3 className="text-xs font-extrabold text-text-primary uppercase tracking-wider">
           Campaign Health Checklist
@@ -102,6 +101,6 @@ export function CampaignHealthChecklistCard({
           </div>
         ))}
       </div>
-    </DashboardCard>
+    </div>
   );
 }

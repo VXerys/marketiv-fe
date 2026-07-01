@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Transaction, UmkmFinanceSummary, EscrowOverview } from "@/types/umkm-dashboard.types";
 import { getTransactions } from "@/services/umkm/umkm-dashboard.service";
 import { FinanceHeader } from "./FinanceHeader";
@@ -43,7 +43,7 @@ export function FinanceOverviewPage() {
   });
 
   // Fetch initial transactions
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -53,16 +53,17 @@ export function FinanceOverviewPage() {
       } else {
         setError(res.error || "Gagal mengambil data transaksi");
       }
-    } catch (err: any) {
-      setError(err?.message || "Terjadi kesalahan sistem");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Terjadi kesalahan sistem";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Recalculate summary metrics from the local transaction state
   const computedSummary: UmkmFinanceSummary = (() => {

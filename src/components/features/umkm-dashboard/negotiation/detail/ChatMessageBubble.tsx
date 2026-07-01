@@ -26,10 +26,8 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
     <div className={cn("flex w-full mb-3.5", isMe ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "max-w-[80%] sm:max-w-[70%] p-3.5 rounded-2xl border text-xs font-medium leading-relaxed shadow-3xs flex flex-col justify-between space-y-1.5",
-          isMe
-            ? "bg-primary text-white border-primary rounded-tr-xs"
-            : "bg-white text-text-primary border-border-subtle rounded-tl-xs"
+          "bubble text-xs font-semibold leading-relaxed flex flex-col justify-between space-y-1.5",
+          isMe ? "out" : "in"
         )}
       >
         {/* Message Content */}
@@ -40,7 +38,7 @@ export function ChatMessageBubble({ message }: ChatMessageBubbleProps) {
         {/* Message Timestamp & Read state */}
         <div
           className={cn(
-            "flex items-center justify-end gap-1 text-[8px] font-bold",
+            "flex items-center justify-end gap-1 text-[8px] font-bold mt-1.5",
             isMe ? "text-white/75" : "text-text-muted"
           )}
         >

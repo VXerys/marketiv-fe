@@ -20,9 +20,7 @@ export function CustomOfferCard({ message, onPay, orderStatus }: CustomOfferCard
 
   return (
     <div className="flex justify-center my-6 w-full select-none">
-      <div className="w-full max-w-lg rounded-2xl border border-primary-200/50 bg-primary-50/10 p-5 space-y-4 shadow-sm relative overflow-hidden">
-        {/* Glow corner strip */}
-        <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-primary to-primary-600" />
+      <div className="offer-card w-full max-w-lg space-y-4 relative overflow-hidden">
         
         {/* Title & Badge */}
         <div className="flex items-center justify-between gap-3 border-b border-border-soft pb-3">

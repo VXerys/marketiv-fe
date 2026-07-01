@@ -18,7 +18,7 @@ export function DealChecklistCard({ orderStatus }: DealChecklistCardProps) {
   ];
 
   return (
-    <div className="rounded-2xl border border-border-soft bg-white p-5 space-y-4 shadow-2xs select-none">
+    <div className="panel p-5 space-y-4 select-none">
       <div className="flex items-center gap-2 border-b border-border-soft pb-3">
         <svg className="w-4 h-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

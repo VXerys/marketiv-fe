@@ -7,6 +7,7 @@ import Image from "next/image";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { DashboardCard, DashboardBadge, DashboardModal, DashboardButton, DashboardStateCard } from "@/components/features/dashboard/shared";
+import { toast } from "sonner";
 
 interface ActiveWorkDetailViewProps {
   work: CreatorActiveWork | null;
@@ -30,11 +31,9 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    toast.success(msg);
   };
 
   const getSubStatusLabel = (w: CreatorActiveWork): string => {
@@ -150,16 +149,6 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto relative">
-      {/* Toast */}
-      {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-neutral-900 text-white text-xs font-bold py-3 px-5 rounded-xl shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-300 flex items-center gap-2">
-          <svg className="w-4.5 h-4.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
       {/* Simulator Control Panel */}
       <div className="mb-6 bg-white/70 backdrop-blur-md border border-neutral-200/50 p-4 rounded-2xl flex flex-wrap gap-4 items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.01)] text-xs font-bold text-neutral-700 shrink-0">
         <div className="flex items-center gap-2 text-neutral-900">

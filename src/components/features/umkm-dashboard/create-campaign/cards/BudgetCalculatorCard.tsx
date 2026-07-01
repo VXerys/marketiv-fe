@@ -1,5 +1,4 @@
 import { formatCurrency, formatCompactNumber } from "@/lib/formatters";
-import { DashboardCard } from "@/components/features/umkm-dashboard/shared/DashboardCard";
 import { DashboardBadge } from "@/components/features/umkm-dashboard/shared/DashboardBadge";
 import { DashboardProgress } from "@/components/features/umkm-dashboard/shared/DashboardProgress";
 
@@ -32,7 +31,7 @@ export function BudgetCalculatorCard({
   const effectivenessPercent = Math.min(100, Math.max(25, (estimatedViews / 500000) * 100));
 
   return (
-    <DashboardCard className="bg-neutral-50/45 border border-border-soft/60 p-5.5 space-y-4">
+    <div className="panel bg-neutral-50/45 p-5.5 space-y-4">
       <div className="flex items-center justify-between gap-4 border-b border-border-soft/50 pb-3">
         <span className="text-[10px] font-extrabold text-text-secondary uppercase tracking-wider">
           Kalkulasi Estimasi Anggaran
@@ -96,6 +95,6 @@ export function BudgetCalculatorCard({
           className="pt-2.5"
         />
       )}
-    </DashboardCard>
+    </div>
   );
 }

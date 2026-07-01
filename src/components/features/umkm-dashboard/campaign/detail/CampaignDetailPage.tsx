@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { CampaignDetailHeader } from "./CampaignDetailHeader";
 import { CampaignOverviewCards } from "./CampaignOverviewCards";
@@ -19,9 +19,9 @@ import {
 } from "@/services/umkm/umkm-dashboard.service";
 import {
   Campaign,
+  UmkmProfile,
   CampaignSubmission,
   SubmissionStatus,
-  UmkmProfile,
 } from "@/types/umkm-dashboard.types";
 
 // Modals
@@ -29,6 +29,8 @@ import { CancelCampaignModal } from "../modals/CancelCampaignModal";
 import { ExportReportModal } from "../modals/ExportReportModal";
 import { ReviewSubmissionModal } from "../modals/ReviewSubmissionModal";
 import { SubmissionDetailModal } from "../modals/SubmissionDetailModal";
+
+import { toast } from "sonner";
 
 interface CampaignDetailPageProps {
   campaignId: string;
@@ -49,15 +51,12 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
   const [activeReviewSubmission, setActiveReviewSubmission] = useState<CampaignSubmission | null>(null);
   const [activeDetailSubmission, setActiveDetailSubmission] = useState<CampaignSubmission | null>(null);
 
-  // Local feedback notification simulation
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
+  // Local feedback notification simulation via Sonner
   const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    toast.success(msg);
   };
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -80,16 +79,17 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
       if (submissionsRes.success && submissionsRes.data) {
         setSubmissions(submissionsRes.data);
       }
-    } catch (err: any) {
-      setError(err?.message || "Terjadi kesalahan koneksi.");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Terjadi kesalahan koneksi.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [campaignId]);
 
   useEffect(() => {
     loadData();
-  }, [campaignId]);
+  }, [loadData]);
 
   // Handle audit status updates locally
   const handleReviewConfirm = (status: SubmissionStatus, notes: string) => {
@@ -131,7 +131,7 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
 
     const statusLabel =
       status === "valid" ? "Disetujui" : status === "fraud" ? "Ditandai Fraud" : "Disengketakan";
-    showToast(`Ulasan oleh "${activeReviewSubmission.creatorName}" berhasil ${statusLabel}.`);
+    showToast(`Ulasan oleh "${activeReviewSubmission.creatorName}" berhasil ${statusLabel}. Catatan: ${notes || "-"}`);
   };
 
   const handleCancelConfirm = () => {
@@ -166,16 +166,6 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
     <UmkmDashboardChrome businessName={businessName}>
       <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-32 overflow-y-auto relative">
         
-        {/* Toast Toast simulation */}
-        {toastMessage && (
-          <div className="fixed bottom-5 right-5 z-50 bg-neutral-900 text-white text-xs font-bold py-3 px-5 rounded-xl shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-300 flex items-center gap-2">
-            <svg className="w-4.5 h-4.5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>{toastMessage}</span>
-          </div>
-        )}
-
         {/* Detail Header */}
         <CampaignDetailHeader
           campaign={campaign}

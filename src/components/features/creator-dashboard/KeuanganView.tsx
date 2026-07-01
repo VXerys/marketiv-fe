@@ -479,7 +479,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
             {/* Ledger Table */}
             {simulatedState === "loading" ? (
               <div className="overflow-x-auto w-full">
-                <table className="w-full text-left border-collapse text-xs font-semibold text-neutral-600">
+                <table className="w-full min-w-[768px] text-left border-collapse text-xs font-semibold text-neutral-600">
                   <thead>
                     <tr className="border-b border-neutral-200 text-[10px] font-bold uppercase tracking-wider text-neutral-400">
                       <th className="pb-3 pr-4">ID Transaksi</th>
@@ -525,7 +525,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
               />
             ) : (
               <div className="overflow-x-auto w-full">
-                <table className="w-full text-left border-collapse text-xs font-semibold text-neutral-600">
+                <table className="w-full min-w-[768px] text-left border-collapse text-xs font-semibold text-neutral-600">
                   <thead>
                     <tr className="border-b border-neutral-200 text-[10px] font-bold uppercase tracking-wider text-neutral-400">
                       <th className="pb-3 pr-4">ID Transaksi</th>

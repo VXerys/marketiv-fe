@@ -1,22 +1,15 @@
-/**
- * Skeleton — UI Primitive
- *
- * Lightweight loading placeholder.
- * Uses a simple CSS pulse animation (no external animation library).
- * Use as a drop-in replacement for content during async loads.
- *
- * Tokens:  @theme design tokens from globals.css
- */
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
-type SkeletonProps = React.HTMLAttributes<HTMLDivElement>;
-
-export function Skeleton({ className, ...props }: SkeletonProps) {
+function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-neutral-200", className)}
+      data-slot="skeleton"
+      className={cn("bg-accent animate-pulse rounded-md skeleton", className)}
       aria-hidden="true"
       {...props}
     />
   );
 }
+
+export { Skeleton };

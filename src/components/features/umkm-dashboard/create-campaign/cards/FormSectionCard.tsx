@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { DashboardCard } from "@/components/features/umkm-dashboard/shared/DashboardCard";
 
 interface FormSectionCardProps {
   title?: string;
@@ -20,9 +19,9 @@ export function FormSectionCard({
   badge,
 }: FormSectionCardProps) {
   return (
-    <DashboardCard
+    <div
       className={cn(
-        "bg-amber-50/15 backdrop-blur-md relative overflow-hidden rounded-[28px] border border-neutral-200/50",
+        "panel relative overflow-hidden",
         className
       )}
     >
@@ -59,6 +58,6 @@ export function FormSectionCard({
           {children}
         </div>
       </div>
-    </DashboardCard>
+    </div>
   );
 }

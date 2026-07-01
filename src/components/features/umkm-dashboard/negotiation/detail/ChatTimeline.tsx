@@ -21,7 +21,7 @@ export function ChatTimeline({ messages, onPayOffer, orderStatus }: ChatTimeline
   }, [messages]);
 
   return (
-    <div className="rounded-2xl border border-border-soft bg-neutral-50/25 p-4 sm:p-5 min-h-[420px] max-h-[500px] overflow-y-auto scrollbar-thin">
+    <div className="chat-card min-h-[420px] max-h-[500px] overflow-y-auto scrollbar-thin">
       {messages.length > 0 ? (
         <div className="space-y-1">
           {messages.map((msg) => {

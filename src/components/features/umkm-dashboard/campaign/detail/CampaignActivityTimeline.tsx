@@ -206,8 +206,8 @@ export function CampaignActivityTimeline({ campaign }: CampaignActivityTimelineP
   };
 
   return (
-    <DashboardCard variant="default">
-      <div className="p-6 border-b border-border-soft flex items-start justify-between gap-4">
+    <div className="panel p-6">
+      <div className="pb-6 border-b border-border-soft flex items-start justify-between gap-4 mb-6">
         <div className="space-y-1">
           <h3 className="text-sm font-extrabold text-text-primary uppercase tracking-wider">
             Riwayat Aktivitas
@@ -220,29 +220,28 @@ export function CampaignActivityTimeline({ campaign }: CampaignActivityTimelineP
           {events.length} Aktivitas
         </span>
       </div>
-      <div className="p-6 space-y-3">
+      
+      <div className="timeline">
         {displayedEvents.map((event, i) => (
-          <div
-            key={i}
-            className="p-3.5 bg-neutral-50/40 hover:bg-neutral-50/80 rounded-xl border border-border-soft/60 flex items-start justify-between gap-3.5 transition-all duration-200"
-          >
-            <div className="flex items-start gap-3 min-w-0">
-              <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${getBgColor(event.type)}`}>
-                {getIcon(event.type)}
-              </div>
-              <div className="min-w-0 pt-0.5">
-                <p className="text-xs font-extrabold text-text-primary leading-tight">{event.title}</p>
-                <p className="text-[10px] text-text-muted mt-1 leading-normal line-clamp-2">{event.desc}</p>
-              </div>
+          <div key={i} className="timeline-item">
+            <div className={`timeline-dot ${getBgColor(event.type)}`}>
+              {getIcon(event.type)}
             </div>
-            <span className="text-[9px] font-bold text-text-secondary shrink-0 bg-white border border-border-soft px-2 py-0.5 rounded-md self-start shadow-2xs">
-              {formatCompactDate(event.date)}
-            </span>
+            <div className="timeline-content">
+              <div className="flex items-start justify-between gap-2">
+                <strong className="text-xs font-bold text-text-primary leading-tight">{event.title}</strong>
+                <span className="text-[9px] font-bold text-text-secondary shrink-0 bg-white border border-border-soft px-2 py-0.5 rounded-md shadow-2xs">
+                  {formatCompactDate(event.date)}
+                </span>
+              </div>
+              <span className="text-[10px] text-text-muted mt-1 leading-normal block">{event.desc}</span>
+            </div>
           </div>
         ))}
       </div>
+
       {events.length > 4 && (
-        <div className="px-6 pb-6 pt-1">
+        <div className="pt-6">
           <button
             onClick={() => setShowAll(!showAll)}
             className="w-full text-center py-2 text-[10px] font-extrabold text-primary bg-primary-50/60 hover:bg-primary-100/80 hover:text-primary-700 border border-primary-100/60 rounded-xl transition-all cursor-pointer"
@@ -251,6 +250,6 @@ export function CampaignActivityTimeline({ campaign }: CampaignActivityTimelineP
           </button>
         </div>
       )}
-    </DashboardCard>
+    </div>
   );
 }

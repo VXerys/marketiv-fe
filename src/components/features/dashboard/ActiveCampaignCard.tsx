@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { DashboardCard } from "./DashboardCard";
 import { MetricBlock } from "./MetricBlock";
 import { ProgressBar } from "./ProgressBar";
 import { StatusBadge } from "./StatusBadge";
@@ -14,7 +13,7 @@ interface ActiveCampaignCardProps {
 
 export function ActiveCampaignCard({ campaign }: ActiveCampaignCardProps) {
   return (
-    <DashboardCard className="col-span-12 lg:col-span-7 relative overflow-hidden group">
+    <div className="panel col-span-12 lg:col-span-7 relative overflow-hidden group h-full flex flex-col justify-between">
       {/* Blur accent glow */}
       <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/15 transition-colors duration-500 pointer-events-none"></div>
 
@@ -33,7 +32,7 @@ export function ActiveCampaignCard({ campaign }: ActiveCampaignCardProps) {
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-1">
-              <h3 className="text-lg sm:text-xl text-neutral-900 font-extrabold tracking-tight leading-tight">{campaign.title}</h3>
+              <h3 className="text-lg sm:text-xl text-neutral-900 font-display font-extrabold tracking-tight leading-tight">{campaign.title}</h3>
               <StatusBadge variant="active" withDot>
                 {campaign.status}
               </StatusBadge>
@@ -57,7 +56,7 @@ export function ActiveCampaignCard({ campaign }: ActiveCampaignCardProps) {
           label="Total Views"
           className="relative border-b sm:border-b-0 border-neutral-200/60 pb-4 sm:pb-0 sm:after:content-[''] sm:after:absolute sm:after:right-0 sm:after:top-1/2 sm:after:-translate-y-1/2 sm:after:h-12 sm:after:w-px sm:after:bg-neutral-200/80"
         >
-          <p className="text-2xl font-extrabold text-neutral-900 tracking-tight leading-none">{campaign.totalViews.toLocaleString("id-ID")}</p>
+          <p className="text-2xl font-display font-extrabold text-neutral-900 tracking-tight leading-none">{campaign.totalViews.toLocaleString("id-ID")}</p>
           <p className="text-[10px] text-green-600 font-bold mt-1.5 flex items-center gap-0.5 uppercase tracking-wider">
             {/* Trending Up SVG */}
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -71,13 +70,13 @@ export function ActiveCampaignCard({ campaign }: ActiveCampaignCardProps) {
           label="Budget Terpakai"
           className="relative border-b sm:border-b-0 border-neutral-200/60 pb-4 sm:pb-0 sm:after:content-[''] sm:after:absolute sm:after:right-0 sm:after:top-1/2 sm:after:-translate-y-1/2 sm:after:h-12 sm:after:w-px sm:after:bg-neutral-200/80"
         >
-          <p className="text-2xl font-extrabold text-neutral-900 tracking-tight leading-none">Rp {(campaign.budgetUsed / 1000000).toFixed(1)}Jt</p>
+          <p className="text-2xl font-display font-extrabold text-neutral-900 tracking-tight leading-none">Rp {(campaign.budgetUsed / 1000000).toFixed(1)}Jt</p>
           <p className="text-[10px] text-neutral-400 font-bold mt-1.5 uppercase tracking-wider">Dari Rp {(campaign.budgetTotal / 1000000).toFixed(1)}Jt</p>
         </MetricBlock>
 
         <MetricBlock label="Kreator Aktif" className="relative pt-2 sm:pt-0">
           <div className="flex items-baseline gap-0.5 leading-none">
-            <p className="text-2xl font-extrabold text-neutral-900 tracking-tight">{campaign.activeCreatorsCount}</p>
+            <p className="text-2xl font-display font-extrabold text-neutral-900 tracking-tight">{campaign.activeCreatorsCount}</p>
             <p className="text-xs text-neutral-400 font-bold uppercase tracking-wider">/ {campaign.targetCreatorsCount}</p>
           </div>
           {/* Avatar stack */}
@@ -98,6 +97,6 @@ export function ActiveCampaignCard({ campaign }: ActiveCampaignCardProps) {
         </div>
         <ProgressBar value={campaign.progressPercent} />
       </div>
-    </DashboardCard>
+    </div>
   );
 }

@@ -1,4 +1,3 @@
-import { DashboardCard } from "./DashboardCard";
 import type { EscrowBalance } from "@/types/umkmDashboard";
 
 interface EscrowSummaryCardProps {
@@ -6,8 +5,12 @@ interface EscrowSummaryCardProps {
 }
 
 export function EscrowSummaryCard({ escrow }: EscrowSummaryCardProps) {
+  const handleViewTransactions = () => {
+    window.location.href = "/dashboard/umkm/keuangan";
+  };
+
   return (
-    <DashboardCard className="col-span-12 lg:col-span-5 glass-panel-dark text-white relative overflow-hidden shadow-[0_20px_50px_rgba(16,32,51,0.2)]">
+    <div className="wallet-card col-span-12 lg:col-span-5 relative overflow-hidden h-full">
       {/* Subtle watermark shield lock background */}
       <div className="absolute right-2 top-2 opacity-[0.03] text-white pointer-events-none transform translate-x-4 -translate-y-4 scale-125">
         <svg className="w-48 h-48" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
@@ -38,7 +41,7 @@ export function EscrowSummaryCard({ escrow }: EscrowSummaryCardProps) {
 
         <div className="my-auto py-2">
           <p className="text-white/60 text-xs font-bold uppercase tracking-wider mb-1">Total Saldo Aman</p>
-          <p className="text-4xl lg:text-[44px] mb-4 font-extrabold tracking-tight leading-none drop-shadow-sm">
+          <p className="text-4xl lg:text-[44px] mb-4 font-display font-extrabold tracking-tight leading-none drop-shadow-sm">
             Rp {escrow.totalAmount.toLocaleString("id-ID")}
           </p>
           <p className="text-xs text-white/70 leading-relaxed max-w-[90%] border-l-2 border-primary/50 pl-3">
@@ -46,7 +49,10 @@ export function EscrowSummaryCard({ escrow }: EscrowSummaryCardProps) {
           </p>
         </div>
 
-        <button className="mt-8 w-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm py-3.5 rounded-xl transition-all border border-white/15 backdrop-blur-md shadow-lg flex items-center justify-center gap-2 group hover:shadow-xl">
+        <button 
+          onClick={handleViewTransactions}
+          className="mt-8 w-full bg-white/10 hover:bg-white/20 text-white font-bold text-sm py-3.5 rounded-xl transition-all border border-white/15 backdrop-blur-md shadow-lg flex items-center justify-center gap-2 group hover:shadow-xl cursor-pointer"
+        >
           <span>Riwayat Transaksi</span>
           <span>
             {/* Simple Right Arrow SVG */}
@@ -56,6 +62,6 @@ export function EscrowSummaryCard({ escrow }: EscrowSummaryCardProps) {
           </span>
         </button>
       </div>
-    </DashboardCard>
+    </div>
   );
 }

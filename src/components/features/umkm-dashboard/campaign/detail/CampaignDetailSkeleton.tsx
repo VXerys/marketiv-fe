@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function CampaignDetailSkeleton() {
   return (
-    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto space-y-6 animate-pulse">
+    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto space-y-6">
       
       {/* Header Back Button */}
       <Skeleton className="h-4 w-36" />

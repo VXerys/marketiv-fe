@@ -55,7 +55,7 @@ export function CampaignDetailHeader({
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2.5 mb-2.5">
-              <h2 className="text-xl sm:text-2xl font-extrabold text-text-primary tracking-tight leading-none">
+              <h2 className="text-xl sm:text-2xl font-display font-extrabold text-text-primary tracking-tight leading-none">
                 {campaign.title}
               </h2>
               <DashboardBadge type="status" value={campaign.status} />

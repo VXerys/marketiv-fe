@@ -1,106 +1,78 @@
-/**
- * Textarea — UI Primitive
- *
- * Accessible multi-line input with:
- * - Optional label
- * - Helper text
- * - Error message
- * - Disabled state
- * - Focus ring using orange (border-focus token)
- * - forwardRef compatible
- *
- * Uses:    cn
- * Tokens:  @theme design tokens from globals.css
- */
-"use client";
-
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-interface TextareaProps
-  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  /** Visible label above the textarea. */
+interface TextareaProps extends React.ComponentProps<"textarea"> {
   label?: string;
-  /** Helper text below the textarea. */
   helperText?: string;
-  /** Error message — replaces helperText and marks field invalid. */
   error?: string;
-  /** ID for label association. Defaults to `name` prop if not provided. */
-  id?: string;
+  ref?: React.Ref<HTMLTextAreaElement>;
 }
 
-export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  function Textarea(
-    { label, helperText, error, id, name, className, disabled, ...props },
-    ref
-  ) {
-    const textareaId = id ?? name;
-    const hasError = !!error;
+function Textarea({ className, label, helperText, error, id, name, disabled, ref, ...props }: TextareaProps) {
+  const textareaId = id ?? name;
+  const hasError = !!error;
 
-    return (
-      <div className="flex flex-col gap-1.5">
-        {label && (
-          <label
-            htmlFor={textareaId}
-            className={cn(
-              "text-body-medium text-text-primary",
-              disabled && "opacity-50"
-            )}
-          >
-            {label}
-          </label>
-        )}
+  const textareaEl = (
+    <textarea
+      ref={ref}
+      id={textareaId}
+      name={name}
+      disabled={disabled}
+      data-slot="textarea"
+      aria-invalid={hasError}
+      aria-describedby={
+        hasError
+          ? `${textareaId}-error`
+          : helperText
+            ? `${textareaId}-helper`
+            : undefined
+      }
+      className={cn(
+        "resize-none border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-md border bg-input-background px-3 py-2 text-base transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        hasError && "border-danger focus:ring-danger focus-visible:border-destructive",
+        className,
+      )}
+      {...props}
+    />
+  );
 
-        <textarea
-          ref={ref}
-          id={textareaId}
-          name={name}
-          disabled={disabled}
-          aria-invalid={hasError}
-          aria-describedby={
-            hasError
-              ? `${textareaId}-error`
-              : helperText
-                ? `${textareaId}-helper`
-                : undefined
-          }
-          className={cn(
-            // Base
-            "w-full rounded-md border bg-surface px-3.5 py-2.5 min-h-[100px]",
-            "text-body-base text-text-primary placeholder:text-text-muted",
-            "transition-colors duration-150 resize-y",
-            // Border
-            "border-border-subtle",
-            // Focus
-            "focus:outline-none focus:ring-2 focus:ring-border-focus focus:border-border-focus",
-            // Error
-            hasError && "border-danger focus:ring-danger",
-            // Disabled
-            "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-neutral-50",
-            className
-          )}
-          {...props}
-        />
-
-        {hasError && (
-          <p
-            id={`${textareaId}-error`}
-            role="alert"
-            className="text-caption text-danger"
-          >
-            {error}
-          </p>
-        )}
-
-        {!hasError && helperText && (
-          <p
-            id={`${textareaId}-helper`}
-            className="text-caption text-text-muted"
-          >
-            {helperText}
-          </p>
-        )}
-      </div>
-    );
+  if (!label && !helperText && !error) {
+    return textareaEl;
   }
-);
+
+  return (
+    <div className="flex flex-col gap-1.5 w-full">
+      {label && (
+        <label
+          htmlFor={textareaId}
+          className={cn(
+            "text-body-medium text-text-primary text-sm font-medium",
+            disabled && "opacity-50"
+          )}
+        >
+          {label}
+        </label>
+      )}
+
+      {textareaEl}
+
+      {hasError && (
+        <p
+          id={`${textareaId}-error`}
+          role="alert"
+          className="text-caption text-destructive text-xs"
+        >
+          {error}
+        </p>
+      )}
+
+      {!hasError && helperText && (
+        <p id={`${textareaId}-helper`} className="text-caption text-muted-foreground text-xs">
+          {helperText}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export { Textarea };

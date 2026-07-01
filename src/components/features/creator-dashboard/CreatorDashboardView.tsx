@@ -5,6 +5,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
 import {
   CreatorProfile,
   CreatorMetric,
@@ -60,11 +61,8 @@ export function CreatorDashboardView({
   const [submitPlatform, setSubmitPlatform] = useState<"tiktok" | "instagram">("tiktok");
   const [submitUrl, setSubmitUrl] = useState("");
 
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
   const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    toast.success(msg);
   };
 
   // Simulated handlers
@@ -247,15 +245,6 @@ export function CreatorDashboardView({
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto relative">
-      {/* Toast */}
-      {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-neutral-900 text-white text-xs font-bold py-3 px-5 rounded-xl shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-300 flex items-center gap-2">
-          <svg className="w-4.5 h-4.5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>{toastMessage}</span>
-        </div>
-      )}
 
       {/* Simulator Dashboard Controls Bar (Premium Slicing Feature) */}
       <div className="mb-6 bg-white/70 backdrop-blur-md border border-neutral-200/50 p-4 rounded-2xl flex flex-wrap gap-4 items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.01)] text-xs font-bold text-neutral-700">
