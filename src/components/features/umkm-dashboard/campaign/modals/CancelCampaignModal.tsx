@@ -39,7 +39,7 @@ export function CancelCampaignModal({
 
         <h3 className="text-lg font-bold text-text-primary mb-2">Batalkan Campaign?</h3>
         <p className="text-sm text-text-secondary mb-4 leading-relaxed">
-          Apakah Anda yakin ingin membatalkan campaign <span className="font-semibold text-text-primary">"{campaignTitle}"</span>? Sisa budget di escrow akan dikembalikan setelah dikurangi biaya platform yang sudah berjalan. Aksi ini tidak dapat dibatalkan.
+          Apakah Anda yakin ingin membatalkan campaign <span className="font-semibold text-text-primary">&quot;{campaignTitle}&quot;</span>? Sisa budget di escrow akan dikembalikan setelah dikurangi biaya platform yang sudah berjalan. Aksi ini tidak dapat dibatalkan.
         </p>
 
         {/* Textarea Reason */}

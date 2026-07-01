@@ -1,6 +1,6 @@
 import { Campaign } from "@/types/umkm-dashboard.types";
 import { formatCurrency } from "@/lib/formatters";
-import { DashboardCard, DashboardProgress } from "../../shared";
+import { DashboardProgress } from "../../shared";
 
 interface CampaignBudgetCardProps {
   campaign: Campaign;
@@ -15,7 +15,7 @@ export function CampaignBudgetCard({ campaign }: CampaignBudgetCardProps) {
   const totalPayment = campaign.totalBudgetEscrow + platformFee;
 
   return (
-    <DashboardCard variant="default">
+    <div className="panel">
       <div className="p-6 border-b border-border-soft">
         <h3 className="text-sm font-extrabold text-text-primary uppercase tracking-wider">
           Alokasi Budget & Escrow
@@ -62,6 +62,6 @@ export function CampaignBudgetCard({ campaign }: CampaignBudgetCardProps) {
         </div>
 
       </div>
-    </DashboardCard>
+    </div>
   );
 }

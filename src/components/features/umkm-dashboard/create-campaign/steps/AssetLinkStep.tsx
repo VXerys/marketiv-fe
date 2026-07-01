@@ -35,12 +35,17 @@ export function AssetLinkStep({
         </label>
         
         {/* Dropzone-style URL input container */}
-        <div className="border-2 border-dashed border-neutral-300 hover:border-primary/50 bg-neutral-50/50 p-6 rounded-2xl flex flex-col items-center justify-center text-center transition-all">
-          <svg className="w-8 h-8 text-text-muted mb-2.5 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-          </svg>
-          <span className="block text-[11px] font-bold text-text-primary mb-3">
+        <div className="upload-card">
+          <div className="upload-icon shadow-sm border border-neutral-100/60 mb-2">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+            </svg>
+          </div>
+          <strong className="block text-xs font-bold text-text-primary mt-2 mb-1">
             Tautkan Folder Google Drive / Dropbox / OneDrive Anda
+          </strong>
+          <span className="block text-[10px] text-text-muted mb-4 max-w-sm">
+            Tautan publik folder media eksternal berisi video dan foto produk.
           </span>
           
           <input

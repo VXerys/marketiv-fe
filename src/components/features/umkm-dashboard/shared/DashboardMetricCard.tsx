@@ -72,7 +72,7 @@ export function DashboardMetricCard({
           <span className="block text-[10px] font-extrabold text-text-muted uppercase tracking-wider truncate">
             {label}
           </span>
-          <h3 className="text-xl sm:text-2xl font-black text-text-primary tracking-tight truncate leading-none">
+          <h3 className="text-xl sm:text-2xl font-display font-black text-text-primary tracking-tight truncate leading-none">
             {renderValue()}
           </h3>
           

@@ -1,35 +1,27 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 interface CreatorDashboardTopbarProps {
   creatorName: string;
   creatorAvatar: string;
-  onOpenSidebar: () => void;
+  onOpenSidebar?: () => void;
 }
 
 export function CreatorDashboardTopbar({
   creatorName,
   creatorAvatar,
-  onOpenSidebar,
 }: CreatorDashboardTopbarProps) {
   return (
     <header className="topbar-glass sticky top-0 z-40 flex justify-between items-center px-4 sm:px-6 lg:px-8 py-4 shadow-[0_2px_12px_rgba(16,32,51,0.01)] h-[76px]">
       <div className="flex items-center gap-3">
-        {/* Toggle Sidebar hamburger */}
-        <button
-          className="lg:hidden p-2 -ml-2 rounded-xl text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-all cursor-pointer"
-          onClick={onOpenSidebar}
-        >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
-        </button>
+        {/* Toggle Sidebar trigger */}
+        <SidebarTrigger className="p-2 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-all cursor-pointer rounded-xl h-10 w-10 flex items-center justify-center shrink-0 [&_svg]:size-5" />
+        
         <div className="flex flex-col">
           <div className="flex items-center gap-3">
-            {/* Mobile Branding */}
-            <div className="lg:hidden w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-700 flex items-center justify-center shadow-md">
-              <span className="font-extrabold text-sm text-white">M</span>
-            </div>
             <h1 className="font-extrabold text-base lg:text-xl text-neutral-900 leading-none tracking-tight">
               Dashboard Kreator
             </h1>

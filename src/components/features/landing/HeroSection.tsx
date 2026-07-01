@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import landingPageBg from "@/assets/images/landing-page.png";
 import { LANDING_CONTENT } from "@/data/content";
 

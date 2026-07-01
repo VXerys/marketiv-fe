@@ -1,27 +1,29 @@
 import { type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type StatusBadgeVariant = "active" | "pending";
+export type StatusBadgeVariant = "active" | "pending" | "success" | "warning" | "error" | "normal";
 
 interface StatusBadgeProps {
   children: ReactNode;
   variant: StatusBadgeVariant;
-  withDot?: boolean;
+  withDot?: boolean; // In UI kit, the dot is automatically rendered by .badge::before, so we can ignore or hide it.
   className?: string;
 }
 
 const STATUS_BADGE_CLASSES: Record<StatusBadgeVariant, string> = {
-  active:
-    "bg-green-50 text-green-700 text-[11px] px-3 py-0.5 rounded-full border border-green-200/60 shadow-sm flex items-center gap-1.5 font-bold uppercase tracking-wider shrink-0",
-  pending:
-    "text-[9px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-amber-200/50 shadow-sm",
+  active: "badge green",
+  pending: "badge yellow",
+  success: "badge green",
+  warning: "badge yellow",
+  error: "badge red",
+  normal: "badge gray",
 };
 
-export function StatusBadge({ children, variant, withDot, className }: StatusBadgeProps) {
+export function StatusBadge({ children, variant, className }: StatusBadgeProps) {
   return (
     <span className={cn(STATUS_BADGE_CLASSES[variant], className)}>
-      {withDot && <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>}
       {children}
     </span>
   );
 }
+

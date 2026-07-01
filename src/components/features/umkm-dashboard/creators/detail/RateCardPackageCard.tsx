@@ -22,14 +22,12 @@ export function RateCardPackageCard({ pkg, onSelectPackage }: RateCardPackageCar
   return (
     <div
       className={cn(
-        "rounded-2xl border bg-white flex flex-col justify-between p-5 transition-all duration-350 select-none relative",
-        pkg.recommended
-          ? "border-primary shadow-[0_12px_28px_-8px_rgba(235,94,40,0.08)] scale-[1.01]"
-          : "border-border-soft shadow-2xs hover:border-neutral-300"
+        "price-card relative overflow-visible flex flex-col justify-between h-full select-none",
+        pkg.recommended && "featured"
       )}
     >
       {pkg.recommended && (
-        <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary text-[8px] font-extrabold uppercase tracking-widest text-white border border-white">
+        <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary text-[8px] font-extrabold uppercase tracking-widest text-white border border-white z-10 shadow-sm">
           Paling Populer
         </span>
       )}
@@ -40,11 +38,8 @@ export function RateCardPackageCard({ pkg, onSelectPackage }: RateCardPackageCar
           <h4 className="text-xs font-extrabold text-text-primary uppercase tracking-wider">
             {pkg.name}
           </h4>
-          <div className="flex items-baseline gap-1 mt-1.5">
-            <span className="text-base sm:text-lg font-extrabold text-primary tracking-tight">
-              {pkg.price}
-            </span>
-            <span className="text-[9px] font-bold text-text-muted">/ Konten</span>
+          <div className="price-value mt-2.5">
+            {pkg.price.split("/")[0]} <span className="text-xs block sm:inline font-bold">/ Konten</span>
           </div>
           <p className="text-[10px] text-text-secondary mt-1 font-semibold leading-relaxed">
             {pkg.description}
@@ -72,12 +67,9 @@ export function RateCardPackageCard({ pkg, onSelectPackage }: RateCardPackageCar
           <span className="block text-[8px] font-bold text-text-muted uppercase tracking-wider">
             Detail Deliverables
           </span>
-          <ul className="space-y-1.5">
+          <ul className="feature-list">
             {pkg.deliverables.map((item, idx) => (
-              <li key={idx} className="flex gap-2 text-[10px] font-semibold text-text-secondary leading-tight">
-                <span className="h-3.5 w-3.5 rounded-full bg-success-soft/35 text-success flex items-center justify-center shrink-0 text-[8px]">
-                  ✓
-                </span>
+              <li key={idx}>
                 <span>{item}</span>
               </li>
             ))}
@@ -92,7 +84,7 @@ export function RateCardPackageCard({ pkg, onSelectPackage }: RateCardPackageCar
           "w-full py-2.5 rounded-xl text-xs font-bold transition-all duration-200 mt-5 cursor-pointer shadow-2xs",
           pkg.recommended
             ? "bg-primary hover:bg-primary-600 text-white border border-primary hover:border-primary-600"
-            : "bg-neutral-50 hover:bg-neutral-100 text-text-primary border border-border-subtle hover:border-neutral-300"
+            : "bg-neutral-900 hover:bg-neutral-800 text-white"
         )}
       >
         Mulai Negosiasi

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { CampaignsHeader } from "./CampaignsHeader";
 import { CampaignSummaryCards } from "./CampaignSummaryCards";
@@ -29,6 +30,8 @@ import { CancelCampaignModal } from "./modals/CancelCampaignModal";
 import { DuplicateCampaignModal } from "./modals/DuplicateCampaignModal";
 import { ExportReportModal } from "./modals/ExportReportModal";
 
+import { toast } from "sonner";
+
 export function CampaignsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,15 +56,14 @@ export function CampaignsPage() {
   const [activeDuplicateCampaign, setActiveDuplicateCampaign] = useState<Campaign | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
-  // Toast / notification feedback simulator
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const router = useRouter();
 
+  // Toast / notification feedback simulator via Sonner
   const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3000);
+    toast.success(msg);
   };
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -83,7 +85,7 @@ export function CampaignsPage() {
         setCampaigns(campaignsRes.data);
 
         // Fetch submissions for all campaigns to calculate counts
-        const subCounts: typeof submissionCounts = {};
+        const subCounts: Record<string, { pending: number; valid: number; dispute: number }> = {};
         await Promise.all(
           campaignsRes.data.map(async (c) => {
             const subRes = await getCampaignSubmissions(c.id);
@@ -99,16 +101,17 @@ export function CampaignsPage() {
       } else {
         setError(campaignsRes.error || "Gagal memuat campaign.");
       }
-    } catch (err: any) {
-      setError(err?.message || "Terjadi kesalahan koneksi.");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Terjadi kesalahan koneksi.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const handleClearFilters = () => {
     setSearch("");
@@ -127,6 +130,16 @@ export function CampaignsPage() {
     sortBy,
   });
 
+  // Count per status tab
+  const statusCounts: Record<string, number> = {
+    all: campaigns.length,
+    active: campaigns.filter((c) => c.status === "active").length,
+    draft: campaigns.filter((c) => c.status === "draft").length,
+    full: campaigns.filter((c) => c.status === "full").length,
+    completed: campaigns.filter((c) => c.status === "completed").length,
+    cancelled: campaigns.filter((c) => c.status === "cancelled").length,
+  };
+
   // Modal actions
   const handleCancelConfirm = (reason: string) => {
     if (!activeCancelCampaign) return;
@@ -138,7 +151,7 @@ export function CampaignsPage() {
           : c
       )
     );
-    showToast(`Campaign "${activeCancelCampaign.title}" berhasil dibatalkan.`);
+    showToast(`Campaign "${activeCancelCampaign.title}" berhasil dibatalkan. Alasan: ${reason}`);
   };
 
   const handleDuplicateConfirm = (newTitle: string) => {
@@ -167,21 +180,13 @@ export function CampaignsPage() {
 
   return (
     <UmkmDashboardChrome businessName={businessName}>
-      <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto relative">
-        
-        {/* Toast Notification Banner */}
-        {toastMessage && (
-          <div className="fixed bottom-5 right-5 z-50 bg-neutral-900 text-white text-xs font-bold py-3 px-5 rounded-xl shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-300 flex items-center gap-2">
-            <svg className="w-4.5 h-4.5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>{toastMessage}</span>
-          </div>
-        )}
-
+      <div
+        className="flex-1 overflow-y-auto relative"
+        style={{ padding: "clamp(16px, 3vw, 28px)", display: "grid", gap: 0, maxWidth: 1440, alignContent: "start", width: "100%" }}
+      >
         {/* Header */}
         <CampaignsHeader
-          onCreateCampaignClick={() => showToast("Fitur Buat Campaign Baru diarahkan ke Wizard Pembuatan.")}
+          onCreateCampaignClick={() => {}}
           onExportReportClick={() => setIsExportModalOpen(true)}
         />
 
@@ -206,6 +211,7 @@ export function CampaignsPage() {
           onViewModeChange={setViewMode}
           onClearFilters={handleClearFilters}
           hasActiveFilters={hasActiveFilters}
+          statusCounts={statusCounts}
         />
 
         {/* List Content */}

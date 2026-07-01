@@ -79,7 +79,7 @@ export function CampaignHealthChecklist({
             Tips Langkah Ini
           </span>
           <p className="text-xs font-bold text-text-primary leading-relaxed">
-            "{activeTip}"
+            {`"${activeTip}"`}
           </p>
         </div>
       </DashboardCard>

@@ -153,7 +153,7 @@ export function CampaignTable({
         })}
       </div>
 
-      <DashboardCard variant="default" padding="none" className="hidden w-full overflow-hidden rounded-2xl md:block">
+      <div className="panel hidden w-full overflow-hidden rounded-2xl md:block p-0 bg-white!">
         <table className="w-full table-fixed border-collapse text-left">
           <thead>
             <tr className="border-b border-border-soft bg-neutral-50/50 text-[10px] font-bold uppercase tracking-wider text-text-secondary sm:text-xs">
@@ -235,7 +235,7 @@ export function CampaignTable({
             })}
           </tbody>
         </table>
-      </DashboardCard>
+      </div>
     </>
   );
 }

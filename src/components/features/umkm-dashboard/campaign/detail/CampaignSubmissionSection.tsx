@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { CampaignSubmission, SubmissionStatus } from "@/types/umkm-dashboard.types";
 import { CampaignSubmissionCard } from "./CampaignSubmissionCard";
-import { DashboardCard, DashboardBadge } from "../../shared";
+import { DashboardBadge } from "../../shared";
 
 interface CampaignSubmissionSectionProps {
   submissions: CampaignSubmission[];
@@ -49,7 +49,7 @@ export function CampaignSubmissionSection({
   ];
 
   return (
-    <DashboardCard variant="default">
+    <div className="panel overflow-hidden">
       <div className="p-6 border-b border-border-soft space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
@@ -149,6 +149,6 @@ export function CampaignSubmissionSection({
         </div>
 
       </div>
-    </DashboardCard>
+    </div>
   );
 }

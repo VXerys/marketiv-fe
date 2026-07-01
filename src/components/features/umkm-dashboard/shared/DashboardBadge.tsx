@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 export interface DashboardBadgeProps {
   type?: "status" | "category" | "count" | "tone";
   value?: string;
-  tone?: "orange" | "green" | "blue" | "amber" | "red" | "neutral" | "slate";
+  tone?: "orange" | "green" | "blue" | "amber" | "red" | "neutral" | "slate" | "purple";
   className?: string;
   children?: ReactNode;
 }
@@ -16,30 +16,30 @@ export function DashboardBadge({
   className,
   children,
 }: DashboardBadgeProps) {
-  // Status mapper
+  // Status mapper to UI kit badge colors
   const getStatusConfig = (status: string) => {
     const s = status.toLowerCase();
     switch (s) {
       case "draft":
-        return { label: "Draft", classes: "bg-neutral-100 text-neutral-700 border-neutral-200" };
+        return { label: "Draft", badgeClass: "badge gray" };
       case "active":
-        return { label: "Aktif", classes: "bg-success-soft text-success-strong border-success-soft" };
+        return { label: "Aktif", badgeClass: "badge green" };
       case "full":
-        return { label: "Penuh", classes: "bg-warning-soft text-warning-strong border-warning-soft" };
+        return { label: "Penuh", badgeClass: "badge yellow" };
       case "completed":
-        return { label: "Selesai", classes: "bg-info-soft text-info-strong border-info-soft" };
+        return { label: "Selesai", badgeClass: "badge navy" };
       case "cancelled":
-        return { label: "Dibatalkan", classes: "bg-danger-soft text-danger-strong border-danger-soft" };
+        return { label: "Dibatalkan", badgeClass: "badge red" };
       case "pending":
-        return { label: "Pending", classes: "bg-warning-soft text-warning-strong border-warning-soft" };
+        return { label: "Pending", badgeClass: "badge yellow" };
       case "valid":
-        return { label: "Valid", classes: "bg-success-soft text-success-strong border-success-soft" };
+        return { label: "Valid", badgeClass: "badge green" };
       case "fraud":
-        return { label: "Fraud", classes: "bg-danger-soft text-danger-strong border-danger-soft" };
+        return { label: "Fraud", badgeClass: "badge red" };
       case "dispute":
-        return { label: "Sengketa", classes: "bg-danger-soft text-danger-strong border-danger-soft" };
+        return { label: "Sengketa", badgeClass: "badge red" };
       default:
-        return { label: status, classes: "bg-neutral-100 text-neutral-700 border-neutral-200" };
+        return { label: status, badgeClass: "badge gray" };
     }
   };
 
@@ -65,22 +65,20 @@ export function DashboardBadge({
   };
 
   const toneClasses = {
-    orange: "bg-primary-50 text-primary-700 border-primary-200",
-    green: "bg-success-soft text-success-strong border-success-soft",
-    blue: "bg-info-soft text-info-strong border-info-soft",
-    amber: "bg-warning-soft text-warning-strong border-warning-soft",
-    red: "bg-danger-soft text-danger-strong border-danger-soft",
-    neutral: "bg-neutral-100 text-neutral-700 border-neutral-200",
-    slate: "bg-secondary-50 text-secondary-700 border-secondary-200",
+    orange: "badge orange",
+    green: "badge green",
+    blue: "badge blue",
+    amber: "badge yellow",
+    red: "badge red",
+    neutral: "badge gray",
+    slate: "badge navy",
+    purple: "badge purple",
   };
-
-  // Base styling classes
-  const baseClasses = "inline-flex items-center justify-center font-semibold rounded-full border text-[11px] h-5 px-2.5 whitespace-nowrap leading-none transition-colors";
 
   if (type === "status" && value) {
     const cfg = getStatusConfig(value);
     return (
-      <span className={cn(baseClasses, cfg.classes, className)}>
+      <span className={cn(cfg.badgeClass, className)}>
         {cfg.label}
       </span>
     );
@@ -88,7 +86,7 @@ export function DashboardBadge({
 
   if (type === "category" && value) {
     return (
-      <span className={cn(baseClasses, "bg-neutral-50 text-text-secondary border-border-soft capitalize", className)}>
+      <span className={cn("badge orange", className)}>
         {getCategoryLabel(value)}
       </span>
     );
@@ -103,7 +101,7 @@ export function DashboardBadge({
   }
 
   return (
-    <span className={cn(baseClasses, toneClasses[tone], className)}>
+    <span className={cn(toneClasses[tone] || "badge gray", className)}>
       {children || value}
     </span>
   );

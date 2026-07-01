@@ -3,7 +3,6 @@
 import { type MouseEvent, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { ChartBarData } from "@/types/umkmDashboard";
-import { DashboardCard } from "./DashboardCard";
 
 const TIME_RANGE_OPTIONS = ["7 Hari Terakhir", "30 Hari Terakhir"] as const;
 
@@ -48,12 +47,12 @@ export function UmkmViewsChartCard({ chartData }: UmkmViewsChartCardProps) {
   };
 
   return (
-    <DashboardCard className="col-span-12 lg:col-span-7 relative group">
+    <div className="panel col-span-12 lg:col-span-7 relative group h-full flex flex-col justify-between">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent to-neutral-50/40 pointer-events-none rounded-2xl z-0"></div>
 
       <div className="flex justify-between items-center mb-8 relative z-20">
         <div>
-          <h3 className="text-lg text-neutral-900 font-extrabold">Performa Views</h3>
+          <h3 className="text-lg text-neutral-900 font-display font-extrabold">Performa Views</h3>
           <p className="text-xs text-neutral-400 mt-1 font-bold uppercase tracking-wider">Total akumulasi dari semua platform</p>
         </div>
 
@@ -68,7 +67,7 @@ export function UmkmViewsChartCard({ chartData }: UmkmViewsChartCardProps) {
                 : "bg-bg-section/80 hover:bg-bg-section border-primary hover:border-primary-600 hover:shadow-sm text-neutral-700"
             )}
           >
-            <span>{selectedTimeRange}</span>
+            <span className="font-display">{selectedTimeRange}</span>
             <svg
               className={cn(
                 "w-3 h-3 transition-transform duration-300",
@@ -101,7 +100,7 @@ export function UmkmViewsChartCard({ chartData }: UmkmViewsChartCardProps) {
                       : "text-neutral-700 hover:bg-neutral-50 hover:text-primary"
                   )}
                 >
-                  <span>{option}</span>
+                  <span className="font-display">{option}</span>
                   {selectedTimeRange === option && (
                     <svg className="w-3.5 h-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -161,6 +160,6 @@ export function UmkmViewsChartCard({ chartData }: UmkmViewsChartCardProps) {
           </div>
         ))}
       </div>
-    </DashboardCard>
+    </div>
   );
 }

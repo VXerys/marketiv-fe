@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
+import * as React from "react";
 
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export type DashboardBadgeTone =
@@ -143,6 +145,9 @@ export function getDashboardCategoryTone(category: string): DashboardBadgeTone {
   return "slate";
 }
 
+/**
+ * @deprecated Use Badge component from @/components/ui/badge instead.
+ */
 export function DashboardBadge({
   children,
   type = "tone",
@@ -176,7 +181,7 @@ export function DashboardBadge({
   }
 
   return (
-    <span
+    <Badge
       className={cn(
         "inline-flex max-w-full items-center justify-center gap-1.5 rounded-full border font-semibold leading-tight",
         "whitespace-normal break-words text-center",
@@ -187,6 +192,6 @@ export function DashboardBadge({
     >
       {dot ? <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", dotClasses[resolvedTone])} /> : null}
       <span className="min-w-0">{content}</span>
-    </span>
+    </Badge>
   );
 }

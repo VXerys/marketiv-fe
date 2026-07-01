@@ -14,9 +14,32 @@ interface NegotiationRoomCardProps {
 export function NegotiationRoomCard({ order }: NegotiationRoomCardProps) {
   const status = getStatusDetails(order.status);
 
+  // Map status code to UI Kit badge class names
+  const getBadgeClass = (s: string) => {
+    switch (s) {
+      case "negotiation":
+        return "badge blue";
+      case "waiting_payment":
+        return "badge yellow";
+      case "escrow":
+        return "badge orange";
+      case "revision":
+        return "badge red";
+      case "waiting_verification":
+        return "badge yellow";
+      case "completed":
+        return "badge green";
+      case "dispute":
+        return "badge red";
+      case "cancelled":
+        return "badge gray";
+      default:
+        return "badge gray";
+    }
+  };
 
   return (
-    <div className="group rounded-2xl bg-white border border-border-soft hover:border-primary/25 p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-5 transition-all duration-300 hover:scale-[1.005] hover:shadow-[0_12px_30px_-12px_rgba(235,94,40,0.06),_inset_0_1px_0_rgba(255,255,255,0.95)]">
+    <div className="panel p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
       
       {/* Left side details */}
       <div className="flex gap-4 flex-1 min-w-0">
@@ -35,7 +58,7 @@ export function NegotiationRoomCard({ order }: NegotiationRoomCardProps) {
             <span className="text-xs font-extrabold text-text-primary group-hover:text-primary transition-colors">
               {order.creatorName}
             </span>
-            <span className={cn("px-2 py-0.5 rounded-full border text-[8px] font-extrabold uppercase tracking-wider", status.bgClass, status.textClass)}>
+            <span className={cn(getBadgeClass(order.status))}>
               {status.label}
             </span>
           </div>
@@ -84,7 +107,7 @@ export function NegotiationRoomCard({ order }: NegotiationRoomCardProps) {
         <div className="flex gap-2">
           <Link
             href={`/dashboard/umkm/negosiasi/${order.id}`}
-            className="px-4 py-2 rounded-xl bg-neutral-50 hover:bg-primary text-text-primary hover:text-white border border-border-subtle hover:border-primary text-xs font-bold transition-all duration-200 cursor-pointer select-none text-center shadow-3xs"
+            className="px-4 py-2 rounded-xl bg-neutral-950 text-white hover:bg-neutral-800 text-xs font-bold transition-all duration-200 cursor-pointer select-none text-center shadow-3xs"
           >
             Buka Room Chat
           </Link>

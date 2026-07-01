@@ -52,7 +52,7 @@ export function AssetPreviewModal({
           </svg>
           <div>
             <span className="font-bold block mb-0.5">Catatan Penyimpanan Aset</span>
-            Untuk menjaga kecepatan sistem, Marketiv hanya menyimpan tautan eksternal ke video mentah berukuran besar. Pastikan izin berbagi tautan sudah diatur ke "Siapa saja yang memiliki link".
+            Untuk menjaga kecepatan sistem, Marketiv hanya menyimpan tautan eksternal ke video mentah berukuran besar. Pastikan izin berbagi tautan sudah diatur ke &quot;Siapa saja yang memiliki link&quot;.
           </div>
         </div>
 

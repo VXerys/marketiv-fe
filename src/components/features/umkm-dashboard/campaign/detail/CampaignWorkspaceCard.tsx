@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Campaign, CampaignSubmission } from "@/types/umkm-dashboard.types";
 import { formatCurrency, formatCompactNumber } from "@/lib/formatters";
-import { DashboardCard, DashboardButton, DashboardBadge } from "../../shared";
+import { DashboardButton, DashboardBadge } from "../../shared";
 
 interface CampaignWorkspaceCardProps {
   campaign: Campaign;
@@ -76,7 +76,7 @@ export function CampaignWorkspaceCard({ campaign, submissions }: CampaignWorkspa
   ];
 
   return (
-    <DashboardCard variant="default">
+    <div className="panel overflow-hidden">
       {/* Dynamic Tab Switch Header */}
       <div className="p-4 border-b border-border-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-neutral-50/40">
         <div className="flex flex-wrap bg-white/80 backdrop-blur-md p-1.5 rounded-2xl border border-border-soft w-full sm:w-auto">
@@ -331,6 +331,6 @@ export function CampaignWorkspaceCard({ campaign, submissions }: CampaignWorkspa
         )}
 
       </div>
-    </DashboardCard>
+    </div>
   );
 }

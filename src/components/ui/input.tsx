@@ -1,102 +1,82 @@
-/**
- * Input — UI Primitive
- *
- * Accessible text input with:
- * - Optional label
- * - Helper text
- * - Error message
- * - Disabled state
- * - Focus ring using orange (border-focus token)
- * - forwardRef compatible
- *
- * Uses:    cn
- * Tokens:  @theme design tokens from globals.css
- */
-"use client";
-
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  /** Visible label above the input. */
+interface InputProps extends React.ComponentProps<"input"> {
   label?: string;
-  /** Helper text below the input. */
   helperText?: string;
-  /** Error message — replaces helperText and marks field invalid. */
   error?: string;
-  /** ID for label association. Defaults to `name` prop if not provided. */
-  id?: string;
+  ref?: React.Ref<HTMLInputElement>;
 }
 
-export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  function Input(
-    { label, helperText, error, id, name, className, disabled, ...props },
-    ref
-  ) {
-    const inputId = id ?? name;
-    const hasError = !!error;
+function Input({ className, type, label, helperText, error, id, name, disabled, ref, ...props }: InputProps) {
+  const inputId = id ?? name;
+  const hasError = !!error;
 
-    return (
-      <div className="flex flex-col gap-1.5">
-        {label && (
-          <label
-            htmlFor={inputId}
-            className={cn(
-              "text-body-medium text-text-primary",
-              disabled && "opacity-50"
-            )}
-          >
-            {label}
-          </label>
-        )}
+  const inputEl = (
+    <input
+      ref={ref}
+      id={inputId}
+      name={name}
+      disabled={disabled}
+      type={type}
+      data-slot="input"
+      aria-invalid={hasError}
+      aria-describedby={
+        hasError
+          ? `${inputId}-error`
+          : helperText
+            ? `${inputId}-helper`
+            : undefined
+      }
+      className={cn(
+        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base bg-input-background transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+        hasError && "border-danger focus:ring-danger focus-visible:border-destructive",
+        className,
+      )}
+      {...props}
+    />
+  );
 
-        <input
-          ref={ref}
-          id={inputId}
-          name={name}
-          disabled={disabled}
-          aria-invalid={hasError}
-          aria-describedby={
-            hasError
-              ? `${inputId}-error`
-              : helperText
-                ? `${inputId}-helper`
-                : undefined
-          }
-          className={cn(
-            // Base
-            "w-full rounded-md border bg-surface px-3.5 py-2.5",
-            "text-body-base text-text-primary placeholder:text-text-muted",
-            "transition-colors duration-150",
-            // Border
-            "border-border-subtle",
-            // Focus
-            "focus:outline-none focus:ring-2 focus:ring-border-focus focus:border-border-focus",
-            // Error
-            hasError && "border-danger focus:ring-danger",
-            // Disabled
-            "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-neutral-50",
-            className
-          )}
-          {...props}
-        />
-
-        {hasError && (
-          <p
-            id={`${inputId}-error`}
-            role="alert"
-            className="text-caption text-danger"
-          >
-            {error}
-          </p>
-        )}
-
-        {!hasError && helperText && (
-          <p id={`${inputId}-helper`} className="text-caption text-text-muted">
-            {helperText}
-          </p>
-        )}
-      </div>
-    );
+  // If there's no label, helperText, or error, just return the raw input
+  if (!label && !helperText && !error) {
+    return inputEl;
   }
-);
+
+  return (
+    <div className="flex flex-col gap-1.5 w-full">
+      {label && (
+        <label
+          htmlFor={inputId}
+          className={cn(
+            "text-body-medium text-text-primary text-sm font-medium",
+            disabled && "opacity-50"
+          )}
+        >
+          {label}
+        </label>
+      )}
+
+      {inputEl}
+
+      {hasError && (
+        <p
+          id={`${inputId}-error`}
+          role="alert"
+          className="text-caption text-destructive text-xs"
+        >
+          {error}
+        </p>
+      )}
+
+      {!hasError && helperText && (
+        <p id={`${inputId}-helper`} className="text-caption text-muted-foreground text-xs">
+          {helperText}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export { Input };

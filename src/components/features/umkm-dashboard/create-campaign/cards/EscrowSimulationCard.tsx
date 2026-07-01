@@ -1,5 +1,3 @@
-import { DashboardCard } from "@/components/features/umkm-dashboard/shared/DashboardCard";
-
 export function EscrowSimulationCard() {
   const steps = [
     {
@@ -20,7 +18,7 @@ export function EscrowSimulationCard() {
   ];
 
   return (
-    <DashboardCard className="bg-neutral-50/45 border border-border-soft/60 p-5.5 space-y-4">
+    <div className="panel bg-neutral-50/45 p-5.5 space-y-4">
       <div className="flex items-center gap-2 border-b border-border-soft/50 pb-3">
         <svg className="w-4 h-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -52,7 +50,7 @@ export function EscrowSimulationCard() {
         <span className="font-extrabold block mb-0.5">💡 Jaminan Perlindungan UMKM</span>
         Jika kampanye dibatalkan sebelum masa kuota diklaim, sisa dana yang tertahan di rekening escrow dijamin 100% aman dan akan segera dikembalikan ke saldo dompet Anda.
       </div>
-    </DashboardCard>
+    </div>
   );
 }
 

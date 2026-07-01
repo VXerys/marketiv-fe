@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
+import * as React from "react";
 
 import { cn } from "@/lib/utils";
-
+import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardButton } from "./DashboardButton";
-import { DashboardCard } from "./DashboardCard";
 
 type DashboardStateKind = "empty" | "error" | "loading";
 
@@ -28,26 +28,34 @@ export function DashboardStateCard({
 }: DashboardStateCardProps) {
   if (kind === "loading") {
     return (
-      <DashboardCard className={cn("space-y-4", className)}>
-        <div className="h-10 w-10 animate-pulse rounded-2xl bg-neutral-100" />
-        <div className="space-y-2">
-          <div className="h-4 w-40 animate-pulse rounded-full bg-neutral-100" />
-          <div className="h-3 w-full max-w-sm animate-pulse rounded-full bg-neutral-100" />
-        </div>
-      </DashboardCard>
+      <div className={cn("state-card flex flex-col items-center justify-center p-8 text-center border bg-card text-card-foreground rounded-3xl", className)}>
+        <Skeleton className="state-icon h-12 w-12 rounded-full mb-4" />
+        <Skeleton className="h-5 w-40 rounded-full mb-2" />
+        <Skeleton className="h-4 w-64 rounded-full" />
+      </div>
     );
   }
 
   return (
-    <DashboardCard className={cn("flex flex-col items-center text-center", className)}>
-      {icon ? <div className="mb-4 rounded-2xl bg-neutral-100 p-3 text-neutral-600">{icon}</div> : null}
-      <h3 className="text-lg font-bold text-neutral-950">{title}</h3>
-      {description ? <p className="mt-2 max-w-md text-sm leading-6 text-neutral-500">{description}</p> : null}
-      {actionLabel && onAction ? (
-        <DashboardButton className="mt-5" onClick={onAction} variant={kind === "error" ? "danger" : "primary"}>
-          {actionLabel}
-        </DashboardButton>
-      ) : null}
-    </DashboardCard>
+    <div className={cn("state-card flex flex-col items-center justify-center p-8 text-center border bg-card text-card-foreground rounded-3xl", className)}>
+      <div>
+        {icon ? (
+          <div className={cn("state-icon mx-auto mb-4 flex items-center justify-center h-12 w-12 rounded-full border bg-neutral-50", kind === "error" && "text-red-700! bg-red-50! border-red-200/50!")}>
+            {icon}
+          </div>
+        ) : (
+          <div className={cn("state-icon mx-auto mb-4 flex items-center justify-center h-12 w-12 rounded-full border bg-neutral-50 font-bold", kind === "error" && "text-red-700! bg-red-50! border-red-200/50!")}>
+            {kind === "error" ? "×" : "!"}
+          </div>
+        )}
+        <h3 className="text-xl font-display font-extrabold text-neutral-900 tracking-tight mb-2">{title}</h3>
+        {description ? <p className="text-neutral-500 font-semibold max-w-md mx-auto text-sm leading-relaxed mb-6">{description}</p> : null}
+        {actionLabel && onAction ? (
+          <DashboardButton onClick={onAction} variant={kind === "error" ? "danger" : "primary"}>
+            {actionLabel}
+          </DashboardButton>
+        ) : null}
+      </div>
+    </div>
   );
 }

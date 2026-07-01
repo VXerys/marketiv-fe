@@ -14,8 +14,8 @@ interface TransactionTableProps {
 
 export function TransactionTable({ transactions, onOpenDetails, onOpenPayment }: TransactionTableProps) {
   return (
-    <div className="w-full border border-neutral-200/50 bg-white/70 rounded-2xl overflow-hidden backdrop-blur-md shadow-xs">
-      <table className="w-full text-left border-collapse">
+    <div className="w-full overflow-x-auto border border-neutral-200/50 bg-white/70 rounded-2xl backdrop-blur-md shadow-xs">
+      <table className="w-full min-w-[768px] text-left border-collapse">
         <thead>
           <tr className="border-b border-neutral-200/50 bg-neutral-50/50 text-[10px] font-extrabold text-text-muted uppercase tracking-wider">
             <th className="px-6 py-4.5">Tanggal</th>

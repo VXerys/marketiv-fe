@@ -41,4 +41,24 @@ export interface UmkmDashboardData {
   escrow: EscrowBalance;
   submissions: SubmissionPending[];
   chartData: ChartBarData[];
+  kpis?: {
+    campaignActive: number;
+    totalSpend: number;
+    escrowBalance: number;
+    creatorJoined: number;
+    viewsValid: number;
+    pendingSubmissions: number;
+  };
+  insights?: {
+    id: string;
+    text: string;
+    type: "success" | "warning" | "info" | "purple";
+  }[];
+  activities?: {
+    id: string;
+    title: string;
+    description: string;
+    type: "submission" | "campaign" | "payment" | "progress";
+    time: string;
+  }[];
 }

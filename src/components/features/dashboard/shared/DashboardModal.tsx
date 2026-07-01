@@ -1,8 +1,16 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect } from "react";
+import * as React from "react";
 
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import { cn } from "@/lib/utils";
 
 import { DashboardButton } from "./DashboardButton";
@@ -21,6 +29,9 @@ interface DashboardModalProps {
   className?: string;
 }
 
+/**
+ * @deprecated Use Dialog from @/components/ui/dialog instead or ResponsiveModal from @/components/ui/responsive-modal.
+ */
 export function DashboardModal({
   isOpen,
   title,
@@ -34,44 +45,21 @@ export function DashboardModal({
   variant = "default",
   className,
 }: DashboardModalProps) {
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isOpen, onClose]);
-
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <div className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 px-4 py-4 sm:items-center" role="dialog" aria-modal="true">
-      <button className="absolute inset-0 cursor-default" type="button" aria-label="Tutup modal" onClick={onClose} />
-      <div
-        className={cn(
-          "relative w-full max-w-lg rounded-3xl border border-neutral-200 bg-white p-6 shadow-[0_30px_90px_rgba(15,23,42,0.22)]",
-          "max-h-[calc(100dvh-2rem)] overflow-y-auto",
-          className,
-        )}
-      >
-        <div className="space-y-2">
-          <h2 className="text-xl font-bold text-neutral-950">{title}</h2>
-          {description ? <p className="text-sm leading-6 text-neutral-500">{description}</p> : null}
-        </div>
-        {children ? <div className="mt-5">{children}</div> : null}
-        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+    <ResponsiveModal open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <ResponsiveModalContent className={cn("max-w-lg rounded-t-3xl sm:rounded-3xl", className)}>
+        <ResponsiveModalHeader className="space-y-2 text-left">
+          <ResponsiveModalTitle className="text-xl font-bold text-neutral-950">{title}</ResponsiveModalTitle>
+          {description ? (
+            <ResponsiveModalDescription className="text-sm leading-6 text-neutral-500">
+              {description}
+            </ResponsiveModalDescription>
+          ) : null}
+        </ResponsiveModalHeader>
+
+        {children ? <div className="mt-2">{children}</div> : null}
+
+        <ResponsiveModalFooter className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           {footer ?? (
             <>
               <DashboardButton type="button" variant="outline" onClick={onClose} fullWidthOnMobile>
@@ -89,8 +77,8 @@ export function DashboardModal({
               ) : null}
             </>
           )}
-        </div>
-      </div>
-    </div>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

@@ -10,7 +10,7 @@ interface CreatorMiniProfileCardProps {
 
 export function CreatorMiniProfileCard({ order }: CreatorMiniProfileCardProps) {
   return (
-    <div className="rounded-2xl border border-border-soft bg-white p-5 space-y-4 shadow-2xs select-none">
+    <div className="panel p-5 space-y-4 select-none">
       <div className="flex items-center gap-2 border-b border-border-soft pb-3">
         <svg className="w-4 h-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
