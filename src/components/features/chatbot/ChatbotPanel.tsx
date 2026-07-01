@@ -80,7 +80,7 @@ export function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
   return (
     <div
       className={cn(
-        "fixed bottom-24 right-4 md:bottom-28 md:right-8 lg:bottom-32 lg:right-10 z-50",
+        "fixed bottom-24 right-4 md:bottom-28 md:right-8 lg:bottom-32 lg:right-10 z-40",
         "w-[calc(100vw-2rem)] max-w-[400px]",
         "rounded-2xl bg-white shadow-2xl border border-gray-100",
         "flex flex-col overflow-hidden",

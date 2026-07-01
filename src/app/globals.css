@@ -1,28 +1,166 @@
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 @import "tailwindcss";
 
-@theme {
-  /* Colors */
-  --color-primary: #2563EB;
-  --color-secondary: #10B981;
-  --color-background: #F8FAFC;
-  --color-surface: #FFFFFF;
-  --color-text-main: #0F172A;
-  --color-text-muted: #64748B;
+:root {
+  --bg-main: #F7F3EE;
+  --bg-main-soft: #FAF8F5;
+  --bg-section: #FFFDF9;
+  --surface-card: #FFFDF9;
+  --surface-card-soft: #FAF8F5;
+  --surface-elevated: #FFFFFF;
+  --border-soft: rgba(28, 25, 23, 0.08);
+  --border-warm: rgba(120, 113, 108, 0.14);
+  --text-muted-warm: #78716C;
+  --text-soft-warm: #A8A29E;
+  --brand-orange-soft: #FFF3E8;
+  --navy-main: #020912;
+  --navy-soft: #061524;
+  --navy-card: #040e1b;
+}
 
-  /* Brand Colors */
-  --color-brand-coral: #F75050;
-  --color-brand-navy: #1B2A4A;
-  --color-brand-dark: #0D1B2A;
-  --color-brand-overlay: rgba(0, 0, 0, 0.35);
-  --color-brand-whatsapp: #25D366;
+@theme {
+  /* Font Family */
+  --font-sans: var(--font-plus-jakarta-sans), Inter, system-ui, sans-serif;
+  --font-plus-jakarta-sans: var(--font-plus-jakarta-sans);
+
+  /* Primary Color — Marketiv Orange */
+  --color-primary-50: #fff7ed;
+  --color-primary-100: #ffedd5;
+  --color-primary-200: #fed7aa;
+  --color-primary-300: #fdba74;
+  --color-primary-400: #fb923c;
+  --color-primary-500: #f97316;
+  --color-primary-600: #ea580c;
+  --color-primary-700: #c2410c;
+  --color-primary-800: #9a3412;
+  --color-primary-900: #7c2d12;
+  --color-primary: #f97316;
+
+  /* Secondary Color — Deep Navy */
+  --color-secondary-50: #eef6ff;
+  --color-secondary-100: #d9ecff;
+  --color-secondary-200: #b7dcff;
+  --color-secondary-300: #85c4ff;
+  --color-secondary-400: #4aa3ff;
+  --color-secondary-500: #1f7fd4;
+  --color-secondary-600: #315677;
+  --color-secondary-700: #24425f;
+  --color-secondary-800: #18324a;
+  --color-secondary-900: #102033;
+  --color-secondary: #1f7fd4;
+
+  /* Neutral Colors */
+  --color-neutral-0: #ffffff;
+  --color-neutral-25: #fffdf9;
+  --color-neutral-50: #fafaf7;
+  --color-neutral-100: #f8f5ef;
+  --color-neutral-200: #eee8dd;
+  --color-neutral-300: #e8e2d8;
+  --color-neutral-400: #c9c1b4;
+  --color-neutral-500: #9a9185;
+  --color-neutral-600: #737373;
+  --color-neutral-700: #525252;
+  --color-neutral-800: #2f2f2f;
+  --color-neutral-900: #171717;
+
+  /* Semantic Colors */
+  --color-success-soft: #dcfce7;
+  --color-success: #16a34a;
+  --color-success-strong: #166534;
+  --color-warning-soft: #fef3c7;
+  --color-warning: #d97706;
+  --color-warning-strong: #92400e;
+  --color-danger-soft: #fee2e2;
+  --color-danger: #dc2626;
+  --color-danger-strong: #991b1b;
+  --color-info-soft: #dbeafe;
+  --color-info: #2563eb;
+  --color-info-strong: #1e40af;
+
+  /* Role Colors */
+  --color-role-umkm-bg: #fff7ed;
+  --color-role-umkm-text: #c2410c;
+  --color-role-umkm-border: #fed7aa;
+  --color-role-kreator-bg: #eef6ff;
+  --color-role-kreator-text: #24425f;
+  --color-role-kreator-border: #b7dcff;
+  --color-role-admin-bg: #faf5ff;
+  --color-role-admin-text: #7e22ce;
+  --color-role-admin-border: #e9d5ff;
+
+  /* Premium Warm Neutral Color Mappings */
+  --color-bg-main: var(--bg-main);
+  --color-bg-main-soft: var(--bg-main-soft);
+  --color-bg-section: var(--bg-section);
+  --color-surface-card: var(--surface-card);
+  --color-surface-card-soft: var(--surface-card-soft);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-border-soft: var(--border-soft);
+  --color-border-warm: var(--border-warm);
+  --color-navy-main: var(--navy-main);
+  --color-navy-soft: var(--navy-soft);
+  --color-navy-card: var(--navy-card);
+
+  /* Background Tokens */
+  --color-background: #fffdf9;
+  --color-background-base: #fffdf9;
+  --color-background-soft: #f8f5ef;
+  --color-background-card: #ffffff;
+  --color-background-muted: #fafaf7;
+  --color-background-overlay: rgba(16, 32, 51, 0.48);
+
+  /* Surface mapping */
+  --color-surface: #ffffff;
+
+  /* Text Tokens */
+  --color-text-main: #171717;
+  --color-text-primary: #171717;
+  --color-text-secondary: #525252;
+  --color-text-muted: #737373;
+  --color-text-inverse: #ffffff;
+  --color-text-brand: #c2410c;
+  --color-text-trust: #102033;
+
+  /* Border Tokens */
+  --color-border-subtle: #e8e2d8;
+  --color-border-strong: #c9c1b4;
+  --color-border-focus: #f97316;
 
   /* Breakpoints */
-  --breakpoint-mobile: 320px;
-  --breakpoint-tablet: 768px;
-  --breakpoint-desktop: 1024px;
+  --breakpoint-xs: 375px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
 
-  /* Font Family */
-  --font-poppins: var(--font-poppins);
+  /* Radius Scale */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+
+  /* Shadow Scale */
+  --shadow-xs: 0 1px 2px rgba(16, 32, 51, 0.04);
+  --shadow-sm: 0 4px 12px rgba(16, 32, 51, 0.06);
+  --shadow-md: 0 12px 28px rgba(16, 32, 51, 0.08);
+  --shadow-lg: 0 20px 48px rgba(16, 32, 51, 0.10);
+
+  /* Z-Index Scale */
+  --z-index-base: 0;
+  --z-index-dropdown: 20;
+  --z-index-sticky: 30;
+  --z-index-overlay: 40;
+  --z-index-modal: 50;
+  --z-index-toast: 60;
+
+  /* Backward Compatibility Color Mappings */
+  --color-brand-coral: #f97316;
+  --color-brand-navy: #102033;
+  --color-brand-dark: #171717;
+  --color-brand-overlay: rgba(16, 32, 51, 0.48);
+  --color-brand-whatsapp: #25D366;
 }
 
 /* Typography Utilities */

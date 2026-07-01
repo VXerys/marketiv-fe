@@ -1,3 +1,18 @@
+# Pre-Merge Quality Gate Agent
+
+Purpose
+
+Coordinate pre-merge checks that include lint, typecheck, animation audit, and data-contract validation. Produce a pass/warn/fail summary and call out owners for failures.
+
+Behavior
+
+- Run CI (lint/typecheck/build)
+- Run `animation-audit` and `validate-data-contracts` scripts
+- Annotate PR with consolidated results and block merge if configured to be strict
+
+Notes
+
+Initial configuration is annotate-only for domain audits. This behavior can be hardened to fail PRs in a follow-up.
 ---
 name: Pre-Merge Quality Gate Agent
 description: "Use when running a consistent pre-merge quality gate for major PRs (animation changes, data-layer updates, dashboard flow refactors) with lint/typecheck, animation benchmark, data contract validation, and pass-warning-fail summary. Keywords: pre-merge, quality gate, lint, typecheck, animation benchmark, data contracts, pass warning fail."

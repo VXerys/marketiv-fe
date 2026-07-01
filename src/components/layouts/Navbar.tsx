@@ -91,10 +91,10 @@ export function Navbar() {
             </li>
           ))}
           <li className="w-full px-6 flex flex-col gap-3 mt-2">
-            <Button className="w-full flex justify-center py-3.5" variant="soft" size="md" href="/creator" onClick={() => setIsMobileMenuOpen(false)}>
+            <Button className="w-full flex justify-center py-3.5" variant="soft" size="md" href="/dashboard/kreator" onClick={() => setIsMobileMenuOpen(false)}>
               SAYA KONTEN KREATOR
             </Button>
-            <Button className="w-full flex justify-center py-3.5" variant="primary" size="md" href="/umkm" onClick={() => setIsMobileMenuOpen(false)}>
+            <Button className="w-full flex justify-center py-3.5" variant="primary" size="md" href="/dashboard/umkm" onClick={() => setIsMobileMenuOpen(false)}>
               SAYA PEMILIK UMKM
             </Button>
           </li>

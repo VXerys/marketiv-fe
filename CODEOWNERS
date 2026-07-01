@@ -1,0 +1,8 @@
+# CODEOWNERS
+# Replace 'owner' with your GitHub username or team, e.g. @org/frontend
+
+/src/app/ @owner
+/src/lib/ @owner
+/src/components/ @owner
+/docs/ @owner
+/.github/ @owner

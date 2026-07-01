@@ -1,7 +1,7 @@
 <div align="center">
   <img src="public/globe.svg" alt="Marketiv Logo" width="120" height="120" />
 
-  # 🚀 Marketiv — Frontend Repository
+  # 🚀 Marketiv — Web Client Repository
 
   **Mendemokratisasi Pemasaran Digital Tanpa Risiko "Boncos" untuk UMKM Daerah.**
 
@@ -38,8 +38,8 @@ Sistem ini memisahkan dua ruang pengguna secara ketat pada level **routing**, **
 
 | Ecosystem | Route | Karakteristik |
 |---|---|---|
-| 🏪 **Ruang UMKM** | `/app/umkm/*` | UI *super-simple*, fokus pada efisiensi dan kemudahan penggunaan |
-| 🎨 **Ruang Kreator** | `/app/creator/*` | Dashboard interaktif untuk manajemen pekerjaan dan portofolio |
+| 🏪 **Ruang UMKM** | `/dashboard/umkm/*` | UI *super-simple*, fokus pada efisiensi dan kemudahan penggunaan |
+| 🎨 **Ruang Kreator** | `/dashboard/kreator/*` | Dashboard interaktif untuk manajemen pekerjaan dan portofolio |
 
 > **Aturan Sistem:** Komponen dan *state* UMKM **tidak boleh bocor** atau digunakan di halaman Kreator, dan sebaliknya.
 
@@ -86,8 +86,7 @@ Proyek ini dibangun dengan fokus pada performa web (*Core Web Vitals*), SEO, dan
 | **Styling** | Tailwind CSS v4 | Sintaks `@theme` modern, design tokens via CSS custom properties |
 | **Language** | TypeScript 5 | Strict mode, type-safe codebase |
 | **Utilities** | `clsx` + `tailwind-merge` | Via helper `cn()` untuk conditional class merging |
-| **State (Client)** | Zustand *(planned)* | Hanya untuk UI state client-side |
-| **Backend** | Supabase *(planned)* | PostgreSQL via Server Actions |
+| **Backend** | Appwrite | Authentication, Database, Storage, Functions, Realtime |
 
 ---
 
@@ -96,13 +95,14 @@ Proyek ini dibangun dengan fokus pada performa web (*Core Web Vitals*), SEO, dan
 Pemisahan *domain logic* dilakukan di tingkat routing untuk mencegah kebocoran state antara UMKM dan Kreator.
 
 ```
-marketiv-fe/
+marketiv-web/
 ├── public/                     # Static assets (favicon, SVGs)
 ├── src/
 │   ├── app/                    # 📱 Next.js App Router (Pages & Layouts)
-│   │   ├── creator/            #    🎨 Domain Eksklusif Mikro-Kreator
-│   │   ├── umkm/               #    🏪 Domain Eksklusif UMKM
-│   │   ├── layout.tsx          #    Root Layout (Font Poppins, Metadata)
+│   │   ├── dashboard/          #    🔒 Protected dashboard area
+│   │   │   ├── kreator/        #    🎨 Domain Eksklusif Mikro-Kreator
+│   │   │   └── umkm/           #    🏪 Domain Eksklusif UMKM
+│   │   ├── layout.tsx          #    Root Layout (Font Plus Jakarta Sans, Metadata)
 │   │   ├── globals.css         #    Tailwind v4 @theme design tokens
 │   │   └── page.tsx            #    Landing Page
 │   ├── assets/
@@ -117,7 +117,7 @@ marketiv-fe/
 │   ├── data/                   # 📦 Static content constants & mock data
 │   ├── lib/                    # 🔧 Utility functions (cn, formatter, dll.)
 │   └── types/                  # 📝 Shared TypeScript interfaces & types
-├── .agent/                     # 🤖 AI Agent Rules & System Instructions
+├── .agents/                    # 🤖 AI Agent Rules & System Instructions
 │   └── rules/                  #    Strict coding standards for AI Agents
 ├── package.json
 ├── tsconfig.json
@@ -139,10 +139,10 @@ Pastikan Anda telah menginstal:
 
 ```bash
 # 1. Clone repositori
-git clone https://github.com/VXerys/marketiv-fe.git
+git clone https://github.com/VXerys/marketiv-web.git
 
 # 2. Masuk ke direktori proyek
-cd marketiv-fe
+cd marketiv-web
 
 # 3. Instal semua dependensi
 npm install
@@ -176,8 +176,8 @@ Jika Anda menggunakan AI Agent (Cursor, Copilot, Gemini, dll.) untuk *coding* di
 
 | File | Tujuan |
 |---|---|
-| `.agent/rules/strict-rules.md` | Aturan ketat coding standards & naming conventions |
-| `.agent/rules/marketiv-context.md` | Konteks bisnis & domain knowledge produk |
+| `.agents/rules/strict-rules.md` | Aturan ketat coding standards & naming conventions |
+| `.agents/rules/marketiv-context.md` | Konteks bisnis & domain knowledge produk |
 
 Aturan ini memastikan kepatuhan terhadap standar **Next.js Server Components**, pemisahan *Dual-Ecosystem*, dan konsistensi arsitektur Marketiv.
 

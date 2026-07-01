@@ -18,7 +18,7 @@ Dokumen ini adalah **Standard Operating Procedure (SOP)** yang **WAJIB** diikuti
 
 1. **Baca & Pahami Permintaan User**
    - Apa fitur/halaman yang diminta?
-   - Apakah ini untuk domain **UMKM** (`/app/umkm/`) atau **Kreator** (`/app/creator/`)?
+   - Apakah ini untuk domain **UMKM** (`/dashboard/umkm/`) atau **Kreator** (`/dashboard/kreator/`)?
    - Apakah ada referensi visual (Figma, screenshot, mockup)?
 
 2. **Identifikasi Komponen yang Dibutuhkan**
@@ -32,7 +32,7 @@ Dokumen ini adalah **Standard Operating Procedure (SOP)** yang **WAJIB** diikuti
    - Apakah perlu membuat Server Actions baru?
 
 4. **Tentukan Lokasi File**
-   - Halaman → `src/app/<domain>/`
+   - Halaman → `src/app/dashboard/<domain>/`
    - Komponen fitur → `src/components/features/<nama-fitur>/`
    - Komponen UI reusable → `src/components/ui/`
    - Komponen layout → `src/components/layouts/`
@@ -149,8 +149,8 @@ Kerangka JSX sudah siap. Apakah strukturnya sudah benar sebelum saya tambahkan s
 ### Aturan Styling yang WAJIB Diikuti
 
 1. **Gunakan Design Tokens** dari `@theme` di `globals.css`:
-   - Warna: `text-text-main`, `text-text-muted`, `bg-background`, `bg-surface`, `bg-brand-coral`, `text-brand-navy`
-   - Font: `font-poppins` (sudah di-set global)
+   - Warna: `text-text-primary`, `text-text-secondary`, `text-text-muted`, `bg-background`, `bg-background-card`, `bg-primary`, `bg-secondary`
+   - Font: `font-sans` (Plus Jakarta Sans)
 
 2. **Gunakan Typography Utilities** yang sudah tersedia:
    - `text-hero`, `text-hero-subtitle` → Hero sections
@@ -163,7 +163,7 @@ Kerangka JSX sudah siap. Apakah strukturnya sudah benar sebelum saya tambahkan s
    ```tsx
    className={cn(
      "rounded-2xl p-6 transition-all",
-     isActive ? "bg-brand-coral text-white" : "bg-surface text-text-main"
+     isActive ? "bg-primary-500 text-neutral-0" : "bg-background-card text-text-primary"
    )}
    ```
 
@@ -181,7 +181,7 @@ Kerangka JSX sudah siap. Apakah strukturnya sudah benar sebelum saya tambahkan s
 ```tsx
 export function CampaignCard({ title, thumbnail, budget, status }: CampaignCardProps) {
   return (
-    <article className="group overflow-hidden rounded-2xl bg-surface shadow-sm transition-shadow hover:shadow-md">
+    <article className="group overflow-hidden rounded-2xl bg-background-card shadow-sm transition-shadow hover:shadow-md">
       {/* Thumbnail */}
       <div className="relative aspect-video overflow-hidden">
         <Image
@@ -195,7 +195,7 @@ export function CampaignCard({ title, thumbnail, budget, status }: CampaignCardP
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="text-heading-2 text-text-main truncate">{title}</h3>
+        <h3 className="text-heading-2 text-text-primary truncate">{title}</h3>
         <p className="text-body-base text-text-muted mt-1">
           Rp {budget.toLocaleString("id-ID")}
         </p>
@@ -266,8 +266,8 @@ export function CampaignFilter({ categories, onFilterChange }: CampaignFilterPro
           className={cn(
             "rounded-full px-4 py-2 text-caption font-medium transition-colors whitespace-nowrap",
             activeCategory === cat
-              ? "bg-brand-coral text-white"
-              : "bg-surface text-text-muted hover:bg-gray-100"
+              ? "bg-primary-500 text-neutral-0"
+              : "bg-background-card text-text-muted hover:bg-gray-100"
           )}
         >
           {cat}

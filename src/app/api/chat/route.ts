@@ -7,9 +7,9 @@ function buildSystemPrompt(currentPath: string): string {
 
   // Determine route-specific context
   let pageContext = routeContext.landing;
-  if (currentPath.startsWith("/umkm")) {
+  if (currentPath.startsWith("/dashboard/umkm")) {
     pageContext = routeContext.umkm;
-  } else if (currentPath.startsWith("/creator")) {
+  } else if (currentPath.startsWith("/dashboard/kreator")) {
     pageContext = routeContext.creator;
   }
 
