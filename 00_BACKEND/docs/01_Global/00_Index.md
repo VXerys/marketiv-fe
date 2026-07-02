@@ -1,6 +1,6 @@
 # 01_Global — Index
 
-Standar global lintas-modul untuk Marketiv (platform UMKM ↔ Content Creator di atas Appwrite + React). Dokumen di sini adalah pemilik tunggal (single owner) untuk istilah, konvensi, struktur, keamanan, dan design token. Modul tidak boleh menduplikasi isinya — cukup cross-link.
+Standar global lintas-modul untuk Marketiv (platform UMKM ↔ Content Creator di atas Appwrite + Next.js). Dokumen di sini adalah pemilik tunggal (single owner) untuk istilah, konvensi, struktur, keamanan, dan design token. Modul tidak boleh menduplikasi isinya — cukup cross-link.
 
 ## Daftar Dokumen
 
