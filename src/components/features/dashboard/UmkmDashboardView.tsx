@@ -9,7 +9,6 @@ import { UmkmViewsChartCard } from "./UmkmViewsChartCard";
 import type { UmkmDashboardData } from "@/types/umkmDashboard";
 import { cn } from "@/lib/utils";
 import {
-  DashboardCard,
   DashboardMetricCard,
   DashboardBadge,
   DashboardButton,

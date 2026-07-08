@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
+import { UmkmPageWrapper } from "../shared/UmkmPageWrapper";
 import { HeroOverview } from "./HeroOverview";
 import { KPISection } from "./KPISection";
 import { CampaignSection } from "./CampaignSection";
@@ -62,21 +63,8 @@ export function UmkmOverviewClient({ data }: UmkmOverviewClientProps) {
 
   return (
     <UmkmDashboardChrome businessName={data.businessName}>
-      {/*
-       * Page content wrapper:
-       * - max-w-[1400px] + mx-auto centers on large screens
-       * - clamp padding adapts to viewport
-       * - overflow-x-hidden prevents any child from blowing out
-       */}
-      <div
-        className="w-full max-w-[1400px] mx-auto overflow-x-hidden"
-        style={{
-          padding: "clamp(16px, 3vw, 32px)",
-          display: "grid",
-          gap: 24,
-          alignContent: "start",
-        }}
-      >
+      {/* UmkmPageWrapper handles responsive padding, 26px gap, and 1400px max-width */}
+      <UmkmPageWrapper>
         {/* Hero banner */}
         <HeroOverview
           businessName={data.businessName}
@@ -98,12 +86,14 @@ export function UmkmOverviewClient({ data }: UmkmOverviewClientProps) {
         <KPISection kpisData={data.kpis} />
 
         {/*
-         * 2-column layout — both columns use align-items: start so cards
+         * 2-column layout — both columns use align-content: start so cards
          * only take the height they need (no stretching to fill the row).
+         * Intentional exception: uses a custom bespoke 1.85fr/1fr split
+         * at 1100px that no shared grid class covers.
          */}
         <div className="umkm-dash-grid">
-          {/* Left column — each card is self-contained height */}
-          <div style={{ display: "grid", gap: 20, minWidth: 0, alignContent: "start" }}>
+          {/* Left column */}
+          <div style={{ display: "grid", gap: 26, minWidth: 0, alignContent: "start" }}>
             <CampaignSection
               campaigns={mappedCampaigns}
               onCreateClick={handleCreateCampaign}
@@ -113,7 +103,7 @@ export function UmkmOverviewClient({ data }: UmkmOverviewClientProps) {
           </div>
 
           {/* Right column */}
-          <div style={{ display: "grid", gap: 20, alignContent: "start", minWidth: 0 }}>
+          <div style={{ display: "grid", gap: 26, alignContent: "start", minWidth: 0 }}>
             <FinancialOverview
               escrowBalance={data.kpis?.escrowBalance}
               totalSpend={data.kpis?.totalSpend}
@@ -128,13 +118,17 @@ export function UmkmOverviewClient({ data }: UmkmOverviewClientProps) {
             <QuickActions />
           </div>
         </div>
-      </div>
+      </UmkmPageWrapper>
 
+      {/*
+       * .umkm-dash-grid — Intentional exception: custom 1.85fr/1fr split at 1100px.
+       * No shared CSS class covers this asymmetric ratio; do not replace with bento-grid.
+       */}
       <style jsx global>{`
         .umkm-dash-grid {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 24px;
+          gap: 26px;
         }
         @media (min-width: 1100px) {
           .umkm-dash-grid {

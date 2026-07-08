@@ -21,7 +21,7 @@ export function DashboardShell({ children, sidebar, topbar }: DashboardShellProp
        * of sidebar collapse animation.
        */}
       <div
-        className="flex min-h-svh max-w-full overflow-x-hidden text-neutral-900 antialiased font-sans"
+        className="flex h-svh w-screen overflow-hidden text-neutral-900 antialiased font-sans"
         style={{
           background: [
             "radial-gradient(circle at 12% 0%, rgba(249,115,22,.09), transparent 28rem)",
@@ -47,10 +47,10 @@ export function DashboardShell({ children, sidebar, topbar }: DashboardShellProp
 
         {/*
          * SidebarInset handles the left margin shift automatically when sidebar
-         * collapses. min-w-0 + overflow-hidden on the column prevents blowout.
+         * collapses. h-svh + overflow-hidden keeps content scrolling contained.
          */}
         <SidebarInset
-          className="relative z-10 flex flex-col min-w-0 min-h-svh"
+          className="relative z-10 flex flex-col min-w-0 h-svh overflow-hidden"
           style={{ maxWidth: "100%" }}
         >
           {topbar}

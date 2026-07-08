@@ -274,29 +274,12 @@ export function KPISection({ isLoading = false, kpisData }: KPISectionProps) {
        * Fixed grid: 2 cols mobile → 3 cols tablet → 6 cols desktop.
        * minmax(0, 1fr) on all tracks prevents overflow.
        */}
-      <div className="kpi-grid">
+      {/* .dashboard-rule-grid: 2-col mobile → 3-col tablet (760px) → 6-col desktop (1120px) */}
+      <div className="dashboard-rule-grid">
         {kpis.map((kpi) => (
           <KPICard key={kpi.label} {...kpi} isLoading={isLoading} />
         ))}
       </div>
-
-      <style jsx global>{`
-        .kpi-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 12px;
-        }
-        @media (min-width: 640px) {
-          .kpi-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-        }
-        @media (min-width: 1280px) {
-          .kpi-grid {
-            grid-template-columns: repeat(6, minmax(0, 1fr));
-          }
-        }
-      `}</style>
     </div>
   );
 }

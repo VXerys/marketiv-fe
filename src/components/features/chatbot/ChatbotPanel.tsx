@@ -81,8 +81,7 @@ export function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
     <div
       className={cn(
         "chatbot-panel-float",
-        "rounded-2xl bg-white shadow-2xl border border-gray-100",
-        "flex flex-col overflow-hidden",
+        // Animation — not covered by .chatbot-panel-float CSS class
         "transition-all duration-300 ease-out origin-bottom-right",
         isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-90 opacity-0 translate-y-4 pointer-events-none",
       )}

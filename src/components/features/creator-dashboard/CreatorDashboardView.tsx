@@ -357,7 +357,11 @@ export function CreatorDashboardView({
             </div>
           </div>
 
-          {/* 2. Metric Cards Grid (2 cols mobile, 3 tablet, 4 desktop) */}
+          {/* 2. Metric Cards Grid — 8 metrics: 2-col@mobile 3-col@tablet 4-col@desktop
+               Intentional exception: .dashboard-rule-grid targets 4–6 KPIs (2→3→6 col),
+               .responsive-card-grid starts at 1-col (too sparse for metric cards).
+               This 2→3→4 pattern is the correct choice for 8 compact metric tiles.
+               See globals.css "INTENTIONAL EXCEPTIONS" for context. */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
             <DashboardMetricCard
               label="Job Tersedia"

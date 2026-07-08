@@ -21,22 +21,20 @@ const STATUS_CONFIG: Record<CampaignStatus, { label: string; bg: string; color: 
 
 function CampaignSkeleton() {
   return (
-    <div
-      style={{
-        borderRadius: 24,
-        border: "1px solid rgba(17,24,39,.08)",
-        background: "white",
-        overflow: "hidden",
-        boxShadow: "0 8px 24px rgba(15,23,42,.06)",
-      }}
-    >
-      <div style={{ height: 120, background: "#edf1f5", position: "relative", overflow: "hidden" }}>
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent animate-shimmer" style={{ animation: "shimmer 1.45s infinite" }} />
+    <div className="campaign-card">
+      {/* Cover placeholder — matches .campaign-card-cover height (118px) */}
+      <div className="campaign-card-cover bg-[#edf1f5] relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent" style={{ animation: "shimmer 1.45s infinite" }} />
       </div>
-      <div style={{ padding: "16px 18px", display: "grid", gap: 12 }}>
+      {/* Body placeholder — uses .campaign-card-body padding + gap */}
+      <div className="campaign-card-body">
         {[80, 60, 100, 70].map((w, i) => (
-          <div key={i} style={{ width: `${w}%`, height: i === 2 ? 8 : 14, borderRadius: 8, background: "#edf1f5", position: "relative", overflow: "hidden" }}>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent animate-shimmer" style={{ animation: "shimmer 1.45s infinite" }} />
+          <div
+            key={i}
+            className="relative overflow-hidden rounded-lg bg-[#edf1f5]"
+            style={{ width: `${w}%`, height: i === 2 ? 8 : 14 }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent" style={{ animation: "shimmer 1.45s infinite" }} />
           </div>
         ))}
       </div>

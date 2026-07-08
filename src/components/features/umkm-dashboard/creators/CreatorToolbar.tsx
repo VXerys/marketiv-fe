@@ -1,5 +1,6 @@
 "use client";
 
+import { Search, ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CreatorToolbarProps {
@@ -20,7 +21,7 @@ export function CreatorToolbar({
   onSortByChange,
 }: CreatorToolbarProps) {
   const categories = [
-    { id: "all", label: "Semua" },
+    { id: "all", label: "Semua Kategori" },
     { id: "kuliner", label: "Kuliner" },
     { id: "fashion", label: "Fashion" },
     { id: "kosmetik", label: "Kosmetik" },
@@ -34,32 +35,61 @@ export function CreatorToolbar({
     { id: "reviews", label: "Review Terbanyak" },
   ];
 
+  const isSorted = sortBy !== "rating";
+
   return (
-    <div className="space-y-4 mb-6">
-      {/* Search & Sort Panel */}
-      <div className="flex flex-col sm:flex-row gap-3">
+    <div
+      className="mb-6 shrink-0"
+      style={{
+        padding: "14px 16px",
+        borderRadius: 22,
+        background: "rgba(255,255,255,.80)",
+        border: "1px solid rgba(17,24,39,.08)",
+        boxShadow: "0 6px 22px rgba(15,23,42,.05)",
+        display: "grid",
+        gap: 12,
+      }}
+    >
+      {/* Row 1: Search and Sort */}
+      <div className="flex items-center gap-2.5 flex-wrap">
         {/* Search */}
-        <div className="relative flex-1">
-          <span className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-text-muted">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </span>
+        <div
+          className="flex items-center gap-2 flex-1 min-w-[180px] h-[42px] px-[14px] bg-white rounded-full transition-all"
+          style={{ border: "1px solid rgba(17,24,39,.09)", boxShadow: "0 4px 14px rgba(15,23,42,.04)" }}
+        >
+          <Search size={14} color="#737f91" className="shrink-0" />
           <input
             type="text"
             placeholder="Cari nama kreator atau keahlian..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-border-subtle rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder-text-muted/65 shadow-2xs"
+            className="flex-1 border-none outline-none bg-transparent text-[.84rem] text-[#182033] placeholder:text-[#a0aaba]"
+            style={{ fontFamily: "inherit" }}
           />
+          {searchQuery && (
+            <button
+              onClick={() => onSearchChange("")}
+              className="text-[#a0aaba] hover:text-[#556174] transition-colors cursor-pointer"
+              aria-label="Hapus pencarian"
+            >
+              <X size={13} />
+            </button>
+          )}
         </div>
 
-        {/* Sort */}
-        <div className="relative w-full sm:w-48 shrink-0">
+        {/* Sort Pill */}
+        <div className="relative inline-block">
           <select
             value={sortBy}
             onChange={(e) => onSortByChange(e.target.value)}
-            className="w-full px-3.5 py-2.5 bg-white border border-border-subtle rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs appearance-none cursor-pointer"
+            className="appearance-none h-[42px] min-h-[42px] pl-4 pr-8 rounded-full text-[.82rem] font-[780] cursor-pointer outline-none transition-all duration-200"
+            style={{
+              border: isSorted ? "1px solid rgba(249,115,22,.26)" : "1px solid rgba(17,24,39,.09)",
+              background: isSorted ? "#fff7ed" : "white",
+              color: isSorted ? "#ea580c" : "#556174",
+              boxShadow: "0 4px 12px rgba(15,23,42,.04)",
+              fontFamily: "inherit",
+            }}
           >
             {sortOptions.map((opt) => (
               <option key={opt.id} value={opt.id}>
@@ -67,16 +97,19 @@ export function CreatorToolbar({
               </option>
             ))}
           </select>
-          <span className="absolute inset-y-0 right-3.5 flex items-center pointer-events-none text-text-muted">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </span>
+          <ChevronDown
+            size={13}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none"
+            color={isSorted ? "#ea580c" : "#737f91"}
+          />
         </div>
       </div>
 
-      {/* Category Tabs */}
-      <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-none">
+      {/* Row 2: Category Tabs in grey pill bar wrapper */}
+      <div
+        className="flex gap-1.5 flex-wrap p-1.5 rounded-[18px] overflow-x-auto scrollbar-none"
+        style={{ background: "#eef2f7" }}
+      >
         {categories.map((cat) => {
           const isActive = selectedCategory === cat.id;
           return (
@@ -84,12 +117,15 @@ export function CreatorToolbar({
               key={cat.id}
               type="button"
               onClick={() => onCategoryChange(cat.id)}
-              className={cn(
-                "px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border duration-250 cursor-pointer",
-                isActive
-                  ? "bg-primary text-white border-primary shadow-xs"
-                  : "bg-white text-text-secondary border-border-subtle hover:border-neutral-300 hover:text-text-primary"
-              )}
+              className="inline-flex items-center justify-center min-h-9 px-[14px] rounded-[13px] text-[.8rem] cursor-pointer transition-all whitespace-nowrap font-display"
+              style={{
+                border: "none",
+                background: isActive ? "white" : "transparent",
+                color: isActive ? "#ea580c" : "#737f91",
+                fontWeight: isActive ? 820 : 720,
+                boxShadow: isActive ? "0 4px 14px rgba(15,23,42,.08)" : "none",
+                fontFamily: "inherit",
+              }}
             >
               {cat.label}
             </button>

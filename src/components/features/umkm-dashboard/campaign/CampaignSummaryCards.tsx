@@ -13,18 +13,20 @@ interface SummaryCardProps {
 
 function SummaryCard({ icon: Icon, label, value, note, iconBg, iconColor, iconBorder }: SummaryCardProps) {
   return (
-    <div className="metric-card">
-      <div className="metric-top">
+    <div className="relative min-w-0 p-4 sm:p-5 border border-neutral-200/80 rounded-[22px] bg-gradient-to-b from-white to-neutral-50/50 shadow-3xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-primary-500/20 group">
+      <div className="flex items-center justify-between gap-3 mb-5">
         <div
-          className="metric-icon"
+          className="w-10 h-10 rounded-[14px] grid place-items-center border shadow-3xs transition-transform duration-300 group-hover:scale-105"
           style={{ background: iconBg, borderColor: iconBorder, color: iconColor }}
         >
-          <Icon size={20} />
+          <Icon size={18} />
         </div>
       </div>
-      <div className="metric-label">{label}</div>
-      <div className="metric-value">{value}</div>
-      <div className="metric-note">{note}</div>
+      <div className="text-[0.74rem] font-extrabold text-neutral-500 tracking-wide uppercase">{label}</div>
+      <div className="font-display text-xl sm:text-2xl lg:text-[1.75rem] font-black text-neutral-900 tracking-tight leading-none mt-1.5 break-all">
+        {value}
+      </div>
+      <div className="text-[0.78rem] text-neutral-400 font-semibold mt-1.5">{note}</div>
     </div>
   );
 }
@@ -41,7 +43,7 @@ interface CampaignSummaryCardsProps {
 
 export function CampaignSummaryCards({ summary }: CampaignSummaryCardsProps) {
   return (
-    <div className="dashboard-rule-grid mb-7">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
       <SummaryCard
         icon={Megaphone}
         label="Total Campaign"

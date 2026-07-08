@@ -71,7 +71,7 @@ export function CampaignSubmissionSection({
             <button
               key={tab.value}
               onClick={() => setFilterTab(tab.value)}
-              className={`px-3 py-1.5 rounded-full text-[10px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                 filterTab === tab.value
                   ? "bg-primary text-white shadow-xs"
                   : "bg-neutral-50 text-text-secondary hover:bg-neutral-100 border border-border-soft/60"

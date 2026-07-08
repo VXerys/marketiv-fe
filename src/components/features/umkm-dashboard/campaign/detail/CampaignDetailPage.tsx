@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
+import { UmkmPageWrapper } from "../../shared/UmkmPageWrapper";
 import { CampaignDetailHeader } from "./CampaignDetailHeader";
 import { CampaignOverviewCards } from "./CampaignOverviewCards";
 import { CampaignWorkspaceCard } from "./CampaignWorkspaceCard";
@@ -164,7 +165,7 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
 
   return (
     <UmkmDashboardChrome businessName={businessName}>
-      <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-32 overflow-y-auto relative">
+      <UmkmPageWrapper maxWidth={1440}>
         
         {/* Detail Header */}
         <CampaignDetailHeader
@@ -180,44 +181,49 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
           pendingSubmissionsCount={pendingSubmissionsCount}
         />
 
-        {/* Core details layout grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6" id="campaign-detail-workspace">
+        {/* Core details layout stacked and grouped */}
+        <div className="space-y-6" id="campaign-detail-workspace">
           
-          {/* Left panel: workspace & submissions */}
-          <div className="lg:col-span-8 space-y-6">
-            <CampaignWorkspaceCard campaign={campaign} submissions={submissions} />
-            <div id="review-submissions-section">
-              <CampaignSubmissionSection
-                submissions={submissions}
-                onReviewClick={setActiveReviewSubmission}
-                onViewDetailsClick={setActiveDetailSubmission}
-              />
-            </div>
+          {/* Workspace Card (Full Width) */}
+          <CampaignWorkspaceCard campaign={campaign} submissions={submissions} />
+          
+          {/* Submissions Section (Full Width) */}
+          <div id="review-submissions-section">
+            <CampaignSubmissionSection
+              submissions={submissions}
+              onReviewClick={setActiveReviewSubmission}
+              onViewDetailsClick={setActiveDetailSubmission}
+            />
           </div>
 
-          {/* Right panel: assets, budget, history */}
-          <div className="lg:col-span-4 space-y-6">
-            <CampaignBudgetCard campaign={campaign} />
-            <CampaignQuickActionsCard
-              onCopyAsset={() => {
-                navigator.clipboard.writeText(campaign.externalAssetUrl);
-                showToast("Tautan folder aset berhasil disalin.");
-              }}
-              onExportReport={() => setIsExportModalOpen(true)}
-              onViewEscrow={() => showToast("Membuka rekam transaksi escrow...")}
-              onReviewPending={() => {
-                const element = document.getElementById("review-submissions-section");
-                if (element) {
-                  element.scrollIntoView({ behavior: "smooth" });
-                }
-              }}
-              hasPendingSubmissions={pendingSubmissionsCount > 0}
-            />
-            <CampaignHealthChecklistCard
-              campaign={campaign}
-              pendingCount={pendingSubmissionsCount}
-            />
-            <div className="mb-24">
+          {/* Secondary Grid (Balanced Columns) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column: Budget & Quick Actions */}
+            <div className="space-y-6">
+              <CampaignBudgetCard campaign={campaign} />
+              <CampaignQuickActionsCard
+                onCopyAsset={() => {
+                  navigator.clipboard.writeText(campaign.externalAssetUrl);
+                  showToast("Tautan folder aset berhasil disalin.");
+                }}
+                onExportReport={() => setIsExportModalOpen(true)}
+                onViewEscrow={() => showToast("Membuka rekam transaksi escrow...")}
+                onReviewPending={() => {
+                  const element = document.getElementById("review-submissions-section");
+                  if (element) {
+                    element.scrollIntoView({ behavior: "smooth" });
+                  }
+                }}
+                hasPendingSubmissions={pendingSubmissionsCount > 0}
+              />
+            </div>
+
+            {/* Right Column: Health Checklist & Activity Timeline */}
+            <div className="space-y-6">
+              <CampaignHealthChecklistCard
+                campaign={campaign}
+                pendingCount={pendingSubmissionsCount}
+              />
               <CampaignActivityTimeline campaign={campaign} />
             </div>
           </div>
@@ -258,7 +264,7 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
           />
         )}
 
-      </div>
+      </UmkmPageWrapper>
     </UmkmDashboardChrome>
   );
 }

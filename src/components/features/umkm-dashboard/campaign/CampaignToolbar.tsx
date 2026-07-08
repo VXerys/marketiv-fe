@@ -36,45 +36,6 @@ interface CampaignToolbarProps {
   statusCounts?: Partial<Record<string, number>>;
 }
 
-function SelectPill({
-  value,
-  options,
-  onChange,
-}: {
-  value: string;
-  options: readonly { value: string; label: string }[];
-  onChange: (v: string) => void;
-}) {
-  const isFiltered = value !== "all" && value !== "latest";
-  return (
-    <div className="relative inline-block">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="appearance-none min-h-[38px] pl-3 pr-7 rounded-full text-[.82rem] font-[780] cursor-pointer outline-none transition-all"
-        style={{
-          border: isFiltered ? "1px solid rgba(249,115,22,.26)" : "1px solid rgba(17,24,39,.09)",
-          background: isFiltered ? "#fff7ed" : "white",
-          color: isFiltered ? "#ea580c" : "#556174",
-          boxShadow: "0 4px 12px rgba(15,23,42,.04)",
-          fontFamily: "inherit",
-        }}
-      >
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown
-        size={13}
-        className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
-        color={isFiltered ? "#ea580c" : "#737f91"}
-      />
-    </div>
-  );
-}
-
 export function CampaignToolbar({
   search,
   onSearchChange,
@@ -91,104 +52,96 @@ export function CampaignToolbar({
   statusCounts = {},
 }: CampaignToolbarProps) {
   return (
-    <div
-      className="mb-6 shrink-0"
-      style={{
-        padding: "14px 16px",
-        borderRadius: 22,
-        background: "rgba(255,255,255,.80)",
-        border: "1px solid rgba(17,24,39,.08)",
-        boxShadow: "0 6px 22px rgba(15,23,42,.05)",
-        display: "grid",
-        gap: 12,
-      }}
-    >
+    <div className="shrink-0 bg-white border border-neutral-200/80 rounded-2xl p-4 shadow-3xs flex flex-col gap-4">
       {/* Row 1: search + selects + view toggle */}
-      <div className="flex items-center gap-2.5 flex-wrap">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 flex-wrap">
         {/* Search */}
-        <div
-          className="flex items-center gap-2 flex-1 min-w-[180px] h-[42px] px-[14px] bg-white rounded-full"
-          style={{ border: "1px solid rgba(17,24,39,.09)", boxShadow: "0 4px 14px rgba(15,23,42,.04)" }}
-        >
-          <Search size={14} color="#737f91" className="shrink-0" />
+        <div className="relative flex-grow min-w-[280px]">
+          <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-neutral-400">
+            <Search size={16} />
+          </span>
           <input
+            type="text"
             placeholder="Cari nama campaign atau produk..."
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="flex-1 border-none outline-none bg-transparent text-[.84rem] text-[#182033] placeholder:text-[#a0aaba]"
-            style={{ fontFamily: "inherit" }}
+            className="w-full bg-white border border-neutral-200 rounded-xl pl-9 pr-8 py-2 text-xs font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all shadow-3xs"
           />
           {search && (
             <button
               onClick={() => onSearchChange("")}
-              className="text-[#a0aaba] hover:text-[#556174] transition-colors cursor-pointer"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer"
               aria-label="Hapus pencarian"
             >
-              <X size={13} />
+              <X size={14} />
             </button>
           )}
         </div>
 
-        {/* Category select */}
-        <SelectPill
-          value={selectedNiche}
-          options={[
-            { value: "all", label: "Semua Kategori" },
-            ...CREATOR_NICHE_OPTIONS.filter((o) => o.value !== "all"),
-          ]}
-          onChange={onNicheChange}
-        />
-
-        {/* Sort select */}
-        <SelectPill value={sortBy} options={SORT_OPTIONS} onChange={onSortChange} />
-
-        {/* Active filter indicator */}
-        {hasActiveFilters && (
-          <div
-            className="inline-flex items-center gap-1.5 min-h-[28px] px-2.5 rounded-full text-[.72rem] font-[850]"
-            style={{
-              background: "#fff7ed",
-              border: "1px solid rgba(249,115,22,.22)",
-              color: "#ea580c",
-            }}
-          >
-            <SlidersHorizontal size={11} />
-            Filter aktif
+        {/* Filters and buttons group */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Category select */}
+          <div className="relative">
+            <select
+              value={selectedNiche}
+              onChange={(e) => onNicheChange(e.target.value)}
+              className="appearance-none bg-white border border-neutral-200 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-700 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all cursor-pointer shadow-3xs"
+            >
+              <option value="all">Semua Kategori</option>
+              {CREATOR_NICHE_OPTIONS.filter((o) => o.value !== "all").map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
           </div>
-        )}
 
-        {/* Reset */}
-        {hasActiveFilters && (
-          <button
-            onClick={onClearFilters}
-            className="inline-flex items-center gap-1.5 min-h-[38px] px-3 rounded-full text-[.78rem] font-[800] cursor-pointer transition-all hover:opacity-90"
-            style={{
-              border: "1px solid rgba(220,38,38,.18)",
-              background: "#fff5f5",
-              color: "#b4232a",
-              fontFamily: "inherit",
-            }}
-          >
-            <X size={12} /> Reset
-          </button>
-        )}
+          {/* Sort select */}
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => onSortChange(e.target.value)}
+              className="appearance-none bg-white border border-neutral-200 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-700 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all cursor-pointer shadow-3xs"
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
+          </div>
 
-        {/* Spacer */}
-        <div className="flex-1" />
+          {/* Active filter indicator */}
+          {hasActiveFilters && (
+            <div className="inline-flex items-center gap-1 bg-primary-50 border border-primary-200/50 text-primary-600 text-xs font-extrabold px-2.5 py-1.5 rounded-xl shadow-3xs">
+              <SlidersHorizontal size={12} />
+              Filter aktif
+            </div>
+          )}
 
-        {/* Card/Table toggle */}
-        <div
-          className="flex items-center p-1.5 rounded-2xl gap-1"
-          style={{ background: "#eef2f7" }}
-        >
+          {/* Reset */}
+          {hasActiveFilters && (
+            <button
+              onClick={onClearFilters}
+              className="inline-flex items-center gap-1 bg-red-50 hover:bg-red-100/80 border border-red-200 text-red-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-3xs"
+            >
+              <X size={12} /> Reset
+            </button>
+          )}
+        </div>
+
+        {/* View Mode Toggle */}
+        <div className="flex items-center p-1 rounded-xl gap-0.5 bg-neutral-100 border border-neutral-200 md:ml-auto self-start md:self-auto">
           <button
             onClick={() => onViewModeChange("card")}
-            className={`p-2 rounded-xl transition-all cursor-pointer ${
-              viewMode === "card" ? "bg-white shadow-sm text-primary" : "text-[#737f91] hover:text-[#556174]"
+            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+              viewMode === "card" ? "bg-white shadow-3xs text-primary-600" : "text-neutral-400 hover:text-neutral-600"
             }`}
             aria-label="Tampilan Kartu"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <rect x="3" y="3" width="7" height="7" rx="1.5" />
               <rect x="14" y="3" width="7" height="7" rx="1.5" />
               <rect x="14" y="14" width="7" height="7" rx="1.5" />
@@ -197,12 +150,12 @@ export function CampaignToolbar({
           </button>
           <button
             onClick={() => onViewModeChange("table")}
-            className={`p-2 rounded-xl transition-all cursor-pointer ${
-              viewMode === "table" ? "bg-white shadow-sm text-primary" : "text-[#737f91] hover:text-[#556174]"
+            className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+              viewMode === "table" ? "bg-white shadow-3xs text-primary-600" : "text-neutral-400 hover:text-neutral-600"
             }`}
             aria-label="Tampilan Tabel"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
@@ -210,42 +163,39 @@ export function CampaignToolbar({
       </div>
 
       {/* Row 2: status pill tabs */}
-      <div
-        className="flex gap-1.5 flex-wrap p-1.5 rounded-[18px]"
-        style={{ background: "#eef2f7" }}
-      >
-        {STATUS_TABS.map((tab) => {
-          const isActive = selectedStatus === tab.value;
-          const count = statusCounts[tab.value];
-          return (
-            <button
-              key={tab.value}
-              onClick={() => onStatusChange(tab.value)}
-              className="inline-flex items-center gap-1.5 min-h-9 px-[13px] rounded-[13px] text-[.8rem] cursor-pointer transition-all whitespace-nowrap"
-              style={{
-                border: "none",
-                background: isActive ? "white" : "transparent",
-                color: isActive ? "#ea580c" : "#737f91",
-                fontWeight: isActive ? 820 : 720,
-                boxShadow: isActive ? "0 4px 14px rgba(15,23,42,.08)" : "none",
-                fontFamily: "inherit",
-              }}
-            >
-              {tab.label}
-              {count !== undefined && (
-                <span
-                  className="inline-flex items-center justify-center min-w-[20px] h-5 rounded-full text-[.66rem] font-[900] px-[5px]"
-                  style={{
-                    background: isActive ? "#fff7ed" : "rgba(17,24,39,.09)",
-                    color: isActive ? "#ea580c" : "#737f91",
-                  }}
-                >
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-t border-neutral-100 pt-3">
+        <span className="text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider mr-1.5 hidden sm:inline shrink-0">
+          Status:
+        </span>
+        <div className="flex gap-1.5 flex-wrap">
+          {STATUS_TABS.map((tab) => {
+            const isActive = selectedStatus === tab.value;
+            const count = statusCounts[tab.value];
+            return (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => onStatusChange(tab.value)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  isActive
+                    ? "bg-primary-50 border-primary-500/30 text-primary-600 font-extrabold shadow-3xs"
+                    : "bg-white border-neutral-200/60 hover:bg-neutral-50 text-neutral-500 hover:text-neutral-700"
+                }`}
+              >
+                {tab.label}
+                {count !== undefined && (
+                  <span
+                    className={`inline-flex items-center justify-center min-w-[18px] h-4.5 rounded-full text-[9px] font-extrabold px-1 ${
+                      isActive ? "bg-primary-100/50 text-primary-700" : "bg-neutral-100 text-neutral-500"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

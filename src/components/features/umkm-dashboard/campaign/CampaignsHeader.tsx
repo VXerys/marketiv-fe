@@ -18,7 +18,6 @@ export function CampaignsHeader({
         justifyContent: "space-between",
         gap: 16,
         flexWrap: "wrap",
-        marginBottom: 26,
       }}
     >
       {/* Title */}
@@ -67,7 +66,7 @@ export function CampaignsHeader({
             gap: 7,
             minHeight: 42,
             padding: "0 16px",
-            borderRadius: 13,
+            borderRadius: 12,
             border: "1px solid rgba(17,24,39,.09)",
             background: "rgba(255,255,255,.82)",
             color: "#556174",
@@ -89,7 +88,7 @@ export function CampaignsHeader({
             gap: 9,
             minHeight: 46,
             padding: "0 22px",
-            borderRadius: 15,
+            borderRadius: 12,
             border: "1px solid rgba(194,65,12,.22)",
             background: "linear-gradient(180deg, #fb7a18 0%, #ea580c 100%)",
             color: "white",
