@@ -21,13 +21,13 @@ const STATUS_CONFIG: Record<CampaignStatus, { label: string; bg: string; color: 
 
 function CampaignSkeleton() {
   return (
-    <div className="campaign-card">
-      {/* Cover placeholder — matches .campaign-card-cover height (118px) */}
-      <div className="campaign-card-cover bg-[#edf1f5] relative overflow-hidden">
+    <div className="flex flex-col overflow-hidden bg-white border border-neutral-200/80 rounded-[28px] shadow-[0_12px_36px_-12px_rgba(0,0,0,0.05)]">
+      {/* Cover placeholder */}
+      <div className="h-[118px] bg-[#edf1f5] relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent" style={{ animation: "shimmer 1.45s infinite" }} />
       </div>
-      {/* Body placeholder — uses .campaign-card-body padding + gap */}
-      <div className="campaign-card-body">
+      {/* Body placeholder */}
+      <div className="p-5 flex flex-col gap-3">
         {[80, 60, 100, 70].map((w, i) => (
           <div
             key={i}
@@ -73,27 +73,10 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
   return (
     <Link
       href={`/dashboard/umkm/campaign/${campaign.id}`}
+      className="flex flex-col overflow-hidden bg-white border border-neutral-200/80 rounded-[28px] transition-all duration-300 hover:-translate-y-1 hover:border-orange-500/30 hover:shadow-[0_20px_40px_-15px_rgba(234,88,12,0.12)] shadow-[0_12px_36px_-12px_rgba(0,0,0,0.05)] cursor-pointer"
       style={{
-        borderRadius: 24,
-        border: "1px solid rgba(17,24,39,.08)",
-        background: "linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,255,255,.88))",
-        overflow: "hidden",
-        boxShadow: "0 8px 24px rgba(15,23,42,.06)",
-        transition: ".24s cubic-bezier(.2,.8,.2,1)",
-        display: "flex",
-        flexDirection: "column",
         textDecoration: "none",
         color: "inherit",
-      }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)";
-        (e.currentTarget as HTMLElement).style.boxShadow = "0 18px 46px rgba(15,23,42,.10)";
-        (e.currentTarget as HTMLElement).style.borderColor = "rgba(249,115,22,.18)";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-        (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(15,23,42,.06)";
-        (e.currentTarget as HTMLElement).style.borderColor = "rgba(17,24,39,.08)";
       }}
     >
       {/* Cover art */}
@@ -236,7 +219,7 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
 }
 
 export function CampaignSection({ campaigns = [], isLoading = false, onCreateClick, onViewAllClick }: CampaignSectionProps) {
-  const visibleCampaigns = campaigns.slice(0, 3);
+  const visibleCampaigns = campaigns.slice(0, 2);
 
   return (
     <div>
@@ -325,8 +308,8 @@ export function CampaignSection({ campaigns = [], isLoading = false, onCreateCli
       </div>
 
       {isLoading ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
-          {[1, 2, 3].map((i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[1, 2].map((i) => (
             <CampaignSkeleton key={i} />
           ))}
         </div>
@@ -371,7 +354,7 @@ export function CampaignSection({ campaigns = [], isLoading = false, onCreateCli
           </button>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {visibleCampaigns.map((camp) => (
             <CampaignCard key={camp.id} campaign={camp} />
           ))}

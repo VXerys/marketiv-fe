@@ -47,8 +47,44 @@ export function UmkmOverviewClient({ data }: UmkmOverviewClientProps) {
         totalBudgetEscrow: data.campaign.budgetTotal,
         usedBudget: data.campaign.budgetUsed,
         totalViews: data.campaign.totalViews,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: "2026-07-09T08:00:00Z",
+        updatedAt: "2026-07-09T08:00:00Z",
+      },
+      {
+        id: "campaign-2",
+        umkmId: "umkm-1",
+        title: "Paket Nasi Box Sehat Keluarga",
+        brief: "Promosi paket makanan nasi box sehat keluarga daerah Sukabumi.",
+        externalAssetUrl: "",
+        thumbnailUrl: "",
+        niche: "kuliner",
+        status: "active",
+        creatorQuota: 5,
+        usedQuota: 3,
+        pricePerThousandViews: 6000,
+        totalBudgetEscrow: 2500000,
+        usedBudget: 900000,
+        totalViews: 92000,
+        createdAt: "2026-07-08T08:00:00Z",
+        updatedAt: "2026-07-08T08:00:00Z",
+      },
+      {
+        id: "campaign-3",
+        umkmId: "umkm-1",
+        title: "Fesyen Muslimah Cantik",
+        brief: "Promosi hijab dan gamis muslimah modern lokal kualitas butik.",
+        externalAssetUrl: "",
+        thumbnailUrl: "",
+        niche: "fesyen",
+        status: "active",
+        creatorQuota: 8,
+        usedQuota: 5,
+        pricePerThousandViews: 7500,
+        totalBudgetEscrow: 4500000,
+        usedBudget: 1875000,
+        totalViews: 128000,
+        createdAt: "2026-07-07T08:00:00Z",
+        updatedAt: "2026-07-07T08:00:00Z",
       },
     ];
   };
@@ -91,51 +127,40 @@ export function UmkmOverviewClient({ data }: UmkmOverviewClientProps) {
          * Intentional exception: uses a custom bespoke 1.85fr/1fr split
          * at 1100px that no shared grid class covers.
          */}
-        <div className="umkm-dash-grid">
-          {/* Left column */}
-          <div style={{ display: "grid", gap: 26, minWidth: 0, alignContent: "start" }}>
-            <CampaignSection
-              campaigns={mappedCampaigns}
-              onCreateClick={handleCreateCampaign}
-              onViewAllClick={handleViewCampaigns}
-            />
-            <ActivityTimeline activities={data.activities} />
-          </div>
+        {/* Core dashboard layout stacked and grouped */}
+        <div className="space-y-6">
+          {/* Campaign Section (Full Width) */}
+          <CampaignSection
+            campaigns={mappedCampaigns}
+            onCreateClick={handleCreateCampaign}
+            onViewAllClick={handleViewCampaigns}
+          />
 
-          {/* Right column */}
-          <div style={{ display: "grid", gap: 26, alignContent: "start", minWidth: 0 }}>
-            <FinancialOverview
-              escrowBalance={data.kpis?.escrowBalance}
-              totalSpend={data.kpis?.totalSpend}
-              pendingValidation={data.kpis?.pendingSubmissions}
-              onViewFinanceClick={handleViewFinance}
-            />
-            <InsightSection
-              insights={data.insights}
-              onSearchCreatorClick={handleSearchCreator}
-              onViewAnalyticsClick={handleViewAnalytics}
-            />
-            <QuickActions />
+          {/* Secondary Grid (Balanced Columns) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column: Finance & Quick Actions */}
+            <div className="space-y-6">
+              <FinancialOverview
+                escrowBalance={data.kpis?.escrowBalance}
+                totalSpend={data.kpis?.totalSpend}
+                pendingValidation={data.kpis?.pendingSubmissions}
+                onViewFinanceClick={handleViewFinance}
+              />
+              <QuickActions />
+            </div>
+
+            {/* Right Column: Insights & Activity Timeline */}
+            <div className="space-y-6">
+              <InsightSection
+                insights={data.insights}
+                onSearchCreatorClick={handleSearchCreator}
+                onViewAnalyticsClick={handleViewAnalytics}
+              />
+              <ActivityTimeline activities={data.activities} />
+            </div>
           </div>
         </div>
       </UmkmPageWrapper>
-
-      {/*
-       * .umkm-dash-grid — Intentional exception: custom 1.85fr/1fr split at 1100px.
-       * No shared CSS class covers this asymmetric ratio; do not replace with bento-grid.
-       */}
-      <style jsx global>{`
-        .umkm-dash-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 26px;
-        }
-        @media (min-width: 1100px) {
-          .umkm-dash-grid {
-            grid-template-columns: minmax(0, 1.85fr) minmax(0, 1fr);
-          }
-        }
-      `}</style>
     </UmkmDashboardChrome>
   );
 }

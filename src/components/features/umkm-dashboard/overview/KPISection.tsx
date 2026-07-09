@@ -274,8 +274,8 @@ export function KPISection({ isLoading = false, kpisData }: KPISectionProps) {
        * Fixed grid: 2 cols mobile → 3 cols tablet → 6 cols desktop.
        * minmax(0, 1fr) on all tracks prevents overflow.
        */}
-      {/* .dashboard-rule-grid: 2-col mobile → 3-col tablet (760px) → 6-col desktop (1120px) */}
-      <div className="dashboard-rule-grid">
+      {/* grid: 1-col mobile → 2-col tablet → 3-col desktop (3-3 layout) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
         {kpis.map((kpi) => (
           <KPICard key={kpi.label} {...kpi} isLoading={isLoading} />
         ))}
