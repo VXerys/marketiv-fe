@@ -231,7 +231,7 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-24">
+    <div className="space-y-6 max-w-7xl mx-auto pb-6">
       {/* Header */}
       <NegotiationRoomHeader
         order={order}

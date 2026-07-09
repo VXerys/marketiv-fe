@@ -104,21 +104,21 @@ export function NegotiationRoomHeader({ order, onSendOffer, onPay }: Negotiation
       </div>
 
       {/* Header card info */}
-      <div className="rounded-2xl border border-border-soft bg-white p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-xs select-none">
-        <div className="flex gap-3.5 min-w-0">
+      <div className="rounded-2xl border border-border-soft bg-gradient-to-br from-white to-neutral-50/60 p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 shadow-[0_2px_12px_rgba(17,24,39,.07)] select-none">
+        <div className="flex gap-4 min-w-0">
           {/* Avatar */}
-          <div className="h-11 w-11 rounded-xl bg-neutral-100 border border-neutral-200/50 shrink-0 relative overflow-hidden shadow-3xs">
+          <div className="h-12 w-12 rounded-xl bg-neutral-100 border border-neutral-200/50 shrink-0 relative overflow-hidden shadow-2xs">
             <Image
               src={order.creatorAvatarUrl}
               alt={order.creatorName}
               fill
               className="object-cover"
-              sizes="44px"
+              sizes="48px"
             />
           </div>
           
-          <div className="space-y-1 min-w-0">
-            <div className="flex items-center gap-2">
+          <div className="space-y-1.5 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-xs font-extrabold text-text-primary">
                 {order.creatorName}
               </span>
@@ -131,9 +131,12 @@ export function NegotiationRoomHeader({ order, onSendOffer, onPay }: Negotiation
               {order.projectTitle}
             </h2>
             
-            <span className="block text-[9px] text-text-muted font-bold leading-none">
-              Harga disepakati: <strong className="text-primary">{formatCurrency(order.finalPrice)}</strong>
-            </span>
+            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary/8 border border-primary/10">
+              <svg className="w-3 h-3 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-[9px] text-text-muted font-bold">Nilai: <strong className="text-primary">{formatCurrency(order.finalPrice)}</strong></span>
+            </div>
           </div>
         </div>
 

@@ -2,7 +2,7 @@ import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import * as React from "react";
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
 type DashboardButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "soft" | "danger" | "danger-outline" | "icon";
