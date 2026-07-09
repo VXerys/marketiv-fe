@@ -17,7 +17,8 @@ Konvensi penamaan tunggal untuk seluruh Marketiv. Struktur folder di [`40_Folder
 ## File & Komponen Frontend
 
 - Komponen React: **PascalCase** → `CampaignCard.jsx`, `WithdrawForm.jsx`, `FraudScoreBadge.jsx`.
-- Page: PascalCase + sufiks `Page` → `CreatorListPage.jsx`, `CreatorDetailPage.jsx`.
+- Route App Router: file khusus lowercase → `page.jsx`, `layout.jsx`, `loading.jsx`, `error.jsx`. Folder segmen = URL (`[id]` untuk dinamis).
+- View halaman (di modul, di-import oleh `page.jsx`): PascalCase + sufiks `View` → `CreatorListView.jsx`, `CreatorDetailView.jsx`.
 - Service: **camelCase** + `Service` → `campaignService.js`, `walletService.js`.
 - Store: camelCase + `Store` → `authStore.js`.
 - Hook: prefiks `use` → `useRealtime.js`.

@@ -48,4 +48,4 @@ try {
 - `auth` → arahkan ke login.
 - `forbidden`/`not_found` → empty/error state.
 - `server`/`unknown` → toast/banner generik + opsi retry.
-- Error tak tertangani ditangkap `ErrorBoundary` (`src/app/ErrorBoundary.jsx`).
+- Error tak tertangani ditangkap error boundary App Router: `src/app/error.jsx` (root) atau `error.jsx` per route group.

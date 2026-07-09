@@ -4,7 +4,7 @@
 
 ## Stack
 
-- Frontend: React + Vite → deploy Vercel.
+- Frontend: Next.js (App Router) → deploy Vercel.
 - Backend: Appwrite BaaS (Auth, Database, Storage, Realtime, Functions) → Appwrite Cloud.
 - AI Layer: OpenAI API dibungkus Appwrite Function.
 
@@ -12,29 +12,37 @@
 
 ```text
 src/
-├── app/            # Bootstrap: App.jsx, Providers.jsx, ErrorBoundary.jsx, AppInitializer.jsx (auth/role/theme/global provider)
-├── routes/         # AppRouter.jsx, GuestRoutes, UmkmRoutes, CreatorRoutes, AdminRoutes, RouteGuard.jsx
-├── layouts/        # PublicLayout, UmkmLayout, CreatorLayout, AdminLayout
-├── pages/          # Halaman level-app (selebihnya per modul)
-├── modules/        # Feature-based modules (lihat di bawah)
-├── services/       # Service layer global (akses Appwrite)
-├── stores/         # Zustand stores
-├── hooks/          # Custom hooks
-├── components/     # Shared components (ui/ + per-domain)
-├── design-system/  # Design tokens (lihat 90_Design_System.md)
-├── lib/            # Integrasi (Appwrite config)
+├── app/                # Next.js App Router — routing = struktur folder
+│   ├── layout.jsx      # Root layout, membungkus <Providers>
+│   ├── page.jsx        # Landing
+│   ├── providers.jsx   # Client providers (Zustand hydrate, theme) — "use client"
+│   ├── error.jsx       # Root error boundary (lihat 60_Error_Handling.md)
+│   ├── loading.jsx
+│   ├── (public)/       # Route group tamu: login, register, landing
+│   ├── (umkm)/         # Route group UMKM + layout.jsx sendiri
+│   ├── (creator)/      # Route group Creator + layout.jsx sendiri
+│   └── (admin)/        # Route group Admin + layout.jsx sendiri
+├── middleware.js       # Auth/role guard di edge (pengganti RouteGuard)
+├── modules/            # Feature-based modules — logika & UI per fitur (bukan routing)
+├── services/           # Service layer global (akses Appwrite)
+├── stores/             # Zustand stores
+├── hooks/              # Custom hooks
+├── components/         # Shared components (ui/ + per-domain)
+├── design-system/      # Design tokens (lihat 90_Design_System.md)
+├── lib/                # Integrasi (Appwrite config)
 ├── utils/
 ├── constants/
-├── validations/    # Zod schemas
-├── assets/
-└── main.jsx
+└── validations/        # Zod schemas
 ```
+
+- Aset statis publik → `public/` (root proyek, bukan `src/`).
+- Halaman = folder di `src/app/` berisi `page.jsx`. Layout per-role via `layout.jsx` di route group. Segmen dinamis pakai `[id]` (mis. `app/(umkm)/campaign/[id]/page.jsx`).
 
 ## Modules (`src/modules/`)
 
 `auth`, `users`, `creator`, `rate-card`, `campaign`, `submission`, `offer`, `order`, `wallet`, `payment`, `review`, `notification`, `ai`, `admin`.
 
-Tiap modul: `pages/`, `components/`, `services/`, `hooks/`, `validators/`, `store.js`. Modul AI hanya 3 komponen MVP: `AiLandingAssistant`, `AiBriefGenerator`, `FraudScoreBadge`.
+Tiap modul: `components/`, `services/`, `hooks/`, `validators/`, `store.js`. Modul memuat logika & UI fitur; **routing tetap di `src/app/`** yang meng-import view dari modul. Modul AI hanya 3 komponen MVP: `AiLandingAssistant`, `AiBriefGenerator`, `FraudScoreBadge`.
 
 ## Shared Components (`src/components/`)
 
@@ -70,16 +78,16 @@ Tiap modul: `pages/`, `components/`, `services/`, `hooks/`, `validators/`, `stor
 ## Environment Variables
 
 ```env
-VITE_APPWRITE_ENDPOINT=
-VITE_APPWRITE_PROJECT_ID=
-VITE_DB_ID=
-VITE_USER_COLLECTION=
-VITE_CREATOR_COLLECTION=
-VITE_CAMPAIGN_COLLECTION=
-VITE_ORDER_COLLECTION=
-VITE_WALLET_COLLECTION=
-VITE_STORAGE_BUCKET=
-VITE_AI_FUNCTION_ID=
+NEXT_PUBLIC_APPWRITE_ENDPOINT=
+NEXT_PUBLIC_APPWRITE_PROJECT_ID=
+NEXT_PUBLIC_DB_ID=
+NEXT_PUBLIC_USER_COLLECTION=
+NEXT_PUBLIC_CREATOR_COLLECTION=
+NEXT_PUBLIC_CAMPAIGN_COLLECTION=
+NEXT_PUBLIC_ORDER_COLLECTION=
+NEXT_PUBLIC_WALLET_COLLECTION=
+NEXT_PUBLIC_STORAGE_BUCKET=
+NEXT_PUBLIC_AI_FUNCTION_ID=
 ```
 
 Deploy & env: [`80_Deployment.md`](80_Deployment.md).
