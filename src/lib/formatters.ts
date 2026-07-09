@@ -54,3 +54,20 @@ export function formatCompactCurrency(value: number): string {
   }
   return `Rp ${value}`;
 }
+
+/**
+ * Format angka views/tayangan ke representasi ringkas Bahasa Indonesia.
+ * Menggantikan semua fungsi `formatViews` lokal di komponen UMKM.
+ * @example formatCompactViews(1_200_000) → "1.2jt"
+ * @example formatCompactViews(45_000)    → "45rb"
+ * @example formatCompactViews(500)       → "500"
+ */
+export function formatCompactViews(value: number): string {
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toLocaleString("id-ID", { maximumFractionDigits: 1 })}jt`;
+  }
+  if (value >= 1_000) {
+    return `${(value / 1_000).toLocaleString("id-ID", { maximumFractionDigits: 0 })}rb`;
+  }
+  return String(value);
+}

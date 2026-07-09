@@ -37,7 +37,7 @@ export function CreatorSocialLinksCard({ creatorName }: CreatorSocialLinksCardPr
   ];
 
   return (
-    <div className="rounded-2xl border border-border-soft bg-white p-5 space-y-4 shadow-2xs">
+    <div className="rounded-2xl border border-border-soft bg-white p-5 space-y-4 shadow-2xs h-full flex flex-col transition-all duration-300 hover:scale-[1.015] hover:-translate-y-1 hover:shadow-md hover:border-orange-300/30">
       <span className="block text-xs font-bold text-text-secondary uppercase tracking-wider">
         Saluran Media Sosial
       </span>

@@ -60,7 +60,7 @@ export function CreatorPortfolioSection({ creatorId }: CreatorPortfolioSectionPr
         {items.map((item) => (
           <div
             key={item.id}
-            className="group rounded-2xl overflow-hidden border border-border-soft bg-neutral-100 aspect-[3/4] relative shadow-2xs hover:shadow-xs hover:border-primary/20 transition-all duration-350 cursor-pointer"
+            className="group rounded-2xl overflow-hidden border border-border-soft bg-neutral-100 aspect-[3/4] relative shadow-2xs transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-md hover:border-orange-300/30 cursor-pointer"
           >
             <Image
               src={item.imgUrl}

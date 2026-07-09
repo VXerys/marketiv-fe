@@ -44,7 +44,7 @@ export function CreatorDetailPage({ creatorId }: CreatorDetailPageProps) {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-24">
+    <div className="space-y-6 max-w-7xl mx-auto pb-6">
       {/* Back button */}
       <div>
         <Link
@@ -64,24 +64,23 @@ export function CreatorDetailPage({ creatorId }: CreatorDetailPageProps) {
       {/* Stats Quick Cards */}
       <CreatorStatsCards creatorId={creatorId} />
 
-      {/* Split details column */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Left main area */}
+      {/* Rate card packages section — FULL WIDTH to allow packages to stretch comfortably */}
+      <RateCardPackagesSection
+        creatorCategory={creator.category}
+        onSelectPackage={handleSelectPackage}
+      />
+
+      <hr className="border-border-soft" />
+
+      {/* Split details column for Portfolio and Social Links — stretch items to equal heights */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left main area: Portfolio */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Rate card packages section */}
-          <RateCardPackagesSection
-            creatorCategory={creator.category}
-            onSelectPackage={handleSelectPackage}
-          />
-
-          <hr className="border-border-soft" />
-
-          {/* Portfolio list */}
           <CreatorPortfolioSection creatorId={creator.id} />
         </div>
 
-        {/* Right side social links card */}
-        <div className="space-y-6">
+        {/* Right side: Social links card */}
+        <div className="h-full">
           <CreatorSocialLinksCard
             creatorName={creator.name}
           />

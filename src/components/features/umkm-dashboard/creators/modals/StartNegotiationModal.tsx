@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatCurrency } from "@/lib/formatters";
 import {
   ResponsiveModal,
@@ -22,6 +23,7 @@ export function StartNegotiationModal({
   packageName,
   packagePrice,
 }: StartNegotiationModalProps) {
+  const router = useRouter();
   const [selectedCampaign, setSelectedCampaign] = useState("");
   const [customPrice, setCustomPrice] = useState(1500000);
   const [targetViews, setTargetViews] = useState(50000);
@@ -79,8 +81,7 @@ export function StartNegotiationModal({
               type="button"
               onClick={() => {
                 onClose();
-                // Redirect mockup link
-                window.location.href = "/dashboard/umkm/negosiasi/rc-offer-simulated";
+                router.push("/dashboard/umkm/negosiasi/rc-offer-simulated");
               }}
               className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary-600 text-white text-xs font-bold transition-all duration-200 cursor-pointer shadow-xs border border-primary hover:border-primary-600"
             >

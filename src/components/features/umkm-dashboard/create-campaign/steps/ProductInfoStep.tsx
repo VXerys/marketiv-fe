@@ -2,6 +2,7 @@ import { FormSectionCard } from "../cards/FormSectionCard";
 import { SelectableOptionCard } from "../cards/SelectableOptionCard";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { NICHE_OPTIONS } from "../create-campaign.constants";
 
 interface ProductInfoStepProps {
   title: string;
@@ -26,15 +27,6 @@ export function ProductInfoStep({
   onChangeLocation,
   validationErrors = {},
 }: ProductInfoStepProps) {
-  const categories = [
-    { id: "kuliner", label: "Kuliner", desc: "Makanan & Minuman" },
-    { id: "fesyen", label: "Fesyen", desc: "Pakaian & Aksesoris" },
-    { id: "pariwisata", label: "Pariwisata", desc: "Travel & Liburan" },
-    { id: "edukasi", label: "Edukasi", desc: "Kursus & Pengetahuan" },
-    { id: "kecantikan", label: "Kecantikan", desc: "Kosmetik & Skin Care" },
-    { id: "lainnya", label: "Lainnya", desc: "Umum & Jasa" },
-  ];
-
   return (
     <FormSectionCard
       title="Informasi Produk"
@@ -57,7 +49,7 @@ export function ProductInfoStep({
           Kategori Niche Kreator <span className="text-primary">*</span>
         </label>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {categories.map((cat) => (
+          {NICHE_OPTIONS.map((cat) => (
             <SelectableOptionCard
               key={cat.id}
               selected={category === cat.id}

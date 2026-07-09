@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Users, Eye, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatCompactViews, formatCompactCurrency } from "@/lib/formatters";
 import type { Campaign, CampaignStatus } from "@/types/umkm-dashboard.types";
 import { DashboardBadge } from "../shared/DashboardBadge";
 import { DashboardActionMenu } from "../shared/DashboardActionMenu";
@@ -18,14 +20,7 @@ interface CampaignCardProps {
   onEdit: () => void;
 }
 
-const STATUS_CONFIG: Record<CampaignStatus, { label: string; color: string; border: string }> = {
-  active:    { label: "Aktif",       color: "#177b42", border: "rgba(22,163,74,.22)"   },
-  draft:     { label: "Draft",       color: "#687386", border: "rgba(148,163,184,.28)" },
-  full:      { label: "Penuh",       color: "#bd4b0b", border: "rgba(251,146,60,.24)"  },
-  completed: { label: "Selesai",     color: "#2d5bd1", border: "rgba(96,165,250,.25)"  },
-  cancelled: { label: "Dibatalkan",  color: "#b4232a", border: "rgba(248,113,113,.24)" },
-};
-
+// Cover gradients per niche — dipertahankan karena nilai dinamis runtime
 const COVER_GRADIENTS: Record<string, string> = {
   kuliner:    "linear-gradient(135deg, #fb923c, #c2410c)",
   fesyen:     "linear-gradient(135deg, #16a34a, #84cc16)",
@@ -35,17 +30,22 @@ const COVER_GRADIENTS: Record<string, string> = {
   lainnya:    "linear-gradient(135deg, #6b7280, #374151)",
 };
 
-function formatViews(num: number): string {
-  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}jt`;
-  if (num >= 1_000)     return `${(num / 1_000).toFixed(0)}rb`;
-  return String(num);
-}
+// Status dot color untuk badge overlay di atas cover — tetap inline karena dinamis
+const STATUS_DOT_COLOR: Record<CampaignStatus, string> = {
+  active:    "text-emerald-700 border-emerald-200/60",
+  draft:     "text-ink-500 border-ink-200/60",
+  full:      "text-orange-700 border-orange-200/60",
+  completed: "text-blue-700 border-blue-200/60",
+  cancelled: "text-red-700 border-red-200/60",
+};
 
-function formatBudget(num: number): string {
-  if (num >= 1_000_000) return `Rp ${(num / 1_000_000).toFixed(1)}jt`;
-  if (num >= 1_000)     return `Rp ${(num / 1_000).toFixed(0)}rb`;
-  return `Rp ${num}`;
-}
+const STATUS_LABEL: Record<CampaignStatus, string> = {
+  active:    "Aktif",
+  draft:     "Draft",
+  full:      "Penuh",
+  completed: "Selesai",
+  cancelled: "Dibatalkan",
+};
 
 export function CampaignCard({
   campaign,
@@ -57,8 +57,9 @@ export function CampaignCard({
   onExport,
   onEdit,
 }: CampaignCardProps) {
-  const statusCfg     = STATUS_CONFIG[campaign.status] ?? STATUS_CONFIG.active;
-  const coverGradient = COVER_GRADIENTS[campaign.niche]  ?? COVER_GRADIENTS.kuliner;
+  const router = useRouter();
+
+  const coverGradient = COVER_GRADIENTS[campaign.niche] ?? COVER_GRADIENTS.kuliner;
   const progressPercent = campaign.creatorQuota > 0
     ? Math.min(100, Math.round((campaign.usedQuota / campaign.creatorQuota) * 100))
     : 0;
@@ -67,12 +68,15 @@ export function CampaignCard({
   const isEditVisible    = campaign.status === "draft";
 
   const actionItems = [
-    { label: "Lihat Detail",      onClick: () => { window.location.href = `/dashboard/umkm/campaign/${campaign.id}`; } },
+    { label: "Lihat Detail",       onClick: () => router.push(`/dashboard/umkm/campaign/${campaign.id}`) },
     ...(isEditVisible ? [{ label: "Edit Draft", onClick: onEdit }] : []),
     { label: "Duplikasi Campaign", onClick: onDuplicate },
     { label: "Unduh Laporan",      onClick: onExport    },
     ...(!isCancelDisabled ? [{ label: "Batalkan Campaign", onClick: onCancel, danger: true }] : []),
   ];
+
+  const statusDotClass = STATUS_DOT_COLOR[campaign.status] ?? STATUS_DOT_COLOR.active;
+  const statusLabel    = STATUS_LABEL[campaign.status] ?? "Aktif";
 
   return (
     <div className="campaign-card">
@@ -83,7 +87,7 @@ export function CampaignCard({
 
       {/* Cover art */}
       <div className="campaign-card-cover" style={{ background: coverGradient }}>
-        {/* Decorative light overlay */}
+        {/* Decorative light overlay — kompleks gradient, dipertahankan */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -94,13 +98,15 @@ export function CampaignCard({
           }}
         />
 
-        {/* Status badge */}
+        {/* Status badge overlay — menggunakan Tailwind token, bukan hex statik */}
         <span
-          className="absolute top-3 left-3 inline-flex items-center gap-1.5 min-h-[28px] px-2.5 rounded-full bg-white/90 border text-[.72rem] font-[800] backdrop-blur-[10px]"
-          style={{ color: statusCfg.color, borderColor: statusCfg.border }}
+          className={cn(
+            "absolute top-3 left-3 inline-flex items-center gap-1.5 min-h-[28px] px-2.5 rounded-full bg-white/90 border text-[.72rem] font-[800] backdrop-blur-[10px]",
+            statusDotClass
+          )}
         >
-          <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "currentColor" }} />
-          {statusCfg.label}
+          <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-current" />
+          {statusLabel}
         </span>
 
         {/* Category chip */}
@@ -108,9 +114,9 @@ export function CampaignCard({
           {campaign.niche}
         </span>
 
-        {/* Budget chip */}
+        {/* Budget chip — pakai formatCompactCurrency dari @/lib/formatters */}
         <span className="absolute bottom-3 right-3 px-3 py-2 rounded-[14px] bg-white/90 border border-white/30 shadow-md text-[.82rem] font-[850] text-ink-900 tracking-tight backdrop-blur-[10px]">
-          {formatBudget(campaign.totalBudgetEscrow)}
+          {formatCompactCurrency(campaign.totalBudgetEscrow)}
         </span>
       </div>
 
@@ -124,7 +130,8 @@ export function CampaignCard({
         {/* Stats row */}
         <div className="campaign-card-meta">
           <span><Users size={13} />{campaign.usedQuota}/{campaign.creatorQuota} kreator</span>
-          <span><Eye size={13} />{formatViews(campaign.totalViews)} views</span>
+          {/* pakai formatCompactViews dari @/lib/formatters */}
+          <span><Eye size={13} />{formatCompactViews(campaign.totalViews)} views</span>
           <span>
             <Calendar size={13} />
             {new Date(campaign.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
