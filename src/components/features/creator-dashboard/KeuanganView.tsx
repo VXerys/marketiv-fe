@@ -283,7 +283,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
           {/* Metrics Section */}
           <div className="space-y-6 mb-10">
             {/* Main Metrics Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="responsive-card-grid">
               {simulatedState === "loading" ? (
                 <>
                   <div className="bg-white border border-neutral-200/60 rounded-3xl p-6 animate-pulse h-[130px] flex flex-col justify-between">
@@ -341,7 +341,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
             </div>
 
             {/* Earning Splits Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="responsive-card-grid">
               {simulatedState === "loading" ? (
                 <>
                   <div className="bg-white border border-neutral-200/60 rounded-3xl p-6 animate-pulse h-[130px] flex flex-col justify-between">

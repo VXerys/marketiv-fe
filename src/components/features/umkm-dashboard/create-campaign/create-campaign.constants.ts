@@ -1,4 +1,3 @@
-import { ReactNode } from "react";
 
 export interface OptionItem {
   id: string;
@@ -8,7 +7,7 @@ export interface OptionItem {
 
 export const NICHE_OPTIONS: OptionItem[] = [
   { id: "kuliner", label: "Kuliner", desc: "Makanan & Minuman" },
-  { id: "fesyen", label: "Fesyen", desc: "Pakaian & Aksesoris" },
+  { id: "fashion", label: "Fashion", desc: "Pakaian & Aksesoris" },
   { id: "pariwisata", label: "Pariwisata", desc: "Travel & Liburan" },
   { id: "edukasi", label: "Edukasi", desc: "Kursus & Pengetahuan" },
   { id: "kecantikan", label: "Kecantikan", desc: "Kosmetik & Skin Care" },

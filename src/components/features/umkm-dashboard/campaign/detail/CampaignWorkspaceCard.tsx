@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Campaign, CampaignSubmission } from "@/types/umkm-dashboard.types";
 import { formatCurrency, formatCompactNumber } from "@/lib/formatters";
-import { DashboardButton, DashboardBadge } from "../../shared";
+import { DashboardButton } from "../../shared";
 
 interface CampaignWorkspaceCardProps {
   campaign: Campaign;

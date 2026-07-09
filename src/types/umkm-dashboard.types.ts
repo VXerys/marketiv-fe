@@ -70,7 +70,15 @@ export interface Campaign {
   totalViews: number;
   createdAt: string;
   updatedAt: string;
+  // Optional wizard fields — aligned with Appwrite Campaigns collection schema
+  location?: string;      // Target lokasi kreator
+  videoStyle?: string;    // Tone/gaya video (natural, edukatif, dll)
+  callToAction?: string;  // CTA yang dipilih (kunjungi_toko, dll)
+  hashtags?: string;      // Hashtag rekomendasi
+  requiredPoints?: string; // Poin penting yang wajib ada di video
+  assetNotes?: string;    // Catatan tambahan untuk aset eksternal
 }
+
 
 export interface CampaignSubmission {
   id: string;

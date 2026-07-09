@@ -52,10 +52,18 @@ export function DashboardMetricCard({
   const mappedTone = badgeTone === "gray" ? "neutral" : badgeTone === "yellow" ? "amber" : badgeTone === "navy" ? "blue" : badgeTone;
 
   return (
-    <div className={cn("metric-card border bg-card text-card-foreground p-5 rounded-2xl shadow-sm", className)}>
-      <div className="metric-top flex items-center justify-between gap-3 mb-3">
-        <div className={cn("metric-icon flex items-center justify-center h-10 w-10 rounded-xl border", toneIconClasses[tone])}>
-          {icon}
+    <div 
+      className={cn(
+        "relative p-3.5 sm:p-4.5 rounded-2xl sm:rounded-[22px] border border-border bg-gradient-to-b from-white to-neutral-50/50 shadow-3xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-primary-500/20 group select-none", 
+        className
+      )}
+    >
+      <div className="flex items-center justify-between gap-3 mb-2.5 sm:mb-3.5">
+        <div className={cn("flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-[14px] border shadow-3xs transition-transform duration-300 group-hover:scale-105", toneIconClasses[tone])}>
+          {/* Support responsive scale of SVG child */}
+          <div className="[&>svg]:w-3.5 [&>svg]:h-3.5 sm:[&>svg]:w-5 sm:[&>svg]:h-5">
+            {icon}
+          </div>
         </div>
         {badgeText && (
           <DashboardBadge type="tone" tone={mappedTone} size="sm">
@@ -63,13 +71,23 @@ export function DashboardMetricCard({
           </DashboardBadge>
         )}
       </div>
-      <div className="metric-label text-sm font-semibold text-neutral-500 mb-1">{label}</div>
-      <div className="metric-value text-2xl font-bold tracking-tight text-neutral-900">
+      
+      {/* Label */}
+      <div className="text-[0.66rem] sm:text-[0.74rem] font-extrabold text-neutral-500 tracking-wide uppercase leading-none">
+        {label}
+      </div>
+      
+      {/* Value */}
+      <div className="font-display text-[1.2rem] sm:text-[1.4rem] lg:text-[1.55rem] font-black text-neutral-900 tracking-tight leading-none mt-1 sm:mt-1.5 break-all">
         {formatValue(value, currency)}
       </div>
-      {helper ? (
-        <div className="metric-note mt-2 text-xs text-neutral-400 font-medium">{helper}</div>
-      ) : null}
+      
+      {/* Helper text */}
+      {helper && (
+        <div className="metric-note text-[0.68rem] sm:text-[0.74rem] text-neutral-400 font-semibold mt-1 sm:mt-1.5 leading-none">
+          {helper}
+        </div>
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { EscrowSimulationCard } from "../cards/EscrowSimulationCard";
 import { formatCurrency, formatCompactNumber } from "@/lib/formatters";
 import { getDerivedBudgetValues } from "../create-campaign.utils";
 import { DashboardBadge } from "@/components/features/umkm-dashboard/shared/DashboardBadge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ReviewEscrowStepProps {
   title: string;
@@ -51,6 +52,7 @@ export function ReviewEscrowStep({
     { label: "Niche Kategori", val: category },
     { label: "Deskripsi Produk", val: description },
     { label: "Konsep Brief Utama", val: brief },
+    { label: "Poin Penting Video", val: requiredPoints },
     { label: "Gaya Tone Video", val: videoStyle.replace("_", " ").toUpperCase() },
     { label: "Call to Action (CTA)", val: callToAction.replace("_", " ").toUpperCase() },
     { label: "Tautan Aset Eksternal", val: externalAssetUrl, link: true },
@@ -150,24 +152,24 @@ export function ReviewEscrowStep({
 
       {/* Confirmation Checklist */}
       <div className="space-y-3 pt-3 border-t border-border-soft/60">
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
+        <div className="flex items-start gap-3">
+          <Checkbox
+            id="terms-agreed"
             checked={termsAgreed}
-            onChange={(e) => onChangeTermsAgreed(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-primary focus:ring-primary accent-primary cursor-pointer shrink-0"
+            onCheckedChange={(checked) => onChangeTermsAgreed(!!checked)}
+            className="mt-0.5 cursor-pointer"
           />
-          <div className="min-w-0">
+          <label htmlFor="terms-agreed" className="min-w-0 cursor-pointer select-none">
             <span className="block text-[11px] font-extrabold text-text-primary leading-tight">
               Saya menyetujui seluruh brief, instruksi, dan rincian nominal di atas.
             </span>
             <span className="block text-[10px] text-text-muted mt-1 leading-relaxed">
               Saya memahami bahwa dana akan didepositkan ke rekening escrow Marketiv, dan dibagikan otomatis ke kreator berdasarkan views konten valid hasil posting mereka.
             </span>
-          </div>
-        </label>
+          </label>
+        </div>
         {validationErrors.termsAgreed && (
-          <p className="text-[10px] text-danger font-bold pl-7">{validationErrors.termsAgreed}</p>
+          <p className="text-xs text-destructive pl-7">{validationErrors.termsAgreed}</p>
         )}
       </div>
 

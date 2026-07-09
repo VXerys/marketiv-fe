@@ -1,8 +1,9 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { UmkmPageWrapper } from "../../shared/UmkmPageWrapper";
 
 export function CampaignDetailSkeleton() {
   return (
-    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto space-y-6">
+    <UmkmPageWrapper maxWidth={1440}>
       
       {/* Header Back Button */}
       <Skeleton className="h-4 w-36" />
@@ -24,7 +25,7 @@ export function CampaignDetailSkeleton() {
       </div>
 
       {/* Overview Cards (6 blocks) */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="bg-white border border-border-soft rounded-2xl p-4 shadow-xs">
             <div className="flex justify-between items-center mb-3">
@@ -93,6 +94,6 @@ export function CampaignDetailSkeleton() {
 
       </div>
 
-    </div>
+    </UmkmPageWrapper>
   );
 }

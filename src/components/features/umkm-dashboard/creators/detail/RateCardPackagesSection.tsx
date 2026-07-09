@@ -3,13 +3,11 @@
 import { RateCardPackageCard, RateCardPackage } from "./RateCardPackageCard";
 
 interface RateCardPackagesSectionProps {
-  creatorId: string;
   creatorCategory: string;
   onSelectPackage: (pkg: RateCardPackage) => void;
 }
 
 export function RateCardPackagesSection({
-  creatorId,
   creatorCategory,
   onSelectPackage,
 }: RateCardPackagesSectionProps) {

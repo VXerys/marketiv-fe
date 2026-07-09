@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { dummyCreators } from "@/data/creators";
+import { UmkmPageWrapper } from "../shared/UmkmPageWrapper";
 import { CreatorDirectoryHeader } from "./CreatorDirectoryHeader";
 import { CreatorSummaryCards } from "./CreatorSummaryCards";
 import { CreatorToolbar } from "./CreatorToolbar";
@@ -80,7 +81,7 @@ export function CreatorDirectoryPage() {
     });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <UmkmPageWrapper>
       {/* Header */}
       <CreatorDirectoryHeader />
 
@@ -101,7 +102,7 @@ export function CreatorDirectoryPage() {
       {loading ? (
         <CreatorGridSkeleton />
       ) : filteredCreators.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+        <div className="responsive-card-grid-2">
           {filteredCreators.map((creator) => (
             <CreatorCard key={creator.id} creator={creator} />
           ))}
@@ -109,6 +110,6 @@ export function CreatorDirectoryPage() {
       ) : (
         <CreatorEmptyState onReset={handleResetFilters} />
       )}
-    </div>
+    </UmkmPageWrapper>
   );
 }

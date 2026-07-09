@@ -9,7 +9,6 @@ import { UmkmViewsChartCard } from "./UmkmViewsChartCard";
 import type { UmkmDashboardData } from "@/types/umkmDashboard";
 import { cn } from "@/lib/utils";
 import {
-  DashboardCard,
   DashboardMetricCard,
   DashboardBadge,
   DashboardButton,
@@ -85,7 +84,7 @@ export function UmkmDashboardView({ data }: UmkmDashboardViewProps) {
             </div>
 
             {/* Bento Grid Skeleton */}
-            <div className="grid grid-cols-12 gap-6">
+            <div className="bento-grid">
               <div className="col-span-12 lg:col-span-7 h-96 skeleton rounded-[28px]" />
               <div className="col-span-12 lg:col-span-5 h-96 skeleton rounded-[28px]" />
               <div className="col-span-12 lg:col-span-5 h-96 skeleton rounded-[28px]" />
@@ -93,7 +92,7 @@ export function UmkmDashboardView({ data }: UmkmDashboardViewProps) {
             </div>
 
             {/* Insights and activity skeleton */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="h-64 skeleton rounded-[28px]" />
               <div className="h-64 skeleton rounded-[28px]" />
             </div>
@@ -318,11 +317,11 @@ export function UmkmDashboardView({ data }: UmkmDashboardViewProps) {
             </div>
 
             {/* Additional Sections: Insights and Activity Timeline */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
               {/* Insight Section */}
               {insights && (
-                <div className="col-span-12 lg:col-span-6 flex flex-col space-y-4">
+                <div className="flex flex-col space-y-4">
                   <h3 className="text-xl font-display font-extrabold text-neutral-900 tracking-tight pl-1">
                     Rekomendasi & Insight Bisnis
                   </h3>
@@ -350,7 +349,7 @@ export function UmkmDashboardView({ data }: UmkmDashboardViewProps) {
 
               {/* Activity Section */}
               {activities && (
-                <div className="col-span-12 lg:col-span-6 flex flex-col space-y-4">
+                <div className="flex flex-col space-y-4">
                   <h3 className="text-xl font-display font-extrabold text-neutral-900 tracking-tight pl-1">
                     Aktivitas Terbaru
                   </h3>

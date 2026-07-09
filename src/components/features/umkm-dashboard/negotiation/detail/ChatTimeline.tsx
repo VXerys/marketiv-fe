@@ -24,6 +24,15 @@ export function ChatTimeline({ messages, onPayOffer, orderStatus }: ChatTimeline
     <div className="chat-card min-h-[420px] max-h-[500px] overflow-y-auto scrollbar-thin">
       {messages.length > 0 ? (
         <div className="space-y-1">
+          {/* Date divider label - pinned at top */}
+          <div className="flex items-center gap-2 my-3 select-none">
+            <div className="flex-1 h-px bg-border-soft/60" />
+            <span className="text-[8px] font-bold text-text-muted uppercase tracking-wider px-2 py-1 rounded-full bg-neutral-100/80">
+              Percakapan Negosiasi
+            </span>
+            <div className="flex-1 h-px bg-border-soft/60" />
+          </div>
+
           {messages.map((msg) => {
             if (msg.type === "system") {
               return <SystemMessageCard key={msg.id} message={msg} />;
@@ -44,11 +53,16 @@ export function ChatTimeline({ messages, onPayOffer, orderStatus }: ChatTimeline
         </div>
       ) : (
         <div className="h-full flex items-center justify-center text-center p-8 select-none">
-          <div className="space-y-1">
-            <svg className="w-8 h-8 mx-auto text-text-muted opacity-40 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <p className="text-xs text-text-muted font-bold">Kirim pesan pertama Anda untuk memulai diskusi.</p>
+          <div className="space-y-3">
+            <div className="h-12 w-12 rounded-2xl bg-neutral-100 border border-neutral-200/50 flex items-center justify-center mx-auto">
+              <svg className="w-6 h-6 text-text-muted opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs font-extrabold text-text-secondary">Belum Ada Pesan</p>
+              <p className="text-[10px] text-text-muted font-semibold">Kirim pesan pertama Anda untuk memulai diskusi negosiasi.</p>
+            </div>
           </div>
         </div>
       )}

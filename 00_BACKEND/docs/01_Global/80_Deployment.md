@@ -4,36 +4,36 @@ Panduan deployment Marketiv. Struktur & env: [`40_Folder_Structure.md`](40_Folde
 
 ## Target
 
-- **Frontend** (React + Vite) → **Vercel**.
+- **Frontend** (Next.js) → **Vercel**.
 - **Backend** (Database, Auth, Storage, Realtime, Functions) → **Appwrite Cloud**.
 - **AI Layer** → OpenAI API dipanggil dari Appwrite Function (key OpenAI hanya di environment function).
 
 ## Environment Variables (Frontend / Vercel)
 
 ```env
-VITE_APPWRITE_ENDPOINT=
-VITE_APPWRITE_PROJECT_ID=
-VITE_DB_ID=
-VITE_USER_COLLECTION=
-VITE_CREATOR_COLLECTION=
-VITE_CAMPAIGN_COLLECTION=
-VITE_ORDER_COLLECTION=
-VITE_WALLET_COLLECTION=
-VITE_STORAGE_BUCKET=
-VITE_AI_FUNCTION_ID=
+NEXT_PUBLIC_APPWRITE_ENDPOINT=
+NEXT_PUBLIC_APPWRITE_PROJECT_ID=
+NEXT_PUBLIC_DB_ID=
+NEXT_PUBLIC_USER_COLLECTION=
+NEXT_PUBLIC_CREATOR_COLLECTION=
+NEXT_PUBLIC_CAMPAIGN_COLLECTION=
+NEXT_PUBLIC_ORDER_COLLECTION=
+NEXT_PUBLIC_WALLET_COLLECTION=
+NEXT_PUBLIC_STORAGE_BUCKET=
+NEXT_PUBLIC_AI_FUNCTION_ID=
 ```
 
-- Set semua `VITE_*` di Vercel Project Settings (Environment Variables).
-- Hanya variabel ber-prefiks `VITE_` yang aman diekspos ke client. JANGAN menaruh API key server / OpenAI key di sini (lihat [`50_Security_Guidelines.md`](50_Security_Guidelines.md)).
+- Set semua `NEXT_PUBLIC_*` di Vercel Project Settings (Environment Variables).
+- Hanya variabel ber-prefiks `NEXT_PUBLIC_` yang aman diekspos ke client. JANGAN menaruh API key server / OpenAI key di sini (lihat [`50_Security_Guidelines.md`](50_Security_Guidelines.md)).
 
 ## Deploy Frontend (Vercel)
 
-- Build command: `vite build` (output `dist/`).
+- Build command: `next build` (output `.next/`).
 - Push ke branch produksi → Vercel auto-build & deploy.
 
 ## Deploy Backend (Appwrite Cloud)
 
-- Buat project, database (`VITE_DB_ID`), collections, storage bucket, dan Functions di Appwrite Cloud.
+- Buat project, database (`NEXT_PUBLIC_DB_ID`), collections, storage bucket, dan Functions di Appwrite Cloud.
 - Atur permission per collection sesuai [`50_Security_Guidelines.md`](50_Security_Guidelines.md).
 
 ## Deploy Appwrite Functions

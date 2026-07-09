@@ -1,151 +1,116 @@
 "use client";
 
 import Link from "next/link";
-import { Star, Users, TrendingUp, MapPin, MessageCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Star, MapPin, MessageCircle, CheckCircle2 } from "lucide-react";
+import * as Avatar from "@radix-ui/react-avatar";
+import { cn } from "@/lib/utils";
+import { formatCompactViews } from "@/lib/formatters";
 import type { Creator } from "@/types/campaign";
 
 interface CreatorCardProps {
   creator: Creator;
 }
 
-export function CreatorCard({ creator }: CreatorCardProps) {
-  // Map niches to gradients for avatars
-  const avatarGradients: Record<string, string> = {
-    kuliner: "linear-gradient(135deg, #fed7aa, #fb923c)",
-    fesyen: "linear-gradient(135deg, #a78bfa, #6d28d9)",
-    pariwisata: "linear-gradient(135deg, #93c5fd, #1e3a5f)",
-    edukasi: "linear-gradient(135deg, #a3e635, #16a34a)",
-    kecantikan: "linear-gradient(135deg, #f9a8d4, #be185d)",
-    lainnya: "linear-gradient(135deg, #818cf8, #4f46e5)",
-  };
+const AVATAR_GRADIENTS: Record<string, string> = {
+  kuliner:    "linear-gradient(135deg, #fed7aa, #fb923c)",
+  fashion:     "linear-gradient(135deg, #a78bfa, #6d28d9)", // diselaraskan ke fashion
+  pariwisata: "linear-gradient(135deg, #93c5fd, #1e3a5f)",
+  edukasi:    "linear-gradient(135deg, #a3e635, #16a34a)",
+  kecantikan: "linear-gradient(135deg, #f9a8d4, #be185d)",
+  lainnya:    "linear-gradient(135deg, #818cf8, #4f46e5)",
+};
 
+export function CreatorCard({ creator }: CreatorCardProps) {
+  const router = useRouter();
+  
   const categoryLower = creator.category.toLowerCase();
-  const avatarGradient = avatarGradients[categoryLower] || avatarGradients.kuliner;
+  const avatarGradient = AVATAR_GRADIENTS[categoryLower] ?? AVATAR_GRADIENTS.kuliner;
 
   return (
-    <div
+    <div 
+      className="border border-border rounded-[28px] overflow-hidden min-w-0 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-md self-stretch flex flex-col p-5"
       style={{
-        padding: "20px",
-        borderRadius: 24,
-        border: "1px solid rgba(17,24,39,.08)",
-        background: "linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,253,248,.88))",
-        boxShadow: "0 8px 24px rgba(15,23,42,.06)",
-        display: "grid",
-        gap: 16,
-        transition: ".24s cubic-bezier(.2,.8,.2,1)",
-      }}
-      className="group"
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)";
-        (e.currentTarget as HTMLElement).style.boxShadow = "0 18px 46px rgba(15,23,42,.10)";
-        (e.currentTarget as HTMLElement).style.borderColor = "rgba(249,115,22,.18)";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-        (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 24px rgba(15,23,42,.06)";
-        (e.currentTarget as HTMLElement).style.borderColor = "rgba(17,24,39,.08)";
+        background: "radial-gradient(circle at 100% 0%, rgba(249,115,22,.08), transparent 12rem), white",
       }}
     >
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: 20,
-            flexShrink: 0,
-            background: avatarGradient,
-            boxShadow: "0 10px 24px rgba(249,115,22,.14)",
-            backgroundImage: creator.imageUrl ? `url(${creator.imageUrl})` : undefined,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        />
-        <div style={{ minWidth: 0 }}>
-          <strong style={{ display: "block", fontSize: ".94rem", letterSpacing: "-.025em", color: "#182033" }}>
-            {creator.name}
-          </strong>
-          <span style={{ display: "block", color: "#737f91", fontSize: ".78rem", fontWeight: 650, marginTop: 2 }}>
+      {/* Header: avatar + name + status */}
+      <div className="flex gap-3.5 items-center mb-4.5">
+        <Avatar.Root className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 shadow-sm border border-border flex items-center justify-center bg-ink-100">
+          <Avatar.Image
+            src={creator.imageUrl}
+            alt={creator.name}
+            className="w-full h-full object-cover"
+          />
+          <Avatar.Fallback 
+            className="w-full h-full flex items-center justify-center text-sm font-bold text-white uppercase"
+            style={{ background: avatarGradient }}
+          >
+            {creator.name.slice(0, 2)}
+          </Avatar.Fallback>
+        </Avatar.Root>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <strong className="block text-ink-950 font-display text-[1.08rem] font-extrabold tracking-tight truncate leading-snug">
+              {creator.name}
+            </strong>
+            {creator.isVerified && (
+              <span className="shrink-0 text-blue-500" title="Kreator Terverifikasi">
+                <CheckCircle2 size={15} fill="currentColor" className="text-white" />
+              </span>
+            )}
+          </div>
+          <span className="block text-[.82rem] font-[650] text-ink-500 mt-0.5 truncate leading-none">
             @{creator.name.toLowerCase().replace(/\s+/g, "")}
           </span>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5 }}>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                minHeight: 22,
-                padding: "0 8px",
-                borderRadius: 999,
-                background: "#fff7ed",
-                border: "1px solid rgba(249,115,22,.18)",
-                color: "#ea580c",
-                fontSize: ".68rem",
-                fontWeight: 800,
-                textTransform: "capitalize",
-              }}
-            >
-              {creator.category}
-            </span>
-            <span style={{ display: "flex", alignItems: "center", gap: 3, color: "#d97706", fontSize: ".76rem", fontWeight: 800 }}>
-              <Star size={11} fill="#d97706" strokeWidth={0} /> {creator.rating}
-            </span>
+          <div className="flex items-center gap-1 mt-1 text-[.74rem] text-ink-500 font-semibold leading-none">
+            <MapPin size={11} className="text-ink-400" />
+            <span>{creator.location || "Jakarta"}</span>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 9 }}>
-        {[
-          { icon: Users, label: "Followers", val: creator.followers },
-          { icon: TrendingUp, label: "Engagement", val: "6.2%" }, // Simulated engagement
-          { icon: MapPin, label: "Lokasi", val: "Jakarta" }, // Simulated location
-        ].map(({ icon: Icon, label, val }) => (
-          <div key={label} style={{ padding: "10px", borderRadius: 14, background: "#f8fafc", border: "1px solid rgba(17,24,39,.06)" }}>
-            <Icon size={12} color="#737f91" />
-            <div style={{ marginTop: 5, fontFamily: "var(--font-plus-jakarta-sans), Sora, sans-serif", fontSize: ".86rem", fontWeight: 700, letterSpacing: "-.025em", color: "#182033" }}>{val}</div>
-            <div style={{ color: "#a0aaba", fontSize: ".68rem", fontWeight: 700, marginTop: 1 }}>{label}</div>
-          </div>
-        ))}
+      {/* Button stack: custom badges */}
+      <div className="flex flex-wrap gap-1.5 mb-4 leading-none">
+        <span className="inline-flex items-center justify-center min-h-[26px] px-2.5 rounded-full border border-orange-200/50 bg-orange-50 text-orange-700 text-[.7rem] font-[800] uppercase tracking-wide">
+          {creator.category}
+        </span>
+        <span className="inline-flex items-center justify-center min-h-[26px] px-2.5 rounded-full border border-blue-200/50 bg-blue-50 text-blue-700 text-[.7rem] font-[800]">
+          {creator.rateCardCount || 1} Paket Jasa
+        </span>
+        {creator.isVerified && (
+          <span className="inline-flex items-center justify-center min-h-[26px] px-2.5 rounded-full border border-emerald-200/50 bg-emerald-50 text-emerald-700 text-[.7rem] font-[800] gap-1">
+            Verified
+          </span>
+        )}
       </div>
 
-      {/* Actions */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10 }}>
+      {/* Offer mini box — dari design system v5.8 */}
+      <div className="p-4 rounded-[22px] border border-orange-200/20 bg-gradient-to-b from-[#fffaf4] to-[#fff3e7] mb-5 grid gap-1 mt-auto">
+        <strong className="text-orange-700 font-display text-xl font-bold tracking-tighter leading-none">
+          {creator.estimatedSalary}
+        </strong>
+        <span className="text-ink-600 text-[0.82rem] leading-[1.4] line-clamp-2">
+          {creator.description}
+        </span>
+      </div>
+
+      {/* Primary Actions: Lihat Profil + Chat Negosiasi (Rate Card Mode) */}
+      <div className="flex items-center gap-2 mt-auto">
         <Link
           href={`/dashboard/umkm/kreator/${creator.id}`}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            minHeight: 40,
-            borderRadius: 13,
-            border: "1px solid rgba(194,65,12,.22)",
-            background: "linear-gradient(180deg, #fb7a18, #ea580c)",
-            color: "white",
-            fontWeight: 790,
-            fontSize: ".84rem",
-            cursor: "pointer",
-            boxShadow: "0 8px 20px rgba(234,88,12,.20)",
-            textDecoration: "none",
-          }}
+          className="flex-1 flex items-center justify-center min-h-[44px] rounded-xl border border-border bg-ink-100 hover:bg-ink-200/80 text-ink-800 font-[800] text-[.86rem] tracking-tight transition-all duration-200 no-underline"
         >
-          Lihat Profil
+          Lihat Profil Kreator
         </Link>
         <button
-          onClick={() => window.location.href = `/dashboard/umkm/negosiasi`}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 13,
-            border: "1px solid rgba(17,24,39,.09)",
-            background: "white",
-            color: "#556174",
-            display: "grid",
-            placeItems: "center",
-            cursor: "pointer",
-          }}
+          type="button"
+          aria-label="Mulai negosiasi dengan kreator ini"
+          onClick={() => router.push("/dashboard/umkm/negosiasi")}
+          className="w-11 h-11 shrink-0 rounded-xl border border-orange-600/20 bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white grid place-items-center hover:shadow-[0_4px_14px_rgba(234,88,12,.22)] hover:-translate-y-px transition-all duration-200 cursor-pointer"
         >
-          <MessageCircle size={16} />
+          <MessageCircle size={17} />
         </button>
       </div>
     </div>

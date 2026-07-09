@@ -1,6 +1,6 @@
 "use client";
 
-import { Store, MapPin, Phone, Mail, Globe, Shield, Bell, CreditCard, ChevronRight, Check } from "lucide-react";
+import { Store, MapPin, Bell, Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";

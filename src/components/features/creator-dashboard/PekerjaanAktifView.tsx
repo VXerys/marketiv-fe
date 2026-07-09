@@ -189,7 +189,7 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
           />
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+          <div className="dashboard-rule-grid mb-7">
             <DashboardMetricCard
               label="Belum Submit"
               value={countBelumSubmit}
@@ -309,7 +309,7 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
               onAction={isEmptySimulated ? () => { window.location.href = '/dashboard/kreator/job-pool'; } : handleClearFilters}
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="responsive-card-grid">
               {filteredWorks.map((work) => {
                 const subStatus = getSubStatusLabel(work);
                 const hasSubmitted = !!work.contentUrl;

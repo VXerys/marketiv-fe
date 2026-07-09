@@ -476,9 +476,10 @@
 .metric-value { margin-top: 4px; font-size: 2.05rem; line-height: .95; letter-spacing: -.075em; font-weight: 920; }
 .metric-note { margin-top: 7px; color: var(--ink-600); font-size: .84rem; }
 
-.dashboard-rule-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
-@media (min-width:760px){ .dashboard-rule-grid{ grid-template-columns: repeat(3, minmax(0,1fr)); } }
-@media (min-width:1120px){ .dashboard-rule-grid{ grid-template-columns: repeat(6, minmax(0,1fr)); } }
+.dashboard-rule-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+@media (min-width:760px){ .dashboard-rule-grid{ grid-template-columns: repeat(3, minmax(0,1fr)); gap: 20px; } }
+@media (min-width:1120px){ .dashboard-rule-grid{ grid-template-columns: repeat(6, minmax(0,1fr)); gap: 24px; } }
+
 
 .dashboard-tile { min-width:0; padding:16px; border-radius:24px; border:1px solid rgba(17,24,39,.08); background: radial-gradient(circle at 100% 0%, rgba(249,115,22,.08), transparent 9rem), linear-gradient(180deg,#fff,#fffdf8); box-shadow:0 8px 20px rgba(15,23,42,.04); display:grid; gap:12px; align-content:start; }
 .dashboard-tile-top { display:flex; justify-content:space-between; align-items:center; gap:10px; min-width:0; }
@@ -771,3 +772,433 @@
 
 @media (max-width:960px){ .topup-flow-grid{ grid-template-columns:1fr; } .flow-horizontal{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:560px){ .amount-preset-grid,.payment-method-grid,.wallet-meta,.flow-horizontal{ grid-template-columns:1fr; } }
+
+/* ============================================================
+   DASHBOARD UI CONSOLIDATION LAYER — Phase 1–7 Complete
+   Branch: feature/dashboard-ui
+   ============================================================
+
+   Z-INDEX HIERARCHY (do not mix raw numbers with Tailwind z-* outside this scale)
+   ─────────────────────────────────────────────────────────────
+   z-base     (0)  : Default stacking context
+   z-dropdown (20) : Dropdown menus, popovers, tooltips
+   z-sticky   (30) : Sidebar (sticky, not fixed)
+   z-overlay  (40) : Topbar (sticky), FAB buttons, backdrop overlays
+   z-modal    (50) : Floating chat panel (.chatbot-panel-float), Dialog, Sheet
+   z-toast    (60) : Toast notifications (shadcn/ui Toaster)
+
+   GRID PATTERNS — Use ONLY these classes; never mix with ad-hoc Tailwind grid-cols-*
+   ─────────────────────────────────────────────────────────────
+   .dashboard-rule-grid   2-col mobile → 3-col tablet → 6-col desktop
+                          USE FOR: KPI metric rows (typically 4–6 metrics)
+                          Adopted by: AnalitikClient, UmkmDashboardView,
+                                      CampaignSummaryCards, JobPoolView,
+                                      NegosiasiView, PekerjaanAktifView, RateCardView
+   .responsive-card-grid  1→2→3→4 col with 16px gap
+                          USE FOR: browsable card lists (campaigns, jobs, packages)
+                          Adopted by: CampaignGrid, CreatorDirectoryPage, JobPoolView,
+                                      KeuanganView, PekerjaanAktifView, RateCardView,
+                                      NegosiasiView
+   .responsive-card-grid-2  1→2 col max (for narrow contexts)
+   .bento-grid            12-col fixed grid, gap 16px → 24px at sm
+                          USE FOR: complex bento layouts with col-span children
+                          Adopted by: UmkmDashboardView (loading skeleton + main view)
+   .chart-grid            1-col → 2-col at lg (1024px)
+                          USE FOR: paired side-by-side chart layout
+                          Adopted by: AnalitikClient
+
+   INTENTIONAL EXCEPTIONS — do NOT "fix" these, they are documented decisions
+   ─────────────────────────────────────────────────────────────
+   NegotiationSummaryCards  + NegotiationListSkeleton :
+     grid-cols-2 sm:grid-cols-5  →  5-metric KPI row, no CSS-class equivalent.
+     Both files MUST use the same declaration (skeleton mirrors live grid).
+   FinanceSummaryCards  +  FinanceSummaryCardsSkeleton :
+     grid-cols-2 md:grid-cols-3  →  6-metric 2×3 layout.
+     Both files MUST use the same declaration.
+   CreatorDashboardView main layout :
+     grid grid-cols-1 lg:grid-cols-12 gap-8  →  Creator page does not use bento-grid
+     because its sidebar/content split is structurally different from UMKM bento.
+   CreatorDashboardView metric row (8 metrics) :
+     grid-cols-2 md:grid-cols-3 lg:grid-cols-4  →  8 compact metric tiles.
+     .dashboard-rule-grid (2→3→6) targets 4–6 metrics max.
+     .responsive-card-grid (starts 1-col) is too sparse for metric cards.
+
+   CARD SURFACE CLASSES
+   ─────────────────────────────────────────────────────────────
+   .panel              Generic bento surface (28px radius, shadow-1, hover lift)
+   .glass-panel        Frosted-glass light (DashboardCard variant="soft")
+   .glass-panel-dark   Frosted-glass dark  (DashboardCard variant="dark")
+   .campaign-card      Campaign list card — cover art + body grid layout
+     └─ .campaign-card-cover   Image area (height: 118px, overflow hidden)
+     └─ .campaign-card-body    Content padding + grid gap
+     └─ .campaign-card-title   Title typography (line-clamp: 2)
+     └─ .campaign-card-meta    Meta row (flex, wrap, icon-text pairs)
+   .creator-card       Creator profile card — avatar + stats grid layout
+     └─ .creator-card-header   Avatar + name row (flex)
+     └─ .creator-card-avatar   56×56px rounded avatar
+     └─ .creator-card-info     Name + niche wrapper
+     └─ .creator-card-name     Name typography (truncate)
+     └─ .creator-card-niche    Niche tag row (flex, wrap)
+     └─ .creator-card-stats    3-col stats grid
+     └─ .creator-card-stat     Individual stat cell (bg ink-100, rounded)
+     └─ .creator-card-stat-value  Value typography
+     └─ .creator-card-stat-label  Label typography (muted)
+     └─ .creator-card-actions  2-col action row (1fr auto)
+
+   CHART CONTAINERS
+   ─────────────────────────────────────────────────────────────
+   .chart-card-container   Chart section wrapper (22px padding, shadow-1)
+   .chart-inner            Responsive height: 240px@mobile / 280px@tablet / 320px@desktop
+                           Always pair with <ResponsiveContainer width="100%" height="100%">
+
+   FLOATING WIDGET
+   ─────────────────────────────────────────────────────────────
+   .chatbot-panel-float    Fixed chat panel — z-50, right-aligned, responsive max-height
+                           right: 1rem→2rem→2.5rem | bottom: 6.25rem→7rem→8rem
+                           max-height: calc(100vh - 240px) → calc(100vh - 200px) at md
+
+   @DEPRECATED COMPONENT MIGRATION BACKLOG (functional but scheduled for removal)
+   ─────────────────────────────────────────────────────────────
+   Replace when touching the file for another reason — do NOT batch-migrate:
+   DashboardCard   → <Card> from @/components/ui/card          (37+ usages)
+   DashboardButton → <Button> from @/components/ui/button      (35+ usages)
+   DashboardBadge  → <Badge> from @/components/ui/badge        (20+ usages)
+   DashboardModal  → <Dialog> from @/components/ui/dialog      (several files)
+   DashboardProgress → <Progress> from @/components/ui/progress
+   DashboardActionMenu → <DropdownMenu> from @/components/ui/dropdown-menu
+   ============================================================ */
+
+/* --- Bento Panel (generic surface, used inside grid-cols-12 bento layouts) --- */
+.panel {
+  background: var(--surface-card, #fffdf9);
+  border-radius: 28px;
+  border: 1px solid var(--border-soft, rgba(28,25,23,0.08));
+  box-shadow: var(--shadow-1);
+  padding: 20px;
+  min-width: 0;
+  overflow: hidden;
+  transition: transform 0.24s var(--ease), box-shadow 0.24s var(--ease);
+}
+
+@media (min-width: 640px) {
+  .panel { padding: 28px; }
+}
+
+.panel:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-2);
+}
+
+/* --- Glass Panels (used in DashboardCard variant="soft" / variant="dark") --- */
+.glass-panel {
+  background: rgba(255, 253, 249, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(28, 25, 23, 0.08);
+  box-shadow: var(--shadow-1);
+  padding: 20px;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .glass-panel { padding: 24px; }
+}
+
+.glass-panel-dark {
+  background: rgba(6, 21, 36, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-2);
+  padding: 20px;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .glass-panel-dark { padding: 24px; }
+}
+
+/* --- Campaign Card (Phase 2 target — list item card with cover art) --- */
+.campaign-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: 24px;
+  border: 1px solid var(--border, rgba(17,24,39,0.08));
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.88));
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+  transition: transform 0.24s var(--ease), box-shadow 0.24s var(--ease), border-color 0.24s var(--ease);
+}
+
+.campaign-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-2);
+  border-color: rgba(249, 115, 22, 0.18);
+}
+
+.campaign-card-cover {
+  position: relative;
+  width: 100%;
+  height: 118px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.campaign-card-body {
+  display: grid;
+  gap: 12px;
+  padding: 16px 18px;
+  flex: 1;
+  min-width: 0;
+}
+
+.campaign-card-title {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.28;
+  letter-spacing: -0.04em;
+  font-weight: 760;
+  color: var(--ink-900);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.campaign-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--ink-500);
+  font-size: 0.82rem;
+  font-weight: 650;
+  min-width: 0;
+}
+
+.campaign-card-meta > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+/* --- Creator Card (Phase 2 target — profile card with stats grid) --- */
+.creator-card {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid var(--border, rgba(17,24,39,0.08));
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,253,248,0.88));
+  box-shadow: var(--shadow-1);
+  min-width: 0;
+  transition: transform 0.24s var(--ease), box-shadow 0.24s var(--ease), border-color 0.24s var(--ease);
+}
+
+.creator-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-2);
+  border-color: rgba(249, 115, 22, 0.18);
+}
+
+.creator-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.creator-card-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 20px;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(249, 115, 22, 0.14);
+  background-size: cover;
+  background-position: center;
+}
+
+.creator-card-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.creator-card-name {
+  font-size: 1.02rem;
+  font-weight: 760;
+  letter-spacing: -0.035em;
+  color: var(--ink-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.creator-card-niche {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+  min-width: 0;
+}
+
+.creator-card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+
+.creator-card-stat {
+  padding: 10px 8px;
+  border-radius: 14px;
+  background: var(--ink-100, #f3f5f8);
+  border: 1px solid var(--border, rgba(17,24,39,0.06));
+  text-align: center;
+  min-width: 0;
+}
+
+.creator-card-stat-value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 820;
+  letter-spacing: -0.03em;
+  color: var(--ink-900);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.creator-card-stat-label {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ink-500);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.creator-card-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+/* --- Bento Grid (12-column, used for ActiveCampaignCard / EscrowSummaryCard layout) --- */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .bento-grid { gap: 24px; }
+}
+
+/* --- Responsive Card Grid (1→2→3→4 columns) --- */
+.responsive-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .responsive-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+}
+
+@media (min-width: 1024px) {
+  .responsive-card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; }
+}
+
+@media (min-width: 1280px) {
+  .responsive-card-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 32px; }
+}
+
+/* Variant: 2-column max (for narrower grids like kreator directory etc.) */
+.responsive-card-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .responsive-card-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+}
+
+/* --- Chart Containers (Phase 4 target — replace hardcoded heights) --- */
+.chart-card-container {
+  padding: 22px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--border, rgba(17,24,39,0.08));
+  box-shadow: var(--shadow-1);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chart-inner {
+  position: relative;
+  width: 100%;
+  min-height: 240px;
+  flex: 1;
+}
+
+@media (min-width: 768px) {
+  .chart-inner { min-height: 280px; }
+}
+
+@media (min-width: 1024px) {
+  .chart-inner { min-height: 320px; }
+}
+
+/* Chart grid: stacks on mobile, 2-col on desktop */
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 1024px) {
+  .chart-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* --- Floating Chat Widget (Phase 5 target) --- */
+.chatbot-panel-float {
+  position: fixed;
+  right: 1rem;
+  bottom: 6.25rem; /* 56px FAB + 16px gap + 28px safe padding */
+  width: calc(100vw - 2rem);
+  max-width: 400px;
+  max-height: calc(100vh - 240px);
+  z-index: var(--z-index-modal, 50);
+  border-radius: 24px;
+  border: 1px solid var(--border, rgba(17,24,39,0.08));
+  background: white;
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .chatbot-panel-float {
+    right: 2rem;
+    bottom: 7rem;
+    max-height: calc(100vh - 200px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .chatbot-panel-float {
+    right: 2.5rem;
+    bottom: 8rem;
+  }
+}

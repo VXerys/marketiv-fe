@@ -2,10 +2,9 @@
 
 interface CreatorSocialLinksCardProps {
   creatorName: string;
-  creatorCategory: string;
 }
 
-export function CreatorSocialLinksCard({ creatorName, creatorCategory }: CreatorSocialLinksCardProps) {
+export function CreatorSocialLinksCard({ creatorName }: CreatorSocialLinksCardProps) {
   const handleBase = creatorName.toLowerCase().replace(/\s+/g, "");
 
   const channels = [
@@ -38,7 +37,7 @@ export function CreatorSocialLinksCard({ creatorName, creatorCategory }: Creator
   ];
 
   return (
-    <div className="rounded-2xl border border-border-soft bg-white p-5 space-y-4 shadow-2xs">
+    <div className="rounded-2xl border border-border-soft bg-white p-5 space-y-4 shadow-2xs h-full flex flex-col transition-all duration-300 hover:scale-[1.015] hover:-translate-y-1 hover:shadow-md hover:border-orange-300/30">
       <span className="block text-xs font-bold text-text-secondary uppercase tracking-wider">
         Saluran Media Sosial
       </span>

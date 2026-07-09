@@ -1,6 +1,16 @@
+"use client";
+
 import { useState } from "react";
 import { formatCurrency } from "@/lib/formatters";
-import { DashboardButton } from "../../shared/DashboardButton";
+import { Button } from "@/components/ui/Button";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 
 interface PaymentSimulationModalProps {
   isOpen: boolean;
@@ -17,63 +27,51 @@ export function PaymentSimulationModal({
 }: PaymentSimulationModalProps) {
   const [selectedMethod, setSelectedMethod] = useState<string>("va");
 
-  if (!isOpen) return null;
-
   const platformFee = Math.round(totalBudgetEscrow * 0.15);
   const totalPayment = totalBudgetEscrow + platformFee;
 
   const paymentMethods = [
-    { id: "va", name: "Bank Transfer Virtual Account", desc: "BNI, Mandiri, BCA, BRI" },
-    { id: "qris", name: "QRIS Cashback", desc: "Gopay, OVO, Dana, LinkAja, ShopeePay" },
-    { id: "wallet", name: "Saldo Dompet Marketiv", desc: "Bayar instan via saldo platform" },
+    { id: "va", name: "Virtual Account (Simulasi)", desc: "Transfer Bank Otomatis 24 Jam" },
+    { id: "wallet", name: "Saldo Dompet Marketiv", desc: "Bayar instan potong saldo langsung" },
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-neutral-900/60 backdrop-blur-sm" 
-        onClick={onClose}
-      />
-      
-      {/* Content Container */}
-      <div className="bg-white rounded-[28px] border border-neutral-200/50 shadow-2xl p-6 sm:p-8 max-w-md w-full z-10 relative space-y-6 animate-in scale-in duration-200">
-        <div className="flex items-center gap-3 border-b border-border-soft pb-4">
-          <div className="h-10 w-10 rounded-full bg-primary-50 text-primary border border-primary-100 flex items-center justify-center shadow-2xs shrink-0">
+    <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ResponsiveModalContent className="max-w-sm w-full p-6 sm:p-7">
+        <ResponsiveModalHeader className="flex flex-col items-center">
+          <div className="h-11 w-11 rounded-full bg-primary-50 text-primary border border-primary-100/10 flex items-center justify-center mx-auto shadow-2xs mb-4">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
-          <div>
-            <h3 className="text-sm sm:text-base font-extrabold text-text-primary uppercase tracking-wider leading-none">
-              Simulasi Pembayaran Escrow
-            </h3>
-            <span className="text-[10px] text-text-muted mt-1 block">
-              Dana Anda akan diamankan dengan aman di sistem escrow kami.
-            </span>
+          <ResponsiveModalTitle className="text-sm sm:text-base font-extrabold text-text-primary uppercase tracking-wider text-center">
+            Simulasi Pembayaran
+          </ResponsiveModalTitle>
+          <ResponsiveModalDescription className="text-[11px] text-text-muted leading-relaxed text-center mt-2">
+            Pilih metode pembayaran simulasi di bawah untuk mendepositkan dana escrow Anda.
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
+
+        {/* Invoice breakdown */}
+        <div className="rounded-2xl border border-border-soft/60 bg-neutral-50/20 p-4 space-y-2 text-xs font-semibold text-text-secondary mt-4">
+          <div className="flex justify-between items-center text-text-muted text-[11px]">
+            <span>Anggaran Escrow</span>
+            <span className="font-bold text-text-primary">{formatCurrency(totalBudgetEscrow)}</span>
+          </div>
+          <div className="flex justify-between items-center text-text-muted text-[11px]">
+            <span>Biaya Platform (15%)</span>
+            <span className="font-bold text-text-primary">{formatCurrency(platformFee)}</span>
+          </div>
+          <div className="flex justify-between items-center text-text-primary text-[11px] pt-2 border-t border-dashed border-border-soft mt-1">
+            <span className="font-extrabold">Total Pembayaran</span>
+            <span className="text-xs font-extrabold text-primary">{formatCurrency(totalPayment)}</span>
           </div>
         </div>
 
-        {/* Cost Breakdown */}
-        <div className="bg-neutral-50/70 p-4.5 rounded-2xl border border-border-soft/60 space-y-2.5 text-xs font-semibold text-text-secondary">
-          <div className="flex items-center justify-between text-text-muted">
-            <span>Anggaran Utama (Escrow)</span>
-            <span className="font-extrabold text-text-primary">{formatCurrency(totalBudgetEscrow)}</span>
-          </div>
-          <div className="flex items-center justify-between text-text-muted">
-            <span>Biaya Layanan Platform (15%)</span>
-            <span className="font-extrabold text-text-primary">{formatCurrency(platformFee)}</span>
-          </div>
-          <div className="flex items-center justify-between pt-3 border-t border-dashed border-border-soft text-text-primary">
-            <span className="font-extrabold">Total Pembayaran Anda</span>
-            <span className="text-sm sm:text-base font-extrabold text-primary">{formatCurrency(totalPayment)}</span>
-          </div>
-        </div>
-
-        {/* Payment Methods Selection */}
-        <div className="space-y-3">
-          <span className="block text-[10px] font-extrabold text-text-muted uppercase tracking-wider">
-            Pilih Metode Pembayaran Simulasi
+        {/* Payment options */}
+        <div className="space-y-2 my-4">
+          <span className="block text-[9px] font-bold text-text-muted uppercase tracking-wider">
+            Pilih Metode Pembayaran
           </span>
           <div className="space-y-2">
             {paymentMethods.map((pm) => {
@@ -83,9 +81,9 @@ export function PaymentSimulationModal({
                   key={pm.id}
                   type="button"
                   onClick={() => setSelectedMethod(pm.id)}
-                  className={`w-full text-left p-3 rounded-xl border flex items-center justify-between gap-3 transition-all duration-200 cursor-pointer ${
+                  className={`w-full p-3 rounded-xl border text-left flex items-center justify-between transition-all cursor-pointer ${
                     isSelected
-                      ? "bg-primary-50/40 border-primary shadow-xs"
+                      ? "bg-primary-50/20 border-primary shadow-xs"
                       : "bg-white border-neutral-200/60 hover:bg-neutral-50"
                   }`}
                 >
@@ -109,25 +107,23 @@ export function PaymentSimulationModal({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3 w-full border-t border-border-soft/60 pt-4.5">
-          <DashboardButton
-            variant="secondary"
-            size="sm"
+        <ResponsiveModalFooter className="flex items-center gap-3 w-full border-t border-border-soft/60 pt-4.5">
+          <Button
+            variant="outline"
             onClick={onClose}
-            className="flex-1 h-10 text-xs bg-white border border-border-soft hover:bg-neutral-50"
+            className="flex-1 h-10 text-xs bg-white border border-border-soft hover:bg-neutral-50 text-text-primary"
           >
             Batal
-          </DashboardButton>
-          <DashboardButton
-            variant="primary"
-            size="sm"
+          </Button>
+          <Button
+            variant="default"
             onClick={onConfirm}
-            className="flex-1 h-10 text-xs"
+            className="flex-1 h-10 text-xs bg-primary text-white hover:bg-primary/90"
           >
             Konfirmasi Bayar
-          </DashboardButton>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

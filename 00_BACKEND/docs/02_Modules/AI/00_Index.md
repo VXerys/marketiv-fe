@@ -5,5 +5,12 @@ Dua fitur AI Marketiv via Appwrite Functions yang membungkus OpenAI: **Brief Gen
 ## Daftar Dokumen
 
 - `10_Overview.md` — Dua fitur AI (+ opsional landing assistant), semua server-side.
+- `20_Concepts.md` — Istilah & konsep domain AI.
 - `30_Business_Rules.md` — Input/output Brief, validasi & threshold Fraud.
-- `60_API.md` — Kontrak endpoint AI Function + skema `ai_requests`.
+- `40_User_Flow.md` — Alur Brief Generator & Fraud Detection.
+- `50_Database.md` — Skema koleksi `ai_requests`.
+- `60_API.md` — Kontrak endpoint AI Function.
+- `70_Backend.md` — Appwrite Functions & integrasi OpenAI.
+- `80_Frontend.md` — Komponen UI untuk AI Brief Generator.
+- `90_Events.md` — Event yang dikonsumsi AI (dari Campaigns).
+- `100_Testing.md` — Skenario uji Brief Generator & Fraud Detection.

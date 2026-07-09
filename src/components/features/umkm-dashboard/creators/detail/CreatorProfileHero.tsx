@@ -23,10 +23,10 @@ export function CreatorProfileHero({ creator }: CreatorProfileHeroProps) {
         </div>
       </div>
 
-      {/* Main Profile Info Row */}
-      <div className="px-6 pb-6 pt-0 relative flex flex-col sm:flex-row items-center sm:items-end gap-5 -mt-12 sm:-mt-14">
-        {/* Avatar */}
-        <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-3xl bg-white p-1.5 shadow-md border border-neutral-100 shrink-0 relative overflow-hidden">
+      {/* Main Profile Info Row — Posisikan items-start untuk mencegah teks menabrak banner */}
+      <div className="px-6 pb-6 pt-0 relative flex flex-col sm:flex-row items-center sm:items-start gap-5">
+        {/* Avatar — overlap ke atas menggunakan margin negatif kustom */}
+        <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-3xl bg-white p-1.5 shadow-md border border-neutral-100 shrink-0 relative overflow-hidden -mt-12 sm:-mt-16 z-10">
           <div className="h-full w-full rounded-2xl relative overflow-hidden bg-neutral-100">
             <Image
               src={creator.imageUrl}
@@ -39,9 +39,9 @@ export function CreatorProfileHero({ creator }: CreatorProfileHeroProps) {
           </div>
         </div>
 
-        {/* Text Details */}
-        <div className="flex-1 text-center sm:text-left space-y-2 pb-1">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        {/* Text Details — diturunkan sedikit dengan padding top agar sejajar rapi dengan avatar di area putih */}
+        <div className="flex-1 text-center sm:text-left space-y-2 pt-2 sm:pt-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-center sm:justify-start gap-2">
             <h2 className="text-lg sm:text-xl font-extrabold text-text-primary tracking-tight">
               {creator.name}
             </h2>
@@ -50,7 +50,7 @@ export function CreatorProfileHero({ creator }: CreatorProfileHeroProps) {
             </span>
           </div>
 
-          <p className="text-xs text-text-secondary font-semibold max-w-xl leading-relaxed">
+          <p className="text-xs text-text-secondary font-semibold max-w-2xl leading-relaxed">
             {creator.description} &bull; Spesialis pembuatan konten media sosial premium yang terarah dengan konversi audiens organik tinggi.
           </p>
 

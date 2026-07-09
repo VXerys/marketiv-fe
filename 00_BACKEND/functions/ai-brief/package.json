@@ -1,0 +1,10 @@
+{
+  "name": "ai-brief",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/main.js",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "node-appwrite": "^14.1.0"
+  }
+}

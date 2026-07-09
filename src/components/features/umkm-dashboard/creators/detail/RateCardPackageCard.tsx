@@ -22,8 +22,8 @@ export function RateCardPackageCard({ pkg, onSelectPackage }: RateCardPackageCar
   return (
     <div
       className={cn(
-        "price-card relative overflow-visible flex flex-col justify-between h-full select-none",
-        pkg.recommended && "featured"
+        "price-card !flex !flex-col justify-between h-full select-none transition-all duration-300 hover:scale-[1.015] hover:-translate-y-1 hover:shadow-md hover:border-orange-300/40",
+        pkg.recommended && "featured hover:border-orange-400/50"
       )}
     >
       {pkg.recommended && (
@@ -38,8 +38,9 @@ export function RateCardPackageCard({ pkg, onSelectPackage }: RateCardPackageCar
           <h4 className="text-xs font-extrabold text-text-primary uppercase tracking-wider">
             {pkg.name}
           </h4>
-          <div className="price-value mt-2.5">
-            {pkg.price.split("/")[0]} <span className="text-xs block sm:inline font-bold">/ Konten</span>
+          <div className="text-2xl font-black tracking-tighter text-ink-950 leading-none mt-2.5 flex items-baseline gap-1 flex-wrap font-display">
+            <span>{pkg.price.split("/")[0]}</span>
+            <span className="text-ink-500 text-xs font-semibold">/ Konten</span>
           </div>
           <p className="text-[10px] text-text-secondary mt-1 font-semibold leading-relaxed">
             {pkg.description}
@@ -81,10 +82,10 @@ export function RateCardPackageCard({ pkg, onSelectPackage }: RateCardPackageCar
         type="button"
         onClick={() => onSelectPackage(pkg)}
         className={cn(
-          "w-full py-2.5 rounded-xl text-xs font-bold transition-all duration-200 mt-5 cursor-pointer shadow-2xs",
+          "w-full py-3 rounded-xl text-xs font-bold transition-all duration-200 mt-auto cursor-pointer flex items-center justify-center min-h-[42px]",
           pkg.recommended
-            ? "bg-primary hover:bg-primary-600 text-white border border-primary hover:border-primary-600"
-            : "bg-neutral-900 hover:bg-neutral-800 text-white"
+            ? "bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white border-0 shadow-[0_4px_14px_rgba(234,88,12,.18)] hover:shadow-[0_8px_20px_rgba(234,88,12,.24)] hover:-translate-y-px"
+            : "bg-white hover:bg-orange-50/50 text-ink-800 border border-border shadow-3xs hover:border-orange-200/50"
         )}
       >
         Mulai Negosiasi

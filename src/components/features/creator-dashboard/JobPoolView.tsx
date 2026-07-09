@@ -219,7 +219,7 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
           />
 
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+          <div className="dashboard-rule-grid mb-7">
             <CreatorMetricCard
               label="Job Tersedia"
               value={totalJobsAvailable}
@@ -354,7 +354,7 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
               }
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="responsive-card-grid">
               {filteredJobs.map((job) => {
                 const isFull = job.usedQuota >= job.quota;
                 const isNearLimit = job.quota - job.usedQuota <= 1 && !isFull;

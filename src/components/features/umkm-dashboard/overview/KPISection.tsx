@@ -1,9 +1,10 @@
 "use client";
 
 import { TrendingUp, TrendingDown, CheckCircle, Users, Eye, Shield, CreditCard } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface KPICardProps {
-  icon: React.ComponentType<{ size?: number; color?: string }>;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
   value: string;
   note?: string;
@@ -29,28 +30,20 @@ function KPICard({
 
   if (isLoading) {
     return (
-      <div
-        style={{
-          padding: 18,
-          borderRadius: 22,
-          background: "linear-gradient(180deg, #ffffff, #fffdf9)",
-          border: "1px solid rgba(17,24,39,.08)",
-          boxShadow: "0 6px 20px rgba(15,23,42,.05)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 22 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 15, background: "#edf1f5", position: "relative", overflow: "hidden" }}>
-            <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent)", animation: "shimmer 1.45s infinite" }} />
+      <div className="p-3.5 sm:p-4.5 rounded-2xl sm:rounded-[22px] border border-border bg-gradient-to-b from-white to-neutral-50/50 shadow-3xs">
+        <div className="flex justify-between mb-3 sm:mb-4">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-[14px] bg-ink-100 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent animate-shimmer" />
           </div>
-          <div style={{ width: 52, height: 20, borderRadius: 7, background: "#edf1f5", position: "relative", overflow: "hidden" }}>
-            <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent)", animation: "shimmer 1.45s infinite" }} />
+          <div className="w-10 h-5 rounded-lg bg-ink-100 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent animate-shimmer" />
           </div>
         </div>
-        <div style={{ width: "55%", height: 12, borderRadius: 7, background: "#edf1f5", marginBottom: 9, position: "relative", overflow: "hidden" }}>
-          <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent)", animation: "shimmer 1.45s infinite" }} />
+        <div className="w-1/2 h-3 rounded-lg bg-ink-100 mb-2 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent animate-shimmer" />
         </div>
-        <div style={{ width: "75%", height: 28, borderRadius: 7, background: "#edf1f5", position: "relative", overflow: "hidden" }}>
-          <div className="absolute inset-0" style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent)", animation: "shimmer 1.45s infinite" }} />
+        <div className="w-4/5 h-6 rounded-lg bg-ink-100 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent animate-shimmer" />
         </div>
       </div>
     );
@@ -58,91 +51,55 @@ function KPICard({
 
   return (
     <div
+      className="relative p-3.5 sm:p-4.5 rounded-2xl sm:rounded-[22px] border border-border bg-gradient-to-b from-white to-neutral-50/50 shadow-3xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-primary-500/20 group select-none"
       style={{
-        position: "relative",
-        padding: "18px",
-        borderRadius: 22,
-        background:
-          "radial-gradient(circle at 100% 0%, rgba(249,115,22,.06), transparent 10rem), linear-gradient(180deg, #ffffff, #fffdf9)",
-        border: "1px solid rgba(17,24,39,.08)",
-        boxShadow: "0 6px 20px rgba(15,23,42,.05)",
-        overflow: "hidden",
-        transition: ".22s cubic-bezier(.2,.8,.2,1)",
-        cursor: "default",
-      }}
-      onMouseEnter={(e) => {
-        const el = e.currentTarget as HTMLElement;
-        el.style.transform = "translateY(-3px)";
-        el.style.boxShadow = "0 16px 40px rgba(15,23,42,.09)";
-        el.style.borderColor = "rgba(249,115,22,.18)";
-      }}
-      onMouseLeave={(e) => {
-        const el = e.currentTarget as HTMLElement;
-        el.style.transform = "translateY(0)";
-        el.style.boxShadow = "0 6px 20px rgba(15,23,42,.05)";
-        el.style.borderColor = "rgba(17,24,39,.08)";
+        background: "radial-gradient(circle at 100% 0%, rgba(249,115,22,.05), transparent 10rem), linear-gradient(180deg, #ffffff, #fffdf9)",
       }}
     >
       {/* Top row: icon + growth badge */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 20 }}>
+      <div className="flex items-center justify-between gap-2.5 mb-2.5 sm:mb-3.5">
         <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 15,
-            display: "grid",
-            placeItems: "center",
-            background: iconBg,
-            border: `1px solid ${iconBorder}`,
-            boxShadow: "0 6px 18px rgba(15,23,42,.05)",
-          }}
+          className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-[14px] grid place-items-center border shadow-3xs transition-transform duration-300 group-hover:scale-105"
+          style={{ background: iconBg, borderColor: iconBorder, color: iconColor }}
         >
-          <Icon size={18} color={iconColor} />
+          <div className="block sm:hidden">
+            <Icon size={14} />
+          </div>
+          <div className="hidden sm:block">
+            <Icon size={18} />
+          </div>
         </div>
 
         {growth !== undefined && (
           <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 3,
-              height: 24,
-              padding: "0 8px",
-              borderRadius: 999,
-              background: isPositive ? "#f1fbf5" : "#fff5f5",
-              border: `1px solid ${isPositive ? "rgba(22,163,74,.20)" : "rgba(220,38,38,.18)"}`,
-              color: isPositive ? "#177b42" : "#b4232a",
-              fontSize: ".7rem",
-              fontWeight: 800,
-            }}
+            className={cn(
+              "inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full border text-[0.62rem] sm:text-[0.7rem] font-[800] leading-none shrink-0",
+              isPositive
+                ? "bg-emerald-50 border-emerald-200/50 text-emerald-700"
+                : "bg-rose-50 border-rose-200/50 text-rose-700"
+            )}
           >
-            {isPositive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+            {isPositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
             {Math.abs(growth)}%
           </div>
         )}
       </div>
 
       {/* Label */}
-      <div style={{ color: "#737f91", fontSize: ".78rem", fontWeight: 760, marginBottom: 5 }}>{label}</div>
+      <div className="text-[0.66rem] sm:text-[0.74rem] font-extrabold text-neutral-500 tracking-wide uppercase">
+        {label}
+      </div>
 
-      {/* Value */}
-      <div
-        style={{
-          fontFamily: "var(--font-sora), var(--font-plus-jakarta-sans), sans-serif",
-          fontSize: "clamp(1.5rem, 2.5vw, 1.9rem)",
-          lineHeight: 0.95,
-          letterSpacing: "-.07em",
-          fontWeight: 700,
-          color: "#182033",
-          marginBottom: note ? 7 : 0,
-          wordBreak: "break-word",
-        }}
-      >
+      {/* Value — Ukuran medium seimbang untuk 3 kolom (2 baris) */}
+      <div className="font-display text-[1.2rem] sm:text-[1.4rem] lg:text-[1.55rem] font-black text-neutral-900 tracking-tight leading-none mt-1 sm:mt-1.5 break-all">
         {value}
       </div>
 
+      {/* Note */}
       {note && (
-        <div style={{ color: "#a0aaba", fontSize: ".74rem", fontWeight: 700 }}>{note}</div>
+        <div className="text-[0.68rem] sm:text-[0.74rem] text-neutral-400 font-semibold mt-1 sm:mt-1.5 leading-none">
+          {note}
+        </div>
       )}
     </div>
   );
@@ -234,69 +191,24 @@ export function KPISection({ isLoading = false, kpisData }: KPISectionProps) {
   ];
 
   return (
-    <div>
+    <div className="space-y-4">
       {/* Section header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-        <div>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              color: "#ea580c",
-              fontSize: ".7rem",
-              fontWeight: 900,
-              letterSpacing: ".12em",
-              textTransform: "uppercase",
-              marginBottom: 5,
-            }}
-          >
-            <span style={{ display: "block", width: 16, height: 2, borderRadius: 999, background: "#f97316" }} />
-            Metrik Utama
-          </div>
-          <h2
-            style={{
-              fontFamily: "var(--font-sora), var(--font-plus-jakarta-sans), sans-serif",
-              fontSize: "clamp(1.15rem, 2vw, 1.5rem)",
-              fontWeight: 700,
-              letterSpacing: "-.05em",
-              lineHeight: 1,
-              color: "#182033",
-              margin: 0,
-            }}
-          >
-            Ringkasan KPI Bisnis
-          </h2>
+      <div>
+        <div className="inline-flex items-center gap-2 text-orange-600 text-[.72rem] font-[900] tracking-[.12em] uppercase mb-1.5">
+          <span className="block w-3.5 h-0.5 rounded-full bg-orange-500" />
+          Metrik Utama
         </div>
+        <h2 className="font-display text-[1.15rem] font-bold tracking-[-0.045em] text-ink-950 m-0">
+          Ringkasan KPI Bisnis
+        </h2>
       </div>
 
-      {/*
-       * Fixed grid: 2 cols mobile → 3 cols tablet → 6 cols desktop.
-       * minmax(0, 1fr) on all tracks prevents overflow.
-       */}
-      <div className="kpi-grid">
+      {/* Grid: 2 kolom di mobile (2x3), 3 kolom di desktop/tablet (3x2) untuk keseimbangan ukuran card */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
         {kpis.map((kpi) => (
           <KPICard key={kpi.label} {...kpi} isLoading={isLoading} />
         ))}
       </div>
-
-      <style jsx global>{`
-        .kpi-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 12px;
-        }
-        @media (min-width: 640px) {
-          .kpi-grid {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-          }
-        }
-        @media (min-width: 1280px) {
-          .kpi-grid {
-            grid-template-columns: repeat(6, minmax(0, 1fr));
-          }
-        }
-      `}</style>
     </div>
   );
 }

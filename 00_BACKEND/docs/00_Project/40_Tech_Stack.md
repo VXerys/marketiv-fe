@@ -2,7 +2,7 @@
 
 ## Frontend
 
-- **React + Vite** — SPA, Feature-Based Architecture (bukan page-based) agar scalable.
+- **Next.js (App Router)** — Feature-Based Architecture (bukan page-based) agar scalable.
 
 ## Backend (BaaS)
 

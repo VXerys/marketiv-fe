@@ -1,5 +1,6 @@
 "use client";
 
+import { Search, ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CreatorToolbarProps {
@@ -11,6 +12,24 @@ interface CreatorToolbarProps {
   onSortByChange: (sort: string) => void;
 }
 
+const CATEGORIES = [
+  { id: "all",        label: "Semua Kategori" },
+  { id: "kuliner",    label: "Kuliner"        },
+  { id: "fashion",    label: "Fashion"        },
+  { id: "pariwisata",  label: "Pariwisata"     },
+  { id: "edukasi",    label: "Edukasi"        },
+  { id: "kecantikan", label: "Kecantikan"     },
+  { id: "teknologi",  label: "Teknologi"      },
+  { id: "lainnya",    label: "Lainnya"        },
+];
+
+const SORT_OPTIONS = [
+  { id: "rating",    label: "Rating Tertinggi"  },
+  { id: "followers", label: "Followers Terbanyak" },
+  { id: "price_asc", label: "Harga Terendah"     },
+  { id: "reviews",   label: "Review Terbanyak"   },
+];
+
 export function CreatorToolbar({
   searchQuery,
   onSearchChange,
@@ -19,65 +38,66 @@ export function CreatorToolbar({
   sortBy,
   onSortByChange,
 }: CreatorToolbarProps) {
-  const categories = [
-    { id: "all", label: "Semua" },
-    { id: "kuliner", label: "Kuliner" },
-    { id: "fashion", label: "Fashion" },
-    { id: "kosmetik", label: "Kosmetik" },
-    { id: "handmade", label: "Handmade" },
-  ];
-
-  const sortOptions = [
-    { id: "rating", label: "Rating Tertinggi" },
-    { id: "followers", label: "Followers Terbanyak" },
-    { id: "price_asc", label: "Harga Terendah" },
-    { id: "reviews", label: "Review Terbanyak" },
-  ];
+  const isSorted = sortBy !== "rating";
 
   return (
-    <div className="space-y-4 mb-6">
-      {/* Search & Sort Panel */}
-      <div className="flex flex-col sm:flex-row gap-3">
+    <div className="shrink-0 p-3.5 rounded-[22px] bg-white/80 border border-border shadow-sm grid gap-3">
+      {/* Row 1: Search and Sort */}
+      <div className="flex items-center gap-2.5 flex-wrap">
         {/* Search */}
-        <div className="relative flex-1">
-          <span className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-text-muted">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </span>
+        <div className="flex items-center gap-2 flex-1 min-w-[180px] h-[42px] px-3.5 bg-white rounded-full border border-border shadow-xs transition-all focus-within:border-primary-400 focus-within:ring-1 focus-within:ring-primary-200">
+          <Search size={14} className="text-ink-400 shrink-0" />
           <input
             type="text"
             placeholder="Cari nama kreator atau keahlian..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-border-subtle rounded-xl text-xs font-medium focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary placeholder-text-muted/65 shadow-2xs"
+            className="flex-1 border-none outline-none bg-transparent text-[.84rem] text-ink-900 placeholder:text-ink-400"
+            aria-label="Cari kreator"
           />
+          {searchQuery && (
+            <button
+              onClick={() => onSearchChange("")}
+              className="text-ink-400 hover:text-ink-600 transition-colors cursor-pointer"
+              aria-label="Hapus pencarian"
+            >
+              <X size={13} />
+            </button>
+          )}
         </div>
 
-        {/* Sort */}
-        <div className="relative w-full sm:w-48 shrink-0">
+        {/* Sort Pill */}
+        <div className="relative inline-block">
           <select
             value={sortBy}
             onChange={(e) => onSortByChange(e.target.value)}
-            className="w-full px-3.5 py-2.5 bg-white border border-border-subtle rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-2xs appearance-none cursor-pointer"
+            className={cn(
+              "appearance-none h-[42px] min-h-[42px] pl-4 pr-8 rounded-full text-[.82rem] font-[780] cursor-pointer outline-none transition-all duration-200 border shadow-xs",
+              isSorted
+                ? "border-orange-300/60 bg-orange-50 text-orange-600"
+                : "border-border bg-white text-ink-600"
+            )}
+            aria-label="Urutkan kreator"
           >
-            {sortOptions.map((opt) => (
+            {SORT_OPTIONS.map((opt) => (
               <option key={opt.id} value={opt.id}>
                 {opt.label}
               </option>
             ))}
           </select>
-          <span className="absolute inset-y-0 right-3.5 flex items-center pointer-events-none text-text-muted">
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </span>
+          <ChevronDown
+            size={13}
+            className={cn(
+              "absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none",
+              isSorted ? "text-orange-600" : "text-ink-500"
+            )}
+          />
         </div>
       </div>
 
-      {/* Category Tabs */}
-      <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-none">
-        {categories.map((cat) => {
+      {/* Row 2: Category Tabs */}
+      <div className="flex gap-1.5 flex-wrap p-1.5 rounded-[18px] overflow-x-auto scrollbar-none bg-ink-100/50">
+        {CATEGORIES.map((cat) => {
           const isActive = selectedCategory === cat.id;
           return (
             <button
@@ -85,10 +105,10 @@ export function CreatorToolbar({
               type="button"
               onClick={() => onCategoryChange(cat.id)}
               className={cn(
-                "px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border duration-250 cursor-pointer",
+                "inline-flex items-center justify-center min-h-9 px-3.5 rounded-[13px] text-[.8rem] cursor-pointer transition-all duration-200 whitespace-nowrap font-display border-0",
                 isActive
-                  ? "bg-primary text-white border-primary shadow-xs"
-                  : "bg-white text-text-secondary border-border-subtle hover:border-neutral-300 hover:text-text-primary"
+                  ? "bg-white text-orange-600 font-[820] shadow-sm"
+                  : "bg-transparent text-ink-500 font-[720] hover:text-ink-700"
               )}
             >
               {cat.label}

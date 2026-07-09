@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Campaign } from "@/types/umkm-dashboard.types";
 import { formatCurrency } from "@/lib/formatters";
-import { DashboardCard } from "../../shared/DashboardCard";
+
 
 interface CampaignActivityTimelineProps {
   campaign: Campaign;
@@ -117,7 +117,7 @@ export function CampaignActivityTimeline({ campaign }: CampaignActivityTimelineP
         day: "2-digit",
         month: "short",
       });
-    } catch (e) {
+    } catch {
       return dateStr;
     }
   };

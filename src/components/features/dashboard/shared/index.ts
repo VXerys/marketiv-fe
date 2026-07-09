@@ -11,7 +11,7 @@ export { DashboardBadge, getDashboardCategoryTone, getDashboardStatusTone } from
 export type { DashboardBadgeTone } from "./DashboardBadge";
 
 /**
- * @deprecated Use Button from @/components/ui/button instead.
+ * @deprecated Use Button from @/components/ui/Button instead.
  */
 export { DashboardButton } from "./DashboardButton";
 

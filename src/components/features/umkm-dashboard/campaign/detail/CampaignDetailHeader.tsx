@@ -38,7 +38,7 @@ export function CampaignDetailHeader({
   const isCancelable = campaign.status !== "completed" && campaign.status !== "cancelled";
 
   return (
-    <div className="flex flex-col gap-4 mb-8 shrink-0">
+    <div className="flex flex-col gap-4 shrink-0">
       {/* Back button link */}
       <div>
         <Link

@@ -1,12 +1,13 @@
 # 20_Coding_Standards
 
-Standar coding wajib untuk frontend Marketiv (React + Vite). Struktur folder lengkap ada di [`40_Folder_Structure.md`](40_Folder_Structure.md).
+Standar coding wajib untuk frontend Marketiv (Next.js). Struktur folder lengkap ada di [`40_Folder_Structure.md`](40_Folder_Structure.md).
 
 ## Arsitektur Modul (Feature-Based)
 
 - Gunakan **Feature-Based Architecture**, bukan Page-Based — lebih scalable.
 - Setiap business capability = satu modul di `src/modules/<feature>/`.
-- Struktur internal modul: `pages/`, `components/`, `services/`, `hooks/`, `validators/`, `store.js`.
+- Struktur internal modul: `components/`, `services/`, `hooks/`, `validators/`, `store.js`.
+- Routing ada di `src/app/` (App Router); file `page.jsx` meng-import view dari modul. Modul tidak memegang routing.
 - Jangan dokumentasikan / menaruh logika lintas-modul di dalam satu modul.
 
 ## Service Layer (WAJIB)
@@ -14,10 +15,10 @@ Standar coding wajib untuk frontend Marketiv (React + Vite). Struktur folder len
 - Semua akses Appwrite **wajib** lewat service layer. Alur yang benar:
 
   ```text
-  Page → Service → Appwrite SDK
+  Route/Component → Service → Appwrite SDK
   ```
 
-- DILARANG memanggil Appwrite SDK langsung dari Page/Component.
+- DILARANG memanggil Appwrite SDK langsung dari komponen `page.jsx`/Component.
 - Service berisi: pemanggilan SDK, mapping data, dan throw error bertipe (lihat [`60_Error_Handling.md`](60_Error_Handling.md)).
 - Service global ada di `src/services/`; service spesifik fitur boleh di `src/modules/<feature>/services/`.
 

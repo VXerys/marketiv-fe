@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
+import { UmkmPageWrapper } from "../shared/UmkmPageWrapper";
 import { CampaignsHeader } from "./CampaignsHeader";
 import { CampaignSummaryCards } from "./CampaignSummaryCards";
 import { CampaignToolbar } from "./CampaignToolbar";
@@ -12,7 +12,8 @@ import { CampaignEmptyState } from "./CampaignEmptyState";
 import { CampaignErrorState } from "./CampaignErrorState";
 import { CampaignListSkeleton, CampaignSummaryCardsSkeleton } from "./CampaignListSkeleton";
 import { filterCampaigns } from "@/lib/umkm-filters";
-import { DashboardCard, DashboardButton } from "../shared";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/Button";
 import {
   getCampaigns,
   getDashboardSummary,
@@ -56,7 +57,7 @@ export function CampaignsPage() {
   const [activeDuplicateCampaign, setActiveDuplicateCampaign] = useState<Campaign | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
-  const router = useRouter();
+
 
   // Toast / notification feedback simulator via Sonner
   const showToast = (msg: string) => {
@@ -180,10 +181,8 @@ export function CampaignsPage() {
 
   return (
     <UmkmDashboardChrome businessName={businessName}>
-      <div
-        className="flex-1 overflow-y-auto relative"
-        style={{ padding: "clamp(16px, 3vw, 28px)", display: "grid", gap: 0, maxWidth: 1440, alignContent: "start", width: "100%" }}
-      >
+      {/* UmkmPageWrapper: responsive padding, 26px gap, 1440px max-width for campaign list */}
+      <UmkmPageWrapper maxWidth={1440}>
         {/* Header */}
         <CampaignsHeader
           onCreateCampaignClick={() => {}}
@@ -222,13 +221,15 @@ export function CampaignsPage() {
         ) : campaigns.length === 0 ? (
           <CampaignEmptyState onCreateClick={() => showToast("Buka wizard pembuatan campaign baru.")} />
         ) : processedCampaigns.length === 0 ? (
-          <DashboardCard variant="default" className="p-8 text-center bg-white">
-            <h4 className="text-base font-bold text-text-primary mb-1">Campaign tidak ditemukan</h4>
-            <p className="text-xs text-text-muted mb-4">Coba ubah kata kunci pencarian atau bersihkan filter.</p>
-            <DashboardButton variant="outline" size="sm" onClick={handleClearFilters}>
-              Reset Filter
-            </DashboardButton>
-          </DashboardCard>
+          <Card className="border border-border shadow-[var(--shadow-1)] bg-[var(--paper-2)] rounded-[var(--radius-3)]">
+            <CardContent className="p-8 text-center">
+              <h4 className="text-base font-bold text-ink-900 mb-1">Campaign tidak ditemukan</h4>
+              <p className="text-xs text-ink-500 mb-4">Coba ubah kata kunci pencarian atau bersihkan filter.</p>
+              <Button variant="outline" size="sm" onClick={handleClearFilters}>
+                Reset Filter
+              </Button>
+            </CardContent>
+          </Card>
         ) : viewMode === "table" ? (
           <CampaignTable
             campaigns={processedCampaigns}
@@ -239,7 +240,7 @@ export function CampaignsPage() {
             onEdit={(camp) => showToast(`Melanjutkan edit Draft: ${camp.title}`)}
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="responsive-card-grid-2">
             {processedCampaigns.map((camp) => {
               const counts = submissionCounts[camp.id] || { pending: 0, valid: 0, dispute: 0 };
               return (
@@ -285,7 +286,7 @@ export function CampaignsPage() {
           />
         )}
 
-      </div>
+      </UmkmPageWrapper>
     </UmkmDashboardChrome>
   );
 }

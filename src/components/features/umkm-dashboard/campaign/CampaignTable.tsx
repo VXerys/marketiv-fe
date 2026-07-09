@@ -8,7 +8,6 @@ import {
   DashboardActionMenu,
   DashboardBadge,
   DashboardButton,
-  DashboardCard,
   ResponsiveDataRow,
   type ActionMenuItem,
   type ResponsiveDataCell,

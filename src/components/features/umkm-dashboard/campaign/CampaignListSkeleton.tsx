@@ -2,9 +2,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function CampaignSummaryCardsSkeleton() {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} className="bg-white border border-border-soft rounded-2xl p-4 shadow-xs">
+        <div key={i} className="bg-white border border-border-soft rounded-[22px] p-4 shadow-xs">
           <div className="flex justify-between items-center mb-3">
             <Skeleton className="h-4 w-12" />
             <Skeleton className="h-6 w-6 rounded-full" />
@@ -85,7 +85,7 @@ export function CampaignListSkeleton({ viewMode = "card" }: { viewMode?: "card" 
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="responsive-card-grid-2">
       {Array.from({ length: 6 }).map((_, i) => (
         <CampaignCardSkeleton key={i} />
       ))}

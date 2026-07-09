@@ -12,6 +12,8 @@ import {
   Wallet,
   Settings,
   LogOut,
+  ArrowRight,
+  X,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -23,6 +25,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 interface CreatorSidebarItem {
@@ -54,23 +57,42 @@ export function CreatorDashboardSidebar({
   onCloseSidebar,
 }: CreatorDashboardSidebarProps) {
   const pathname = usePathname();
+  const { state, toggleSidebar } = useSidebar();
 
   return (
     <Sidebar className="bg-[#0c172b] text-white border-r border-white/5 shadow-xl" collapsible="icon">
       {/* Brand Header */}
-      <SidebarHeader className="flex items-center gap-3 p-4 border-b border-white/5 min-h-[76px] overflow-hidden">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-[0_8px_20px_rgba(37,99,235,0.25)] shrink-0">
-          <span className="font-extrabold text-lg text-white font-display">M</span>
+      <SidebarHeader className="relative flex flex-row items-center justify-between gap-3 p-4 border-b border-white/5 min-h-[76px] !overflow-visible group-data-[collapsible=icon]:p-3 group-data-[collapsible=icon]:justify-center">
+        <div
+          className="flex items-center gap-3 min-w-0 group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:justify-center"
+        >
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-[0_8px_20px_rgba(37,99,235,0.25)] shrink-0 group-data-[collapsible=icon]:w-12 group-data-[collapsible=icon]:h-12 group-data-[collapsible=icon]:rounded-2xl">
+            <span className="font-extrabold text-lg text-white font-display">M</span>
+          </div>
+          <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+            <h1 className="text-sm font-extrabold text-white leading-none tracking-wide font-display">Marketiv</h1>
+            <p className="text-[10px] text-white/40 mt-1 truncate font-semibold uppercase tracking-wider">Kreator: {creatorName}</p>
+          </div>
         </div>
-        <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-          <h1 className="text-sm font-extrabold text-white leading-none tracking-wide font-display">Marketiv</h1>
-          <p className="text-[10px] text-white/40 mt-1 truncate font-semibold uppercase tracking-wider">Kreator: {creatorName}</p>
-        </div>
+
+        {/* Protruding Tab Toggle Button (Shopeers/Dashify Style) */}
+        <button
+          onClick={toggleSidebar}
+          className="absolute z-50 flex items-center justify-center rounded-r-md cursor-pointer transition-all duration-250 bg-[#0c172b] text-white/60 hover:text-white border border-l-0 border-white/5 shadow-[2px_0_8px_rgba(0,0,0,0.15)]"
+          style={{ right: "-22px", top: "25px", width: "22px", height: "26px" }}
+          title={state === "collapsed" ? "Perluas Sidebar" : "Sembunyikan Sidebar"}
+        >
+          {state === "collapsed" ? (
+            <ArrowRight className="size-3" strokeWidth={2.5} />
+          ) : (
+            <X className="size-3" strokeWidth={2.5} />
+          )}
+        </button>
       </SidebarHeader>
 
       {/* Main Navigation Content */}
-      <SidebarContent className="p-3">
-        <SidebarMenu className="gap-1">
+      <SidebarContent className="p-3 group-data-[collapsible=icon]:p-2">
+        <SidebarMenu className="gap-1 group-data-[collapsible=icon]:items-center">
           {SIDEBAR_ITEMS.map((item) => {
             const isActive =
               item.href === "/dashboard/kreator"
@@ -85,6 +107,7 @@ export function CreatorDashboardSidebar({
                   tooltip={item.label}
                   className={cn(
                     "flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-250 cursor-pointer",
+                    "group-data-[collapsible=icon]:min-h-12 group-data-[collapsible=icon]:w-12 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:rounded-2xl",
                     isActive
                       ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold shadow-md shadow-blue-500/15"
                       : "text-white/50 hover:bg-white/5 hover:text-white"
@@ -92,7 +115,7 @@ export function CreatorDashboardSidebar({
                 >
                   <Link href={item.href} onClick={onCloseSidebar}>
                     <item.icon className={cn("size-5", isActive ? "text-white" : "text-white/40")} />
-                    <span className="text-sm font-semibold tracking-wide">{item.label}</span>
+                    <span className="text-sm font-semibold tracking-wide group-data-[collapsible=icon]:hidden">{item.label}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -102,7 +125,7 @@ export function CreatorDashboardSidebar({
       </SidebarContent>
 
       {/* Sidebar Footer */}
-      <SidebarFooter className="p-3 border-t border-white/5 gap-1.5">
+      <SidebarFooter className="p-3 border-t border-white/5 gap-1.5 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:gap-2 group-data-[collapsible=icon]:justify-center">
         <div className="bg-white/[0.03] rounded-2xl p-3 border border-white/[0.06] group-data-[collapsible=icon]:hidden">
           <div className="flex items-center gap-3 mb-2 border-b border-white/[0.06] pb-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center font-extrabold text-xs text-blue-400 shrink-0">
@@ -122,12 +145,12 @@ export function CreatorDashboardSidebar({
           </Link>
         </div>
 
-        <SidebarMenu className="group-data-[collapsible=icon]:block hidden">
+        <SidebarMenu className="group-data-[collapsible=icon]:block group-data-[collapsible=icon]:items-center hidden">
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Keluar" className="text-red-300 hover:bg-white/5 hover:text-white rounded-xl">
+            <SidebarMenuButton asChild tooltip="Keluar" className="text-red-300 hover:bg-white/5 hover:text-white rounded-xl group-data-[collapsible=icon]:min-h-12 group-data-[collapsible=icon]:w-12 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:rounded-2xl">
               <Link href="/">
                 <LogOut className="size-5 text-red-400/60" />
-                <span className="text-sm font-semibold">Keluar</span>
+                <span className="text-sm font-semibold group-data-[collapsible=icon]:hidden">Keluar</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

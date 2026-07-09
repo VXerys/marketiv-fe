@@ -3,6 +3,8 @@ import { FormSectionCard } from "../cards/FormSectionCard";
 import { BudgetCalculatorCard } from "../cards/BudgetCalculatorCard";
 import { formatCurrency } from "@/lib/formatters";
 import { PRICE_TIERS } from "../create-campaign.constants";
+import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 
 interface BudgetQuotaStepProps {
   pricePerThousandViews: number;
@@ -59,7 +61,7 @@ export function BudgetQuotaStep({
     >
       {/* Price tier selection */}
       <div className="space-y-3">
-        <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider">
+        <label className="block text-sm font-medium text-text-primary">
           Bayaran per 1.000 Views <span className="text-primary">*</span>
         </label>
         
@@ -111,14 +113,14 @@ export function BudgetQuotaStep({
           <div className="mt-3 max-w-xs space-y-1.5 animate-in fade-in duration-200">
             <span className="block text-[9px] font-bold text-text-muted uppercase">Bayaran Kustom (Rupiah)</span>
             <div className="relative flex items-center">
-              <span className="absolute left-3 text-xs font-bold text-text-muted">Rp</span>
-              <input
+              <span className="absolute left-3 text-xs font-bold text-text-muted z-10">Rp</span>
+              <Input
                 type="number"
                 min={1000}
                 placeholder="10000"
                 value={pricePerThousandViews}
                 onChange={(e) => onChangePricePerThousandViews(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-full pl-9 pr-4 py-2 bg-neutral-50 text-xs text-text-primary border border-border-strong rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
+                className="pl-9"
               />
             </div>
             <p className="text-[9px] text-text-muted">Minimal bayaran kustom Rp 1.000 per 1.000 views.</p>
@@ -126,13 +128,13 @@ export function BudgetQuotaStep({
         )}
         
         {validationErrors.pricePerThousandViews && (
-          <p className="text-[10px] text-danger font-bold">{validationErrors.pricePerThousandViews}</p>
+          <p className="text-xs text-destructive">{validationErrors.pricePerThousandViews}</p>
         )}
       </div>
 
       {/* Quota limit selector */}
       <div className="space-y-3">
-        <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider">
+        <label className="block text-sm font-medium text-text-primary">
           Kuota Rekrutmen Kreator <span className="text-primary">*</span>
         </label>
         
@@ -165,14 +167,14 @@ export function BudgetQuotaStep({
           </span>
         </div>
         {validationErrors.creatorQuota && (
-          <p className="text-[10px] text-danger font-bold">{validationErrors.creatorQuota}</p>
+          <p className="text-xs text-destructive">{validationErrors.creatorQuota}</p>
         )}
       </div>
 
       {/* Budget Escrow Input */}
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-4">
-          <label htmlFor="total-budget" className="block text-xs font-bold text-text-secondary uppercase tracking-wider">
+          <label htmlFor="total-budget" className="block text-sm font-medium text-text-primary">
             Total Anggaran Kampanye (Escrow) <span className="text-primary">*</span>
           </label>
           <span className="text-xs font-extrabold text-primary bg-primary-soft/10 px-2 py-0.5 rounded-md border border-primary-100/10">
@@ -180,36 +182,32 @@ export function BudgetQuotaStep({
           </span>
         </div>
         
-        {/* Slider input */}
-        <div className="flex items-center gap-4">
-          <input
-            id="total-budget-slider"
-            type="range"
-            min={100000}
-            max={10000000}
-            step={50000}
-            value={totalBudgetEscrow}
-            onChange={(e) => onChangeTotalBudgetEscrow(parseInt(e.target.value) || 0)}
-            className="flex-1 h-1.5 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-primary"
-          />
-          <div className="relative flex items-center w-36 shrink-0">
-            <span className="absolute left-3 text-xs font-bold text-text-muted">Rp</span>
-            <input
+        {/* Slider & Input */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+          <div className="flex-1 py-3 flex items-center">
+            <Slider
+              min={100000}
+              max={10000000}
+              step={50000}
+              value={[totalBudgetEscrow]}
+              onValueChange={(vals) => onChangeTotalBudgetEscrow(vals[0])}
+            />
+          </div>
+          <div className="relative flex items-center w-full sm:w-36 shrink-0">
+            <span className="absolute left-3 text-xs font-bold text-text-muted z-10">Rp</span>
+            <Input
               id="total-budget"
               type="number"
               min={100000}
               placeholder="3200000"
               value={totalBudgetEscrow}
               onChange={(e) => onChangeTotalBudgetEscrow(Math.max(0, parseInt(e.target.value) || 0))}
-              className={`w-full pl-9 pr-3 py-2 bg-neutral-50 text-xs font-bold text-text-primary border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                validationErrors.totalBudgetEscrow ? "border-danger focus:ring-danger" : "border-border-strong"
-              }`}
+              error={validationErrors.totalBudgetEscrow}
+              className="pl-9"
             />
           </div>
         </div>
-        {validationErrors.totalBudgetEscrow ? (
-          <p className="text-[10px] text-danger font-bold">{validationErrors.totalBudgetEscrow}</p>
-        ) : (
+        {!validationErrors.totalBudgetEscrow && (
           <p className="text-[10px] text-text-muted">Masukkan total nominal dana yang ingin dialokasikan untuk penayangan views kreator.</p>
         )}
       </div>
