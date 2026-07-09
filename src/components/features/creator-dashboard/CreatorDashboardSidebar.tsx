@@ -61,6 +61,26 @@ export function CreatorDashboardSidebar({
 
   return (
     <Sidebar className="bg-[#0c172b] text-white border-r border-white/5 shadow-xl" collapsible="icon">
+      {/* Protruding Tab Toggle Button (Shopeers/Dashify Style) — centered vertically on viewport */}
+      <button
+        onClick={toggleSidebar}
+        className="absolute z-50 flex items-center justify-center rounded-r-md cursor-pointer transition-all duration-250 bg-[#0c172b] text-white/60 hover:text-white border border-l-0 border-white/5 shadow-[2px_0_8px_rgba(0,0,0,0.15)]"
+        style={{
+          right: "-22px",
+          top: "50%",
+          transform: "translateY(-50%)",
+          width: "22px",
+          height: "48px"
+        }}
+        title={state === "collapsed" ? "Perluas Sidebar" : "Sembunyikan Sidebar"}
+      >
+        {state === "collapsed" ? (
+          <ArrowRight className="size-3.5" strokeWidth={2.5} />
+        ) : (
+          <X className="size-3.5" strokeWidth={2.5} />
+        )}
+      </button>
+
       {/* Brand Header */}
       <SidebarHeader className="relative flex flex-row items-center justify-between gap-3 p-4 border-b border-white/5 min-h-[76px] !overflow-visible group-data-[collapsible=icon]:p-3 group-data-[collapsible=icon]:justify-center">
         <div
@@ -74,24 +94,10 @@ export function CreatorDashboardSidebar({
             <p className="text-[10px] text-white/40 mt-1 truncate font-semibold uppercase tracking-wider">Kreator: {creatorName}</p>
           </div>
         </div>
-
-        {/* Protruding Tab Toggle Button (Shopeers/Dashify Style) */}
-        <button
-          onClick={toggleSidebar}
-          className="absolute z-50 flex items-center justify-center rounded-r-md cursor-pointer transition-all duration-250 bg-[#0c172b] text-white/60 hover:text-white border border-l-0 border-white/5 shadow-[2px_0_8px_rgba(0,0,0,0.15)]"
-          style={{ right: "-22px", top: "25px", width: "22px", height: "26px" }}
-          title={state === "collapsed" ? "Perluas Sidebar" : "Sembunyikan Sidebar"}
-        >
-          {state === "collapsed" ? (
-            <ArrowRight className="size-3" strokeWidth={2.5} />
-          ) : (
-            <X className="size-3" strokeWidth={2.5} />
-          )}
-        </button>
       </SidebarHeader>
 
       {/* Main Navigation Content */}
-      <SidebarContent className="p-3 group-data-[collapsible=icon]:p-2">
+      <SidebarContent className="p-3 group-data-[collapsible=icon]:p-2 custom-sidebar-scrollbar">
         <SidebarMenu className="gap-1 group-data-[collapsible=icon]:items-center">
           {SIDEBAR_ITEMS.map((item) => {
             const isActive =
@@ -109,13 +115,13 @@ export function CreatorDashboardSidebar({
                     "flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-250 cursor-pointer",
                     "group-data-[collapsible=icon]:min-h-12 group-data-[collapsible=icon]:w-12 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:rounded-2xl",
                     isActive
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold shadow-md shadow-blue-500/15"
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold shadow-md shadow-blue-500/15 hover:bg-transparent hover:text-white"
                       : "text-white/50 hover:bg-white/5 hover:text-white"
                   )}
                 >
                   <Link href={item.href} onClick={onCloseSidebar}>
-                    <item.icon className={cn("size-5", isActive ? "text-white" : "text-white/40")} />
-                    <span className="text-sm font-semibold tracking-wide group-data-[collapsible=icon]:hidden">{item.label}</span>
+                    <item.icon className={cn("size-5 transition-all duration-200", isActive ? "text-white group-hover:text-white" : "text-white/40 group-hover:text-white")} />
+                    <span className={cn("text-sm font-semibold tracking-wide group-data-[collapsible=icon]:hidden transition-colors duration-200", isActive ? "text-white group-hover:text-white" : "text-white/50 group-hover:text-white")}>{item.label}</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

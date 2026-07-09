@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { Transaction, UmkmFinanceSummary, EscrowOverview } from "@/types/umkm-dashboard.types";
 import { getTransactions } from "@/services/umkm/umkm-dashboard.service";
 import { FinanceHeader } from "./FinanceHeader";
@@ -26,6 +27,7 @@ export function FinanceOverviewPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [refFilter, setRefFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("date_desc");
+  const { toolbarRef, isSticky: isToolbarSticky } = useStickyToolbar();
 
   // Dialog / Modal States
   const [selectedTxDetail, setSelectedTxDetail] = useState<Transaction | null>(null);
@@ -246,21 +248,24 @@ export function FinanceOverviewPage() {
       {/* Escrow overview diagram */}
       <EscrowOverviewCard overview={computedEscrowOverview} />
 
-      {/* Control bar / Toolbar */}
-      <FinanceToolbar
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        typeFilter={typeFilter}
-        setTypeFilter={setTypeFilter}
-        refFilter={refFilter}
-        setRefFilter={setRefFilter}
-        sortOrder={sortOrder}
-        setSortOrder={setSortOrder}
-        onClearAll={handleClearAllFilters}
-        hasFilters={hasFilters}
-      />
+      {/* Control bar / Toolbar — sticky direct child of space-y-6 container */}
+      <div ref={toolbarRef} style={{ position: "sticky", top: 0, zIndex: 30 }}>
+        <FinanceToolbar
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          typeFilter={typeFilter}
+          setTypeFilter={setTypeFilter}
+          refFilter={refFilter}
+          setRefFilter={setRefFilter}
+          sortOrder={sortOrder}
+          setSortOrder={setSortOrder}
+          onClearAll={handleClearAllFilters}
+          hasFilters={hasFilters}
+          isSticky={isToolbarSticky}
+        />
+      </div>
 
       {/* Transaction list */}
       <TransactionHistorySection

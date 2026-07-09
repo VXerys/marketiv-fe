@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { UmkmPageWrapper } from "../shared/UmkmPageWrapper";
 import { CampaignsHeader } from "./CampaignsHeader";
@@ -51,6 +52,7 @@ export function CampaignsPage() {
   const [selectedNiche, setSelectedNiche] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
+  const { toolbarRef, isSticky: isToolbarSticky } = useStickyToolbar();
 
   // Modal states
   const [activeCancelCampaign, setActiveCancelCampaign] = useState<Campaign | null>(null);
@@ -196,22 +198,25 @@ export function CampaignsPage() {
           <CampaignSummaryCards summary={summary} />
         ) : null}
 
-        {/* Toolbar */}
-        <CampaignToolbar
-          search={search}
-          onSearchChange={setSearch}
-          selectedStatus={selectedStatus}
-          onStatusChange={setSelectedStatus}
-          selectedNiche={selectedNiche}
-          onNicheChange={setSelectedNiche}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          onClearFilters={handleClearFilters}
-          hasActiveFilters={hasActiveFilters}
-          statusCounts={statusCounts}
-        />
+        {/* Toolbar — sticky direct grid child */}
+        <div ref={toolbarRef} style={{ position: "sticky", top: 0, zIndex: 30 }}>
+          <CampaignToolbar
+            search={search}
+            onSearchChange={setSearch}
+            selectedStatus={selectedStatus}
+            onStatusChange={setSelectedStatus}
+            selectedNiche={selectedNiche}
+            onNicheChange={setSelectedNiche}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onClearFilters={handleClearFilters}
+            hasActiveFilters={hasActiveFilters}
+            statusCounts={statusCounts}
+            isSticky={isToolbarSticky}
+          />
+        </div>
 
         {/* List Content */}
         {loading ? (

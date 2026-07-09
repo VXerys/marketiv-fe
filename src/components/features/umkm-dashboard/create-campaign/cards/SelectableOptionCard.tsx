@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { Check } from "lucide-react";
 
 interface SelectableOptionCardProps {
   selected: boolean;
@@ -22,62 +23,110 @@ export function SelectableOptionCard({
   disabled = false,
   badge,
 }: SelectableOptionCardProps) {
+  const hasIcon = Boolean(icon);
+
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "w-full text-left p-4 rounded-2xl transition-all duration-300 relative border flex flex-col justify-between h-full min-h-[105px] group cursor-pointer select-none",
-        selected
-          ? "bg-primary-50/20 border-primary shadow-[0_8px_24px_-8px_rgba(235,94,40,0.2),_inset_0_1px_0_rgba(255,255,255,0.7)] hover:border-primary"
-          : "bg-neutral-50/40 hover:bg-neutral-50/80 border-neutral-200/60 shadow-[0_4px_10px_-5px_rgba(0,0,0,0.01)] hover:border-primary-100",
+        "relative w-full text-left rounded-2xl cursor-pointer select-none",
+        "transition-all duration-200 hover:-translate-y-0.5 active:scale-[.98] active:translate-y-0",
+        hasIcon ? "p-3.5 flex flex-col min-h-[88px]" : "p-3 flex items-center gap-2.5 min-h-[52px]",
         disabled && "opacity-50 pointer-events-none",
-        "hover:scale-[1.02] hover:-translate-y-0.5 active:scale-98 active:translate-y-0",
         className
       )}
+      style={selected ? {
+        background: "linear-gradient(135deg, rgba(255,247,237,.95) 0%, rgba(255,237,213,.6) 100%)",
+        border: "1.5px solid rgba(249,115,22,.35)",
+        boxShadow: "0 4px 14px rgba(234,88,12,.12), inset 0 1px 0 rgba(255,255,255,.8)",
+      } : {
+        background: "rgba(255,255,255,.85)",
+        border: "1.5px solid rgba(17,24,39,.09)",
+        boxShadow: "0 1px 3px rgba(15,23,42,.04)",
+      }}
     >
-      {/* Top right badges indicators */}
+      {/* Selected check badge */}
       {selected ? (
-        <span className="absolute top-2.5 right-2.5 h-4.5 w-4.5 rounded-full bg-primary text-white flex items-center justify-center shadow-xs border border-white">
-          <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
+        <span
+          className="absolute top-2 right-2 w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0"
+          style={{
+            background: "linear-gradient(135deg, #fb7a18, #ea580c)",
+            boxShadow: "0 2px 6px rgba(234,88,12,.28)",
+          }}
+        >
+          <Check size={10} strokeWidth={3} className="text-white" />
         </span>
       ) : badge ? (
-        <div className="absolute top-2 right-2 scale-85 origin-top-right">{badge}</div>
+        <div className="absolute top-2 right-2">{badge}</div>
       ) : null}
 
-      {/* Icon Area */}
-      {icon && (
-        <div
-          className={cn(
-            "h-8 w-8 rounded-xl flex items-center justify-center transition-all duration-300 mb-3",
-            selected
-              ? "bg-primary text-white shadow-sm shadow-primary/20 scale-105"
-              : "bg-white text-text-muted border border-neutral-200/50 group-hover:bg-neutral-100 group-hover:text-text-secondary"
-          )}
-        >
-          {icon}
-        </div>
+      {/* With-icon layout: icon top, label bottom */}
+      {hasIcon ? (
+        <>
+          <div
+            className="w-8 h-8 rounded-[11px] flex items-center justify-center shrink-0 mb-auto transition-all duration-200"
+            style={selected ? {
+              background: "linear-gradient(135deg, #fb7a18, #ea580c)",
+              color: "white",
+              boxShadow: "0 3px 8px rgba(234,88,12,.22)",
+            } : {
+              background: "rgba(243,244,246,.9)",
+              color: "#9ca3af",
+              border: "1px solid rgba(17,24,39,.07)",
+            }}
+          >
+            {icon}
+          </div>
+          <div className="mt-2 min-w-0 pr-5 space-y-0.5">
+            <span className={cn(
+              "block text-[.78rem] font-[760] leading-tight transition-colors",
+              selected ? "text-orange-700" : "text-ink-800"
+            )}>
+              {title}
+            </span>
+            {description && (
+              <span className={cn(
+                "block text-[.68rem] font-[580] leading-tight transition-colors",
+                selected ? "text-orange-500" : "text-ink-400"
+              )}>
+                {description}
+              </span>
+            )}
+          </div>
+        </>
+      ) : (
+        /* No-icon layout: compact horizontal pill */
+        <>
+          {/* Color dot */}
+          <span
+            className="w-2 h-2 rounded-full shrink-0 transition-all duration-200"
+            style={selected ? {
+              background: "linear-gradient(135deg, #fb7a18, #ea580c)",
+              boxShadow: "0 0 0 3px rgba(249,115,22,.15)",
+            } : {
+              background: "rgba(209,213,219,1)",
+            }}
+          />
+          <div className="min-w-0 flex-1 pr-4">
+            <span className={cn(
+              "block text-[.8rem] font-[720] leading-tight transition-colors",
+              selected ? "text-orange-700" : "text-ink-800"
+            )}>
+              {title}
+            </span>
+            {description && (
+              <span className={cn(
+                "block text-[.68rem] font-[560] leading-tight mt-0.5 transition-colors",
+                selected ? "text-orange-500" : "text-ink-400"
+              )}>
+                {description}
+              </span>
+            )}
+          </div>
+        </>
       )}
-
-      {/* Label Info */}
-      <div className="space-y-0.5 min-w-0 pr-4 mt-auto">
-        <span
-          className={cn(
-            "block text-xs font-extrabold transition-colors leading-tight truncate",
-            selected ? "text-primary-700" : "text-text-primary"
-          )}
-        >
-          {title}
-        </span>
-        {description && (
-          <span className="block text-[9px] text-text-muted leading-tight truncate max-w-full font-semibold">
-            {description}
-          </span>
-        )}
-      </div>
     </button>
   );
 }

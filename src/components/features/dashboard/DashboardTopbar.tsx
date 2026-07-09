@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell } from "lucide-react";
+import { Bell, Menu } from "lucide-react";
+import { useSidebar } from "@/components/ui/sidebar";
 
 const PROFILE_AVATAR_IMAGE_URL =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCDJh8BEYVCLcj-BjHUl0GKUwUU0yp9_SB65sdKYxzbuAY-yJMGqbV0NTcoy03pdf7Gq7G3fCt8XLHyNCLfcN3ONcIaSvcJia5eLMQI8_5P9bt9bLx1k-PYinTGRB5RY7ZoL6AzYLgTXS8P7LumfH-nfAwAtWUF5bDgFn5Kio2Vk1NthhmuSRHYqV_bhFB2-KxjJxJ716MpYQqTL5KX76AFPKsUXks7Q-BM5PlUYMSUDzj_2_y1uGXTXvL4yRg4NHCy_Pj6j6rZSIzX";
@@ -17,14 +18,15 @@ interface PageMeta {
 
 function getPageMeta(pathname: string): PageMeta {
   const map: Record<string, PageMeta> = {
-    [BASE]: { title: "Dashboard", subtitle: "Ringkasan bisnis Anda" },
-    [`${BASE}/campaign`]: { title: "Campaign", subtitle: "Kelola semua campaign" },
-    [`${BASE}/campaign/buat`]: { title: "Buat Campaign", subtitle: "Wizard pembuatan campaign" },
-    [`${BASE}/kreator`]: { title: "Kreator", subtitle: "Temukan & kelola kreator" },
-    [`${BASE}/negosiasi`]: { title: "Negosiasi", subtitle: "Kelola penawaran & negosiasi" },
-    [`${BASE}/keuangan`]: { title: "Keuangan", subtitle: "Transaksi & escrow" },
-    [`${BASE}/analitik`]: { title: "Analitik", subtitle: "Performa & insight" },
-    [`${BASE}/pengaturan`]: { title: "Pengaturan", subtitle: "Profil & konfigurasi akun" },
+    [BASE]:                      { title: "Dashboard",   subtitle: "Ringkasan bisnis Anda" },
+    [`${BASE}/campaign`]:        { title: "Campaign",    subtitle: "Kelola semua campaign" },
+    [`${BASE}/campaign/buat`]:   { title: "Buat Campaign", subtitle: "Wizard pembuatan campaign" },
+    [`${BASE}/kreator`]:         { title: "Kreator",     subtitle: "Temukan & kelola kreator" },
+    [`${BASE}/negosiasi`]:       { title: "Negosiasi",   subtitle: "Kelola penawaran & negosiasi" },
+    [`${BASE}/keuangan`]:        { title: "Keuangan",    subtitle: "Transaksi & escrow" },
+    [`${BASE}/analitik`]:        { title: "Analitik",    subtitle: "Performa & insight" },
+    [`${BASE}/pengaturan`]:      { title: "Pengaturan",  subtitle: "Profil & konfigurasi akun" },
+    [`${BASE}/panduan`]:         { title: "FAQ & Rules", subtitle: "Kebijakan & bantuan platform" },
   };
   if (map[pathname]) return map[pathname];
   if (new RegExp(`^${BASE}/campaign/[^/]+$`).test(pathname))
@@ -36,51 +38,151 @@ function getPageMeta(pathname: string): PageMeta {
   return { title: "Marketiv", subtitle: "" };
 }
 
+interface BreadcrumbItem {
+  label: string;
+  href?: string;
+}
+
+function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
+  const parts = pathname.split("/").filter(Boolean);
+  const items: BreadcrumbItem[] = [{ label: "Dashboard", href: "/dashboard/umkm" }];
+  
+  if (parts.length <= 2) {
+    return items;
+  }
+  
+  const mainModule = parts[2];
+  const labelMap: Record<string, string> = {
+    campaign: "Campaign",
+    kreator: "Direktori Kreator",
+    negosiasi: "Negosiasi",
+    keuangan: "Keuangan",
+    analitik: "Analitik",
+    pengaturan: "Pengaturan",
+    panduan: "FAQ & Rules",
+  };
+  
+  if (labelMap[mainModule]) {
+    items.push({ 
+      label: labelMap[mainModule], 
+      href: `/dashboard/umkm/${mainModule}` 
+    });
+  } else {
+    items.push({ 
+      label: mainModule.charAt(0).toUpperCase() + mainModule.slice(1)
+    });
+  }
+  
+  if (parts.length > 3) {
+    const subModule = parts[3];
+    if (subModule === "buat") {
+      items.push({ label: "Buat Baru" });
+    } else {
+      if (mainModule === "campaign") {
+        items.push({ label: "Detail" });
+      } else if (mainModule === "kreator") {
+        items.push({ label: "Profil" });
+      } else if (mainModule === "negosiasi") {
+        items.push({ label: "Detail" });
+      } else {
+        items.push({ label: "Detail" });
+      }
+    }
+  }
+  
+  return items;
+}
+
 interface DashboardTopbarProps {
   onOpenSidebar?: () => void;
 }
 
 export function DashboardTopbar({}: DashboardTopbarProps) {
   const pathname = usePathname();
-  const { title, subtitle } = getPageMeta(pathname);
+  const { title } = getPageMeta(pathname);
+  const { toggleSidebar } = useSidebar();
+  const breadcrumbs = getBreadcrumbs(pathname);
 
   return (
     <header
-      className="sticky top-0 z-40 shrink-0 flex items-center justify-between gap-4 px-5 sm:px-7 h-[70px] transition-all"
+      className="sticky top-0 z-40 shrink-0 flex items-center justify-between gap-3 px-4 sm:px-6 lg:px-8 h-[80px]"
       style={{
-        background: "rgba(255, 253, 249, 0.85)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        borderBottom: "1px solid rgba(17, 24, 39, 0.08)",
-        boxShadow: "0 4px 20px rgba(15, 23, 42, 0.02)",
+        background: "rgba(255, 255, 255, 0.8)",
+        backdropFilter: "blur(24px)",
+        WebkitBackdropFilter: "blur(24px)",
+        borderBottom: "1px solid rgba(17, 24, 39, 0.05)",
+        boxShadow: "0 4px 20px -2px rgba(15, 23, 42, 0.02), 0 1px 0 rgba(17, 24, 39, 0.03)",
       }}
     >
-      {/* Left: Page title & info */}
-      <div className="flex flex-col min-w-0">
-        <h1
-          className="text-[1.05rem] font-[800] text-ink-900 leading-tight truncate"
-          style={{ letterSpacing: "-.03em" }}
+      {/* ── Left side ─────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+
+        {/* Mobile hamburger — hidden on md+ (sidebar always visible there) */}
+        <button
+          onClick={toggleSidebar}
+          className="md:hidden w-10.5 h-10.5 flex items-center justify-center rounded-xl text-ink-600 hover:bg-neutral-100/80 active:scale-95 transition-all duration-150 cursor-pointer shrink-0 border border-neutral-200/60 bg-white/70 shadow-3xs"
+          aria-label="Buka menu"
         >
-          {title}
-        </h1>
-        {subtitle && (
-          <span className="hidden sm:block text-[.74rem] text-ink-500 font-[650] mt-[1.5px] leading-none">
-            {subtitle}
-          </span>
-        )}
+          <Menu size={20} strokeWidth={2} />
+        </button>
+
+        {/* Mobile: Marketiv brand mark */}
+        <div className="flex items-center gap-2.5 md:hidden min-w-0">
+          <div
+            className="w-9 h-9 rounded-[11px] shrink-0 flex items-center justify-center shadow-[0_6px_16px_rgba(249,115,22,.24)]"
+            style={{
+              background:
+                "radial-gradient(circle at 35% 25%, rgba(255,255,255,.9) 0 9%, transparent 10%), linear-gradient(135deg, #f97316, #c2410c)",
+            }}
+          >
+            <span className="font-extrabold text-[.85rem] text-white font-display">M</span>
+          </div>
+          <div className="min-w-0">
+            <strong className="block text-[.92rem] font-extrabold text-ink-900 leading-none tracking-[-0.03em] font-display truncate">
+              Marketiv
+            </strong>
+            <span className="block text-[.68rem] text-ink-400 font-semibold mt-px leading-none truncate">
+              {title}
+            </span>
+          </div>
+        </div>
+
+        {/* Desktop: Breadcrumbs navigation */}
+        <nav className="hidden md:flex items-center gap-2 text-[0.84rem] font-bold text-neutral-400 select-none">
+          {breadcrumbs.map((item, idx) => {
+            const isLast = idx === breadcrumbs.length - 1;
+            return (
+              <div key={idx} className="flex items-center gap-2">
+                {idx > 0 && <span className="text-neutral-300 font-medium">/</span>}
+                {isLast ? (
+                  <span className="text-ink-900 font-extrabold tracking-tight">
+                    {item.label}
+                  </span>
+                ) : (
+                  <Link
+                    href={item.href || "#"}
+                    className="hover:text-ink-900 transition-colors duration-150 no-underline"
+                  >
+                    {item.label}
+                  </Link>
+                )}
+              </div>
+            );
+          })}
+        </nav>
       </div>
 
-      {/* Right: actions */}
+      {/* ── Right: actions ────────────────────────────────────── */}
       <div className="flex items-center gap-3 shrink-0">
         {/* Notification bell */}
         <button
-          className="relative w-10 h-10 flex items-center justify-center rounded-full text-neutral-600 hover:bg-neutral-100/85 active:scale-95 transition-all duration-200 cursor-pointer bg-white border border-neutral-200/50 shadow-2xs"
+          className="relative w-11 h-11 flex items-center justify-center rounded-xl text-ink-500 hover:bg-neutral-100 hover:text-ink-800 active:scale-95 transition-all duration-150 cursor-pointer border border-neutral-200/60 bg-white/70 shadow-3xs hover:shadow-2xs"
           aria-label="Notifikasi"
         >
-          <Bell size={18} />
+          <Bell size={20} strokeWidth={2} />
           {/* Unread dot */}
           <span
-            className="absolute top-[10px] right-[10px] w-2 h-2 rounded-full border-2 border-white bg-primary"
+            className="absolute top-[12px] right-[12px] w-[8px] h-[8px] rounded-full border-[1.5px] border-white bg-primary shadow-[0_0_0_1px_rgba(249,115,22,.25)]"
             aria-hidden="true"
           />
         </button>
@@ -88,14 +190,15 @@ export function DashboardTopbar({}: DashboardTopbarProps) {
         {/* Avatar */}
         <Link
           href="/dashboard/umkm/pengaturan"
-          className="w-10 h-10 rounded-full border border-neutral-200/50 shadow-sm overflow-hidden hover:scale-105 active:scale-95 transition-all relative block shrink-0"
+          className="w-11 h-11 rounded-xl border border-neutral-200/70 shadow-3xs overflow-hidden hover:scale-105 hover:shadow-[0_4px_12px_rgba(249,115,22,.18)] active:scale-95 transition-all duration-200 relative block shrink-0 cursor-pointer"
+          aria-label="Profil akun"
         >
           <Image
             alt="Profil"
             src={PROFILE_AVATAR_IMAGE_URL}
-            width={40}
-            height={40}
-            sizes="40px"
+            width={44}
+            height={44}
+            sizes="44px"
             quality={85}
             className="w-full h-full object-cover"
           />

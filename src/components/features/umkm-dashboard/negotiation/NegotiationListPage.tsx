@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { getNegotiations } from "@/services/umkm/umkm-dashboard.service";
+import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { NegotiationOrder } from "@/types/umkm-dashboard.types";
 import { NegotiationHeader } from "./NegotiationHeader";
 import { NegotiationSummaryCards } from "./NegotiationSummaryCards";
@@ -20,6 +21,7 @@ export function NegotiationListPage() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
   const [, startTransition] = useTransition();
+  const { toolbarRef, isSticky: isToolbarSticky } = useStickyToolbar();
 
   const loadNegotiations = async () => {
     setLoading(true);
@@ -110,18 +112,21 @@ export function NegotiationListPage() {
       {/* Summary metric cards */}
       <NegotiationSummaryCards negotiations={negotiations} />
 
-      {/* Toolbar filters */}
-      <NegotiationToolbar
-        searchQuery={searchQuery}
-        onSearchChange={(q) => startTransition(() => setSearchQuery(q))}
-        selectedStatus={selectedStatus}
-        onStatusChange={(status) => startTransition(() => setSelectedStatus(status))}
-        sortBy={sortBy}
-        onSortByChange={(s) => startTransition(() => setSortBy(s))}
-        onClearFilters={handleClearFilters}
-        hasActiveFilters={hasActiveFilters}
-        statusCounts={statusCounts}
-      />
+      {/* Toolbar filters — sticky direct child of space-y-6 container */}
+      <div ref={toolbarRef} style={{ position: "sticky", top: 0, zIndex: 30 }}>
+        <NegotiationToolbar
+          searchQuery={searchQuery}
+          onSearchChange={(q) => startTransition(() => setSearchQuery(q))}
+          selectedStatus={selectedStatus}
+          onStatusChange={(status) => startTransition(() => setSelectedStatus(status))}
+          sortBy={sortBy}
+          onSortByChange={(s) => startTransition(() => setSortBy(s))}
+          onClearFilters={handleClearFilters}
+          hasActiveFilters={hasActiveFilters}
+          statusCounts={statusCounts}
+          isSticky={isToolbarSticky}
+        />
+      </div>
 
       {/* List content */}
       {filteredNegotiations.length > 0 ? (

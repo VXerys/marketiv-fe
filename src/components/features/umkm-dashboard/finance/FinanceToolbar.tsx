@@ -22,6 +22,7 @@ interface FinanceToolbarProps {
   setSortOrder: (sort: string) => void;
   onClearAll: () => void;
   hasFilters: boolean;
+  isSticky?: boolean;
 }
 
 export function FinanceToolbar({
@@ -37,9 +38,24 @@ export function FinanceToolbar({
   setSortOrder,
   onClearAll,
   hasFilters,
+  isSticky = false,
 }: FinanceToolbarProps) {
   return (
-    <div className="shrink-0 bg-white border border-neutral-200/80 rounded-2xl p-4 shadow-3xs flex flex-col gap-4">
+    <div
+      className="shrink-0 flex flex-col gap-4"
+      style={{
+        padding: isSticky ? "10px 14px" : "16px",
+        borderRadius: isSticky ? 18 : 16,
+        border: "1px solid rgba(17,24,39,.09)",
+        background: isSticky ? "rgba(255,255,255,.92)" : "white",
+        backdropFilter: isSticky ? "blur(24px)" : "none",
+        WebkitBackdropFilter: isSticky ? "blur(24px)" : "none",
+        boxShadow: isSticky
+          ? "0 8px 30px rgba(15,23,42,.08), 0 1px 0 rgba(255,255,255,.8) inset"
+          : "0 2px 8px rgba(15,23,42,.04)",
+        transition: "all .28s cubic-bezier(.2,.8,.2,1)",
+      }}
+    >
       {/* Row 1: Search + dropdowns */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 flex-wrap">
         {/* Search */}
@@ -65,9 +81,8 @@ export function FinanceToolbar({
           )}
         </div>
 
-        {/* Filters and buttons group */}
+        {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Type select */}
           <div className="relative">
             <select
               value={typeFilter}
@@ -81,7 +96,6 @@ export function FinanceToolbar({
             <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
           </div>
 
-          {/* Reference select */}
           <div className="relative">
             <select
               value={refFilter}
@@ -95,7 +109,6 @@ export function FinanceToolbar({
             <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
           </div>
 
-          {/* Sort select */}
           <div className="relative">
             <select
               value={sortOrder}
@@ -109,7 +122,6 @@ export function FinanceToolbar({
             <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
           </div>
 
-          {/* Active filter indicator */}
           {hasFilters && (
             <div className="inline-flex items-center gap-1 bg-primary-50 border border-primary-200/50 text-primary-600 text-xs font-extrabold px-2.5 py-1.5 rounded-xl shadow-3xs">
               <SlidersHorizontal size={12} />
@@ -117,7 +129,6 @@ export function FinanceToolbar({
             </div>
           )}
 
-          {/* Reset */}
           {hasFilters && (
             <button
               onClick={onClearAll}
@@ -129,30 +140,39 @@ export function FinanceToolbar({
         </div>
       </div>
 
-      {/* Row 2: Status pill tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-t border-neutral-100 pt-3">
-        <span className="text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider mr-1.5 hidden sm:inline shrink-0">
-          Status:
-        </span>
-        <div className="flex gap-1.5 flex-wrap">
-          {TRANSACTION_STATUS_OPTIONS.map((opt) => {
-            const isActive = statusFilter === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setStatusFilter(opt.value)}
-                className={cn(
-                  "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
-                  isActive
-                    ? "bg-primary-50 border-primary-500/30 text-primary-600 font-extrabold shadow-3xs"
-                    : "bg-white border-neutral-200/60 hover:bg-neutral-50 text-neutral-500 hover:text-neutral-700"
-                )}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
+      {/* Row 2: Status pill tabs — collapses when sticky */}
+      <div
+        style={{
+          maxHeight: isSticky ? 0 : 200,
+          opacity: isSticky ? 0 : 1,
+          overflow: "hidden",
+          transition: "max-height .28s cubic-bezier(.2,.8,.2,1), opacity .2s ease",
+        }}
+      >
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-t border-neutral-100 pt-3">
+          <span className="text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider mr-1.5 hidden sm:inline shrink-0">
+            Status:
+          </span>
+          <div className="flex gap-1.5 flex-wrap">
+            {TRANSACTION_STATUS_OPTIONS.map((opt) => {
+              const isActive = statusFilter === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setStatusFilter(opt.value)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
+                    isActive
+                      ? "bg-primary-50 border-primary-500/30 text-primary-600 font-extrabold shadow-3xs"
+                      : "bg-white border-neutral-200/60 hover:bg-neutral-50 text-neutral-500 hover:text-neutral-700"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

@@ -168,7 +168,7 @@ export function NegotiationRoomCard({ order }: NegotiationRoomCardProps) {
         {/* CTA button */}
         <Link
           href={`/dashboard/umkm/negosiasi/${order.id}`}
-          className="inline-flex items-center gap-1.5 min-h-[36px] px-4 rounded-xl bg-ink-950 text-white text-[.82rem] font-[800] transition-all duration-200 hover:bg-primary hover:shadow-[0_8px_20px_rgba(234,88,12,.22)] hover:-translate-y-px cursor-pointer select-none no-underline"
+          className="inline-flex items-center gap-1.5 min-h-[36px] px-4 rounded-xl bg-ink-950 text-white text-[.82rem] font-[800] transition-all duration-150 hover:bg-primary hover:shadow-[0_8px_20px_rgba(234,88,12,.22)] hover:-translate-y-px active:scale-[0.98] active:translate-y-0 cursor-pointer select-none no-underline"
         >
           <MessageSquare size={14} className="shrink-0" />
           Buka Room Chat
