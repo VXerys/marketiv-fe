@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { DashboardCard, DashboardButton } from "../../shared";
+import { DashboardButton } from "../../shared";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 
 interface ExportReportModalProps {
   isOpen: boolean;
@@ -12,8 +20,6 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
   const [reportType, setReportType] = useState("summary");
   const [formatType, setFormatType] = useState("csv");
   const [isGenerating, setIsGenerating] = useState(false);
-
-  if (!isOpen) return null;
 
   const handleExport = () => {
     setIsGenerating(true);
@@ -36,15 +42,19 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs transition-opacity duration-300">
-      <DashboardCard variant="default" className="max-w-md w-full p-6 shadow-md animate-in fade-in zoom-in-95 duration-200">
-        <h3 className="text-lg font-bold text-text-primary mb-2">Export Laporan Kemajuan</h3>
-        <p className="text-sm text-text-secondary mb-4 leading-relaxed">
-          Pilih tipe data dan format laporan kemajuan P2MW 2025 yang ingin Anda ekspor dari sistem.
-        </p>
+    <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ResponsiveModalContent className="max-w-md w-full p-6">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle className="text-lg font-bold text-text-primary">
+            Export Laporan Kemajuan
+          </ResponsiveModalTitle>
+          <ResponsiveModalDescription className="text-sm text-text-secondary leading-relaxed">
+            Pilih tipe data dan format laporan kemajuan P2MW 2025 yang ingin Anda ekspor dari sistem.
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         {/* Report Type Select */}
-        <div className="mb-4">
+        <div className="mb-4 mt-4">
           <label htmlFor="report-type" className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
             Tipe Data Laporan
           </label>
@@ -98,15 +108,15 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         </div>
 
         {/* Buttons */}
-        <div className="flex items-center justify-end gap-3 border-t border-border-soft pt-4">
+        <ResponsiveModalFooter className="flex items-center justify-end gap-3 border-t border-border-soft pt-4">
           <DashboardButton variant="secondary" size="md" onClick={onClose} disabled={isGenerating} className="text-xs">
             Batal
           </DashboardButton>
           <DashboardButton variant="primary" size="md" onClick={handleExport} disabled={isGenerating} className="text-xs">
             {isGenerating ? "Mengekspor..." : "Generate Laporan"}
           </DashboardButton>
-        </div>
-      </DashboardCard>
-    </div>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

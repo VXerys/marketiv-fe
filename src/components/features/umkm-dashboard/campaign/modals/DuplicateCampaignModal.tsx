@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { DashboardCard, DashboardButton } from "../../shared";
+import { DashboardButton } from "../../shared";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 
 interface DuplicateCampaignModalProps {
   isOpen: boolean;
@@ -23,8 +31,6 @@ export function DuplicateCampaignModal({
     copyAssets: true,
   });
 
-  if (!isOpen) return null;
-
   const handleConfirm = () => {
     if (!newTitle.trim()) return;
     onConfirm(newTitle, options);
@@ -32,15 +38,19 @@ export function DuplicateCampaignModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs transition-opacity duration-300">
-      <DashboardCard variant="default" className="max-w-md w-full p-6 shadow-md animate-in fade-in zoom-in-95 duration-200">
-        <h3 className="text-lg font-bold text-text-primary mb-2">Duplikasi Campaign</h3>
-        <p className="text-sm text-text-secondary mb-4 leading-relaxed">
-          Salin campaign ini untuk membuat campaign baru dengan pengaturan yang sama secara instan.
-        </p>
+    <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ResponsiveModalContent className="max-w-md w-full p-6">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle className="text-lg font-bold text-text-primary">
+            Duplikasi Campaign
+          </ResponsiveModalTitle>
+          <ResponsiveModalDescription className="text-sm text-text-secondary leading-relaxed">
+            Salin campaign ini untuk membuat campaign baru dengan pengaturan yang sama secara instan.
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         {/* Input New Title */}
-        <div className="mb-4">
+        <div className="mb-4 mt-4">
           <label htmlFor="new-title" className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
             Nama Campaign Baru
           </label>
@@ -91,15 +101,15 @@ export function DuplicateCampaignModal({
         </div>
 
         {/* Buttons */}
-        <div className="flex items-center justify-end gap-3">
+        <ResponsiveModalFooter className="flex items-center justify-end gap-3">
           <DashboardButton variant="secondary" size="md" onClick={onClose} className="text-xs">
             Batal
           </DashboardButton>
           <DashboardButton variant="primary" size="md" disabled={!newTitle.trim()} onClick={handleConfirm} className="text-xs">
             Duplikasi
           </DashboardButton>
-        </div>
-      </DashboardCard>
-    </div>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

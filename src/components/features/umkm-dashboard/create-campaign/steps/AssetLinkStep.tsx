@@ -1,4 +1,6 @@
 import { FormSectionCard } from "../cards/FormSectionCard";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface AssetLinkStepProps {
   externalAssetUrl: string;
@@ -30,7 +32,7 @@ export function AssetLinkStep({
       
       {/* External Storage URL */}
       <div className="space-y-4">
-        <label htmlFor="external-asset-url" className="block text-xs font-bold text-text-secondary uppercase tracking-wider">
+        <label htmlFor="external-asset-url" className="block text-sm font-medium text-text-primary">
           Tautan Penyimpanan Aset (Google Drive / Dropbox) <span className="text-primary">*</span>
         </label>
         
@@ -48,19 +50,14 @@ export function AssetLinkStep({
             Tautan publik folder media eksternal berisi video dan foto produk.
           </span>
           
-          <input
+          <Input
             id="external-asset-url"
-            type="text"
             placeholder="Contoh: https://drive.google.com/drive/folders/..."
             value={externalAssetUrl}
             onChange={(e) => onChangeExternalAssetUrl(e.target.value)}
-            className={`w-full max-w-md px-4 py-2.5 bg-white text-xs text-text-primary border rounded-xl focus:outline-none focus:ring-1 focus:ring-primary font-mono text-center ${
-              validationErrors.externalAssetUrl ? "border-danger focus:ring-danger" : "border-border-strong"
-            }`}
+            error={validationErrors.externalAssetUrl}
+            className="max-w-md font-mono text-center"
           />
-          {validationErrors.externalAssetUrl && (
-            <p className="text-[10px] text-danger font-bold mt-2">{validationErrors.externalAssetUrl}</p>
-          )}
         </div>
       </div>
 
@@ -79,7 +76,7 @@ export function AssetLinkStep({
 
       {/* Asset Checklist */}
       <div className="space-y-3 pt-2">
-        <label className="block text-xs font-bold text-text-secondary uppercase tracking-wider">
+        <label className="block text-sm font-medium text-text-primary">
           Rekomendasi Isi Folder Aset
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -98,19 +95,14 @@ export function AssetLinkStep({
       </div>
 
       {/* Additional Asset Notes */}
-      <div className="space-y-2">
-        <label htmlFor="asset-notes" className="block text-xs font-bold text-text-secondary uppercase tracking-wider">
-          Catatan Aset Tambahan (Opsional)
-        </label>
-        <textarea
-          id="asset-notes"
-          rows={3}
-          placeholder="Contoh: Kode akses folder Drive adalah: 'produk123' atau cantumkan instruksi detail pengunduhan logo..."
-          value={assetNotes}
-          onChange={(e) => onChangeAssetNotes(e.target.value)}
-          className="w-full px-4 py-3 bg-neutral-50 text-xs text-text-primary border border-border-strong rounded-xl focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed resize-none"
-        />
-      </div>
+      <Textarea
+        id="asset-notes"
+        label="Catatan Aset Tambahan (Opsional)"
+        rows={3}
+        placeholder="Contoh: Kode akses folder Drive adalah: 'produk123' atau cantumkan instruksi detail pengunduhan logo..."
+        value={assetNotes}
+        onChange={(e) => onChangeAssetNotes(e.target.value)}
+      />
 
     </FormSectionCard>
   );

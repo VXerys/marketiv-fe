@@ -1,6 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 
 interface SendCustomOfferModalProps {
   isOpen: boolean;
@@ -16,8 +22,6 @@ export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }
   const [revisions, setRevisions] = useState(2);
   const [agreed, setAgreed] = useState(false);
 
-  if (!isOpen) return null;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!agreed) return;
@@ -31,13 +35,8 @@ export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-navy-main/40 backdrop-blur-xs" onClick={onClose} />
-      
-      {/* Container */}
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-lg border border-neutral-200/50 overflow-hidden animate-in zoom-in-95 duration-200 select-none">
-        
+    <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ResponsiveModalContent className="max-w-lg w-full p-0 overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4.5 bg-gradient-to-r from-primary-50/20 to-white border-b border-border-subtle flex items-center justify-between">
           <div>
@@ -60,7 +59,9 @@ export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+          <ResponsiveModalDescription className="hidden" />
+
           {/* Scope input */}
           <div className="space-y-1.5">
             <label htmlFor="modal-scope" className="block text-[10px] font-extrabold text-text-secondary uppercase tracking-wider">
@@ -141,7 +142,7 @@ export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }
           </label>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 pt-3 border-t border-border-soft">
+          <ResponsiveModalFooter className="flex items-center gap-3 pt-3 border-t border-border-soft">
             <button
               type="button"
               onClick={onClose}
@@ -156,10 +157,9 @@ export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }
             >
               Kirim Penawaran
             </button>
-          </div>
-
+          </ResponsiveModalFooter>
         </form>
-      </div>
-    </div>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Users, Eye, Calendar, ChevronRight, Plus, Clock } from "lucide-react";
+import { Users, Eye, Calendar, ChevronRight, Plus } from "lucide-react";
 import type { Campaign, CampaignStatus } from "@/types/umkm-dashboard.types";
 
 interface CampaignSectionProps {

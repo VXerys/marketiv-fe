@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getNegotiationById, getMessagesByOrderId } from "@/services/umkm/umkm-dashboard.service";
 import { NegotiationOrder, ChatMessage } from "@/types/umkm-dashboard.types";
 import { formatCurrency } from "@/lib/formatters";
@@ -35,7 +35,7 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -58,7 +58,7 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
         setLoading(false);
       }, 600);
     }
-  };
+  }, [orderId]);
 
   useEffect(() => {
     // If orderId is "rc-offer-simulated", let's mock a freshly created negotiation state
@@ -114,7 +114,7 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
     } else {
       loadData();
     }
-  }, [orderId]);
+  }, [orderId, loadData]);
 
   // Message composing handler (local state append simulation)
   const handleSendMessage = (text: string) => {

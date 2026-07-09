@@ -4,7 +4,15 @@ import { useState } from "react";
 import Image from "next/image";
 import { CampaignSubmission, SubmissionStatus } from "@/types/umkm-dashboard.types";
 import { formatCurrency, formatCompactNumber } from "@/lib/formatters";
-import { DashboardCard, DashboardButton, DashboardBadge } from "../../shared";
+import { DashboardButton, DashboardBadge } from "../../shared";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 
 interface ReviewSubmissionModalProps {
   isOpen: boolean;
@@ -22,20 +30,23 @@ export function ReviewSubmissionModal({
   const [selectedStatus, setSelectedStatus] = useState<SubmissionStatus>(submission.validationStatus);
   const [notes, setNotes] = useState("");
 
-  if (!isOpen) return null;
-
   const handleConfirm = () => {
     onConfirm(selectedStatus, notes);
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs transition-opacity duration-300">
-      <DashboardCard variant="default" className="max-w-lg w-full p-6 shadow-md animate-in fade-in zoom-in-95 duration-200">
-        <h3 className="text-lg font-bold text-text-primary mb-4">Review Bukti Tayang</h3>
+    <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ResponsiveModalContent className="max-w-lg w-full p-6">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle className="text-lg font-bold text-text-primary">
+            Review Bukti Tayang
+          </ResponsiveModalTitle>
+          <ResponsiveModalDescription className="hidden" />
+        </ResponsiveModalHeader>
 
         {/* Creator Info */}
-        <div className="flex items-center gap-3.5 mb-6 p-4 bg-neutral-50 rounded-xl border border-border-soft">
+        <div className="flex items-center gap-3.5 mb-6 mt-4 p-4 bg-neutral-50 rounded-xl border border-border-soft">
           <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-border-soft bg-neutral-200">
             {submission.creatorAvatarUrl ? (
               <Image
@@ -157,15 +168,15 @@ export function ReviewSubmissionModal({
         </div>
 
         {/* Buttons */}
-        <div className="flex items-center justify-end gap-3">
+        <ResponsiveModalFooter className="flex items-center justify-end gap-3">
           <DashboardButton variant="secondary" size="md" onClick={onClose} className="text-xs">
             Kembali
           </DashboardButton>
           <DashboardButton variant="primary" size="md" onClick={handleConfirm} className="text-xs">
             Simpan Validasi
           </DashboardButton>
-        </div>
-      </DashboardCard>
-    </div>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

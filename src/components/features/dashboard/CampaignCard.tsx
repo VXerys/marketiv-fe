@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import type { Campaign } from "@/types/campaign";
 import { CARD_CONTENT } from "@/data/content";
 

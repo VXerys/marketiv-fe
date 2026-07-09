@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 
 interface CreatorDashboardTopbarProps {
   creatorName: string;
@@ -16,20 +15,13 @@ export function CreatorDashboardTopbar({
 }: CreatorDashboardTopbarProps) {
   return (
     <header className="topbar-glass sticky top-0 z-40 flex justify-between items-center px-4 sm:px-6 lg:px-8 py-4 shadow-[0_2px_12px_rgba(16,32,51,0.01)] h-[76px]">
-      <div className="flex items-center gap-3">
-        {/* Toggle Sidebar trigger */}
-        <SidebarTrigger className="p-2 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 transition-all cursor-pointer rounded-xl h-10 w-10 flex items-center justify-center shrink-0 [&_svg]:size-5" />
-        
-        <div className="flex flex-col">
-          <div className="flex items-center gap-3">
-            <h1 className="font-extrabold text-base lg:text-xl text-neutral-900 leading-none tracking-tight">
-              Dashboard Kreator
-            </h1>
-          </div>
-          <p className="hidden md:block text-[10px] text-neutral-400 font-bold uppercase tracking-wider mt-1.5">
-            Kelola job pool, posting bukti tayang, dan pantau penghasilan Anda
-          </p>
-        </div>
+      <div className="flex flex-col">
+        <h1 className="font-extrabold text-base lg:text-xl text-neutral-900 leading-none tracking-tight">
+          Dashboard Kreator
+        </h1>
+        <p className="hidden md:block text-[10px] text-neutral-400 font-bold uppercase tracking-wider mt-1.5">
+          Kelola job pool, posting bukti tayang, dan pantau penghasilan Anda
+        </p>
       </div>
 
       <div className="flex items-center gap-4 lg:gap-6">

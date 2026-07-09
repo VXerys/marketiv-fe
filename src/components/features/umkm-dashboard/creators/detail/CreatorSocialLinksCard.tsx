@@ -2,10 +2,9 @@
 
 interface CreatorSocialLinksCardProps {
   creatorName: string;
-  creatorCategory: string;
 }
 
-export function CreatorSocialLinksCard({ creatorName, creatorCategory }: CreatorSocialLinksCardProps) {
+export function CreatorSocialLinksCard({ creatorName }: CreatorSocialLinksCardProps) {
   const handleBase = creatorName.toLowerCase().replace(/\s+/g, "");
 
   const channels = [

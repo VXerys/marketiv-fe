@@ -3,7 +3,15 @@
 import Image from "next/image";
 import { CampaignSubmission } from "@/types/umkm-dashboard.types";
 import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/formatters";
-import { DashboardCard, DashboardButton, DashboardBadge } from "../../shared";
+import { DashboardButton, DashboardBadge } from "../../shared";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 
 interface SubmissionDetailModalProps {
   isOpen: boolean;
@@ -16,15 +24,18 @@ export function SubmissionDetailModal({
   onClose,
   submission,
 }: SubmissionDetailModalProps) {
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs transition-opacity duration-300">
-      <DashboardCard variant="default" className="max-w-lg w-full p-6 shadow-md animate-in fade-in zoom-in-95 duration-200">
-        <h3 className="text-lg font-bold text-text-primary mb-4">Detail Submission</h3>
+    <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ResponsiveModalContent className="max-w-lg w-full p-6">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle className="text-lg font-bold text-text-primary">
+            Detail Submission
+          </ResponsiveModalTitle>
+          <ResponsiveModalDescription className="hidden" />
+        </ResponsiveModalHeader>
 
         {/* Creator Info Header */}
-        <div className="flex items-center gap-3 mb-6">
+        <div className="flex items-center gap-3 mb-6 mt-4">
           <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-border-soft bg-neutral-200">
             {submission.creatorAvatarUrl ? (
               <Image
@@ -153,12 +164,12 @@ export function SubmissionDetailModal({
         </div>
 
         {/* Buttons */}
-        <div className="flex items-center justify-end gap-3 border-t border-border-soft pt-4">
+        <ResponsiveModalFooter className="flex items-center justify-end gap-3 border-t border-border-soft pt-4">
           <DashboardButton variant="secondary" size="md" onClick={onClose} className="text-xs">
             Tutup
           </DashboardButton>
-        </div>
-      </DashboardCard>
-    </div>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

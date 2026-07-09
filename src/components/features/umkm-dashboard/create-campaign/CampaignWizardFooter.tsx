@@ -1,4 +1,4 @@
-import { DashboardButton } from "../shared/DashboardButton";
+import { Button } from "@/components/ui/button";
 
 interface CampaignWizardFooterProps {
   currentStep: number;
@@ -20,31 +20,25 @@ export function CampaignWizardFooter({
   const isLastStep = currentStep === stepsCount;
 
   return (
-    <div className="mt-8 border-t border-border-soft/60 pt-5 flex items-center justify-between gap-4">
-      {/* Back button */}
-      <div>
-        {currentStep > 1 ? (
-          <DashboardButton
-            variant="secondary"
-            size="md"
-            onClick={onBack}
-            className="h-10 px-5 text-xs bg-white border border-border-soft hover:bg-neutral-50"
-            disabled={isSubmitting}
-          >
-            Kembali
-          </DashboardButton>
-        ) : (
-          <div /> // Spacing placeholder
-        )}
-      </div>
+    <div className="mt-8 border-t border-border-soft/60 pt-6 flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-end gap-3">
+      {/* Back button (Only shown after Step 1) */}
+      {currentStep > 1 && (
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="h-10 px-5 text-xs text-text-primary border border-border-soft hover:bg-neutral-50 bg-white w-full sm:w-auto font-bold"
+          disabled={isSubmitting}
+        >
+          Kembali
+        </Button>
+      )}
 
       {/* Next/Submit button */}
-      <DashboardButton
-        variant="primary"
-        size="md"
+      <Button
+        variant="default"
         onClick={onNext}
         disabled={nextDisabled || isSubmitting}
-        className="h-10 px-6 text-xs flex items-center gap-1.5 shadow-md shadow-primary/10"
+        className="h-10 px-6 text-xs flex items-center justify-center gap-1.5 shadow-md shadow-primary/10 bg-primary text-white hover:bg-primary/90 w-full sm:w-auto font-bold"
       >
         {isSubmitting ? (
           <>
@@ -69,7 +63,7 @@ export function CampaignWizardFooter({
             </svg>
           </>
         )}
-      </DashboardButton>
+      </Button>
     </div>
   );
 }

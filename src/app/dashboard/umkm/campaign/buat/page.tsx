@@ -5,6 +5,7 @@ import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboa
 import { CreateCampaignWizard, CampaignWizardSkeleton } from "@/components/features/umkm-dashboard/create-campaign";
 import { getUmkmProfile } from "@/services/umkm/umkm-dashboard.service";
 import { UmkmProfile } from "@/types/umkm-dashboard.types";
+import { UmkmPageWrapper } from "@/components/features/umkm-dashboard/shared/UmkmPageWrapper";
 
 export default function CampaignCreatePage() {
   const [profile, setProfile] = useState<UmkmProfile | null>(null);
@@ -33,9 +34,9 @@ export default function CampaignCreatePage() {
 
   return (
     <UmkmDashboardChrome businessName={businessName}>
-      <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+      <UmkmPageWrapper maxWidth={1440}>
         {loading ? <CampaignWizardSkeleton /> : <CreateCampaignWizard />}
-      </div>
+      </UmkmPageWrapper>
     </UmkmDashboardChrome>
   );
 }

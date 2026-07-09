@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
 
 interface CampaignWizardStepperProps {
   currentStep: number;
@@ -132,12 +133,7 @@ export function CampaignWizardStepper({
             {currentStep} dari {stepsCount}
           </span>
         </div>
-        <div className="h-1.5 w-full bg-neutral-200 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-primary rounded-full transition-all duration-300"
-            style={{ width: `${(currentStep / stepsCount) * 100}%` }}
-          />
-        </div>
+        <Progress value={(currentStep / stepsCount) * 100} className="h-1.5" />
       </div>
 
     </div>

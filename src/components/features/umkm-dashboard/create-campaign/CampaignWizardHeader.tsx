@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { DashboardButton } from "../shared/DashboardButton";
+import { Button } from "@/components/ui/button";
 
 interface CampaignWizardHeaderProps {
   onSaveDraft: () => void;
@@ -34,22 +34,20 @@ export function CampaignWizardHeader({ onSaveDraft, onCancel }: CampaignWizardHe
 
       {/* Action buttons */}
       <div className="flex items-center gap-2.5 shrink-0 self-start md:self-center">
-        <DashboardButton
-          variant="secondary"
-          size="sm"
+        <Button
+          variant="outline"
           onClick={onCancel}
-          className="h-9 px-4 text-xs bg-white border border-border-soft hover:bg-neutral-50"
+          className="h-9 px-4 text-xs text-text-primary border border-border-soft hover:bg-neutral-50 bg-white"
         >
           Kembali
-        </DashboardButton>
-        <DashboardButton
+        </Button>
+        <Button
           variant="outline"
-          size="sm"
           onClick={onSaveDraft}
-          className="h-9 px-4 text-xs font-extrabold text-primary hover:bg-primary-50"
+          className="h-9 px-4 text-xs font-extrabold text-primary border border-primary-200/50 hover:bg-primary-50/50 bg-white"
         >
           Simpan Draft
-        </DashboardButton>
+        </Button>
       </div>
 
     </div>

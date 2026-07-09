@@ -7,8 +7,6 @@ interface CampaignBudgetCardProps {
 }
 
 export function CampaignBudgetCard({ campaign }: CampaignBudgetCardProps) {
-  const budgetProgress = (campaign.usedBudget / campaign.totalBudgetEscrow) * 100;
-  const quotaProgress = (campaign.usedQuota / campaign.creatorQuota) * 100;
 
   // Platform fee estimation (e.g. 15%)
   const platformFee = Math.round(campaign.totalBudgetEscrow * 0.15);

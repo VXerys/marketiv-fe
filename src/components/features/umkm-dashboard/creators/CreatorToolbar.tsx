@@ -1,7 +1,6 @@
 "use client";
 
 import { Search, ChevronDown, X } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface CreatorToolbarProps {
   searchQuery: string;

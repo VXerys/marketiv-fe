@@ -70,7 +70,6 @@ export function CreatorDetailPage({ creatorId }: CreatorDetailPageProps) {
         <div className="lg:col-span-2 space-y-6">
           {/* Rate card packages section */}
           <RateCardPackagesSection
-            creatorId={creator.id}
             creatorCategory={creator.category}
             onSelectPackage={handleSelectPackage}
           />
@@ -85,7 +84,6 @@ export function CreatorDetailPage({ creatorId }: CreatorDetailPageProps) {
         <div className="space-y-6">
           <CreatorSocialLinksCard
             creatorName={creator.name}
-            creatorCategory={creator.category}
           />
         </div>
       </div>

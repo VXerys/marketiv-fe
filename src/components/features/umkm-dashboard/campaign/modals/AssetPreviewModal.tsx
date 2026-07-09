@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { DashboardCard, DashboardButton } from "../../shared";
+import { DashboardButton } from "../../shared";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 
 interface AssetPreviewModalProps {
   isOpen: boolean;
@@ -16,8 +24,6 @@ export function AssetPreviewModal({
 }: AssetPreviewModalProps) {
   const [copied, setCopied] = useState(false);
 
-  if (!isOpen) return null;
-
   const handleCopy = () => {
     navigator.clipboard.writeText(assetUrl);
     setCopied(true);
@@ -25,15 +31,19 @@ export function AssetPreviewModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs transition-opacity duration-300">
-      <DashboardCard variant="default" className="max-w-md w-full p-6 shadow-md animate-in fade-in zoom-in-95 duration-200">
-        <h3 className="text-lg font-bold text-text-primary mb-2">Tautan Aset Campaign</h3>
-        <p className="text-sm text-text-secondary mb-4 leading-relaxed">
-          Tautan di bawah merujuk ke lokasi penyimpanan eksternal yang diunggah oleh UMKM (seperti Google Drive, Dropbox, dll.).
-        </p>
+    <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ResponsiveModalContent className="max-w-md w-full p-6">
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle className="text-lg font-bold text-text-primary">
+            Tautan Aset Campaign
+          </ResponsiveModalTitle>
+          <ResponsiveModalDescription className="text-sm text-text-secondary leading-relaxed">
+            Tautan di bawah merujuk ke lokasi penyimpanan eksternal yang diunggah oleh UMKM (seperti Google Drive, Dropbox, dll.).
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
 
         {/* Link Input Box */}
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex items-center gap-2 mb-6 mt-4">
           <input
             type="text"
             className="flex-1 px-3.5 py-2.5 bg-neutral-50 text-xs text-text-primary border border-border-strong rounded-xl focus:outline-none"
@@ -57,7 +67,7 @@ export function AssetPreviewModal({
         </div>
 
         {/* Buttons */}
-        <div className="flex items-center justify-end gap-3">
+        <ResponsiveModalFooter className="flex items-center justify-end gap-3">
           <DashboardButton variant="secondary" size="md" onClick={onClose} className="text-xs">
             Tutup
           </DashboardButton>
@@ -71,8 +81,8 @@ export function AssetPreviewModal({
           >
             Buka Link Aset
           </DashboardButton>
-        </div>
-      </DashboardCard>
-    </div>
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }
