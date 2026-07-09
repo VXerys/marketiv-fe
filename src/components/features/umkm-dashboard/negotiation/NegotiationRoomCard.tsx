@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { MessageSquare, Clock, AlertCircle } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { NegotiationOrder } from "@/types/umkm-dashboard.types";
 import { cn } from "@/lib/utils";
@@ -11,120 +12,168 @@ interface NegotiationRoomCardProps {
   order: NegotiationOrder;
 }
 
-export function NegotiationRoomCard({ order }: NegotiationRoomCardProps) {
-  const status = getStatusDetails(order.status);
+const STATUS_STYLE: Record<
+  string,
+  { border: string; badgeBg: string; badgeText: string; badgeBorder: string; dot: string }
+> = {
+  negotiation: {
+    border: "border-l-blue-400",
+    badgeBg: "bg-blue-50",
+    badgeText: "text-blue-700",
+    badgeBorder: "border-blue-200/60",
+    dot: "bg-blue-400",
+  },
+  waiting_payment: {
+    border: "border-l-amber-400",
+    badgeBg: "bg-amber-50",
+    badgeText: "text-amber-700",
+    badgeBorder: "border-amber-200/60",
+    dot: "bg-amber-400",
+  },
+  escrow: {
+    border: "border-l-emerald-400",
+    badgeBg: "bg-emerald-50",
+    badgeText: "text-emerald-700",
+    badgeBorder: "border-emerald-200/60",
+    dot: "bg-emerald-400",
+  },
+  revision: {
+    border: "border-l-red-400",
+    badgeBg: "bg-red-50",
+    badgeText: "text-red-700",
+    badgeBorder: "border-red-200/60",
+    dot: "bg-red-400",
+  },
+  waiting_verification: {
+    border: "border-l-orange-400",
+    badgeBg: "bg-orange-50",
+    badgeText: "text-orange-700",
+    badgeBorder: "border-orange-200/60",
+    dot: "bg-orange-400",
+  },
+  completed: {
+    border: "border-l-blue-300",
+    badgeBg: "bg-blue-50",
+    badgeText: "text-blue-600",
+    badgeBorder: "border-blue-200/60",
+    dot: "bg-blue-400",
+  },
+  dispute: {
+    border: "border-l-rose-500",
+    badgeBg: "bg-rose-50",
+    badgeText: "text-rose-700",
+    badgeBorder: "border-rose-200/60",
+    dot: "bg-rose-500",
+  },
+  cancelled: {
+    border: "border-l-neutral-300",
+    badgeBg: "bg-neutral-50",
+    badgeText: "text-neutral-500",
+    badgeBorder: "border-neutral-200/60",
+    dot: "bg-neutral-300",
+  },
+};
 
-  // Map status code to UI Kit badge class names
-  const getBadgeClass = (s: string) => {
-    switch (s) {
-      case "negotiation":
-        return "badge blue";
-      case "waiting_payment":
-        return "badge yellow";
-      case "escrow":
-        return "badge orange";
-      case "revision":
-        return "badge red";
-      case "waiting_verification":
-        return "badge yellow";
-      case "completed":
-        return "badge green";
-      case "dispute":
-        return "badge red";
-      case "cancelled":
-        return "badge gray";
-      default:
-        return "badge gray";
-    }
-  };
+export function NegotiationRoomCard({ order }: NegotiationRoomCardProps) {
+  const statusDetail = getStatusDetails(order.status);
+  const style = STATUS_STYLE[order.status] ?? STATUS_STYLE.cancelled;
 
   return (
-    <div className="group rounded-2xl border border-border-soft bg-white p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(17,24,39,.10)] hover:border-border-subtle cursor-default shadow-2xs">
-      
-      {/* Left side details */}
+    <div
+      className={cn(
+        "group relative rounded-2xl border-l-4 border border-neutral-200/80",
+        "bg-gradient-to-b from-white to-neutral-50/30 shadow-3xs",
+        "flex flex-col md:flex-row justify-between items-start md:items-center gap-5 p-4 sm:p-5",
+        "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-neutral-300/80 cursor-default",
+        style.border
+      )}
+    >
+      {/* Left: Avatar + content */}
       <div className="flex gap-4 flex-1 min-w-0">
-        <div className="h-12 w-12 rounded-xl bg-neutral-100 border border-neutral-200/50 shrink-0 relative overflow-hidden shadow-2xs transition-transform duration-300 group-hover:scale-105">
-          <Image
-            src={order.creatorAvatarUrl}
-            alt={order.creatorName}
-            fill
-            className="object-cover"
-            sizes="48px"
-          />
+        {/* Avatar with unread badge */}
+        <div className="relative shrink-0">
+          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-neutral-100 border border-neutral-200/60 relative overflow-hidden shadow-3xs transition-transform duration-300 group-hover:scale-105">
+            <Image
+              src={order.creatorAvatarUrl}
+              alt={order.creatorName}
+              fill
+              className="object-cover"
+              sizes="48px"
+            />
+          </div>
+          {order.unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 h-[18px] w-[18px] rounded-full bg-primary text-white text-[9px] font-extrabold flex items-center justify-center border-2 border-white shadow-3xs">
+              {order.unreadCount > 9 ? "9+" : order.unreadCount}
+            </span>
+          )}
         </div>
-        
+
+        {/* Text content */}
         <div className="space-y-1.5 min-w-0 flex-1">
+          {/* Creator name + status badge */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-extrabold text-text-primary group-hover:text-primary transition-colors duration-200">
+            <span className="text-[.84rem] font-extrabold text-ink-900 group-hover:text-primary transition-colors duration-200">
               {order.creatorName}
             </span>
-            <span className={cn(getBadgeClass(order.status))}>
-              {status.label}
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-full border text-[.72rem] font-[800]",
+                style.badgeBg,
+                style.badgeText,
+                style.badgeBorder
+              )}
+            >
+              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", style.dot)} />
+              {statusDetail.label}
             </span>
-            {order.unreadCount > 0 && (
-              <span className="h-4.5 w-4.5 rounded-full bg-primary text-white text-[9px] font-extrabold flex items-center justify-center border border-white shadow-2xs animate-bounce md:hidden shrink-0">
-                {order.unreadCount}
-              </span>
-            )}
           </div>
 
-          <h3 className="text-xs sm:text-sm font-extrabold text-text-primary tracking-tight truncate leading-tight">
+          {/* Project title */}
+          <h3 className="text-[.84rem] sm:text-[.9rem] font-extrabold text-ink-950 tracking-tight truncate leading-tight">
             {order.projectTitle}
           </h3>
 
-          <p className="text-[10px] sm:text-xs text-text-secondary line-clamp-1 font-semibold leading-relaxed">
+          {/* Last message preview */}
+          <p className="text-[.76rem] text-ink-400 line-clamp-1 font-semibold leading-relaxed">
             {order.lastMessage}
           </p>
 
-          <div className="flex flex-wrap items-center gap-3 text-[9px] font-bold text-text-muted">
+          {/* Meta row */}
+          <div className="flex flex-wrap items-center gap-3 text-[.72rem] font-bold text-ink-400">
             <span className="flex items-center gap-1">
-              <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>Deadline: {deadlineTime(order.deadline)}</span>
+              <AlertCircle size={11} className="shrink-0" />
+              Deadline: {deadlineTime(order.deadline)}
             </span>
-            <span className="text-border-soft">•</span>
+            <span className="w-1 h-1 rounded-full bg-neutral-300 shrink-0" />
             <span className="flex items-center gap-1">
-              <svg className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <Clock size={11} className="shrink-0" />
               Update: {formatTime(order.lastMessageAt)}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Right side pricing & CTAs */}
-      <div className="flex flex-row md:flex-col md:items-end justify-between md:justify-center w-full md:w-auto shrink-0 border-t md:border-t-0 border-dashed border-border-soft pt-3.5 md:pt-0 gap-4">
-        {/* Price & Unread count */}
-        <div className="flex items-center gap-2.5 md:text-right">
-          <div className="space-y-0.5">
-            <span className="block text-[8px] font-bold text-text-muted uppercase tracking-wider leading-none">
-              Nilai Proyek
-            </span>
-            <span className="text-xs sm:text-sm font-extrabold text-primary block">
-              {formatCurrency(order.finalPrice)}
-            </span>
-          </div>
-          {order.unreadCount > 0 && (
-            <span className="hidden md:flex h-5 w-5 rounded-full bg-primary text-white text-[10px] font-extrabold items-center justify-center border border-white shadow-2xs shrink-0 animate-bounce">
-              {order.unreadCount}
-            </span>
-          )}
+      {/* Right: Price + CTA */}
+      <div className="flex flex-row md:flex-col md:items-end justify-between md:justify-center w-full md:w-auto shrink-0 border-t md:border-t-0 border-dashed border-neutral-200 pt-3.5 md:pt-0 gap-4">
+        {/* Price */}
+        <div className="space-y-0.5 md:text-right">
+          <span className="block text-[.66rem] font-extrabold text-ink-400 uppercase tracking-wider leading-none">
+            Nilai Proyek
+          </span>
+          <span className="font-display text-[1.1rem] sm:text-[1.2rem] font-black text-primary tracking-tight leading-none">
+            {formatCurrency(order.finalPrice)}
+          </span>
         </div>
 
-        {/* Action Button */}
+        {/* CTA button */}
         <Link
           href={`/dashboard/umkm/negosiasi/${order.id}`}
-          className="px-4 py-2 rounded-xl bg-neutral-950 text-white hover:bg-primary text-xs font-bold transition-all duration-200 cursor-pointer select-none text-center shadow-3xs hover:shadow-[0_4px_14px_rgba(234,88,12,.30)] flex items-center gap-1.5 group/btn"
+          className="inline-flex items-center gap-1.5 min-h-[36px] px-4 rounded-xl bg-ink-950 text-white text-[.82rem] font-[800] transition-all duration-200 hover:bg-primary hover:shadow-[0_8px_20px_rgba(234,88,12,.22)] hover:-translate-y-px cursor-pointer select-none no-underline"
         >
-          <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-          </svg>
-          <span>Buka Room Chat</span>
+          <MessageSquare size={14} className="shrink-0" />
+          Buka Room Chat
         </Link>
       </div>
-
     </div>
   );
 }

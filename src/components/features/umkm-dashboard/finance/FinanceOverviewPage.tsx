@@ -236,7 +236,7 @@ export function FinanceOverviewPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-20">
+    <div className="space-y-6 max-w-[1280px] mx-auto pb-20">
       {/* Header */}
       <FinanceHeader onTriggerExport={() => setIsExportOpen(true)} />
 

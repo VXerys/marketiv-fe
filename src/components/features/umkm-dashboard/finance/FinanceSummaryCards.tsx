@@ -1,156 +1,113 @@
 "use client";
 
+import {
+  DollarSign,
+  Shield,
+  Clock,
+  CornerDownLeft,
+  BarChart3,
+  ClipboardCheck,
+} from "lucide-react";
 import { UmkmFinanceSummary } from "@/types/umkm-dashboard.types";
 import { formatCompactCurrency, formatCurrency } from "@/lib/formatters";
+
+interface SummaryCardProps {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  value: string;
+  note: string;
+  iconBg: string;
+  iconColor: string;
+  iconBorder: string;
+}
+
+function SummaryCard({ icon: Icon, label, value, note, iconBg, iconColor, iconBorder }: SummaryCardProps) {
+  return (
+    <div className="relative min-w-0 p-3.5 sm:p-4.5 border border-neutral-200/80 rounded-2xl sm:rounded-[22px] bg-gradient-to-b from-white to-neutral-50/50 shadow-3xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-primary-500/20 group">
+      <div className="flex items-center justify-between gap-3 mb-2.5 sm:mb-3.5">
+        <div
+          className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-[14px] grid place-items-center border shadow-3xs transition-transform duration-300 group-hover:scale-105"
+          style={{ background: iconBg, borderColor: iconBorder, color: iconColor }}
+        >
+          <div className="block sm:hidden"><Icon size={14} /></div>
+          <div className="hidden sm:block"><Icon size={18} /></div>
+        </div>
+      </div>
+
+      <div className="text-[0.66rem] sm:text-[0.74rem] font-extrabold text-neutral-500 tracking-wide uppercase">
+        {label}
+      </div>
+      <div className="font-display text-[1.2rem] sm:text-[1.4rem] lg:text-[1.55rem] font-black text-neutral-900 tracking-tight leading-none mt-1 sm:mt-1.5 break-all">
+        {value}
+      </div>
+      <div className="text-[0.68rem] sm:text-[0.74rem] text-neutral-400 font-semibold mt-1 sm:mt-1.5 leading-none">
+        {note}
+      </div>
+    </div>
+  );
+}
 
 interface FinanceSummaryCardsProps {
   summary: UmkmFinanceSummary;
 }
 
-interface FinanceMetricItem {
-  id: string;
-  label: string;
-  sublabel: string;
-  value: string;
-  valueExact: string;
-  iconBg: string;
-  iconColor: string;
-  accentBar: string;
-  icon: React.ReactNode;
-}
-
 export function FinanceSummaryCards({ summary }: FinanceSummaryCardsProps) {
-  const metrics: FinanceMetricItem[] = [
-    {
-      id: "total-pengeluaran",
-      label: "Total Pengeluaran",
-      sublabel: "Deposit + platform fee lunas",
-      value: formatCompactCurrency(summary.totalExpenses),
-      valueExact: formatCurrency(summary.totalExpenses),
-      iconBg: "bg-brand-coral/10",
-      iconColor: "text-primary",
-      accentBar: "bg-primary",
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-    },
-    {
-      id: "dana-escrow",
-      label: "Dana di Escrow",
-      sublabel: "Terkunci — menunggu validasi",
-      value: formatCompactCurrency(summary.escrowBalance),
-      valueExact: formatCurrency(summary.escrowBalance),
-      iconBg: "bg-blue-50",
-      iconColor: "text-blue-600",
-      accentBar: "bg-blue-500",
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-        </svg>
-      ),
-    },
-    {
-      id: "pembayaran-pending",
-      label: "Perlu Dibayar",
-      sublabel: "Menunggu konfirmasi transfer",
-      value: formatCompactCurrency(summary.pendingPayments),
-      valueExact: formatCurrency(summary.pendingPayments),
-      iconBg: "bg-amber-50",
-      iconColor: "text-amber-600",
-      accentBar: "bg-amber-400",
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-    },
-    {
-      id: "refund",
-      label: "Refund Diterima",
-      sublabel: "Pengembalian proyek batal",
-      value: formatCompactCurrency(summary.refundsReceived),
-      valueExact: formatCurrency(summary.refundsReceived),
-      iconBg: "bg-emerald-50",
-      iconColor: "text-emerald-600",
-      accentBar: "bg-emerald-500",
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-        </svg>
-      ),
-    },
-    {
-      id: "platform-fee",
-      label: "Biaya Platform",
-      sublabel: "Fee admin Campaign & Rate Card",
-      value: formatCompactCurrency(summary.platformFees),
-      valueExact: formatCurrency(summary.platformFees),
-      iconBg: "bg-neutral-100",
-      iconColor: "text-neutral-500",
-      accentBar: "bg-neutral-400",
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      ),
-    },
-    {
-      id: "transaksi-sukses",
-      label: "Transaksi Sukses",
-      sublabel: "Total invoice berhasil diproses",
-      value: String(summary.successfulTransactionsCount),
-      valueExact: `${summary.successfulTransactionsCount} transaksi`,
-      iconBg: "bg-green-50",
-      iconColor: "text-green-600",
-      accentBar: "bg-green-500",
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-        </svg>
-      ),
-    },
-  ];
-
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-      {metrics.map((m) => (
-        <div
-          key={m.id}
-          className="group relative bg-white/75 backdrop-blur-md border border-neutral-200/50 rounded-2xl overflow-hidden shadow-[0_8px_24px_-8px_rgba(0,0,0,0.05),inset_0_1px_0_rgba(255,255,255,0.9)] hover:shadow-[0_16px_36px_-10px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.95)] hover:-translate-y-0.5 transition-all duration-300"
-        >
-          {/* Accent top bar */}
-          <div className={`h-0.5 w-full ${m.accentBar} opacity-60`} />
-
-          <div className="p-4 sm:p-5 flex flex-col gap-3.5">
-            {/* Icon + Label row */}
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0 space-y-0.5">
-                <p className="text-[11px] font-extrabold text-text-muted uppercase tracking-wider leading-tight">
-                  {m.label}
-                </p>
-                <p className="text-[10px] text-text-muted leading-snug hidden sm:block">
-                  {m.sublabel}
-                </p>
-              </div>
-              <div className={`w-9 h-9 rounded-xl ${m.iconBg} ${m.iconColor} flex items-center justify-center shrink-0 border border-white/70`}>
-                {m.icon}
-              </div>
-            </div>
-
-            {/* Value */}
-            <div className="space-y-0.5">
-              <p className="text-xl sm:text-2xl font-black text-text-primary tracking-tight leading-none">
-                {m.value}
-              </p>
-              <p className="text-[10px] text-text-muted font-medium leading-tight hidden sm:block">
-                {m.valueExact}
-              </p>
-            </div>
-          </div>
-        </div>
-      ))}
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
+      <SummaryCard
+        icon={DollarSign}
+        label="Total Pengeluaran"
+        value={formatCompactCurrency(summary.totalExpenses)}
+        note={formatCurrency(summary.totalExpenses)}
+        iconBg="#fff7ed"
+        iconColor="#ea580c"
+        iconBorder="rgba(234,88,12,.18)"
+      />
+      <SummaryCard
+        icon={Shield}
+        label="Dana di Escrow"
+        value={formatCompactCurrency(summary.escrowBalance)}
+        note={formatCurrency(summary.escrowBalance)}
+        iconBg="#f0f6ff"
+        iconColor="#2563eb"
+        iconBorder="rgba(37,99,235,.18)"
+      />
+      <SummaryCard
+        icon={Clock}
+        label="Perlu Dibayar"
+        value={formatCompactCurrency(summary.pendingPayments)}
+        note={formatCurrency(summary.pendingPayments)}
+        iconBg="#fffbeb"
+        iconColor="#d97706"
+        iconBorder="rgba(217,119,6,.18)"
+      />
+      <SummaryCard
+        icon={CornerDownLeft}
+        label="Refund Diterima"
+        value={formatCompactCurrency(summary.refundsReceived)}
+        note={formatCurrency(summary.refundsReceived)}
+        iconBg="#f1fbf5"
+        iconColor="#16a34a"
+        iconBorder="rgba(22,163,74,.18)"
+      />
+      <SummaryCard
+        icon={BarChart3}
+        label="Biaya Platform"
+        value={formatCompactCurrency(summary.platformFees)}
+        note={formatCurrency(summary.platformFees)}
+        iconBg="#f7f3ff"
+        iconColor="#7c3aed"
+        iconBorder="rgba(124,58,237,.18)"
+      />
+      <SummaryCard
+        icon={ClipboardCheck}
+        label="Transaksi Sukses"
+        value={String(summary.successfulTransactionsCount)}
+        note={`${summary.successfulTransactionsCount} transaksi`}
+        iconBg="#f1fbf5"
+        iconColor="#16a34a"
+        iconBorder="rgba(22,163,74,.18)"
+      />
     </div>
   );
 }

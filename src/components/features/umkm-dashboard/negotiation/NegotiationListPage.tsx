@@ -53,6 +53,18 @@ export function NegotiationListPage() {
 
   const hasActiveFilters = searchQuery.trim() !== "" || selectedStatus !== "all";
 
+  // Status counts for toolbar badge indicators
+  const statusCounts: Partial<Record<string, number>> = {
+    all: negotiations.length,
+    negotiation: negotiations.filter((n) => n.status === "negotiation").length,
+    waiting_payment: negotiations.filter((n) => n.status === "waiting_payment").length,
+    escrow: negotiations.filter((n) => n.status === "escrow").length,
+    revision: negotiations.filter((n) => n.status === "revision").length,
+    waiting_verification: negotiations.filter((n) => n.status === "waiting_verification").length,
+    completed: negotiations.filter((n) => n.status === "completed").length,
+    dispute: negotiations.filter((n) => n.status === "dispute").length,
+  };
+
   // Filter & Sort operations
   const filteredNegotiations = negotiations
     .filter((n) => {
@@ -91,7 +103,7 @@ export function NegotiationListPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-6">
+    <div className="space-y-6 max-w-[1280px] mx-auto pb-8 px-1">
       {/* Header */}
       <NegotiationHeader />
 
@@ -108,11 +120,12 @@ export function NegotiationListPage() {
         onSortByChange={(s) => startTransition(() => setSortBy(s))}
         onClearFilters={handleClearFilters}
         hasActiveFilters={hasActiveFilters}
+        statusCounts={statusCounts}
       />
 
       {/* List content */}
       {filteredNegotiations.length > 0 ? (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-3">
           {filteredNegotiations.map((order) => (
             <NegotiationRoomCard key={order.id} order={order} />
           ))}
