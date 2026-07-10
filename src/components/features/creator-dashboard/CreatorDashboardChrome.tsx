@@ -33,6 +33,7 @@ export function CreatorDashboardChrome({ children }: CreatorDashboardChromeProps
     <DashboardShell
       isSidebarOpen={isSidebarOpen}
       onCloseSidebar={() => setIsSidebarOpen(false)}
+      variant="kreator"
       sidebar={
         <CreatorDashboardSidebar
           creatorName={creatorName}

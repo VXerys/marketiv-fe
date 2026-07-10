@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -16,6 +17,8 @@ import {
   ChevronLeft,
   ChevronRight,
   BadgeCheck,
+  ArrowRight,
+  X,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -60,16 +63,34 @@ export function DashboardSidebar({
   const pathname = usePathname();
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
+  
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const [activeCampaignCreator, setActiveCampaignCreator] = useState<{
+  const [activeCreators, setActiveCreators] = useState<Array<{
     name: string;
     avatar: string;
     campaignTitle: string;
-  } | null>({
-    name: "Sulianto Indria Putra",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80&q=80",
-    campaignTitle: "Rasa Nusantara Food Review"
-  });
+    status: string;
+  }>>([
+    {
+      name: "Sulianto Indria Putra",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80&q=80",
+      campaignTitle: "Rasa Nusantara Food Review",
+      status: "Proses Edit Video"
+    },
+    {
+      name: "Nadia Visuals",
+      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80&q=80",
+      campaignTitle: "Rasa Nusantara Food Review",
+      status: "Menunggu Validasi"
+    },
+    {
+      name: "Budi Santoso",
+      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&h=80&q=80",
+      campaignTitle: "Rasa Nusantara Food Review",
+      status: "Klaim Disetujui"
+    }
+  ]);
 
   return (
     <Sidebar
@@ -80,28 +101,23 @@ export function DashboardSidebar({
         boxShadow: "4px 0 40px rgba(0,0,0,.28), 1px 0 0 rgba(255,255,255,.04)",
       }}
     >
-      {/* Sidebar collapse toggle tab — centered vertically on viewport */}
+      {/* Protruding Tab Toggle Button (Shopeers/Dashify Style) — centered vertically on viewport */}
       <button
         onClick={toggleSidebar}
-        className="absolute z-50 flex items-center justify-center rounded-r-lg cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95"
+        className="absolute z-50 flex items-center justify-center rounded-r-md cursor-pointer transition-all duration-250 bg-[#0d1b2e] text-white/60 hover:text-white border border-l-0 border-white/5 shadow-[2px_0_8px_rgba(0,0,0,0.15)]"
         style={{
-          right: "-18px",
+          right: "-22px",
           top: "50%",
           transform: "translateY(-50%)",
-          width: "18px",
-          height: "48px",
-          background: "linear-gradient(135deg, #1a2d47, #0d1b2e)",
-          border: "1px solid rgba(255,255,255,.10)",
-          borderLeft: "none",
-          boxShadow: "3px 0 12px rgba(0,0,0,.25)",
-          color: "rgba(255,255,255,.5)",
+          width: "22px",
+          height: "48px"
         }}
-        title={isCollapsed ? "Perluas Sidebar" : "Sembunyikan Sidebar"}
+        title={state === "collapsed" ? "Perluas Sidebar" : "Sembunyikan Sidebar"}
       >
-        {isCollapsed ? (
-          <ChevronRight className="size-2.5" strokeWidth={2.5} />
+        {state === "collapsed" ? (
+          <ArrowRight className="size-3.5" strokeWidth={2.5} />
         ) : (
-          <ChevronLeft className="size-2.5" strokeWidth={2.5} />
+          <X className="size-3.5" strokeWidth={2.5} />
         )}
       </button>
 
@@ -156,7 +172,7 @@ export function DashboardSidebar({
                   isActive={isActive}
                   tooltip={item.label}
                   className={cn(
-                    "relative flex items-center gap-3 min-h-[46px] px-3.5 rounded-[14px] transition-all duration-200 cursor-pointer overflow-hidden",
+                    "relative flex items-center gap-3 min-h-[50px] px-4 rounded-[14px] transition-all duration-200 cursor-pointer overflow-hidden",
                     "group-data-[collapsible=icon]:min-h-12 group-data-[collapsible=icon]:w-12 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:rounded-2xl",
                     isActive
                       ? "text-white font-bold hover:bg-transparent hover:text-white"
@@ -187,7 +203,7 @@ export function DashboardSidebar({
                       />
                     )}
                     <item.icon
-                      size={20}
+                      size={22}
                       className={cn(
                         "shrink-0 transition-all duration-200",
                         isActive ? "text-orange-400 group-hover:text-orange-400" : "text-white/30 group-hover:text-white/70"
@@ -195,7 +211,7 @@ export function DashboardSidebar({
                     />
                     <span
                       className={cn(
-                        "text-[0.88rem] tracking-[-0.015em] group-data-[collapsible=icon]:hidden transition-colors duration-200",
+                        "text-[0.95rem] tracking-[-0.015em] group-data-[collapsible=icon]:hidden transition-colors duration-200",
                         isActive ? "font-[760] text-white group-hover:text-white" : "font-[640] text-white/45 group-hover:text-white/80"
                       )}
                     >
@@ -208,36 +224,44 @@ export function DashboardSidebar({
           })}
         </SidebarMenu>
 
-        {/* Section 2: Campaign Aktif Diikuti (Conditional) */}
-        {activeCampaignCreator && (
+        {/* Section 2: Kreator Sedang Bekerja (Conditional) */}
+        {activeCreators && activeCreators.length > 0 && (
           <div className="mt-7 px-3.5 group-data-[collapsible=icon]:hidden">
             <span className="block text-[0.66rem] font-[800] text-white/20 uppercase tracking-widest mb-3 select-none">
-              Campaign Aktif Diikuti
+              Kreator Sedang Bekerja
             </span>
-            <Link
-              href="/dashboard/umkm/negosiasi"
-              className="flex items-center gap-3 p-2.5 rounded-[16px] bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.09] transition-all duration-200 cursor-pointer no-underline group"
-              style={{
-                boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
-              }}
-            >
-              <div className="relative w-8.5 h-8.5 rounded-xl overflow-hidden shrink-0 border border-white/10 shadow-3xs">
-                <img
-                  src={activeCampaignCreator.avatar}
-                  alt={activeCampaignCreator.name}
-                  className="w-full h-full object-cover"
-                />
-                <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-[#0d1b2e] animate-pulse" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <span className="block text-[0.82rem] font-bold text-white/85 truncate group-hover:text-white transition-colors duration-150">
-                  {activeCampaignCreator.name}
-                </span>
-                <span className="block text-[0.64rem] font-semibold text-white/35 truncate mt-0.5">
-                  {activeCampaignCreator.campaignTitle}
-                </span>
-              </div>
-            </Link>
+            <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto custom-sidebar-scrollbar pr-0.5">
+              {activeCreators.slice(0, 5).map((creator, idx) => (
+                <Link
+                  key={idx}
+                  href="/dashboard/umkm/campaign"
+                  className="flex items-center gap-3 p-2.5 rounded-[16px] bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.09] transition-all duration-200 cursor-pointer no-underline group"
+                  style={{
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.05)"
+                  }}
+                >
+                  <div className="relative w-8.5 h-8.5 rounded-xl overflow-hidden shrink-0 border border-white/10 shadow-3xs">
+                    <img
+                      src={creator.avatar}
+                      alt={creator.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-[#0d1b2e] animate-pulse" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-[0.82rem] font-bold text-white/85 truncate group-hover:text-white transition-colors duration-150">
+                      {creator.name}
+                    </span>
+                    <span className="block text-[0.64rem] font-semibold text-white/35 truncate mt-0.5">
+                      {creator.campaignTitle}
+                    </span>
+                    <span className="block text-[0.6rem] font-[750] text-orange-400 mt-0.5">
+                      {creator.status}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
         )}
 
@@ -249,16 +273,16 @@ export function DashboardSidebar({
           <div className="flex flex-col gap-1">
             <Link
               href="#"
-              className="flex items-center gap-2.5 py-2 px-1 rounded-lg text-white/45 hover:text-white/80 transition-all duration-150 text-[0.8rem] font-[650] no-underline group"
+              className="flex items-center gap-2.5 py-2 px-1 rounded-lg text-white/45 hover:text-white/80 transition-all duration-150 text-[0.88rem] font-[650] no-underline group"
             >
-              <MessageCircle size={17} className="text-white/30 group-hover:text-white/60 transition-colors" />
+              <MessageCircle size={19} className="text-white/30 group-hover:text-white/60 transition-colors" />
               <span>Hubungi Admin</span>
             </Link>
             <Link
               href="/dashboard/umkm/panduan"
-              className="flex items-center gap-2.5 py-2 px-1 rounded-lg text-white/45 hover:text-white/80 transition-all duration-150 text-[0.8rem] font-[650] no-underline group"
+              className="flex items-center gap-2.5 py-2 px-1 rounded-lg text-white/45 hover:text-white/80 transition-all duration-150 text-[0.88rem] font-[650] no-underline group"
             >
-              <HelpCircle size={17} className="text-white/30 group-hover:text-white/60 transition-colors" />
+              <HelpCircle size={19} className="text-white/30 group-hover:text-white/60 transition-colors" />
               <span>FaQ & Peraturan</span>
             </Link>
           </div>
@@ -276,7 +300,7 @@ export function DashboardSidebar({
             <SidebarMenuButton
               asChild
               tooltip="Pengaturan"
-              className="flex items-center gap-3 min-h-[42px] px-3.5 rounded-[14px] transition-all duration-200 cursor-pointer text-white/30 hover:text-white/80 group-data-[collapsible=icon]:min-h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:rounded-2xl"
+              className="flex items-center gap-3 min-h-[46px] px-3.5 rounded-[14px] transition-all duration-200 cursor-pointer text-white/30 hover:text-white/80 group-data-[collapsible=icon]:min-h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:rounded-2xl"
               style={{ border: "1px solid transparent" }}
             >
               <Link
@@ -284,8 +308,8 @@ export function DashboardSidebar({
                 onClick={onCloseSidebar}
                 className="flex items-center gap-3 w-full group-data-[collapsible=icon]:justify-center"
               >
-                <Settings size={18} className="shrink-0" />
-                <span className="text-[.84rem] font-[640] tracking-tight group-data-[collapsible=icon]:hidden">
+                <Settings size={20} className="shrink-0" />
+                <span className="text-[0.9rem] font-[640] tracking-tight group-data-[collapsible=icon]:hidden">
                   Pengaturan
                 </span>
               </Link>
@@ -297,18 +321,18 @@ export function DashboardSidebar({
             <SidebarMenuButton
               asChild
               tooltip="Keluar"
-              className="flex items-center gap-3 min-h-[42px] px-3.5 rounded-[14px] transition-all duration-200 cursor-pointer text-red-400/50 hover:text-red-300 hover:bg-red-500/8 group-data-[collapsible=icon]:min-h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:rounded-2xl"
+              className="flex items-center gap-3 min-h-[46px] px-3.5 rounded-[14px] transition-all duration-200 cursor-pointer text-red-400/50 hover:text-red-300 hover:bg-red-500/8 group-data-[collapsible=icon]:min-h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:rounded-2xl"
               style={{ border: "1px solid transparent" }}
             >
-              <Link
-                href="/"
-                className="flex items-center gap-3 w-full group-data-[collapsible=icon]:justify-center"
+              <button
+                onClick={() => setShowLogoutModal(true)}
+                className="flex items-center gap-3 w-full group-data-[collapsible=icon]:justify-center bg-transparent border-none outline-none text-left"
               >
-                <LogOut size={18} className="shrink-0" />
-                <span className="text-[.84rem] font-[640] tracking-tight group-data-[collapsible=icon]:hidden">
+                <LogOut size={20} className="shrink-0" />
+                <span className="text-[0.9rem] font-[640] tracking-tight group-data-[collapsible=icon]:hidden">
                   Keluar
                 </span>
-              </Link>
+              </button>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -351,6 +375,58 @@ export function DashboardSidebar({
           </div>
         </div>
       </SidebarFooter>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          {/* Backdrop overlay */}
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
+            onClick={() => setShowLogoutModal(false)}
+          />
+          
+          {/* Dialog Card container */}
+          <div className="relative bg-[#0d1527] border border-white/10 rounded-3xl w-full max-w-[340px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col">
+            {/* Top Illustration */}
+            <div className="relative w-full aspect-[16/10] bg-black/40 overflow-hidden border-b border-white/5">
+              <Image
+                src="/logout_exit_door.png"
+                alt="Exit Illustration"
+                fill
+                className="object-cover"
+                priority
+              />
+            </div>
+            
+            {/* Texts */}
+            <div className="px-6 pt-5 pb-6 text-center space-y-2">
+              <h4 className="text-xl font-extrabold text-white tracking-tight">
+                Logout?
+              </h4>
+              <p className="text-xs text-neutral-400 font-semibold leading-relaxed">
+                Kamu yakin ingin keluar?
+              </p>
+            </div>
+            
+            {/* Actions */}
+            <div className="px-6 pb-6 flex flex-col gap-2.5">
+              <Link
+                href="/"
+                onClick={() => setShowLogoutModal(false)}
+                className="flex items-center justify-center min-h-[44px] px-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-orange-500/10 hover:shadow-lg hover:shadow-orange-500/15 active:scale-[0.98] transition-all duration-150 text-center no-underline cursor-pointer"
+              >
+                Logout
+              </Link>
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="flex items-center justify-center min-h-[44px] px-4 bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-white/10 text-white font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150 text-center cursor-pointer outline-none"
+              >
+                Kembali
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Sidebar>
   );
 }

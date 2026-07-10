@@ -21,7 +21,7 @@ export function ChatTimeline({ messages, onPayOffer, orderStatus }: ChatTimeline
   }, [messages]);
 
   return (
-    <div className="chat-card min-h-[420px] max-h-[500px] overflow-y-auto scrollbar-thin">
+    <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin px-4 py-4">
       {messages.length > 0 ? (
         <div className="space-y-1">
           {/* Date divider label - pinned at top */}

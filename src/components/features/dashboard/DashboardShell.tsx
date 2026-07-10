@@ -10,9 +10,28 @@ interface DashboardShellProps {
   onCloseSidebar: () => void;
   sidebar: ReactNode;
   topbar: ReactNode;
+  variant?: "umkm" | "kreator";
 }
 
-export function DashboardShell({ children, sidebar, topbar }: DashboardShellProps) {
+export function DashboardShell({
+  children,
+  sidebar,
+  topbar,
+  variant = "umkm",
+}: DashboardShellProps) {
+  const bgStyle =
+    variant === "kreator"
+      ? [
+          "radial-gradient(circle at 12% 0%, rgba(37,99,235,.07), transparent 28rem)",
+          "radial-gradient(circle at 96% 10%, rgba(147,51,234,.07), transparent 32rem)",
+          "linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)",
+        ].join(", ")
+      : [
+          "radial-gradient(circle at 12% 0%, rgba(249,115,22,.09), transparent 28rem)",
+          "radial-gradient(circle at 96% 10%, rgba(30,58,95,.09), transparent 32rem)",
+          "linear-gradient(180deg, #fffaf3 0%, #fbf7ef 42%, #f6eee3 100%)",
+        ].join(", ");
+
   return (
     <SidebarProvider defaultOpen={true}>
       {/*
@@ -23,11 +42,7 @@ export function DashboardShell({ children, sidebar, topbar }: DashboardShellProp
       <div
         className="flex h-svh w-screen overflow-hidden text-neutral-900 antialiased font-sans"
         style={{
-          background: [
-            "radial-gradient(circle at 12% 0%, rgba(249,115,22,.09), transparent 28rem)",
-            "radial-gradient(circle at 96% 10%, rgba(30,58,95,.09), transparent 32rem)",
-            "linear-gradient(180deg, #fffaf3 0%, #fbf7ef 42%, #f6eee3 100%)",
-          ].join(", "),
+          background: bgStyle,
         }}
       >
         {/* Subtle grid texture overlay — purely decorative, pointer-events none */}
@@ -50,7 +65,7 @@ export function DashboardShell({ children, sidebar, topbar }: DashboardShellProp
          * collapses. h-svh + overflow-hidden keeps content scrolling contained.
          */}
         <SidebarInset
-          className="relative z-10 flex flex-col min-w-0 h-svh overflow-hidden"
+          className="relative z-10 flex flex-col min-w-0 h-svh overflow-hidden !bg-transparent"
           style={{ maxWidth: "100%" }}
         >
           {topbar}
