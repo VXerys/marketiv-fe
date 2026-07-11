@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Logo } from "@/assets/images";
 import { cn } from "@/lib/utils";
 import { NAVBAR_CONTENT } from "@/data/content";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
