@@ -5,48 +5,208 @@ import Link from "next/link";
 import { CreatorNegotiation } from "@/types/creator-dashboard";
 import { toast } from "sonner";
 import { CreatorPageHeader } from "./CreatorPageHeader";
-import { CreatorMetricCard } from "./CreatorMetricCard";
-import { CreatorStatusBadge } from "./CreatorStatusBadge";
 import { CreatorEmptyState } from "./CreatorEmptyState";
 import { CreatorErrorState } from "./CreatorErrorState";
 import { CreatorCardSkeleton, CreatorMetricSkeleton } from "./CreatorSkeleton";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import {
+  MessageSquare,
+  ShieldCheck,
+  ClipboardCheck,
+  Search,
+  Tag,
+  ChevronRight,
+  Hourglass,
+  Sparkles,
+  Clock3,
+} from "lucide-react";
 
 interface NegosiasiViewProps {
   initialNegotiations: CreatorNegotiation[];
 }
 
+// ─── MetricTile ───────────────────────────────────────────────────────────────
+
+interface MetricTileProps {
+  label: string;
+  value: string | number;
+  helper: string;
+  icon: React.ReactNode;
+  iconClass: string;
+  cardClass?: string;
+  badge?: string;
+  badgeClass?: string;
+}
+
+function MetricTile({ label, value, helper, icon, iconClass, cardClass, badge, badgeClass }: MetricTileProps) {
+  return (
+    <div
+      className={cn(
+        "group relative p-4 sm:p-5 rounded-[22px] border bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_36px_rgba(15,23,42,.08)] select-none cursor-default",
+        cardClass ?? "border-neutral-200/60 shadow-[0_2px_12px_rgba(15,23,42,.03)]"
+      )}
+    >
+      {badge && (
+        <div className="absolute top-3.5 right-3.5">
+          <span className={cn("px-2.5 py-0.5 rounded-full text-[8px] font-extrabold border uppercase tracking-wider", badgeClass)}>
+            {badge}
+          </span>
+        </div>
+      )}
+      <div className={cn("h-9 w-9 rounded-[12px] flex items-center justify-center mb-3.5 border transition-transform duration-300 group-hover:scale-105", iconClass)}>
+        {icon}
+      </div>
+      <div className="text-[.67rem] font-extrabold text-neutral-400 uppercase tracking-widest leading-none">{label}</div>
+      <div className="font-display text-[1.3rem] sm:text-[1.4rem] font-black text-[#1e1b4b] tracking-tight leading-none mt-1.5">{value}</div>
+      <div className="text-[.7rem] text-neutral-400 font-semibold mt-1 leading-none">{helper}</div>
+    </div>
+  );
+}
+
+// ─── NegotiationCard ─────────────────────────────────────────────────────────
+
+const STATUS_STYLES: Record<string, { dot: string; text: string; bg: string; border: string; label: string }> = {
+  Negosiasi:          { dot: "bg-amber-400",  text: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-200/50",  label: "Negosiasi" },
+  MenungguPembayaran: { dot: "bg-blue-400",   text: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-200/50",   label: "Menunggu Bayar" },
+  Escrow:             { dot: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200/50", label: "Escrow Aktif" },
+  Revisi:             { dot: "bg-orange-400",  text: "text-orange-700",  bg: "bg-orange-50",  border: "border-orange-200/50",  label: "Revisi" },
+  MenungguVerifikasi: { dot: "bg-violet-400",  text: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200/50",  label: "Verifikasi" },
+  Selesai:            { dot: "bg-neutral-400", text: "text-neutral-600", bg: "bg-neutral-50", border: "border-neutral-200/50", label: "Selesai" },
+};
+
+function NegotiationCard({ neg }: { neg: CreatorNegotiation }) {
+  const s = STATUS_STYLES[neg.status] ?? STATUS_STYLES.Negosiasi;
+  const dateStr = new Date(neg.lastMessageAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+  const isActive = neg.status === "Negosiasi";
+  const hasUrgent = neg.unreadCount > 0;
+
+  return (
+    <div
+      className={cn(
+        "group bg-white rounded-[22px] border overflow-hidden shadow-[0_2px_16px_rgba(15,23,42,.04)] hover:shadow-[0_16px_48px_rgba(109,40,217,.10)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col",
+        hasUrgent
+          ? "border-violet-300/40 ring-1 ring-violet-200/50"
+          : "border-neutral-200/60 hover:border-violet-300/30"
+      )}
+    >
+      {/* Top accent bar for active/unread */}
+      {hasUrgent && (
+        <div className="h-[3px] w-full bg-gradient-to-r from-violet-500 via-indigo-500 to-violet-400" />
+      )}
+
+      <div className="p-5 flex flex-col gap-4 flex-1">
+        {/* Header row */}
+        <div className="flex items-start gap-3.5">
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            <div className="w-12 h-12 rounded-[14px] border border-neutral-200/40 overflow-hidden bg-neutral-50 flex items-center justify-center font-black text-neutral-300 text-lg">
+              {neg.umkmAvatarUrl ? (
+                <img src={neg.umkmAvatarUrl} alt={neg.umkmName} className="w-full h-full object-cover" />
+              ) : (
+                <span>{neg.umkmName.charAt(0)}</span>
+              )}
+            </div>
+            {isActive && (
+              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-white" />
+            )}
+          </div>
+
+          {/* Name + project */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="font-extrabold text-[#1e1b4b] text-sm truncate leading-tight group-hover:text-violet-700 transition-colors">
+                {neg.umkmName}
+              </h4>
+              <span className="text-[10px] text-neutral-400 font-bold shrink-0 flex items-center gap-1">
+                <Clock3 className="w-3 h-3" />
+                {dateStr}
+              </span>
+            </div>
+            <p className="text-[10px] font-bold text-neutral-400 mt-1 uppercase tracking-wider truncate flex items-center gap-1.5">
+              <Tag className="w-3 h-3 shrink-0" />
+              <span>{neg.projectTitle}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Last message bubble */}
+        <div className="relative bg-neutral-50/80 border border-neutral-100 rounded-[16px] px-4 py-3">
+          <span className="block text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">Pesan Terakhir</span>
+          <p className="text-xs text-neutral-600 font-semibold line-clamp-2 leading-relaxed">
+            &ldquo;{neg.lastMessage}&rdquo;
+          </p>
+          {neg.unreadCount > 0 && (
+            <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 bg-violet-600 rounded-full text-white font-extrabold text-[9px] flex items-center justify-center shadow-md">
+              {neg.unreadCount}
+            </span>
+          )}
+        </div>
+
+        {/* Stats row */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-neutral-50 rounded-[14px] px-3.5 py-3 border border-neutral-100">
+            <span className="block text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Harga Deal</span>
+            <span className="font-display text-sm font-black text-[#1e1b4b] tracking-tight">
+              {formatCurrency(neg.finalPrice)}
+            </span>
+          </div>
+          <div className="bg-neutral-50 rounded-[14px] px-3.5 py-3 border border-neutral-100">
+            <span className="block text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">Status</span>
+            <span className={cn(
+              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-extrabold border",
+              s.text, s.bg, s.border
+            )}>
+              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", s.dot)} />
+              {s.label}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="px-5 pb-5">
+        <Link
+          href={`/dashboard/kreator/negosiasi/${neg.id}`}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-[14px] text-xs font-extrabold text-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 group/btn"
+          style={{
+            background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
+            boxShadow: "0 4px 16px rgba(124,58,237,.28)",
+          }}
+        >
+          <MessageSquare className="w-3.5 h-3.5 opacity-80 group-hover/btn:opacity-100" />
+          Buka Room Negosiasi
+          <ChevronRight className="w-3.5 h-3.5 opacity-60 group-hover/btn:translate-x-0.5 transition-transform" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
 export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
   const [negotiations] = useState<CreatorNegotiation[]>(initialNegotiations);
 
-  // Filters state
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
 
-  // Slicing states
-  const [isLoadingSimulated, setIsLoadingSimulated] = useState(false);
-  const [isEmptySimulated, setIsEmptySimulated] = useState(false);
+  const [isLoadingSimulated] = useState(false);
+  const [isEmptySimulated] = useState(false);
   const [isErrorSimulated, setIsErrorSimulated] = useState(false);
-
-  const showToast = (msg: string) => {
-    toast.success(msg);
-  };
 
   const handleClearFilters = () => {
     setSearch("");
     setSelectedStatus("all");
-    setSortBy("latest");
   };
 
-  // Metrics count
-  const countNegotiation = negotiations.filter(n => n.status === "Negosiasi").length;
-  const countPendingPayment = negotiations.filter(n => n.status === "MenungguPembayaran").length;
-  const countEscrow = negotiations.filter(n => n.status === "Escrow" || n.status === "Revisi" || n.status === "MenungguVerifikasi").length;
-  const countCompleted = negotiations.filter(n => n.status === "Selesai").length;
+  const countNegotiation        = negotiations.filter(n => n.status === "Negosiasi").length;
+  const countPendingPayment     = negotiations.filter(n => n.status === "MenungguPembayaran").length;
+  const countEscrow             = negotiations.filter(n => ["Escrow","Revisi","MenungguVerifikasi"].includes(n.status)).length;
+  const countCompleted          = negotiations.filter(n => n.status === "Selesai").length;
+  const totalUnread             = negotiations.reduce((acc, n) => acc + (n.unreadCount || 0), 0);
 
-  // Filtering & Sorting
   const filteredNegotiations = negotiations
     .filter((n) => {
       const matchesSearch =
@@ -58,19 +218,15 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
         selectedStatus === "all" ||
         (selectedStatus === "negosiasi" && n.status === "Negosiasi") ||
         (selectedStatus === "menunggu-pembayaran" && n.status === "MenungguPembayaran") ||
-        (selectedStatus === "escrow" && (n.status === "Escrow" || n.status === "Revisi" || n.status === "MenungguVerifikasi")) ||
+        (selectedStatus === "escrow" && ["Escrow","Revisi","MenungguVerifikasi"].includes(n.status)) ||
         (selectedStatus === "selesai" && n.status === "Selesai");
 
       return matchesSearch && matchesStatus;
     })
-    .sort((a, b) => {
-      // default: latest
-      return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
-    });
+    .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
 
   const hasActiveFilters = search !== "" || selectedStatus !== "all";
 
-  // Error simulated render
   if (isErrorSimulated) {
     return (
       <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[80vh]">
@@ -85,10 +241,7 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
         </div>
         <CreatorErrorState
           errorMsg="Gagal memuat daftar negosiasi Rate Card. Silakan periksa jaringan Anda."
-          onRetry={() => {
-            setIsErrorSimulated(false);
-            showToast("Daftar negosiasi berhasil dimuat kembali!");
-          }}
+          onRetry={() => setIsErrorSimulated(false)}
         />
       </div>
     );
@@ -96,171 +249,117 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto relative">
-
-      {/* Simulator Control Panel */}
-      <div className="mb-6 bg-white/70 backdrop-blur-md border border-neutral-200/50 p-4 rounded-2xl flex flex-wrap gap-4 items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.01)] text-xs font-bold text-neutral-700 shrink-0">
-        <div className="flex items-center gap-2 text-neutral-900">
-          <span className="w-2.5 h-2.5 rounded-full bg-primary animate-ping"></span>
-          <span>Panel Simulator State (Daftar Negosiasi):</span>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => setIsLoadingSimulated(!isLoadingSimulated)}
-            className={cn(
-              "px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer",
-              isLoadingSimulated
-                ? "bg-primary text-white border-primary-600"
-                : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50"
-            )}
-          >
-            {isLoadingSimulated ? "Matikan Shimmer" : "Simulasi Shimmer"}
-          </button>
-          <button
-            onClick={() => setIsEmptySimulated(!isEmptySimulated)}
-            className={cn(
-              "px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer",
-              isEmptySimulated
-                ? "bg-primary text-white border-primary-600"
-                : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50"
-            )}
-          >
-            {isEmptySimulated ? "Matikan Empty" : "Simulasi Empty"}
-          </button>
-          <button
-            onClick={() => setIsErrorSimulated(true)}
-            className="px-3.5 py-1.5 bg-white text-red-600 border border-red-200 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
-          >
-            Simulasi Error
-          </button>
-        </div>
-      </div>
-
       {isLoadingSimulated ? (
         <div>
           <CreatorMetricSkeleton />
-          <div className="h-10 bg-white border border-neutral-200/50 rounded-xl animate-pulse w-full mb-6"></div>
-          <CreatorCardSkeleton count={3} />
+          <div className="h-10 bg-white border border-neutral-200/50 rounded-xl animate-pulse w-full mb-6" />
+          <CreatorCardSkeleton count={4} />
         </div>
       ) : (
         <div>
-          {/* Header */}
           <CreatorPageHeader
             title="Negosiasi Rate Card"
             description="Kelola order Rate Card dari UMKM."
           />
 
-          {/* Summary Cards */}
-          <div className="dashboard-rule-grid mb-7">
-            <CreatorMetricCard
+          {/* Metric tiles — 2/3/4 Dashboard Rule */}
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-7">
+            <MetricTile
               label="Negosiasi Aktif"
               value={countNegotiation}
-              helperText="Dalam chat negosiasi"
-              icon={
-                <svg className="w-5 h-5 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-              }
+              helper="Dalam chat negosiasi"
+              iconClass="text-amber-600 bg-amber-50 border-amber-200/50"
+              icon={<MessageSquare className="w-4 h-4" />}
+              cardClass="border-amber-200/40 shadow-[0_4px_20px_rgba(217,119,6,.06)] bg-gradient-to-br from-amber-50/20 to-white"
+              badge={totalUnread > 0 ? `${totalUnread} unread` : undefined}
+              badgeClass="bg-violet-50 border-violet-200/40 text-violet-600"
             />
-            <CreatorMetricCard
+            <MetricTile
               label="Menunggu Pembayaran"
               value={countPendingPayment}
-              helperText="UMKM bayar invoice"
-              variant="orange"
-              icon={
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              }
+              helper="UMKM bayar invoice"
+              iconClass="text-blue-600 bg-blue-50 border-blue-200/50"
+              icon={<Hourglass className="w-4 h-4" />}
+              cardClass="border-blue-200/40 shadow-[0_4px_20px_rgba(37,99,235,.06)] bg-gradient-to-br from-blue-50/20 to-white"
             />
-            <CreatorMetricCard
+            <MetricTile
               label="Escrow Aktif"
               value={countEscrow}
-              helperText="Dana aman ter-escrow"
-              icon={
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              }
+              helper="Dana aman ter-escrow"
+              iconClass="text-emerald-600 bg-emerald-50 border-emerald-200/50"
+              icon={<ShieldCheck className="w-4 h-4" />}
+              cardClass="border-emerald-200/40 shadow-[0_4px_20px_rgba(22,163,74,.06)] bg-gradient-to-br from-emerald-50/20 to-white"
             />
-            <CreatorMetricCard
+            <MetricTile
               label="Order Selesai"
               value={countCompleted}
-              helperText="Negosiasi selesai"
-              icon={
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                </svg>
-              }
+              helper="Negosiasi selesai"
+              iconClass="text-neutral-500 bg-neutral-100 border-neutral-200/50"
+              icon={<ClipboardCheck className="w-4 h-4" />}
             />
           </div>
 
           {/* Toolbar */}
-          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between mb-6 bg-white/80 border border-neutral-200/50 p-4 rounded-2xl">
-            <div className="flex-1 flex flex-col sm:flex-row gap-3">
-              {/* Search */}
-              <div className="relative flex-1">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
-                  <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </span>
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Cari UMKM / judul order..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium text-neutral-800 placeholder-neutral-400"
-                />
-              </div>
-
-              {/* Filter Status */}
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-sm font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[160px]"
-              >
-                <option value="all">Semua Status</option>
-                <option value="negosiasi">Negosiasi</option>
-                <option value="menunggu-pembayaran">Menunggu Pembayaran</option>
-                <option value="escrow">Escrow Aktif</option>
-                <option value="selesai">Selesai</option>
-              </select>
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mb-6 bg-white/80 border border-neutral-200/50 p-3.5 rounded-[20px]">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Cari UMKM / judul order..."
+                className="w-full pl-10 pr-4 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all font-medium text-neutral-800 placeholder-neutral-400"
+              />
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[140px]"
-              >
-                <option value="latest">Terbaru</option>
-              </select>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-sm font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[170px]"
+            >
+              <option value="all">Semua Status</option>
+              <option value="negosiasi">Negosiasi</option>
+              <option value="menunggu-pembayaran">Menunggu Pembayaran</option>
+              <option value="escrow">Escrow Aktif</option>
+              <option value="selesai">Selesai</option>
+            </select>
 
-              {hasActiveFilters && (
-                <button
-                  onClick={handleClearFilters}
-                  className="px-3 py-2 text-xs font-bold text-neutral-500 hover:text-neutral-900 flex items-center gap-1 cursor-pointer"
-                >
-                  Reset
-                </button>
-              )}
-            </div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-sm font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[130px]"
+            >
+              <option value="latest">Terbaru</option>
+            </select>
+
+            {hasActiveFilters && (
+              <button
+                onClick={handleClearFilters}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-bold text-neutral-500 hover:text-neutral-900 cursor-pointer transition-colors whitespace-nowrap"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Reset
+              </button>
+            )}
           </div>
 
-          {/* Chat / Order List */}
+          {/* Negotiation cards */}
           {isEmptySimulated || filteredNegotiations.length === 0 ? (
             <CreatorEmptyState
               title="Belum ada negosiasi Rate Card"
               description={
-                isEmptySimulated
-                  ? "Kamu belum menerima chat negosiasi dari UMKM untuk penawaran paket Rate Card."
-                  : "Tidak ada negosiasi yang cocok dengan filter pencarian Anda."
+                hasActiveFilters
+                  ? "Tidak ada negosiasi yang cocok dengan filter pencarian Anda."
+                  : "Kamu belum menerima chat negosiasi dari UMKM untuk penawaran paket Rate Card."
               }
               actionButton={
-                !isEmptySimulated && hasActiveFilters ? (
+                hasActiveFilters ? (
                   <button
                     onClick={handleClearFilters}
-                    className="bg-primary hover:bg-primary-600 text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all border border-primary-600/10 shadow"
+                    className="text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow border border-transparent cursor-pointer"
+                    style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)", boxShadow: "0 4px 14px rgba(124,58,237,.28)" }}
                   >
                     Reset Filter
                   </button>
@@ -268,83 +367,10 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
               }
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredNegotiations.map((neg) => {
-                return (
-                  <div
-                    key={neg.id}
-                    className="bg-white/95 border border-neutral-200/50 shadow-sm rounded-3xl p-6 hover:shadow-md transition-all flex flex-col justify-between h-full group"
-                  >
-                    <div>
-                      {/* UMKM Info */}
-                      <div className="flex items-start gap-4 mb-4">
-                        <div className="w-12 h-12 rounded-xl border border-neutral-200/30 overflow-hidden shrink-0 bg-neutral-50 flex items-center justify-center font-bold text-neutral-400">
-                          {neg.umkmAvatarUrl ? (
-                            <img
-                              src={neg.umkmAvatarUrl}
-                              alt={neg.umkmName}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <span>U</span>
-                          )}
-                        </div>
-                        
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <h4 className="font-extrabold text-neutral-900 text-sm truncate leading-tight group-hover:text-primary transition-colors">
-                              {neg.umkmName}
-                            </h4>
-                            <span className="text-[10px] text-neutral-400 font-semibold shrink-0">
-                              {new Date(neg.lastMessageAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
-                            </span>
-                          </div>
-                          
-                          <p className="text-[10px] font-bold text-neutral-400 mt-1 uppercase tracking-wider truncate">
-                            📦 {neg.projectTitle}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Last Message bubble */}
-                      <div className="bg-neutral-50/50 border border-neutral-100 rounded-2xl p-4.5 mb-5 relative">
-                        {neg.unreadCount > 0 && (
-                          <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary rounded-full text-white font-extrabold text-[9px] flex items-center justify-center shadow">
-                            {neg.unreadCount}
-                          </span>
-                        )}
-                        <span className="block text-[8px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Pesan Terakhir</span>
-                        <p className="text-xs text-neutral-600 font-semibold line-clamp-2 leading-relaxed">
-                          &quot;{neg.lastMessage}&quot;
-                        </p>
-                      </div>
-
-                      {/* Specs */}
-                      <div className="grid grid-cols-2 gap-3 py-3 px-4 rounded-2xl bg-neutral-50 border border-neutral-200/20 mb-5 text-xs font-semibold">
-                        <div>
-                          <span className="block text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Harga Penawaran</span>
-                          <span className="block font-black text-neutral-900 mt-0.5">
-                            {formatCurrency(neg.finalPrice)}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="block text-[9px] font-bold text-neutral-400 uppercase tracking-wider">Status Kontrak</span>
-                          <div className="mt-0.5">
-                            <CreatorStatusBadge status={neg.status} type="negotiation" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <Link
-                      href={`/dashboard/kreator/negosiasi/${neg.id}`}
-                      className="w-full text-center bg-primary hover:bg-primary-600 text-white font-black text-xs py-3.5 rounded-xl transition-all border border-primary-600/10 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 block"
-                    >
-                      Buka Room Negosiasi
-                    </Link>
-                  </div>
-                );
-              })}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in duration-300">
+              {filteredNegotiations.map((neg) => (
+                <NegotiationCard key={neg.id} neg={neg} />
+              ))}
             </div>
           )}
         </div>

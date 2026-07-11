@@ -398,7 +398,7 @@ export function CreatorDashboardSidebar({
               <Link
                 href="/"
                 onClick={() => setShowLogoutModal(false)}
-                className="flex items-center justify-center min-h-[44px] px-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-orange-500/10 hover:shadow-lg hover:shadow-orange-500/15 active:scale-[0.98] transition-all duration-150 text-center no-underline cursor-pointer"
+                className="flex items-center justify-center min-h-[44px] px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-red-500/10 hover:shadow-lg hover:shadow-red-500/15 active:scale-[0.98] transition-all duration-150 text-center no-underline cursor-pointer"
               >
                 Logout
               </Link>

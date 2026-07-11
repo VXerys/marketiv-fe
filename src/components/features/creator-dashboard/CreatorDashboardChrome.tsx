@@ -25,6 +25,13 @@ export function CreatorDashboardChrome({ children }: CreatorDashboardChromeProps
     loadProfile();
   }, []);
 
+  useEffect(() => {
+    document.body.classList.add("theme-kreator");
+    return () => {
+      document.body.classList.remove("theme-kreator");
+    };
+  }, []);
+
   const creatorName = profile?.name || "Kreator Marketiv";
   const creatorHandle = profile?.username || "creator";
   const creatorAvatar = profile?.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop";

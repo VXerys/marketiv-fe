@@ -1253,3 +1253,77 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* --- Creator Dashboard Theme Overrides --- */
+body.theme-kreator {
+  --primary: #7c3aed; /* violet-600 */
+  --primary-foreground: #ffffff;
+  --ring: #7c3aed;
+  --sidebar-primary: #7c3aed;
+  --accent: #f5f3ff; /* violet-50 */
+  --card: #ffffff;
+  --background: #f8fafc;
+
+  /* Override neutral colors to eliminate cream tone on Creator pages */
+  --color-neutral-0: #ffffff;
+  --color-neutral-25: #ffffff;
+  --color-neutral-50: #f9fafb;
+  --color-neutral-100: #f3f4f6;
+  --color-neutral-200: #e5e7eb;
+  --color-neutral-300: #d1d5db;
+  --color-neutral-400: #9ca3af;
+  --color-neutral-500: #6b7280;
+  --color-neutral-600: #4b5563;
+  --color-neutral-700: #374151;
+  --color-neutral-800: #1f2937;
+  --color-neutral-900: #111827;
+
+  /* Tailwind CSS v4 Theme overrides */
+  --color-primary: #7c3aed;
+  --color-primary-50: #f5f3ff;
+  --color-primary-100: #ede9fe;
+  --color-primary-200: #ddd6fe;
+  --color-primary-300: #c4b5fd;
+  --color-primary-400: #a78bfa;
+  --color-primary-500: #8b5cf6;
+  --color-primary-600: #7c3aed;
+  --color-primary-700: #6d28d9;
+  --color-primary-800: #5b21b6;
+  --color-primary-900: #4c1d95;
+  --color-primary-950: #2e1065;
+}
+
+/* --- Premium Custom Scrollbars --- */
+:root {
+  --scrollbar-thumb: rgba(15, 23, 42, 0.08);
+  --scrollbar-thumb-hover: rgba(15, 23, 42, 0.2);
+}
+
+body.theme-kreator {
+  --scrollbar-thumb: rgba(124, 58, 237, 0.15);
+  --scrollbar-thumb-hover: rgba(124, 58, 237, 0.35);
+}
+
+.premium-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.premium-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.premium-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.premium-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 99px;
+}
+
+.premium-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+

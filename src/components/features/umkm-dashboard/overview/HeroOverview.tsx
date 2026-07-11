@@ -1,6 +1,7 @@
 "use client";
 
-import { TrendingUp, Users, Eye, Wallet } from "lucide-react";
+import { TrendingUp, Users, Eye, Wallet, BadgeCheck } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface HeroOverviewProps {
   businessName?: string;
@@ -18,7 +19,7 @@ function SkeletonBlock({ width = "100%", height = 16 }: { width?: string | numbe
         width,
         height,
         borderRadius: 10,
-        background: "rgba(255,255,255,.22)",
+        background: "rgba(255,255,255,.15)",
         overflow: "hidden",
         position: "relative",
       }}
@@ -26,7 +27,7 @@ function SkeletonBlock({ width = "100%", height = 16 }: { width?: string | numbe
       <div
         className="absolute inset-0"
         style={{
-          background: "linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent)",
+          background: "linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent)",
           animation: "shimmer 1.45s infinite",
         }}
       />
@@ -43,209 +44,110 @@ export function HeroOverview({
   isLoading = false,
 }: HeroOverviewProps) {
   const stats = [
-    { icon: TrendingUp, label: "Campaign Aktif", value: String(campaignAktif), color: "#fff7ed", iconColor: "#ea580c" },
-    { icon: Eye, label: "Total Views", value: totalViews, color: "#f0f6ff", iconColor: "#2563eb" },
-    { icon: Users, label: "Total Kreator", value: String(totalKreator), color: "#f1fbf5", iconColor: "#16a34a" },
-    { icon: Wallet, label: "Dana Berjalan", value: danaBerjalan, color: "#f7f3ff", iconColor: "#7c3aed" },
+    { icon: TrendingUp, label: "Campaign Aktif", value: String(campaignAktif), colorClass: "bg-orange-500/10 border-orange-500/20 text-orange-400", glowColor: "hover:shadow-[0_8px_24px_rgba(249,115,22,0.1)]" },
+    { icon: Eye, label: "Total Views", value: totalViews, colorClass: "bg-blue-500/10 border-blue-500/20 text-blue-400", glowColor: "hover:shadow-[0_8px_24px_rgba(59,130,246,0.1)]" },
+    { icon: Users, label: "Total Kreator", value: String(totalKreator), colorClass: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400", glowColor: "hover:shadow-[0_8px_24px_rgba(16,185,129,0.1)]" },
+    { icon: Wallet, label: "Dana Berjalan", value: danaBerjalan, colorClass: "bg-purple-500/10 border-purple-500/20 text-purple-400", glowColor: "hover:shadow-[0_8px_24px_rgba(139,92,246,0.1)]" },
   ];
 
   return (
     <div
+      className="relative overflow-hidden rounded-[32px] border border-white/10"
       style={{
-        position: "relative",
-        borderRadius: 28,
-        overflow: "hidden",
         background:
-          "radial-gradient(circle at 8% 12%, rgba(249,115,22,.24), transparent 26rem), radial-gradient(circle at 92% 86%, rgba(30,58,95,.16), transparent 22rem), linear-gradient(135deg, #0c172b 0%, #1e3a5f 46%, #182033 100%)",
-        boxShadow: "0 32px 90px rgba(15,23,42,.22), 0 0 0 1px rgba(255,255,255,.06)",
+          "radial-gradient(circle at 8% 12%, rgba(249,115,22,.20), transparent 28rem), radial-gradient(circle at 92% 86%, rgba(59,130,246,.12), transparent 24rem), linear-gradient(135deg, #0b1528 0%, #112240 50%, #080f1a 100%)",
+        boxShadow: "0 32px 90px rgba(15,23,42,.30), inset 0 1px 0 rgba(255,255,255,.05)",
       }}
     >
       {/* Grid overlay */}
       <div
         aria-hidden="true"
+        className="absolute inset-0 opacity-[0.4] pointer-events-none"
         style={{
-          position: "absolute",
-          inset: 0,
           backgroundImage:
             "linear-gradient(rgba(255,255,255,.032) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.032) 1px, transparent 1px)",
           backgroundSize: "40px 40px",
           maskImage: "radial-gradient(ellipse at 50% 50%, black 40%, transparent 80%)",
-          pointerEvents: "none",
         }}
       />
 
-      {/* Orange glow */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          top: -60,
-          left: -30,
-          width: 260,
-          height: 260,
-          borderRadius: "50%",
-          background: "rgba(249,115,22,.16)",
-          filter: "blur(72px)",
-          pointerEvents: "none",
-        }}
-      />
-
-      <div
-        style={{
-          position: "relative",
-          zIndex: 1,
-          padding: "clamp(20px, 3vw, 32px)",
-        }}
-      >
+      <div className="relative z-10 p-6 sm:p-8 lg:p-10">
         {/* Top row: greeting + status badge */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: 16,
-            marginBottom: 24,
-          }}
-        >
-          <div>
+        <div className="flex flex-row justify-between items-start gap-6 mb-8">
+          <div className="flex-1 min-w-0">
             {isLoading ? (
-              <div style={{ display: "grid", gap: 10 }}>
-                <SkeletonBlock width={150} height={13} />
-                <SkeletonBlock width={260} height={34} />
-                <SkeletonBlock width={190} height={13} />
+              <div className="grid gap-2.5">
+                <SkeletonBlock width={130} height={12} />
+                <SkeletonBlock width={300} height={36} />
+                <SkeletonBlock width={220} height={12} />
               </div>
             ) : (
               <>
                 {/* Active pill */}
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 7,
-                    height: 28,
-                    padding: "0 11px",
-                    border: "1px solid rgba(249,115,22,.28)",
-                    borderRadius: 999,
-                    background: "rgba(249,115,22,.13)",
-                    color: "#fdba74",
-                    fontSize: ".72rem",
-                    fontWeight: 800,
-                    letterSpacing: ".04em",
-                    marginBottom: 12,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 6,
-                      height: 6,
-                      borderRadius: "50%",
-                      background: "#f97316",
-                      boxShadow: "0 0 0 3px rgba(249,115,22,.22)",
-                      animation: "pulse 1.6s infinite",
-                    }}
-                  />
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-300 text-[0.72rem] font-[800] uppercase tracking-wider mb-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shadow-[0_0_8px_#f97316] animate-pulse" />
                   Dashboard Aktif
                 </div>
 
                 {/* Heading */}
-                <h1
-                  style={{
-                    fontFamily: "var(--font-sora), var(--font-plus-jakarta-sans), sans-serif",
-                    fontSize: "clamp(1.4rem, 3.5vw, 2.2rem)",
-                    fontWeight: 700,
-                    lineHeight: 1.1,
-                    letterSpacing: "-.06em",
-                    color: "white",
-                    margin: "0 0 8px",
-                  }}
-                >
+                <h1 className="font-display text-2xl sm:text-3xl lg:text-[2.25rem] font-black text-white tracking-tight leading-none mb-2.5">
                   Selamat datang,{" "}
-                  <span style={{ color: "#fdba74" }}>{businessName}</span>
+                  <span className="bg-gradient-to-r from-orange-300 via-amber-200 to-orange-400 bg-clip-text text-transparent">
+                    {businessName}
+                  </span>
                 </h1>
 
-                <p style={{ margin: 0, color: "rgba(255,255,255,.55)", fontSize: ".85rem", fontWeight: 500 }}>
+                <p className="text-white/50 text-xs sm:text-sm font-semibold">
                   Ringkasan bisnis Anda hari ini — semua dalam satu tampilan.
                 </p>
               </>
             )}
           </div>
 
-          {/* Verified badge — hidden on very small screens */}
-          <div
-            className="hidden sm:block"
-            style={{
-              flexShrink: 0,
-              padding: "10px 14px",
-              borderRadius: 18,
-              background: "rgba(255,255,255,.07)",
-              border: "1px solid rgba(255,255,255,.11)",
-              backdropFilter: "blur(12px)",
-              textAlign: "right",
-            }}
-          >
-            <div style={{ color: "rgba(255,255,255,.50)", fontSize: ".66rem", fontWeight: 750, marginBottom: 4 }}>
-              Akun Status
+          {/* Verified status badge */}
+          {!isLoading && (
+            <div className="hidden sm:flex flex-col items-end gap-1.5 px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-md shrink-0">
+              <span className="text-[10px] text-white/40 font-extrabold uppercase tracking-wider leading-none">
+                Status Akun
+              </span>
+              <span className="flex items-center gap-1.5 text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full shadow-3xs">
+                <BadgeCheck className="w-3.5 h-3.5" /> Terverifikasi
+              </span>
             </div>
-            <div style={{ color: "#4ade80", fontSize: ".8rem", fontWeight: 800 }}>● Terverifikasi</div>
-          </div>
+          )}
         </div>
 
-        {/* Stats grid — auto-fit ensures responsiveness */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-            gap: 10,
-          }}
-        >
+        {/* Stats grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {stats.map((stat) => (
             <div
               key={stat.label}
-              style={{
-                padding: "14px",
-                borderRadius: 18,
-                background: "rgba(255,255,255,.07)",
-                border: "1px solid rgba(255,255,255,.09)",
-                backdropFilter: "blur(10px)",
-                transition: ".2s cubic-bezier(.2,.8,.2,1)",
-              }}
+              className={cn(
+                "group p-4.5 rounded-2xl bg-white/[0.03] border border-white/[0.07] backdrop-blur-md transition-all duration-300 select-none hover:-translate-y-1 hover:bg-white/[0.06] hover:border-white/[0.12]",
+                stat.glowColor
+              )}
             >
               {isLoading ? (
-                <div style={{ display: "grid", gap: 8 }}>
-                  <SkeletonBlock width={32} height={32} />
-                  <SkeletonBlock width="65%" height={22} />
-                  <SkeletonBlock width="50%" height={11} />
+                <div className="grid gap-2">
+                  <SkeletonBlock width={30} height={30} />
+                  <SkeletonBlock width="70%" height={24} />
+                  <SkeletonBlock width="50%" height={10} />
                 </div>
               ) : (
                 <>
                   <div
-                    style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: 11,
-                      background: stat.color,
-                      display: "grid",
-                      placeItems: "center",
-                      marginBottom: 10,
-                    }}
+                    className={cn(
+                      "w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 mb-4 transition-transform duration-300 group-hover:scale-105",
+                      stat.colorClass
+                    )}
                   >
-                    <stat.icon size={16} color={stat.iconColor} />
+                    <stat.icon size={16} strokeWidth={2.5} />
                   </div>
-                  <div
-                    style={{
-                      fontFamily: "var(--font-sora), var(--font-plus-jakarta-sans), sans-serif",
-                      fontSize: "clamp(1.2rem, 2.5vw, 1.6rem)",
-                      fontWeight: 700,
-                      lineHeight: 1,
-                      letterSpacing: "-.055em",
-                      color: "white",
-                      marginBottom: 4,
-                    }}
-                  >
-                    {stat.value}
-                  </div>
-                  <div style={{ color: "rgba(255,255,255,.52)", fontSize: ".72rem", fontWeight: 700 }}>
+                  <div className="text-[10px] text-white/45 font-extrabold uppercase tracking-wider leading-none mb-1.5">
                     {stat.label}
+                  </div>
+                  <div className="font-display text-2xl sm:text-[1.75rem] font-black text-white tracking-tight leading-none">
+                    {stat.value}
                   </div>
                 </>
               )}

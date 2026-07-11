@@ -280,32 +280,6 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto relative">
       <div className="max-w-[1280px] mx-auto space-y-6">
 
-        {/* QA State Simulator Bar — panel dev-only bergaya dashed */}
-        <div className="p-3.5 sm:p-4 bg-amber-50/40 border border-dashed border-amber-300/60 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-          <div className="flex items-center gap-2">
-            <FlaskConical size={14} className="text-amber-600 shrink-0" />
-            <span className="text-[10px] font-extrabold text-amber-700/80 tracking-wider uppercase">
-              State Simulator (QA Review)
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {(["normal", "loading", "empty", "filter_empty", "error"] as const).map((state) => (
-              <button
-                key={state}
-                onClick={() => setSimulatedState(state)}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-[11px] font-extrabold capitalize transition-all cursor-pointer border",
-                  simulatedState === state
-                    ? "bg-primary text-white border-primary shadow-3xs"
-                    : "bg-white hover:bg-neutral-50 text-neutral-500 hover:text-neutral-700 border-neutral-200/60"
-                )}
-              >
-                {state.replace("_", " ")}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* Header — konsisten dengan gaya Campaign/Negosiasi */}
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>

@@ -208,44 +208,6 @@ export function ProfilView({ initialProfile }: ProfilViewProps) {
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto relative">
 
-      {/* Simulator Control Panel */}
-      <div className="mb-6 bg-white/70 backdrop-blur-md border border-neutral-200/50 p-4 rounded-2xl flex flex-wrap gap-4 items-center justify-between shadow-[0_4px_20px_rgba(0,0,0,0.01)] text-xs font-bold text-neutral-700 shrink-0">
-        <div className="flex items-center gap-2 text-neutral-900">
-          <span className="w-2.5 h-2.5 rounded-full bg-primary animate-ping"></span>
-          <span>Panel Simulator State (Profil &amp; Portofolio Slicing):</span>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => setIsLoadingSimulated(!isLoadingSimulated)}
-            className={cn(
-              "px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer",
-              isLoadingSimulated
-                ? "bg-primary text-white border-primary-600"
-                : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50"
-            )}
-          >
-            {isLoadingSimulated ? "Matikan Shimmer" : "Simulasi Shimmer"}
-          </button>
-          <button
-            onClick={() => setIsEmptyPortfolioSimulated(!isEmptyPortfolioSimulated)}
-            className={cn(
-              "px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer",
-              isEmptyPortfolioSimulated
-                ? "bg-primary text-white border-primary-600"
-                : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50"
-            )}
-          >
-            {isEmptyPortfolioSimulated ? "Matikan Portofolio" : "Simulasi Portfolio Kosong"}
-          </button>
-          <button
-            onClick={() => setIsErrorSimulated(true)}
-            className="px-3.5 py-1.5 bg-white text-red-600 border border-red-200 hover:bg-red-50 rounded-xl transition-all cursor-pointer"
-          >
-            Simulasi Error
-          </button>
-        </div>
-      </div>
-
       {isLoadingSimulated ? (
         <div className="animate-pulse space-y-6">
           <div className="h-6 bg-neutral-200 rounded w-28 mb-4"></div>
