@@ -1,6 +1,8 @@
+"use client";
+
+import { Eye, Users, Zap, ImageIcon } from "lucide-react";
 import { formatCurrency, formatCompactNumber } from "@/lib/formatters";
 import { DashboardBadge } from "../shared/DashboardBadge";
-import { DashboardCard } from "@/components/features/umkm-dashboard/shared/DashboardCard";
 
 interface CampaignLivePreviewCardProps {
   title: string;
@@ -19,97 +21,123 @@ export function CampaignLivePreviewCard({
   totalBudgetEscrow,
   creatorQuota,
 }: CampaignLivePreviewCardProps) {
-  const displayTitle = title.trim() || "Judul campaign akan muncul di sini";
-  const displayBrief = brief.trim() || "Isi brief agar kreator memahami kebutuhan Anda";
-  
-  const estimatedViews = pricePerThousandViews > 0 
-    ? Math.round((totalBudgetEscrow / pricePerThousandViews) * 1000) 
-    : 0;
+  const displayTitle = title.trim() || null;
+  const displayBrief = brief.trim() || null;
+  const estimatedViews =
+    pricePerThousandViews > 0
+      ? Math.round((totalBudgetEscrow / pricePerThousandViews) * 1000)
+      : 0;
 
   return (
-    <DashboardCard className="rounded-3xl bg-white/70 overflow-hidden flex flex-col h-full min-h-[300px] select-none">
+    <div
+      className="rounded-2xl sm:rounded-[22px] overflow-hidden flex flex-col select-none"
+      style={{ border: "1px solid rgba(17,24,39,.08)", boxShadow: "0 4px 20px rgba(15,23,42,.06)" }}
+    >
+      {/* ── Cover banner ──────────────────────────────────── */}
+      <div
+        className="relative h-32 w-full flex items-center justify-center overflow-hidden"
+        style={{
+          background:
+            "radial-gradient(circle at 20% 50%, rgba(251,122,24,.70) 0%, transparent 60%), " +
+            "radial-gradient(circle at 80% 20%, rgba(234,88,12,.55) 0%, transparent 55%), " +
+            "linear-gradient(135deg, #f97316 0%, #c2410c 100%)",
+        }}
+      >
+        {/* Decorative blobs */}
+        <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/[.06]" />
+        <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-black/[.08]" />
 
-      
-      {/* Top Cover Banner */}
-      <div className="h-28 w-full bg-gradient-to-br from-primary-400/80 to-primary-600/90 relative flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px]" />
-        
-        {/* Absolute floating category badge */}
+        {/* Category badge */}
         <div className="absolute top-3 left-3 z-10">
           {category ? (
-            <DashboardBadge type="category" value={category} className="font-extrabold uppercase" />
+            <DashboardBadge
+              type="category"
+              value={category}
+              className="font-extrabold uppercase text-[10px]"
+            />
           ) : (
-            <span className="text-[8px] font-extrabold text-text-muted bg-white border border-neutral-200/50 px-2 py-0.5 rounded-full uppercase tracking-wider">
-              Pilih kategori untuk melihat badge
+            <span className="text-[9px] font-[800] text-white/70 bg-white/15 backdrop-blur-sm px-2.5 py-1 rounded-full uppercase tracking-wider">
+              Pilih kategori
             </span>
           )}
         </div>
 
-        <div className="absolute top-3 right-3 z-10">
-          <span className="text-[8px] font-extrabold text-white bg-white/20 backdrop-blur-xs px-2 py-0.5 rounded-full uppercase tracking-wider">
-            Live Preview
-          </span>
+        {/* Live badge */}
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full">
+          <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+          <span className="text-[9px] font-[800] text-white uppercase tracking-wider">Live Preview</span>
         </div>
 
-        {/* Big icon placeholder */}
-        <div className="relative text-center text-white space-y-1">
-          <svg className="w-6 h-6 mx-auto opacity-75 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <span className="text-[9px] font-bold tracking-wider uppercase opacity-80 block">Campaign Cover</span>
+        {/* Cover placeholder */}
+        <div className="relative z-10 text-center text-white">
+          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm grid place-items-center mx-auto mb-1.5 border border-white/25">
+            <ImageIcon size={18} className="opacity-80" />
+          </div>
+          <span className="text-[9px] font-[700] tracking-wider uppercase opacity-75">Campaign Cover</span>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="p-5 flex-1 flex flex-col justify-between space-y-4 bg-white/40">
-        <div className="space-y-2.5">
-          <h4 className={`text-xs sm:text-sm font-extrabold leading-tight line-clamp-1 ${title.trim() ? "text-text-primary" : "text-text-muted italic"}`}>
-            {displayTitle}
+      {/* ── Card body ─────────────────────────────────────── */}
+      <div className="p-4 flex flex-col gap-3.5 bg-white flex-1">
+        {/* Title & brief */}
+        <div className="space-y-1.5">
+          <h4 className={`text-[.86rem] font-[760] leading-snug line-clamp-1 font-display ${displayTitle ? "text-ink-950" : "text-ink-300 italic"}`}>
+            {displayTitle ?? "Judul campaign akan muncul di sini"}
           </h4>
-          <p className={`text-[10px] leading-relaxed line-clamp-3 ${brief.trim() ? "text-text-muted font-medium" : "text-text-muted/70 italic"}`}>
-            {displayBrief}
+          <p className={`text-[.74rem] leading-relaxed line-clamp-2 ${displayBrief ? "text-ink-500 font-[550]" : "text-ink-300 italic"}`}>
+            {displayBrief ?? "Isi brief agar kreator memahami kebutuhan Anda"}
           </p>
         </div>
 
-        {/* Derived Analytics Info Grid */}
-        <div className="grid grid-cols-2 gap-3.5 border-t border-dashed border-border-soft pt-3.5 mt-auto">
-          <div>
-            <span className="block text-[8px] font-bold text-text-muted uppercase tracking-wider mb-0.5 truncate">
+        {/* Stats grid */}
+        <div
+          className="grid grid-cols-2 gap-2.5 pt-3"
+          style={{ borderTop: "1px dashed rgba(17,24,39,.10)" }}
+        >
+          {/* Escrow */}
+          <div className="space-y-0.5">
+            <span className="flex items-center gap-1 text-[.66rem] font-[700] text-ink-400 uppercase tracking-wider">
+              <Zap size={9} className="text-orange-400" />
               Anggaran Escrow
             </span>
-            <span className="text-xs font-extrabold text-primary block truncate">
+            <span className="text-[.84rem] font-[800] text-orange-600 font-display leading-none">
               {formatCurrency(totalBudgetEscrow)}
             </span>
           </div>
 
-          <div>
-            <span className="block text-[8px] font-bold text-text-muted uppercase tracking-wider mb-0.5 truncate">
+          {/* Rate */}
+          <div className="space-y-0.5">
+            <span className="text-[.66rem] font-[700] text-ink-400 uppercase tracking-wider block">
               Bayaran / 1K Views
             </span>
-            <span className="text-xs font-extrabold text-text-primary block truncate">
+            <span className="text-[.84rem] font-[800] text-ink-800 font-display leading-none">
               {formatCurrency(pricePerThousandViews)}
             </span>
           </div>
 
-          <div>
-            <span className="block text-[8px] font-bold text-text-muted uppercase tracking-wider mb-0.5 truncate">
+          {/* Kreator quota */}
+          <div className="space-y-0.5">
+            <span className="flex items-center gap-1 text-[.66rem] font-[700] text-ink-400 uppercase tracking-wider">
+              <Users size={9} className="text-blue-400" />
               Kuota Kreator
             </span>
-            <span className="text-xs font-extrabold text-text-primary block truncate">
-              {creatorQuota} Slot Konten
+            <span className="text-[.84rem] font-[800] text-ink-800 font-display leading-none">
+              {creatorQuota} Slot
             </span>
           </div>
 
-          <div>
-            <span className="block text-[8px] font-bold text-text-muted uppercase tracking-wider mb-0.5 truncate">
+          {/* Target views */}
+          <div className="space-y-0.5">
+            <span className="flex items-center gap-1 text-[.66rem] font-[700] text-ink-400 uppercase tracking-wider">
+              <Eye size={9} className="text-emerald-400" />
               Target Views
             </span>
-            <span className="text-xs font-extrabold text-success block truncate">
+            <span className="text-[.84rem] font-[800] text-emerald-600 font-display leading-none">
               {formatCompactNumber(estimatedViews)} Views
             </span>
           </div>
         </div>
       </div>
-    </DashboardCard>
+    </div>
   );
 }

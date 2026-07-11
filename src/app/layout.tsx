@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Sora } from "next/font/google";
-import { ChatbotFab } from "@/components/features/chatbot/ChatbotFab";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -28,7 +27,6 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${plusJakartaSans.className} ${sora.variable} antialiased`}>
         {children}
-        <ChatbotFab />
         <Toaster />
       </body>
     </html>

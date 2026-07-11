@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Users, Eye, Calendar, ChevronRight, Plus } from "lucide-react";
 import type { Campaign, CampaignStatus } from "@/types/umkm-dashboard.types";
+import { formatCurrency } from "@/lib/formatters";
 
 interface CampaignSectionProps {
   campaigns?: Campaign[];
@@ -23,7 +24,7 @@ function CampaignSkeleton() {
   return (
     <div className="flex flex-col overflow-hidden bg-white border border-neutral-200/80 rounded-[28px] shadow-[0_12px_36px_-12px_rgba(0,0,0,0.05)]">
       {/* Cover placeholder */}
-      <div className="h-[118px] bg-[#edf1f5] relative overflow-hidden">
+      <div className="h-[160px] bg-[#edf1f5] relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/80 to-transparent" style={{ animation: "shimmer 1.45s infinite" }} />
       </div>
       {/* Body placeholder */}
@@ -54,9 +55,18 @@ function formatBudget(num: number): string {
   return `Rp ${num}`;
 }
 
+const NICHE_COLOR_CONFIG: Record<string, { bg: string; text: string; border: string }> = {
+  kuliner:    { bg: "rgba(249,115,22,.05)",  text: "#ea580c", border: "rgba(249,115,22,.10)" },
+  fesyen:     { bg: "rgba(22,163,74,.05)",   text: "#16a34a", border: "rgba(22,163,74,.10)" },
+  pariwisata: { bg: "rgba(37,99,235,.05)",   text: "#2563eb", border: "rgba(37,99,235,.10)" },
+  edukasi:    { bg: "rgba(124,58,237,.05)",  text: "#7c3aed", border: "rgba(124,58,237,.10)" },
+  kecantikan: { bg: "rgba(244,114,182,.05)", text: "#db2777", border: "rgba(244,114,182,.10)" },
+  lainnya:    { bg: "rgba(107,114,128,.05)", text: "#4b5563", border: "rgba(107,114,128,.10)" },
+};
+
 function CampaignCard({ campaign }: { campaign: Campaign }) {
   const statusCfg = STATUS_CONFIG[campaign.status] || STATUS_CONFIG.active;
-  const progressPercent = campaign.creatorQuota > 0 ? Math.min(100, Math.round((campaign.usedQuota / campaign.creatorQuota) * 100)) : 0;
+  const progressPercent = campaign.totalBudgetEscrow > 0 ? Math.min(100, Math.round((campaign.usedBudget / campaign.totalBudgetEscrow) * 100)) : 0;
   
   // Custom cover gradients based on niche
   const coverGradients: Record<string, string> = {
@@ -69,20 +79,20 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
   };
 
   const coverGradient = coverGradients[campaign.niche] || coverGradients.kuliner;
+  const nicheCfg = NICHE_COLOR_CONFIG[campaign.niche] || NICHE_COLOR_CONFIG.lainnya;
 
   return (
     <Link
       href={`/dashboard/umkm/campaign/${campaign.id}`}
-      className="flex flex-col overflow-hidden bg-white border border-neutral-200/80 rounded-[28px] transition-all duration-300 hover:-translate-y-1 hover:border-orange-500/30 hover:shadow-[0_20px_40px_-15px_rgba(234,88,12,0.12)] shadow-[0_12px_36px_-12px_rgba(0,0,0,0.05)] cursor-pointer"
+      className="flex flex-col overflow-hidden bg-white border border-neutral-200/80 rounded-[28px] shadow-[0_12px_36px_-12px_rgba(0,0,0,0.05)] cursor-pointer hover-card-animate"
       style={{
         textDecoration: "none",
         color: "inherit",
       }}
     >
-      {/* Cover art */}
       <div
         style={{
-          height: 118,
+          height: 160,
           position: "relative",
           overflow: "hidden",
           background: coverGradient,
@@ -119,25 +129,6 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
           <span style={{ width: 6, height: 6, borderRadius: "50%", background: statusCfg.color }} />
           {statusCfg.label}
         </div>
-        {/* Category */}
-        <div
-          style={{
-            position: "absolute",
-            top: 12,
-            right: 12,
-            padding: "5px 10px",
-            borderRadius: 999,
-            background: "rgba(12,23,43,.36)",
-            border: "1px solid rgba(255,255,255,.18)",
-            color: "white",
-            fontSize: ".7rem",
-            fontWeight: 800,
-            backdropFilter: "blur(10px)",
-            textTransform: "capitalize",
-          }}
-        >
-          {campaign.niche}
-        </div>
         {/* Budget chip bottom right */}
         <div
           style={{
@@ -163,6 +154,22 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
       {/* Body */}
       <div style={{ padding: "16px 18px", display: "grid", gap: 12, flex: 1 }}>
         <div>
+          <span style={{
+            display: "inline-block",
+            fontSize: "9px",
+            fontWeight: 900,
+            color: nicheCfg.text,
+            textTransform: "uppercase",
+            letterSpacing: "0.12em",
+            marginBottom: "6px",
+            background: nicheCfg.bg,
+            padding: "2px 8px",
+            borderRadius: "6px",
+            border: `1px solid ${nicheCfg.border}`,
+            userSelect: "none"
+          }}>
+            {campaign.niche}
+          </span>
           <h3
             style={{
               margin: "0 0 4px",
@@ -177,11 +184,28 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
           </h3>
         </div>
 
+        {/* CPM / Reward Rate Info */}
+        <div style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          padding: "4px 10px",
+          borderRadius: 10,
+          background: "rgba(249,115,22,.05)",
+          border: "1px solid rgba(249,115,22,.10)",
+          fontSize: ".7rem",
+          fontWeight: 800,
+          color: "#ea580c",
+          width: "fit-content",
+        }}>
+          Komisi: {formatCurrency(campaign.pricePerThousandViews)} / 1.000 views
+        </div>
+
         {/* Stats row */}
         <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#737f91", fontSize: ".78rem", fontWeight: 700 }}>
             <Users size={13} />
-            {campaign.usedQuota}/{campaign.creatorQuota} kreator
+            {campaign.usedQuota}/{campaign.creatorQuota} Kreator
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#737f91", fontSize: ".78rem", fontWeight: 700 }}>
             <Eye size={13} />
@@ -195,22 +219,65 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
 
         {/* Progress */}
         <div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, color: "#737f91", fontSize: ".74rem", fontWeight: 760 }}>
-            <span>Progress Kuota</span>
-            <span style={{ color: "#182033", fontWeight: 800 }}>{progressPercent}%</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+            <span style={{ fontSize: "10px", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "#737f91" }}>
+              Anggaran Terpakai
+            </span>
+            <span style={{ fontSize: "12px", fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center" }}>
+              {formatBudget(campaign.usedBudget)}{" "}
+              <span style={{ color: "#94a3b8", fontWeight: 500, margin: "0 4px" }}>/</span>{" "}
+              {formatBudget(campaign.totalBudgetEscrow)}{" "}
+              <span
+                style={{
+                  marginLeft: 6,
+                  fontSize: "11px",
+                  padding: "2px 6px",
+                  borderRadius: 6,
+                  fontWeight: 700,
+                  border: progressPercent >= 100 ? "1px solid #bbf7d0" : "1px solid #ffedd5",
+                  background: progressPercent >= 100 ? "#f0fdf4" : "#fff7ed",
+                  color: progressPercent >= 100 ? "#16a34a" : "#ea580c",
+                }}
+              >
+                {progressPercent}%
+              </span>
+            </span>
           </div>
-          <div style={{ height: 8, borderRadius: 999, background: "#eef2f7", overflow: "hidden" }}>
+          <div
+            style={{
+              position: "relative",
+              height: 10,
+              borderRadius: 999,
+              background: "#f1f5f9",
+              overflow: "hidden",
+              boxShadow: "inset 0 1.5px 3px rgba(15,23,42,0.06)",
+            }}
+          >
             <div
               style={{
                 height: "100%",
                 width: `${progressPercent}%`,
                 borderRadius: "inherit",
                 background: progressPercent >= 100
-                  ? "linear-gradient(90deg, #16a34a, #84cc16)"
-                  : "linear-gradient(90deg, #f97316, #fbbf24)",
-                transition: "width .6s cubic-bezier(.2,.8,.2,1)",
+                  ? "linear-gradient(90deg, #10b981, #14b8a6, #34d399)"
+                  : "linear-gradient(90deg, #ea580c, #f97316, #fbbf24)",
+                transition: "width .8s cubic-bezier(.2,.8,.2,1)",
+                position: "relative",
               }}
-            />
+            >
+              {/* Glossy top highlight */}
+              <div
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  height: "35%",
+                  background: "rgba(255, 255, 255, 0.25)",
+                  borderRadius: 999,
+                }}
+              />
+            </div>
           </div>
         </div>
       </div>

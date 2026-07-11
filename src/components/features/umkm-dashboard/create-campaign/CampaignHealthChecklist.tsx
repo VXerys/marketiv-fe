@@ -1,6 +1,8 @@
+"use client";
+
 import { STEP_TIPS } from "./create-campaign.constants";
 import { cn } from "@/lib/utils";
-import { DashboardCard } from "@/components/features/umkm-dashboard/shared/DashboardCard";
+import { ClipboardList, Check, AlertTriangle, Lightbulb } from "lucide-react";
 
 interface CampaignHealthChecklistProps {
   currentStep: number;
@@ -21,122 +23,133 @@ export function CampaignHealthChecklist({
   reviewValid,
   stepValidationTried = {},
 }: CampaignHealthChecklistProps) {
-  
-  // Calculate status for each step
   const getStepStatus = (stepNum: number, isValid: boolean) => {
     const tried = stepValidationTried[stepNum];
-    if (currentStep === stepNum) {
-      return tried && !isValid ? "invalid" : "active";
-    }
+    if (currentStep === stepNum) return tried && !isValid ? "invalid" : "active";
     if (isValid) return "completed";
     if (tried) return "invalid";
     return "pending";
   };
 
   const checkItems = [
-    {
-      step: 1,
-      label: "Informasi Produk",
-      desc: "Detail nama produk, niche, & deskripsi",
-      status: getStepStatus(1, productInfoValid),
-    },
-    {
-      step: 2,
-      label: "Brief & Panduan Konten",
-      desc: "Instruksi gaya konten video & CTA",
-      status: getStepStatus(2, briefValid),
-    },
-    {
-      step: 3,
-      label: "Aset Mentah / Media",
-      desc: "Link file eksternal Drive/Dropbox",
-      status: getStepStatus(3, assetValid),
-    },
-    {
-      step: 4,
-      label: "Budget & Kuota Kreator",
-      desc: "Bayaran per views & kuota slot",
-      status: getStepStatus(4, budgetValid),
-    },
-    {
-      step: 5,
-      label: "Review & Simulasi",
-      desc: "Persetujuan escrow & rilis dana",
-      status: getStepStatus(5, reviewValid),
-    },
+    { step: 1, label: "Informasi Produk",     desc: "Nama, niche & deskripsi",       status: getStepStatus(1, productInfoValid) },
+    { step: 2, label: "Brief & Konten",       desc: "Gaya video & CTA kreator",      status: getStepStatus(2, briefValid) },
+    { step: 3, label: "Aset / Media",         desc: "Link Drive/Dropbox publik",      status: getStepStatus(3, assetValid) },
+    { step: 4, label: "Budget & Kuota",       desc: "Rate per views & slot kreator",  status: getStepStatus(4, budgetValid) },
+    { step: 5, label: "Review & Simulasi",    desc: "Konfirmasi escrow & rilis dana", status: getStepStatus(5, reviewValid) },
   ];
 
   const activeTip = STEP_TIPS[currentStep] || "Lengkapi formulir secara perlahan.";
 
+  const completedCount = checkItems.filter((i) => i.status === "completed").length;
+
   return (
-    <div className="space-y-6">
-      
-      {/* Step specific tips box */}
-      <DashboardCard className="bg-amber-50/20 border border-neutral-200/50 p-5 shadow-[0_8px_30px_-10px_rgba(235,94,40,0.03),_inset_0_1px_0_rgba(255,255,255,0.95)] space-y-3.5 relative overflow-hidden transition-all duration-300">
-        <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-primary" />
-        <div className="pl-2 space-y-1">
-          <span className="block text-[9px] font-extrabold text-primary uppercase tracking-wider">
-            Tips Langkah Ini
-          </span>
-          <p className="text-xs font-bold text-text-primary leading-relaxed">
-            {`"${activeTip}"`}
-          </p>
-        </div>
-      </DashboardCard>
+    <div className="space-y-3">
 
-      {/* Progress Checklist items card */}
-      <DashboardCard className="bg-white/70 border border-neutral-200/50 shadow-[0_12px_30px_-10px_rgba(235,94,40,0.04),_0_4px_12px_-5px_rgba(0,0,0,0.015),_inset_0_1px_0_rgba(255,255,255,0.95)] p-5.5 space-y-4">
-        <div className="flex items-center gap-2 border-b border-border-soft/50 pb-3">
-          <svg className="w-4 h-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-          <span className="text-[10px] font-extrabold text-text-secondary uppercase tracking-wider">
-            Kelengkapan Pembuatan
+      {/* ── Tip card ──────────────────────────────────────── */}
+      <div
+        className="relative overflow-hidden rounded-2xl px-4 py-3.5"
+        style={{
+          background: "linear-gradient(135deg, rgba(255,247,237,.95), rgba(255,237,213,.5))",
+          border: "1px solid rgba(249,115,22,.18)",
+          boxShadow: "0 2px 8px rgba(234,88,12,.07)",
+        }}
+      >
+        {/* Left accent */}
+        <div className="absolute left-0 top-[15%] bottom-[15%] w-[3px] rounded-r-full bg-gradient-to-b from-orange-400 to-orange-600" />
+
+        <div className="pl-2 flex items-start gap-2.5">
+          <Lightbulb size={14} className="text-orange-500 shrink-0 mt-0.5" />
+          <div>
+            <span className="block text-[.68rem] font-[800] text-orange-600 uppercase tracking-[.10em] mb-0.5">
+              Tips Langkah Ini
+            </span>
+            <p className="text-[.78rem] font-[640] text-ink-700 leading-relaxed">
+              &ldquo;{activeTip}&rdquo;
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Checklist card ────────────────────────────────── */}
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{
+          border: "1px solid rgba(17,24,39,.08)",
+          background: "rgba(255,255,255,.95)",
+          boxShadow: "0 2px 8px rgba(15,23,42,.04)",
+        }}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-4 py-3"
+          style={{ borderBottom: "1px solid rgba(17,24,39,.07)" }}
+        >
+          <div className="flex items-center gap-2">
+            <ClipboardList size={14} className="text-orange-500 shrink-0" />
+            <span className="text-[.74rem] font-[800] text-ink-700 uppercase tracking-[.08em]">
+              Kelengkapan
+            </span>
+          </div>
+          <span
+            className="text-[.7rem] font-[800] tabular-nums"
+            style={{ color: completedCount === 5 ? "#16a34a" : "#ea580c" }}
+          >
+            {completedCount}/5
           </span>
         </div>
 
-        <div className="space-y-4">
+        {/* Items */}
+        <div className="px-4 py-3 space-y-3">
           {checkItems.map((item) => {
-            const isActive = item.status === "active";
+            const isActive    = item.status === "active";
             const isCompleted = item.status === "completed";
-            const isInvalid = item.status === "invalid";
+            const isInvalid   = item.status === "invalid";
 
             return (
-              <div key={item.step} className="flex gap-3">
-                <div className="shrink-0 pt-0.5">
+              <div key={item.step} className="flex items-start gap-2.5">
+                {/* Status indicator */}
+                <div className="shrink-0 mt-0.5">
                   {isCompleted ? (
-                    <span className="h-4.5 w-4.5 rounded-full bg-success text-white flex items-center justify-center shadow-xs border border-white">
-                      <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
+                    <span
+                      className="w-5 h-5 rounded-full flex items-center justify-center"
+                      style={{ background: "linear-gradient(135deg,#10b981,#059669)", boxShadow: "0 2px 6px rgba(16,185,129,.22)" }}
+                    >
+                      <Check size={10} strokeWidth={3} className="text-white" />
                     </span>
                   ) : isInvalid ? (
-                    <span className="h-4.5 w-4.5 rounded-full bg-danger text-white flex items-center justify-center shadow-xs border border-white">
-                      <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
-                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                      </svg>
+                    <span
+                      className="w-5 h-5 rounded-full flex items-center justify-center"
+                      style={{ background: "linear-gradient(135deg,#ef4444,#dc2626)", boxShadow: "0 2px 6px rgba(239,68,68,.22)" }}
+                    >
+                      <AlertTriangle size={9} strokeWidth={3} className="text-white" />
                     </span>
                   ) : isActive ? (
-                    <span className="h-4.5 w-4.5 rounded-full bg-primary text-white border border-white flex items-center justify-center text-[9px] font-bold shadow-2xs animate-pulse">
+                    <span
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-[.65rem] font-[800] text-white animate-pulse"
+                      style={{ background: "linear-gradient(135deg,#fb7a18,#ea580c)", boxShadow: "0 2px 6px rgba(234,88,12,.25)" }}
+                    >
                       {item.step}
                     </span>
                   ) : (
-                    <span className="h-4.5 w-4.5 rounded-full border-2 border-neutral-300 bg-white flex items-center justify-center text-[9px] font-bold text-text-muted">
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-[.65rem] font-[700] text-ink-400 border-2 border-neutral-200 bg-white">
                       {item.step}
                     </span>
                   )}
                 </div>
-                
-                <div className="min-w-0">
-                  <span 
-                    className={cn(
-                      "block text-xs font-bold leading-none",
-                      isActive ? "text-primary" : isCompleted ? "text-text-primary" : isInvalid ? "text-danger" : "text-text-muted"
-                    )}
-                  >
+
+                {/* Label */}
+                <div className="min-w-0 flex-1">
+                  <span className={cn(
+                    "block text-[.78rem] font-[720] leading-tight",
+                    isActive    && "text-orange-600",
+                    isCompleted && "text-ink-800",
+                    isInvalid   && "text-red-500",
+                    !isActive && !isCompleted && !isInvalid && "text-ink-400",
+                  )}>
                     {item.label}
                   </span>
-                  <span className="block text-[9px] text-text-muted mt-1 leading-tight font-semibold">
+                  <span className="block text-[.68rem] text-ink-400 font-[550] mt-0.5 leading-tight">
                     {item.desc}
                   </span>
                 </div>
@@ -144,8 +157,7 @@ export function CampaignHealthChecklist({
             );
           })}
         </div>
-      </DashboardCard>
-
+      </div>
     </div>
   );
 }

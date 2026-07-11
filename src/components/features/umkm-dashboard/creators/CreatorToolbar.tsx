@@ -10,13 +10,14 @@ interface CreatorToolbarProps {
   onCategoryChange: (category: string) => void;
   sortBy: string;
   onSortByChange: (sort: string) => void;
+  isSticky?: boolean;
 }
 
 const CATEGORIES = [
   { id: "all",        label: "Semua Kategori" },
   { id: "kuliner",    label: "Kuliner"        },
   { id: "fashion",    label: "Fashion"        },
-  { id: "pariwisata",  label: "Pariwisata"     },
+  { id: "pariwisata", label: "Pariwisata"     },
   { id: "edukasi",    label: "Edukasi"        },
   { id: "kecantikan", label: "Kecantikan"     },
   { id: "teknologi",  label: "Teknologi"      },
@@ -24,10 +25,10 @@ const CATEGORIES = [
 ];
 
 const SORT_OPTIONS = [
-  { id: "rating",    label: "Rating Tertinggi"  },
+  { id: "rating",    label: "Rating Tertinggi"   },
   { id: "followers", label: "Followers Terbanyak" },
-  { id: "price_asc", label: "Harga Terendah"     },
-  { id: "reviews",   label: "Review Terbanyak"   },
+  { id: "price_asc", label: "Harga Terendah"      },
+  { id: "reviews",   label: "Review Terbanyak"    },
 ];
 
 export function CreatorToolbar({
@@ -37,16 +38,45 @@ export function CreatorToolbar({
   onCategoryChange,
   sortBy,
   onSortByChange,
+  isSticky = false,
 }: CreatorToolbarProps) {
   const isSorted = sortBy !== "rating";
 
   return (
-    <div className="shrink-0 p-3.5 rounded-[22px] bg-white/80 border border-border shadow-sm grid gap-3">
-      {/* Row 1: Search and Sort */}
+    <div
+      className={cn(
+        "grid gap-2.5 transition-all duration-300",
+        isSticky ? "gap-2" : "gap-3"
+      )}
+      style={{
+        padding: isSticky ? "10px 14px" : "14px",
+        borderRadius: isSticky ? 18 : 22,
+        border: "1px solid rgba(17,24,39,.08)",
+        background: isSticky
+          ? "rgba(255, 255, 255, 0.85)"
+          : "linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,253,249,.85))",
+        backdropFilter: isSticky ? "blur(24px)" : "none",
+        WebkitBackdropFilter: isSticky ? "blur(24px)" : "none",
+        boxShadow: isSticky
+          ? "0 8px 30px rgba(15,23,42,.08), 0 1px 0 rgba(255,255,255,.8) inset"
+          : "0 4px 14px rgba(15,23,42,.04)",
+      }}
+    >
+      {/* Row 1: Search + Sort */}
       <div className="flex items-center gap-2.5 flex-wrap">
-        {/* Search */}
-        <div className="flex items-center gap-2 flex-1 min-w-[180px] h-[42px] px-3.5 bg-white rounded-full border border-border shadow-xs transition-all focus-within:border-primary-400 focus-within:ring-1 focus-within:ring-primary-200">
-          <Search size={14} className="text-ink-400 shrink-0" />
+        {/* Search input */}
+        <div
+          className="flex items-center gap-2 flex-1 min-w-[180px] transition-all duration-200 focus-within:ring-1 focus-within:ring-orange-300/50"
+          style={{
+            height: isSticky ? 38 : 42,
+            padding: "0 14px",
+            borderRadius: 999,
+            border: "1px solid rgba(17,24,39,.09)",
+            background: "rgba(255,255,255,.9)",
+            boxShadow: "0 2px 6px rgba(15,23,42,.04)",
+          }}
+        >
+          <Search size={14} color="#9ca8b8" className="shrink-0" />
           <input
             type="text"
             placeholder="Cari nama kreator atau keahlian..."
@@ -58,7 +88,7 @@ export function CreatorToolbar({
           {searchQuery && (
             <button
               onClick={() => onSearchChange("")}
-              className="text-ink-400 hover:text-ink-600 transition-colors cursor-pointer"
+              className="text-ink-400 hover:text-ink-600 transition-colors cursor-pointer shrink-0"
               aria-label="Hapus pencarian"
             >
               <X size={13} />
@@ -66,17 +96,21 @@ export function CreatorToolbar({
           )}
         </div>
 
-        {/* Sort Pill */}
-        <div className="relative inline-block">
+        {/* Sort select */}
+        <div className="relative inline-block shrink-0">
           <select
             value={sortBy}
             onChange={(e) => onSortByChange(e.target.value)}
             className={cn(
-              "appearance-none h-[42px] min-h-[42px] pl-4 pr-8 rounded-full text-[.82rem] font-[780] cursor-pointer outline-none transition-all duration-200 border shadow-xs",
+              "appearance-none pl-3.5 pr-8 rounded-full text-[.8rem] font-[780] cursor-pointer outline-none transition-all duration-200 border",
+              isSticky ? "h-[38px]" : "h-[42px]",
               isSorted
-                ? "border-orange-300/60 bg-orange-50 text-orange-600"
-                : "border-border bg-white text-ink-600"
+                ? "border-orange-300/60 bg-orange-50 text-orange-700"
+                : "border-neutral-200/80 bg-white text-ink-600"
             )}
+            style={{
+              boxShadow: "0 2px 6px rgba(15,23,42,.04)",
+            }}
             aria-label="Urutkan kreator"
           >
             {SORT_OPTIONS.map((opt) => (
@@ -95,8 +129,15 @@ export function CreatorToolbar({
         </div>
       </div>
 
-      {/* Row 2: Category Tabs */}
-      <div className="flex gap-1.5 flex-wrap p-1.5 rounded-[18px] overflow-x-auto scrollbar-none bg-ink-100/50">
+      {/* Row 2: Category tabs */}
+      <div
+        className="flex gap-1.5 overflow-x-auto scrollbar-none"
+        style={{
+          padding: "5px",
+          borderRadius: 14,
+          background: "rgba(17,24,39,.04)",
+        }}
+      >
         {CATEGORIES.map((cat) => {
           const isActive = selectedCategory === cat.id;
           return (
@@ -104,12 +145,20 @@ export function CreatorToolbar({
               key={cat.id}
               type="button"
               onClick={() => onCategoryChange(cat.id)}
-              className={cn(
-                "inline-flex items-center justify-center min-h-9 px-3.5 rounded-[13px] text-[.8rem] cursor-pointer transition-all duration-200 whitespace-nowrap font-display border-0",
-                isActive
-                  ? "bg-white text-orange-600 font-[820] shadow-sm"
-                  : "bg-transparent text-ink-500 font-[720] hover:text-ink-700"
-              )}
+              className="whitespace-nowrap cursor-pointer border-0 transition-all duration-200"
+              style={{
+                minHeight: isSticky ? 32 : 36,
+                padding: "0 12px",
+                borderRadius: 11,
+                fontSize: ".78rem",
+                fontWeight: isActive ? 820 : 680,
+                color: isActive ? "#ea580c" : "#737f91",
+                background: isActive
+                  ? "white"
+                  : "transparent",
+                boxShadow: isActive ? "0 2px 8px rgba(15,23,42,.06)" : "none",
+                transition: "all .2s cubic-bezier(.2,.8,.2,1)",
+              }}
             >
               {cat.label}
             </button>

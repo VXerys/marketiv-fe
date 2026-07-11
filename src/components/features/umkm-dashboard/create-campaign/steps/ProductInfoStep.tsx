@@ -1,8 +1,20 @@
+"use client";
+
+import { UtensilsCrossed, Shirt, MapPin, BookOpen, Sparkles, LayoutGrid } from "lucide-react";
 import { FormSectionCard } from "../cards/FormSectionCard";
 import { SelectableOptionCard } from "../cards/SelectableOptionCard";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NICHE_OPTIONS } from "../create-campaign.constants";
+
+const NICHE_ICONS: Record<string, React.ReactNode> = {
+  kuliner:    <UtensilsCrossed size={16} />,
+  fashion:    <Shirt size={16} />,
+  pariwisata: <MapPin size={16} />,
+  edukasi:    <BookOpen size={16} />,
+  kecantikan: <Sparkles size={16} />,
+  lainnya:    <LayoutGrid size={16} />,
+};
 
 interface ProductInfoStepProps {
   title: string;
@@ -32,7 +44,7 @@ export function ProductInfoStep({
       title="Informasi Produk"
       description="Lengkapi identitas produk dan kategori segmentasi agar kreator memahami produk Anda."
     >
-      {/* Title Input */}
+      {/* Campaign title */}
       <Input
         id="campaign-title"
         label="Judul Campaign / Nama Produk"
@@ -40,15 +52,26 @@ export function ProductInfoStep({
         value={title}
         onChange={(e) => onChangeTitle(e.target.value)}
         error={validationErrors.title}
-        helperText={!validationErrors.title ? "Masukkan nama produk yang dipasarkan secara singkat & spesifik." : undefined}
+        helperText={
+          !validationErrors.title
+            ? "Masukkan nama produk yang dipasarkan secara singkat & spesifik."
+            : undefined
+        }
       />
 
-      {/* Category selector grid */}
-      <div className="space-y-3">
-        <label className="block text-sm font-medium text-text-primary">
-          Kategori Niche Kreator <span className="text-primary">*</span>
-        </label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      {/* Niche category grid */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <label className="text-[.84rem] font-[700] text-ink-800">
+            Kategori Niche Kreator <span className="text-primary ml-0.5">*</span>
+          </label>
+          {category && (
+            <span className="text-[.72rem] font-[700] text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200/60">
+              Terpilih ✓
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-3 gap-2.5">
           {NICHE_OPTIONS.map((cat) => (
             <SelectableOptionCard
               key={cat.id}
@@ -56,11 +79,15 @@ export function ProductInfoStep({
               onClick={() => onChangeCategory(cat.id)}
               title={cat.label}
               description={cat.desc}
+              icon={NICHE_ICONS[cat.id]}
             />
           ))}
         </div>
         {validationErrors.category && (
-          <p className="text-xs text-destructive">{validationErrors.category}</p>
+          <p className="text-[.76rem] text-red-500 font-[600] flex items-center gap-1">
+            <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
+            {validationErrors.category}
+          </p>
         )}
       </div>
 
@@ -74,14 +101,18 @@ export function ProductInfoStep({
         helperText="Tentukan domisili kreator jika bisnis Anda hanya mencakup daerah tertentu."
       />
 
-      {/* Product Description */}
+      {/* Product description */}
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-4">
-          <label htmlFor="product-desc" className="text-sm font-medium text-text-primary">
-            Deskripsi Singkat Produk <span className="text-primary">*</span>
+          <label htmlFor="product-desc" className="text-[.84rem] font-[700] text-ink-800">
+            Deskripsi Singkat Produk <span className="text-primary ml-0.5">*</span>
           </label>
-          <span className={`text-[10px] font-bold ${description.length < 30 ? "text-text-muted" : "text-success"}`}>
-            {description.length} karakter (Min. 30)
+          <span
+            className={`text-[.72rem] font-[700] tabular-nums ${
+              description.length >= 30 ? "text-emerald-600" : "text-ink-400"
+            }`}
+          >
+            {description.length}/30 min
           </span>
         </div>
         <Textarea
@@ -91,10 +122,13 @@ export function ProductInfoStep({
           value={description}
           onChange={(e) => onChangeDescription(e.target.value)}
           error={validationErrors.description}
-          helperText={!validationErrors.description ? "Gambarkan keunggulan produk Anda dalam minimal 30 karakter untuk mempermudah kreator." : undefined}
+          helperText={
+            !validationErrors.description
+              ? "Gambarkan keunggulan produk Anda dalam minimal 30 karakter untuk mempermudah kreator."
+              : undefined
+          }
         />
       </div>
-
     </FormSectionCard>
   );
 }

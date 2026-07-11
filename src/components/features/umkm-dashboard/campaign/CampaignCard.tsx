@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Users, Eye, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatCompactViews, formatCompactCurrency } from "@/lib/formatters";
+import { formatCompactViews, formatCompactCurrency, formatCurrency } from "@/lib/formatters";
 import type { Campaign, CampaignStatus } from "@/types/umkm-dashboard.types";
 import { DashboardBadge } from "../shared/DashboardBadge";
 import { DashboardActionMenu } from "../shared/DashboardActionMenu";
@@ -47,6 +47,16 @@ const STATUS_LABEL: Record<CampaignStatus, string> = {
   cancelled: "Dibatalkan",
 };
 
+// Niche (kategori) color configuration untuk label bervariasi sesuai best practices
+const NICHE_COLOR_CONFIG: Record<string, { bg: string; text: string; border: string }> = {
+  kuliner:    { bg: "bg-orange-50",     text: "text-orange-700",    border: "border-orange-200/40" },
+  fesyen:     { bg: "bg-emerald-50",    text: "text-emerald-700",   border: "border-emerald-200/40" },
+  pariwisata: { bg: "bg-blue-50",       text: "text-blue-700",      border: "border-blue-200/40" },
+  edukasi:    { bg: "bg-purple-50",     text: "text-purple-700",    border: "border-purple-200/40" },
+  kecantikan: { bg: "bg-rose-50",       text: "text-rose-600",      border: "border-rose-200/40" },
+  lainnya:    { bg: "bg-neutral-50",    text: "text-neutral-600",   border: "border-neutral-200/40" },
+};
+
 export function CampaignCard({
   campaign,
   pendingCount = 0,
@@ -60,8 +70,10 @@ export function CampaignCard({
   const router = useRouter();
 
   const coverGradient = COVER_GRADIENTS[campaign.niche] ?? COVER_GRADIENTS.kuliner;
-  const progressPercent = campaign.creatorQuota > 0
-    ? Math.min(100, Math.round((campaign.usedQuota / campaign.creatorQuota) * 100))
+  
+  // Progress Budget (uang) sesuai 00_BACKEND (spentAmount/totalBudget)
+  const progressPercent = campaign.totalBudgetEscrow > 0
+    ? Math.min(100, Math.round((campaign.usedBudget / campaign.totalBudgetEscrow) * 100))
     : 0;
 
   const isCancelDisabled = campaign.status === "completed" || campaign.status === "cancelled";
@@ -77,9 +89,11 @@ export function CampaignCard({
 
   const statusDotClass = STATUS_DOT_COLOR[campaign.status] ?? STATUS_DOT_COLOR.active;
   const statusLabel    = STATUS_LABEL[campaign.status] ?? "Aktif";
+  
+  const nicheCfg = NICHE_COLOR_CONFIG[campaign.niche] ?? NICHE_COLOR_CONFIG.lainnya;
 
   return (
-    <div className="campaign-card">
+    <div className="campaign-card hover-card-animate">
       {/* Action menu — z-50 so it floats above cover art */}
       <div className="absolute top-3 right-3 z-50">
         <DashboardActionMenu items={actionItems} />
@@ -109,11 +123,6 @@ export function CampaignCard({
           {statusLabel}
         </span>
 
-        {/* Category chip */}
-        <span className="absolute top-3 right-10 px-2.5 py-[5px] rounded-full bg-[rgba(12,23,43,.36)] border border-white/20 text-white text-[.7rem] font-[800] backdrop-blur-[10px] capitalize">
-          {campaign.niche}
-        </span>
-
         {/* Budget chip — pakai formatCompactCurrency dari @/lib/formatters */}
         <span className="absolute bottom-3 right-3 px-3 py-2 rounded-[14px] bg-white/90 border border-white/30 shadow-md text-[.82rem] font-[850] text-ink-900 tracking-tight backdrop-blur-[10px]">
           {formatCompactCurrency(campaign.totalBudgetEscrow)}
@@ -123,41 +132,75 @@ export function CampaignCard({
       {/* Body */}
       <div className="campaign-card-body">
         <div className="min-w-0">
+          {/* Category chip dengan warna yang bervariasi sesuai niche */}
+          <span className={cn(
+            "inline-block text-[9px] font-black uppercase tracking-widest mb-1.5 select-none px-2 py-0.5 rounded-md border",
+            nicheCfg.bg,
+            nicheCfg.text,
+            nicheCfg.border
+          )}>
+            {campaign.niche}
+          </span>
           <h3 className="campaign-card-title">{campaign.title}</h3>
           <p className="text-xs text-text-muted line-clamp-2 min-w-0 mt-1">{campaign.brief}</p>
         </div>
 
-        {/* Stats row */}
+        {/* CPM / Reward Rate Info — Exact formatCurrency is best practice for exact payouts */}
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-primary-50/70 border border-primary/10 text-[10px] font-bold text-primary w-fit select-none">
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>Komisi: <strong className="font-extrabold">{formatCurrency(campaign.pricePerThousandViews)}</strong> / 1.000 tayangan</span>
+        </div>
+
+        {/* Stats row — descriptive terminology */}
         <div className="campaign-card-meta">
-          <span><Users size={13} />{campaign.usedQuota}/{campaign.creatorQuota} kreator</span>
-          {/* pakai formatCompactViews dari @/lib/formatters */}
-          <span><Eye size={13} />{formatCompactViews(campaign.totalViews)} views</span>
-          <span>
-            <Calendar size={13} />
+          <span className="flex items-center gap-1 font-extrabold text-[0.72rem]"><Users size={13} className="text-text-muted" />{campaign.usedQuota}/{campaign.creatorQuota} Kreator</span>
+          <span className="flex items-center gap-1 font-extrabold text-[0.72rem]"><Eye size={13} className="text-text-muted" />{formatCompactViews(campaign.totalViews)} Views</span>
+          <span className="flex items-center gap-1 font-extrabold text-[0.72rem]">
+            <Calendar size={13} className="text-text-muted" />
             {new Date(campaign.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
           </span>
         </div>
 
-        {/* Quota progress */}
+        {/* Budget progress (Ganti progress kuota ke progress uang) */}
         <div className="min-w-0">
-          <div className="flex justify-between mb-1.5 text-[.74rem] font-[760] text-ink-500">
-            <span>Progress Kuota</span>
-            <span className="text-ink-900 font-[800]">{progressPercent}%</span>
+          <div className="flex justify-between items-baseline mb-2">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-text-muted">
+              Anggaran Terpakai
+            </span>
+            <span className="text-[12px] font-extrabold text-neutral-900">
+              {formatCompactCurrency(campaign.usedBudget)}{" "}
+              <span className="text-neutral-400 font-medium">/ {formatCompactCurrency(campaign.totalBudgetEscrow)}</span>{" "}
+              <span className={cn(
+                "ml-1 text-[11px] px-1.5 py-0.5 rounded-md font-bold border",
+                progressPercent >= 100
+                  ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                  : "bg-orange-50 text-orange-600 border-orange-100"
+              )}>
+                {progressPercent}%
+              </span>
+            </span>
           </div>
-          <div className="h-2 rounded-full bg-ink-100 overflow-hidden">
+          <div className="relative h-2.5 w-full rounded-full bg-neutral-100/80 shadow-[inset_0_1.5px_3px_rgba(15,23,42,0.06)] overflow-hidden">
             <div
               className={cn(
-                "h-full rounded-[inherit] transition-[width] duration-[600ms] ease-[cubic-bezier(.2,.8,.2,1)] bg-gradient-to-r",
-                progressPercent >= 100 ? "from-green-600 to-lime-400" : "from-orange-500 to-amber-400"
+                "h-full rounded-full transition-[width] duration-[800ms] ease-[cubic-bezier(.2,.8,.2,1)] relative bg-gradient-to-r",
+                progressPercent >= 100
+                  ? "from-emerald-500 via-teal-500 to-emerald-400"
+                  : "from-orange-600 via-orange-500 to-amber-400"
               )}
               style={{ width: `${progressPercent}%` }}
-            />
+            >
+              {/* Glossy top highlight for 3D premium depth */}
+              <div className="absolute inset-x-0 top-0 h-[35%] bg-white/25 rounded-full" />
+            </div>
           </div>
         </div>
 
-        {/* Submissions summary */}
+        {/* Submissions summary — descriptive label */}
         <div className="flex flex-wrap gap-2 text-[10px] text-text-secondary border-t border-border-soft pt-3 justify-between items-center min-w-0">
-          <span className="font-bold uppercase tracking-wider text-[9px] text-text-muted truncate">Submissions</span>
+          <span className="font-bold uppercase tracking-wider text-[9px] text-text-muted truncate">Validasi Konten</span>
           <div className="flex gap-1.5 shrink-0">
             <DashboardBadge tone="amber" className="h-4.5 px-2 text-[9px] font-bold">
               {pendingCount} Pending
@@ -173,15 +216,15 @@ export function CampaignCard({
           </div>
         </div>
 
-        {/* Primary CTA */}
+        {/* Primary CTA with premium hover transitions */}
         <div className="mt-auto pt-2">
           <Link
             href={`/dashboard/umkm/campaign/${campaign.id}`}
             className={cn(
-              "flex items-center justify-center min-h-[36px] w-full rounded-[11px] text-[.82rem] font-[800] transition-all duration-200 no-underline",
+              "flex items-center justify-center min-h-[36px] w-full rounded-[11px] text-[.82rem] font-[800] transition-all duration-250 no-underline cursor-pointer select-none text-center",
               campaign.status === "draft"
-                ? "bg-ink-900/[.06] text-ink-900 hover:bg-ink-900/[.10]"
-                : "bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white shadow-[0_8px_20px_rgba(234,88,12,.2)] hover:shadow-[0_12px_28px_rgba(234,88,12,.28)] hover:-translate-y-px"
+                ? "bg-neutral-900 text-white shadow-[0_8px_20px_rgba(0,0,0,.15)] hover:bg-neutral-800 hover:-translate-y-0.5 active:translate-y-0"
+                : "bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white shadow-[0_8px_20px_rgba(234,88,12,.2)] hover:from-[#ea580c] hover:to-[#c2410c] hover:shadow-[0_12px_28px_rgba(234,88,12,.35)] hover:-translate-y-0.5 active:translate-y-0"
             )}
           >
             {campaign.status === "draft" ? "Lanjutkan Draft" : "Lihat Detail"}

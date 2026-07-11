@@ -3,21 +3,20 @@
 import { Search, X, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { CREATOR_NICHE_OPTIONS } from "@/constants/umkm-dashboard.constants";
 
-// Status tabs using pill style from prototype
 const STATUS_TABS = [
-  { value: "all", label: "Semua Status" },
-  { value: "active", label: "Aktif" },
-  { value: "draft", label: "Draft" },
-  { value: "full", label: "Penuh" },
-  { value: "completed", label: "Selesai" },
-  { value: "cancelled", label: "Dibatalkan" },
+  { value: "all",       label: "Semua Status" },
+  { value: "active",    label: "Aktif"        },
+  { value: "draft",     label: "Draft"        },
+  { value: "full",      label: "Penuh"        },
+  { value: "completed", label: "Selesai"      },
+  { value: "cancelled", label: "Dibatalkan"   },
 ] as const;
 
 const SORT_OPTIONS = [
-  { value: "latest", label: "Terbaru" },
-  { value: "oldest", label: "Terlama" },
+  { value: "latest",      label: "Terbaru"         },
+  { value: "oldest",      label: "Terlama"         },
   { value: "budget_desc", label: "Budget Tertinggi" },
-  { value: "views_desc", label: "Views Terbanyak" },
+  { value: "views_desc",  label: "Views Terbanyak"  },
 ] as const;
 
 interface CampaignToolbarProps {
@@ -34,6 +33,7 @@ interface CampaignToolbarProps {
   onClearFilters: () => void;
   hasActiveFilters: boolean;
   statusCounts?: Partial<Record<string, number>>;
+  isSticky?: boolean;
 }
 
 export function CampaignToolbar({
@@ -50,9 +50,24 @@ export function CampaignToolbar({
   onClearFilters,
   hasActiveFilters,
   statusCounts = {},
+  isSticky = false,
 }: CampaignToolbarProps) {
   return (
-    <div className="shrink-0 bg-white border border-neutral-200/80 rounded-2xl p-4 shadow-3xs flex flex-col gap-4">
+    <div
+      className="shrink-0 flex flex-col gap-4"
+      style={{
+        padding: isSticky ? "10px 14px" : "16px",
+        borderRadius: isSticky ? 18 : 16,
+        border: "1px solid rgba(17,24,39,.09)",
+        background: isSticky ? "rgba(255,255,255,.92)" : "white",
+        backdropFilter: isSticky ? "blur(24px)" : "none",
+        WebkitBackdropFilter: isSticky ? "blur(24px)" : "none",
+        boxShadow: isSticky
+          ? "0 8px 30px rgba(15,23,42,.08), 0 1px 0 rgba(255,255,255,.8) inset"
+          : "0 2px 8px rgba(15,23,42,.04)",
+        transition: "all .28s cubic-bezier(.2,.8,.2,1)",
+      }}
+    >
       {/* Row 1: search + selects + view toggle */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 flex-wrap">
         {/* Search */}
@@ -89,9 +104,7 @@ export function CampaignToolbar({
             >
               <option value="all">Semua Kategori</option>
               {CREATOR_NICHE_OPTIONS.filter((o) => o.value !== "all").map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
+                <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
             <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
@@ -105,15 +118,12 @@ export function CampaignToolbar({
               className="appearance-none bg-white border border-neutral-200 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-700 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all cursor-pointer shadow-3xs"
             >
               {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
+                <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
             <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
           </div>
 
-          {/* Active filter indicator */}
           {hasActiveFilters && (
             <div className="inline-flex items-center gap-1 bg-primary-50 border border-primary-200/50 text-primary-600 text-xs font-extrabold px-2.5 py-1.5 rounded-xl shadow-3xs">
               <SlidersHorizontal size={12} />
@@ -121,7 +131,6 @@ export function CampaignToolbar({
             </div>
           )}
 
-          {/* Reset */}
           {hasActiveFilters && (
             <button
               onClick={onClearFilters}
@@ -162,39 +171,48 @@ export function CampaignToolbar({
         </div>
       </div>
 
-      {/* Row 2: status pill tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-t border-neutral-100 pt-3">
-        <span className="text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider mr-1.5 hidden sm:inline shrink-0">
-          Status:
-        </span>
-        <div className="flex gap-1.5 flex-wrap">
-          {STATUS_TABS.map((tab) => {
-            const isActive = selectedStatus === tab.value;
-            const count = statusCounts[tab.value];
-            return (
-              <button
-                key={tab.value}
-                type="button"
-                onClick={() => onStatusChange(tab.value)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                  isActive
-                    ? "bg-primary-50 border-primary-500/30 text-primary-600 font-extrabold shadow-3xs"
-                    : "bg-white border-neutral-200/60 hover:bg-neutral-50 text-neutral-500 hover:text-neutral-700"
-                }`}
-              >
-                {tab.label}
-                {count !== undefined && (
-                  <span
-                    className={`inline-flex items-center justify-center min-w-[18px] h-4.5 rounded-full text-[9px] font-extrabold px-1 ${
-                      isActive ? "bg-primary-100/50 text-primary-700" : "bg-neutral-100 text-neutral-500"
-                    }`}
-                  >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+      {/* Row 2: status pill tabs — collapses when sticky */}
+      <div
+        style={{
+          maxHeight: isSticky ? 0 : 200,
+          opacity: isSticky ? 0 : 1,
+          overflow: "hidden",
+          transition: "max-height .28s cubic-bezier(.2,.8,.2,1), opacity .2s ease",
+        }}
+      >
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-t border-neutral-100 pt-3">
+          <span className="text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider mr-1.5 hidden sm:inline shrink-0">
+            Status:
+          </span>
+          <div className="flex gap-1.5 flex-wrap">
+            {STATUS_TABS.map((tab) => {
+              const isActive = selectedStatus === tab.value;
+              const count = statusCounts[tab.value];
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => onStatusChange(tab.value)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    isActive
+                      ? "bg-primary-50 border-primary-500/30 text-primary-600 font-extrabold shadow-3xs"
+                      : "bg-white border-neutral-200/60 hover:bg-neutral-50 text-neutral-500 hover:text-neutral-700"
+                  }`}
+                >
+                  {tab.label}
+                  {count !== undefined && (
+                    <span
+                      className={`inline-flex items-center justify-center min-w-[18px] h-4.5 rounded-full text-[9px] font-extrabold px-1 ${
+                        isActive ? "bg-primary-100/50 text-primary-700" : "bg-neutral-100 text-neutral-500"
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

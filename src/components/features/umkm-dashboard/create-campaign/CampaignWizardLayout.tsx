@@ -7,15 +7,15 @@ interface CampaignWizardLayoutProps {
 
 export function CampaignWizardLayout({ children, sidebar }: CampaignWizardLayoutProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-      
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
       {/* Active Form Area */}
-      <div className="lg:col-span-8 space-y-6">
+      <div className="lg:col-span-8 space-y-5">
         {children}
       </div>
 
-      {/* Sidebar Info Panels */}
-      <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6">
+      {/* Sidebar Info Panels — sticky below topbar */}
+      <div className="lg:col-span-4 space-y-4 lg:sticky lg:top-[80px]">
         {sidebar}
       </div>
 

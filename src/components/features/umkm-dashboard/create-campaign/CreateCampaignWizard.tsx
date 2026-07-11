@@ -245,7 +245,7 @@ export function CreateCampaignWizard() {
   // Render sidebar contents dynamically based on active step status
   const renderSidebar = () => {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Live Preview Card (Always rendered to show visual progress) */}
         <CampaignLivePreviewCard
           title={title}
@@ -291,7 +291,7 @@ export function CreateCampaignWizard() {
   };
 
   return (
-    <div className="pb-32 relative">
+    <div className="pb-6 relative">
       {/* Wizard Header */}
       <CampaignWizardHeader
         onSaveDraft={handleSaveDraft}

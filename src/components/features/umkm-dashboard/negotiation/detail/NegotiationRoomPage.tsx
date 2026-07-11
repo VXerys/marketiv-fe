@@ -231,49 +231,53 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-6">
-      {/* Header */}
+    <div className="max-w-7xl mx-auto pb-8 flex flex-col gap-4">
+      {/* Back link + premium header card */}
       <NegotiationRoomHeader
         order={order}
         onSendOffer={() => setIsOfferModalOpen(true)}
         onPay={() => setIsPaymentModalOpen(true)}
       />
 
-      {/* Main content grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        
-        {/* Left Side Chat Workspace (8 columns) */}
-        <div className="lg:col-span-2 space-y-4">
-          
-          {/* Collab Post alert banner */}
-          <CollabPostWarningBanner />
+      {/* Main content: messenger chat + project sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
 
-          {/* Messages Feed Viewport */}
+        {/* LEFT: Unified full-height chat panel */}
+        <div
+          className="flex flex-col overflow-hidden"
+          style={{
+            borderRadius: 26,
+            border: "1px solid rgba(17,24,39,.08)",
+            background: "radial-gradient(circle at 100% 0%, rgba(30,58,95,.06), transparent 16rem), #f8fafc",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,.8), 0 8px 28px rgba(15,23,42,.06)",
+            height: "calc(100svh - 262px)",
+            minHeight: 520,
+          }}
+        >
+          {/* Collab Post requirement — compact strip */}
+          <CollabPostWarningBanner compact />
+
+          {/* Messages — flex-1 scrollable */}
           <ChatTimeline
             messages={messages}
             onPayOffer={() => setIsPaymentModalOpen(true)}
             orderStatus={order.status}
           />
 
-          {/* Composer */}
+          {/* Composer — pinned to bottom */}
           <MessageComposer onSendMessage={handleSendMessage} />
         </div>
 
-        {/* Right Side Sidebar (4 columns) */}
-        <div className="space-y-6">
-          {/* Order Summary details */}
+        {/* RIGHT: Project sidebar — sticky, independently scrollable */}
+        <div
+          className="flex flex-col gap-3 lg:sticky lg:top-0 overflow-y-auto scrollbar-thin"
+          style={{ maxHeight: "calc(100svh - 262px)" }}
+        >
           <OrderSummaryCard order={order} />
-
-          {/* Escrow progression stages */}
           <EscrowStatusCard orderStatus={order.status} />
-
-          {/* Creator Profile short summary */}
           <CreatorMiniProfileCard order={order} />
-
-          {/* Deal deliverables checklists */}
           <DealChecklistCard orderStatus={order.status} />
         </div>
-
       </div>
 
       {/* Dialog Modals */}
@@ -302,7 +306,6 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
           onConfirm={() => setIsSuccessModalOpen(false)}
         />
       )}
-
     </div>
   );
 }
