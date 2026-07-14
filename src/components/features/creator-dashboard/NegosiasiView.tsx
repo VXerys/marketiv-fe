@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { CreatorNegotiation } from "@/types/creator-dashboard";
-import { toast } from "sonner";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
 import { CreatorErrorState } from "./CreatorErrorState";
@@ -16,10 +16,9 @@ import {
   ClipboardCheck,
   Search,
   Tag,
-  ChevronRight,
   Hourglass,
-  Sparkles,
   Clock3,
+  SlidersHorizontal,
 } from "lucide-react";
 
 interface NegosiasiViewProps {
@@ -78,107 +77,87 @@ const STATUS_STYLES: Record<string, { dot: string; text: string; bg: string; bor
 function NegotiationCard({ neg }: { neg: CreatorNegotiation }) {
   const s = STATUS_STYLES[neg.status] ?? STATUS_STYLES.Negosiasi;
   const dateStr = new Date(neg.lastMessageAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
-  const isActive = neg.status === "Negosiasi";
   const hasUrgent = neg.unreadCount > 0;
 
   return (
     <div
       className={cn(
-        "group bg-white rounded-[22px] border overflow-hidden shadow-[0_2px_16px_rgba(15,23,42,.04)] hover:shadow-[0_16px_48px_rgba(109,40,217,.10)] hover:-translate-y-1.5 transition-all duration-300 flex flex-col",
+        "group relative bg-white rounded-[20px] border-l-4 border overflow-hidden",
+        "shadow-[0_2px_10px_rgba(15,23,42,.04)] hover:shadow-[0_10px_32px_rgba(109,40,217,.09)] hover:-translate-y-0.5",
+        "transition-all duration-300 flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4",
         hasUrgent
-          ? "border-violet-300/40 ring-1 ring-violet-200/50"
-          : "border-neutral-200/60 hover:border-violet-300/30"
+          ? "border-l-violet-500 border-violet-200/50"
+          : "border-l-neutral-200 border-neutral-200/60 hover:border-violet-200/40"
       )}
     >
-      {/* Top accent bar for active/unread */}
+      {/* Unread top strip */}
       {hasUrgent && (
-        <div className="h-[3px] w-full bg-gradient-to-r from-violet-500 via-indigo-500 to-violet-400" />
+        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500 via-indigo-400 to-violet-500" />
       )}
 
-      <div className="p-5 flex flex-col gap-4 flex-1">
-        {/* Header row */}
-        <div className="flex items-start gap-3.5">
-          {/* Avatar */}
-          <div className="relative shrink-0">
-            <div className="w-12 h-12 rounded-[14px] border border-neutral-200/40 overflow-hidden bg-neutral-50 flex items-center justify-center font-black text-neutral-300 text-lg">
-              {neg.umkmAvatarUrl ? (
-                <img src={neg.umkmAvatarUrl} alt={neg.umkmName} className="w-full h-full object-cover" />
-              ) : (
-                <span>{neg.umkmName.charAt(0)}</span>
-              )}
-            </div>
-            {isActive && (
-              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-amber-400 border-2 border-white" />
-            )}
-          </div>
-
-          {/* Name + project */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <h4 className="font-extrabold text-[#1e1b4b] text-sm truncate leading-tight group-hover:text-violet-700 transition-colors">
-                {neg.umkmName}
-              </h4>
-              <span className="text-[10px] text-neutral-400 font-bold shrink-0 flex items-center gap-1">
-                <Clock3 className="w-3 h-3" />
-                {dateStr}
-              </span>
-            </div>
-            <p className="text-[10px] font-bold text-neutral-400 mt-1 uppercase tracking-wider truncate flex items-center gap-1.5">
-              <Tag className="w-3 h-3 shrink-0" />
-              <span>{neg.projectTitle}</span>
-            </p>
-          </div>
-        </div>
-
-        {/* Last message bubble */}
-        <div className="relative bg-neutral-50/80 border border-neutral-100 rounded-[16px] px-4 py-3">
-          <span className="block text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">Pesan Terakhir</span>
-          <p className="text-xs text-neutral-600 font-semibold line-clamp-2 leading-relaxed">
-            &ldquo;{neg.lastMessage}&rdquo;
-          </p>
-          {neg.unreadCount > 0 && (
-            <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px] px-1 bg-violet-600 rounded-full text-white font-extrabold text-[9px] flex items-center justify-center shadow-md">
-              {neg.unreadCount}
-            </span>
+      {/* Avatar */}
+      <div className="relative shrink-0">
+        <div className="w-11 h-11 rounded-[13px] border border-neutral-200/40 overflow-hidden bg-neutral-50 flex items-center justify-center font-black text-neutral-300 text-lg">
+          {neg.umkmAvatarUrl ? (
+            <img src={neg.umkmAvatarUrl} alt={neg.umkmName} className="w-full h-full object-cover" />
+          ) : (
+            <span>{neg.umkmName.charAt(0)}</span>
           )}
         </div>
+        {neg.unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-0.5 bg-violet-600 rounded-full text-white font-extrabold text-[9px] flex items-center justify-center border-2 border-white">
+            {neg.unreadCount > 9 ? "9+" : neg.unreadCount}
+          </span>
+        )}
+      </div>
 
-        {/* Stats row */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-neutral-50 rounded-[14px] px-3.5 py-3 border border-neutral-100">
-            <span className="block text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Harga Deal</span>
-            <span className="font-display text-sm font-black text-[#1e1b4b] tracking-tight">
-              {formatCurrency(neg.finalPrice)}
-            </span>
-          </div>
-          <div className="bg-neutral-50 rounded-[14px] px-3.5 py-3 border border-neutral-100">
-            <span className="block text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">Status</span>
-            <span className={cn(
-              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-extrabold border",
-              s.text, s.bg, s.border
-            )}>
-              <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", s.dot)} />
-              {s.label}
-            </span>
-          </div>
+      {/* Main content */}
+      <div className="flex-1 min-w-0 space-y-1.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-extrabold text-[#1e1b4b] text-sm group-hover:text-violet-700 transition-colors">
+            {neg.umkmName}
+          </span>
+          <span className={cn(
+            "inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-full text-[9px] font-extrabold border",
+            s.text, s.bg, s.border
+          )}>
+            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", s.dot)} />
+            {s.label}
+          </span>
+        </div>
+
+        <h4 className="font-extrabold text-sm text-[#1e1b4b] truncate leading-tight flex items-center gap-1.5">
+          <Tag className="w-3 h-3 text-neutral-400 shrink-0" />
+          {neg.projectTitle}
+        </h4>
+
+        <p className="text-[10px] text-neutral-500 font-semibold line-clamp-1 leading-relaxed">
+          &ldquo;{neg.lastMessage}&rdquo;
+        </p>
+
+        <div className="flex items-center gap-3 pt-0.5">
+          <span className="flex items-center gap-1 text-[9px] font-bold text-neutral-400">
+            <Clock3 className="w-2.5 h-2.5 shrink-0" />
+            {dateStr}
+          </span>
+          <span className="font-display text-xs font-black text-[#1e1b4b] tracking-tight">
+            {formatCurrency(neg.finalPrice)}
+          </span>
         </div>
       </div>
 
       {/* CTA */}
-      <div className="px-5 pb-5">
-        <Link
-          href={`/dashboard/kreator/negosiasi/${neg.id}`}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-[14px] text-xs font-extrabold text-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 group/btn"
-          style={{
-            background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-            boxShadow: "0 4px 16px rgba(124,58,237,.28)",
-          }}
-        >
-          <MessageSquare className="w-3.5 h-3.5 opacity-80 group-hover/btn:opacity-100" />
-          Buka Room Negosiasi
-          <ChevronRight className="w-3.5 h-3.5 opacity-60 group-hover/btn:translate-x-0.5 transition-transform" />
-        </Link>
-      </div>
+      <Link
+        href={`/dashboard/kreator/negosiasi/${neg.id}`}
+        className="self-end sm:self-center flex items-center gap-1.5 px-4 py-2.5 rounded-[12px] text-[11px] font-extrabold text-white shrink-0 transition-all hover:-translate-y-0.5 active:translate-y-0"
+        style={{
+          background: "linear-gradient(135deg,#7c3aed,#4f46e5)",
+          boxShadow: "0 4px 14px rgba(124,58,237,.25)",
+        }}
+      >
+        <MessageSquare className="w-3.5 h-3.5" />
+        Buka Room
+      </Link>
     </div>
   );
 }
@@ -191,6 +170,8 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const { toolbarRef, isSticky } = useStickyToolbar();
 
   const [isLoadingSimulated] = useState(false);
   const [isEmptySimulated] = useState(false);
@@ -248,7 +229,7 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
   }
 
   return (
-    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto relative">
+    <div className="flex-1 p-4 sm:p-6 lg:p-8 relative">
       {isLoadingSimulated ? (
         <div>
           <CreatorMetricSkeleton />
@@ -262,12 +243,12 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
             description="Kelola order Rate Card dari UMKM."
           />
 
-          {/* Metric tiles — 2/3/4 Dashboard Rule */}
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 mb-7">
+          {/* Metric tiles — 4 cards max, 1 row on desktop */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-7">
             <MetricTile
               label="Negosiasi Aktif"
               value={countNegotiation}
-              helper="Dalam chat negosiasi"
+              helper="Perlu respons kamu"
               iconClass="text-amber-600 bg-amber-50 border-amber-200/50"
               icon={<MessageSquare className="w-4 h-4" />}
               cardClass="border-amber-200/40 shadow-[0_4px_20px_rgba(217,119,6,.06)] bg-gradient-to-br from-amber-50/20 to-white"
@@ -277,7 +258,7 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
             <MetricTile
               label="Menunggu Pembayaran"
               value={countPendingPayment}
-              helper="UMKM bayar invoice"
+              helper="Tawaran kamu disetujui"
               iconClass="text-blue-600 bg-blue-50 border-blue-200/50"
               icon={<Hourglass className="w-4 h-4" />}
               cardClass="border-blue-200/40 shadow-[0_4px_20px_rgba(37,99,235,.06)] bg-gradient-to-br from-blue-50/20 to-white"
@@ -285,7 +266,7 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
             <MetricTile
               label="Escrow Aktif"
               value={countEscrow}
-              helper="Dana aman ter-escrow"
+              helper="Kamu sedang mengerjakan"
               iconClass="text-emerald-600 bg-emerald-50 border-emerald-200/50"
               icon={<ShieldCheck className="w-4 h-4" />}
               cardClass="border-emerald-200/40 shadow-[0_4px_20px_rgba(22,163,74,.06)] bg-gradient-to-br from-emerald-50/20 to-white"
@@ -293,56 +274,93 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
             <MetricTile
               label="Order Selesai"
               value={countCompleted}
-              helper="Negosiasi selesai"
-              iconClass="text-neutral-500 bg-neutral-100 border-neutral-200/50"
+              helper="Reward siap dicairkan"
+              iconClass="text-violet-600 bg-violet-50 border-violet-200/50"
               icon={<ClipboardCheck className="w-4 h-4" />}
+              cardClass="border-violet-200/40 shadow-[0_4px_20px_rgba(124,58,237,.06)] bg-gradient-to-br from-violet-50/20 to-white"
             />
           </div>
 
-          {/* Toolbar */}
-          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mb-6 bg-white/80 border border-neutral-200/50 p-3.5 rounded-[20px]">
-            <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari UMKM / judul order..."
-                className="w-full pl-10 pr-4 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all font-medium text-neutral-800 placeholder-neutral-400"
-              />
+          {/* Toolbar — sticky when scrolling */}
+          <div ref={toolbarRef} className="mb-6 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8" style={{ position: "sticky", top: 0, zIndex: 30 }}>
+          <div
+            className="flex flex-col gap-3"
+            style={{
+              padding: isSticky ? "10px 14px" : "14px",
+              borderRadius: isSticky ? 18 : 20,
+              border: "1px solid rgba(17,24,39,.08)",
+              background: isSticky ? "rgba(255,255,255,.92)" : "rgba(255,255,255,.8)",
+              backdropFilter: isSticky ? "blur(24px)" : "none",
+              WebkitBackdropFilter: isSticky ? "blur(24px)" : "none",
+              boxShadow: isSticky ? "0 8px 30px rgba(15,23,42,.08), 0 1px 0 rgba(255,255,255,.8) inset" : "0 2px 8px rgba(15,23,42,.04)",
+              transition: "all .28s cubic-bezier(.2,.8,.2,1)",
+            }}
+          >
+            {/* Row 1: Search + mobile filter toggle */}
+            <div className="flex gap-2.5 items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Cari UMKM / judul order..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all font-medium text-neutral-800 placeholder-neutral-400"
+                />
+              </div>
+              {/* Mobile filter toggle */}
+              <button
+                onClick={() => setFilterOpen((o) => !o)}
+                className={cn(
+                  "sm:hidden shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
+                  filterOpen || hasActiveFilters
+                    ? "bg-violet-50 text-violet-700 border-violet-200"
+                    : "bg-neutral-50/50 text-neutral-700 border-neutral-200/60"
+                )}
+              >
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                Filter
+                {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />}
+              </button>
             </div>
 
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-sm font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[170px]"
-            >
-              <option value="all">Semua Status</option>
-              <option value="negosiasi">Negosiasi</option>
-              <option value="menunggu-pembayaran">Menunggu Pembayaran</option>
-              <option value="escrow">Escrow Aktif</option>
-              <option value="selesai">Selesai</option>
-            </select>
+            {/* Row 2: All filters — always on sm+, collapsible on mobile */}
+            <div className={cn("items-center gap-3 flex-wrap", filterOpen ? "flex" : "hidden sm:flex")}>
+              <SlidersHorizontal className="w-3.5 h-3.5 text-neutral-400 shrink-0 hidden sm:block" />
 
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-sm font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[130px]"
-            >
-              <option value="latest">Terbaru</option>
-            </select>
-
-            {hasActiveFilters && (
-              <button
-                onClick={handleClearFilters}
-                className="flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-bold text-neutral-500 hover:text-neutral-900 cursor-pointer transition-colors whitespace-nowrap"
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[170px]"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-                Reset
-              </button>
-            )}
+                <option value="all">Semua Status</option>
+                <option value="negosiasi">Negosiasi</option>
+                <option value="menunggu-pembayaran">Menunggu Pembayaran</option>
+                <option value="escrow">Escrow Aktif</option>
+                <option value="selesai">Selesai</option>
+              </select>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[130px]"
+              >
+                <option value="latest">Terbaru</option>
+              </select>
+
+              {hasActiveFilters && (
+                <button
+                  onClick={handleClearFilters}
+                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-neutral-500 hover:text-neutral-900 cursor-pointer transition-colors whitespace-nowrap ml-auto border border-neutral-200/60 rounded-xl hover:bg-neutral-50"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
           </div>
 
           {/* Negotiation cards */}
@@ -367,7 +385,7 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
               }
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in duration-300">
+            <div className="flex flex-col gap-3 animate-in fade-in duration-300">
               {filteredNegotiations.map((neg) => (
                 <NegotiationCard key={neg.id} neg={neg} />
               ))}

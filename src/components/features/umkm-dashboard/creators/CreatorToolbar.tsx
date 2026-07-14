@@ -1,6 +1,7 @@
 "use client";
 
-import { Search, ChevronDown, X } from "lucide-react";
+import { useRef, useState, useEffect, useCallback } from "react";
+import { Search, ChevronDown, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CreatorToolbarProps {
@@ -41,6 +42,34 @@ export function CreatorToolbar({
   isSticky = false,
 }: CreatorToolbarProps) {
   const isSorted = sortBy !== "rating";
+
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = useCallback(() => {
+    const el = tabsRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    const el = tabsRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    const ro = new ResizeObserver(checkScroll);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener("scroll", checkScroll);
+      ro.disconnect();
+    };
+  }, [checkScroll]);
+
+  const scrollTabs = (dir: "left" | "right") => {
+    tabsRef.current?.scrollBy({ left: dir === "left" ? -180 : 180, behavior: "smooth" });
+  };
 
   return (
     <div
@@ -129,41 +158,77 @@ export function CreatorToolbar({
         </div>
       </div>
 
-      {/* Row 2: Category tabs */}
-      <div
-        className="flex gap-1.5 overflow-x-auto scrollbar-none"
-        style={{
-          padding: "5px",
-          borderRadius: 14,
-          background: "rgba(17,24,39,.04)",
-        }}
-      >
-        {CATEGORIES.map((cat) => {
-          const isActive = selectedCategory === cat.id;
-          return (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => onCategoryChange(cat.id)}
-              className="whitespace-nowrap cursor-pointer border-0 transition-all duration-200"
-              style={{
-                minHeight: isSticky ? 32 : 36,
-                padding: "0 12px",
-                borderRadius: 11,
-                fontSize: ".78rem",
-                fontWeight: isActive ? 820 : 680,
-                color: isActive ? "#ea580c" : "#737f91",
-                background: isActive
-                  ? "white"
-                  : "transparent",
-                boxShadow: isActive ? "0 2px 8px rgba(15,23,42,.06)" : "none",
-                transition: "all .2s cubic-bezier(.2,.8,.2,1)",
-              }}
-            >
-              {cat.label}
-            </button>
-          );
-        })}
+      {/* Row 2: Category tabs with custom scroll buttons */}
+      <div className="relative">
+        {/* Left scroll button */}
+        {canScrollLeft && (
+          <button
+            type="button"
+            onClick={() => scrollTabs("left")}
+            aria-label="Scroll kiri"
+            className="absolute left-0 top-0 bottom-0 z-10 flex items-center justify-center w-9 cursor-pointer"
+            style={{
+              background: "linear-gradient(to right, rgba(246,247,248,1) 50%, rgba(246,247,248,0))",
+              borderRadius: "14px 0 0 14px",
+            }}
+          >
+            <ChevronLeft size={14} className="text-ink-500" />
+          </button>
+        )}
+
+        <div
+          ref={tabsRef}
+          className="flex gap-1.5 overflow-x-auto scrollbar-none"
+          style={{
+            padding: "5px",
+            paddingLeft: canScrollLeft ? "34px" : "5px",
+            paddingRight: canScrollRight ? "34px" : "5px",
+            borderRadius: 14,
+            background: "rgba(17,24,39,.04)",
+            transition: "padding .2s cubic-bezier(.2,.8,.2,1)",
+          }}
+        >
+          {CATEGORIES.map((cat) => {
+            const isActive = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => onCategoryChange(cat.id)}
+                className="whitespace-nowrap cursor-pointer border-0 transition-all duration-200"
+                style={{
+                  minHeight: isSticky ? 32 : 36,
+                  padding: "0 12px",
+                  borderRadius: 11,
+                  fontSize: ".78rem",
+                  fontWeight: isActive ? 820 : 680,
+                  color: isActive ? "#ea580c" : "#737f91",
+                  background: isActive ? "white" : "transparent",
+                  boxShadow: isActive ? "0 2px 8px rgba(15,23,42,.06)" : "none",
+                  transition: "all .2s cubic-bezier(.2,.8,.2,1)",
+                }}
+              >
+                {cat.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right scroll button */}
+        {canScrollRight && (
+          <button
+            type="button"
+            onClick={() => scrollTabs("right")}
+            aria-label="Scroll kanan"
+            className="absolute right-0 top-0 bottom-0 z-10 flex items-center justify-center w-9 cursor-pointer"
+            style={{
+              background: "linear-gradient(to left, rgba(246,247,248,1) 50%, rgba(246,247,248,0))",
+              borderRadius: "0 14px 14px 0",
+            }}
+          >
+            <ChevronRight size={14} className="text-ink-500" />
+          </button>
+        )}
       </div>
     </div>
   );

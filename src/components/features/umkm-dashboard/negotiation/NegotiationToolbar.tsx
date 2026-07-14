@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Search, X, ChevronDown, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NEGOTIATION_STATUS_FILTERS, NEGOTIATION_SORT_OPTIONS } from "./negotiation.constants";
@@ -31,6 +32,7 @@ export function NegotiationToolbar({
 }: NegotiationToolbarProps) {
   const statuses = NEGOTIATION_STATUS_FILTERS;
   const sortOptions = NEGOTIATION_SORT_OPTIONS;
+  const [filterOpen, setFilterOpen] = useState(false);
 
   return (
     <div
@@ -48,10 +50,10 @@ export function NegotiationToolbar({
         transition: "all .28s cubic-bezier(.2,.8,.2,1)",
       }}
     >
-      {/* Row 1: Search + Sort + filter indicators */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 flex-wrap">
+      {/* Row 1: Search + mobile filter toggle + desktop controls */}
+      <div className="flex items-center gap-2.5">
         {/* Search */}
-        <div className="relative flex-grow min-w-[240px]">
+        <div className="relative flex-grow">
           <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-neutral-400">
             <Search size={16} />
           </span>
@@ -73,8 +75,23 @@ export function NegotiationToolbar({
           )}
         </div>
 
-        {/* Sort + filter indicators */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Mobile filter toggle */}
+        <button
+          onClick={() => setFilterOpen((o) => !o)}
+          className={cn(
+            "sm:hidden shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer",
+            filterOpen || hasActiveFilters
+              ? "bg-primary-50 text-primary-600 border-primary-200"
+              : "bg-white text-neutral-600 border-neutral-200"
+          )}
+        >
+          <SlidersHorizontal size={14} />
+          Filter
+          {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-primary-500 shrink-0" />}
+        </button>
+
+        {/* Desktop: Sort + filter indicators + reset */}
+        <div className="hidden sm:flex flex-wrap items-center gap-2">
           <div className="relative">
             <select
               value={sortBy}
@@ -106,7 +123,31 @@ export function NegotiationToolbar({
         </div>
       </div>
 
-      {/* Row 2: Status pill tabs — collapses when sticky */}
+      {/* Mobile filter panel: Sort + reset — hidden by default, shows when filterOpen */}
+      <div className={cn("sm:hidden flex-wrap items-center gap-2", filterOpen ? "flex" : "hidden")}>
+        <div className="relative">
+          <select
+            value={sortBy}
+            onChange={(e) => onSortByChange(e.target.value)}
+            className="appearance-none bg-white border border-neutral-200 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-700 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all cursor-pointer shadow-3xs"
+          >
+            {sortOptions.map((opt) => (
+              <option key={opt.id} value={opt.id}>{opt.label}</option>
+            ))}
+          </select>
+          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
+        </div>
+        {hasActiveFilters && (
+          <button
+            onClick={onClearFilters}
+            className="inline-flex items-center gap-1 bg-red-50 hover:bg-red-100/80 border border-red-200 text-red-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-3xs"
+          >
+            <X size={12} /> Reset
+          </button>
+        )}
+      </div>
+
+      {/* Row 2: Status pill tabs — collapses when sticky OR on mobile unless filterOpen */}
       <div
         style={{
           maxHeight: isSticky ? 0 : 200,
@@ -114,6 +155,7 @@ export function NegotiationToolbar({
           overflow: "hidden",
           transition: "max-height .28s cubic-bezier(.2,.8,.2,1), opacity .2s ease",
         }}
+        className={cn(!isSticky && !filterOpen ? "hidden sm:block" : "")}
       >
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-t border-neutral-100 pt-3">
           <span className="text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider mr-1.5 hidden sm:inline shrink-0">

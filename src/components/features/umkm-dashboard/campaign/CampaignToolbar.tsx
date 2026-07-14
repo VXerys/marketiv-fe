@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Search, X, SlidersHorizontal, ChevronDown } from "lucide-react";
 import { CREATOR_NICHE_OPTIONS } from "@/constants/umkm-dashboard.constants";
 
@@ -52,6 +53,8 @@ export function CampaignToolbar({
   statusCounts = {},
   isSticky = false,
 }: CampaignToolbarProps) {
+  const [filterOpen, setFilterOpen] = useState(false);
+
   return (
     <div
       className="shrink-0 flex flex-col gap-4"
@@ -68,10 +71,10 @@ export function CampaignToolbar({
         transition: "all .28s cubic-bezier(.2,.8,.2,1)",
       }}
     >
-      {/* Row 1: search + selects + view toggle */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 flex-wrap">
+      {/* Row 1: Search + mobile filter toggle + desktop controls */}
+      <div className="flex items-center gap-2.5">
         {/* Search */}
-        <div className="relative flex-grow min-w-[280px]">
+        <div className="relative flex-grow">
           <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-neutral-400">
             <Search size={16} />
           </span>
@@ -93,9 +96,22 @@ export function CampaignToolbar({
           )}
         </div>
 
-        {/* Filters and buttons group */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Category select */}
+        {/* Mobile filter toggle */}
+        <button
+          onClick={() => setFilterOpen((o) => !o)}
+          className={`md:hidden shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+            filterOpen || hasActiveFilters
+              ? "bg-primary-50 text-primary-600 border-primary-200"
+              : "bg-white text-neutral-600 border-neutral-200"
+          }`}
+        >
+          <SlidersHorizontal size={14} />
+          Filter
+          {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-primary-500 shrink-0" />}
+        </button>
+
+        {/* Desktop controls */}
+        <div className="hidden md:flex flex-wrap items-center gap-2">
           <div className="relative">
             <select
               value={selectedNiche}
@@ -110,7 +126,6 @@ export function CampaignToolbar({
             <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
           </div>
 
-          {/* Sort select */}
           <div className="relative">
             <select
               value={sortBy}
@@ -142,7 +157,7 @@ export function CampaignToolbar({
         </div>
 
         {/* View Mode Toggle */}
-        <div className="flex items-center p-1 rounded-xl gap-0.5 bg-neutral-100 border border-neutral-200 md:ml-auto self-start md:self-auto">
+        <div className="flex items-center p-1 rounded-xl gap-0.5 bg-neutral-100 border border-neutral-200 shrink-0 md:ml-auto">
           <button
             onClick={() => onViewModeChange("card")}
             className={`p-1.5 rounded-lg transition-all cursor-pointer ${
@@ -171,7 +186,46 @@ export function CampaignToolbar({
         </div>
       </div>
 
-      {/* Row 2: status pill tabs — collapses when sticky */}
+      {/* Mobile filter panel */}
+      <div className={`md:hidden flex-wrap items-center gap-2 ${filterOpen ? "flex" : "hidden"}`}>
+        <div className="relative">
+          <select
+            value={selectedNiche}
+            onChange={(e) => onNicheChange(e.target.value)}
+            className="appearance-none bg-white border border-neutral-200 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-700 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all cursor-pointer shadow-3xs"
+          >
+            <option value="all">Semua Kategori</option>
+            {CREATOR_NICHE_OPTIONS.filter((o) => o.value !== "all").map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
+        </div>
+
+        <div className="relative">
+          <select
+            value={sortBy}
+            onChange={(e) => onSortChange(e.target.value)}
+            className="appearance-none bg-white border border-neutral-200 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-700 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all cursor-pointer shadow-3xs"
+          >
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+          <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
+        </div>
+
+        {hasActiveFilters && (
+          <button
+            onClick={onClearFilters}
+            className="inline-flex items-center gap-1 bg-red-50 hover:bg-red-100/80 border border-red-200 text-red-600 text-xs font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-3xs"
+          >
+            <X size={12} /> Reset
+          </button>
+        )}
+      </div>
+
+      {/* Row 2: status pill tabs — collapses when sticky OR hidden on mobile unless filterOpen */}
       <div
         style={{
           maxHeight: isSticky ? 0 : 200,
@@ -179,6 +233,7 @@ export function CampaignToolbar({
           overflow: "hidden",
           transition: "max-height .28s cubic-bezier(.2,.8,.2,1), opacity .2s ease",
         }}
+        className={!isSticky && !filterOpen ? "hidden md:block" : ""}
       >
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-t border-neutral-100 pt-3">
           <span className="text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider mr-1.5 hidden sm:inline shrink-0">

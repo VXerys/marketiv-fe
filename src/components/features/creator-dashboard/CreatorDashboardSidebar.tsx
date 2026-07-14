@@ -9,7 +9,6 @@ import {
   Briefcase,
   PlayCircle,
   MessageCircle,
-  User,
   Tag,
   Wallet,
   Settings,
@@ -43,7 +42,6 @@ const SIDEBAR_ITEMS: CreatorSidebarItem[] = [
   { label: "Job Pool", href: "/dashboard/kreator/job-pool", icon: Briefcase },
   { label: "Pekerjaan Aktif", href: "/dashboard/kreator/pekerjaan-aktif", icon: PlayCircle },
   { label: "Negosiasi", href: "/dashboard/kreator/negosiasi", icon: MessageCircle },
-  { label: "Profil Saya", href: "/dashboard/kreator/profil", icon: User },
   { label: "Rate Card", href: "/dashboard/kreator/rate-card", icon: Tag },
   { label: "Keuangan", href: "/dashboard/kreator/keuangan", icon: Wallet },
 ];
@@ -264,11 +262,11 @@ export function CreatorDashboardSidebar({
             <span>Hubungi Admin</span>
           </Link>
           <Link
-            href="#"
+            href="/dashboard/kreator/panduan"
             className="flex items-center gap-2.5 py-2 px-1 rounded-lg text-white/45 hover:text-white/80 transition-all duration-150 text-[0.88rem] font-[650] no-underline group"
           >
             <HelpCircle size={19} className="text-white/30 group-hover:text-white/60 transition-colors" />
-            <span>FaQ & Peraturan</span>
+            <span>FAQ & Peraturan</span>
           </Link>
         </div>
       </div>
@@ -289,7 +287,7 @@ export function CreatorDashboardSidebar({
             style={{ border: "1px solid transparent" }}
           >
             <Link
-              href="/dashboard/kreator/profil"
+              href="/dashboard/kreator/settings"
               onClick={onCloseSidebar}
               className="flex items-center gap-3 w-full group-data-[collapsible=icon]:justify-center"
             >

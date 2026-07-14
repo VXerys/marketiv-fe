@@ -26,7 +26,9 @@ function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
     "rate-card": "Rate Card",
     negosiasi: "Negosiasi",
     keuangan: "Keuangan",
-    profil: "Profil Saya",
+    settings: "Pengaturan",
+    panduan: "FAQ & Peraturan",
+    notifikasi: "Notifikasi",
   };
   
   if (labelMap[mainModule]) {
@@ -141,7 +143,8 @@ export function CreatorDashboardTopbar({
         </Link>
 
         {/* Notifications Icon */}
-        <button
+        <Link
+          href="/dashboard/kreator/notifikasi"
           className="relative w-11 h-11 flex items-center justify-center rounded-xl text-ink-500 hover:bg-neutral-100 hover:text-ink-800 active:scale-95 transition-all duration-150 cursor-pointer border border-neutral-200/60 bg-white/70 shadow-3xs hover:shadow-2xs"
           aria-label="Notifikasi"
         >
@@ -151,13 +154,13 @@ export function CreatorDashboardTopbar({
             className="absolute top-[12px] right-[12px] w-[8px] h-[8px] rounded-full border-[1.5px] border-white bg-blue-600 shadow-[0_0_0_1px_rgba(37,99,235,.25)]"
             aria-hidden="true"
           />
-        </button>
+        </Link>
 
         {/* Creator profile photo */}
         <Link
-          href="/dashboard/kreator/profil"
+          href="/dashboard/kreator/settings"
           className="w-11 h-11 rounded-xl border border-neutral-200/70 shadow-3xs overflow-hidden hover:scale-105 hover:shadow-[0_4px_12px_rgba(37,99,235,.18)] active:scale-95 transition-all duration-200 relative block shrink-0 cursor-pointer"
-          aria-label="Profil akun"
+          aria-label="Pengaturan akun"
         >
           <Image
             alt={creatorName}

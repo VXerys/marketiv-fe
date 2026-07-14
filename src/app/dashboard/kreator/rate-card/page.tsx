@@ -1,14 +1,24 @@
 import { getCreatorRateCardPackages } from "@/services/creator-dashboard.service";
 import { RateCardView } from "@/components/features/creator-dashboard/RateCardView";
+import { CreatorErrorState } from "@/components/features/creator-dashboard/CreatorErrorState";
+
+export const metadata = {
+  title: "Rate Card — Dashboard Kreator | Marketiv",
+};
 
 export default async function RateCardPage() {
   const res = await getCreatorRateCardPackages();
 
   if (!res.success || !res.data) {
     return (
-      <div className="p-8 text-center flex flex-col items-center justify-center min-h-[50vh]">
-        <h2 className="text-xl font-bold text-red-600">Gagal Memuat Rate Card</h2>
-        <p className="text-sm text-neutral-500 mt-2">Terjadi masalah koneksi ke data layer.</p>
+      <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[60vh]">
+        <CreatorErrorState
+          errorMsg="Gagal memuat daftar paket Rate Card. Periksa koneksi Anda dan coba lagi."
+          onRetry={() => {
+            // Server component — user must reload the page
+            if (typeof window !== "undefined") window.location.reload();
+          }}
+        />
       </div>
     );
   }
