@@ -1,0 +1,1567 @@
+{
+  "projectId": "69f9d45b00315cb0ec2f",
+  "projectName": "Marketiv",
+  "endpoint": "https://sgp.cloud.appwrite.io/v1",
+  "databases": [
+    {
+      "$id": "6a3110bf000de5a04844",
+      "name": "prod_marketiv-web_db"
+    }
+  ],
+  "storage": [
+    {
+      "$id": "avatars",
+      "name": "Avatars",
+      "$permissions": [
+        "read(\"any\")",
+        "create(\"users\")",
+        "update(\"users\")",
+        "delete(\"users\")"
+      ],
+      "fileSecurity": false,
+      "enabled": true,
+      "maximumFileSize": 5000000,
+      "allowedFileExtensions": [
+        "jpg",
+        "jpeg",
+        "png",
+        "webp"
+      ],
+      "compression": "gzip",
+      "encryption": false,
+      "antivirus": true
+    },
+    {
+      "$id": "logos",
+      "name": "Logos",
+      "$permissions": [
+        "read(\"any\")",
+        "create(\"users\")",
+        "update(\"users\")",
+        "delete(\"users\")"
+      ],
+      "fileSecurity": false,
+      "enabled": true,
+      "maximumFileSize": 5000000,
+      "allowedFileExtensions": [
+        "jpg",
+        "jpeg",
+        "png",
+        "webp",
+        "svg"
+      ],
+      "compression": "gzip",
+      "encryption": false,
+      "antivirus": true
+    },
+    {
+      "$id": "portfolios",
+      "name": "Portfolios",
+      "$permissions": [
+        "read(\"any\")",
+        "create(\"users\")",
+        "update(\"users\")",
+        "delete(\"users\")"
+      ],
+      "fileSecurity": false,
+      "enabled": true,
+      "maximumFileSize": 50000000,
+      "allowedFileExtensions": [
+        "jpg",
+        "jpeg",
+        "png",
+        "webp",
+        "pdf",
+        "mp4"
+      ],
+      "compression": "gzip",
+      "encryption": false,
+      "antivirus": true
+    },
+    {
+      "$id": "campaign-assets",
+      "name": "Campaign Assets",
+      "$permissions": [
+        "read(\"any\")",
+        "create(\"users\")",
+        "update(\"users\")",
+        "delete(\"users\")"
+      ],
+      "fileSecurity": false,
+      "enabled": true,
+      "maximumFileSize": 100000000,
+      "allowedFileExtensions": [],
+      "compression": "gzip",
+      "encryption": false,
+      "antivirus": true
+    },
+    {
+      "$id": "deliverables",
+      "name": "Deliverables",
+      "$permissions": [
+        "read(\"users\")",
+        "create(\"users\")",
+        "update(\"users\")"
+      ],
+      "fileSecurity": true,
+      "enabled": true,
+      "maximumFileSize": 500000000,
+      "allowedFileExtensions": [],
+      "compression": "none",
+      "encryption": false,
+      "antivirus": true
+    },
+    {
+      "$id": "chat-files",
+      "name": "Chat Files",
+      "$permissions": [
+        "read(\"users\")",
+        "create(\"users\")"
+      ],
+      "fileSecurity": true,
+      "enabled": true,
+      "maximumFileSize": 20000000,
+      "allowedFileExtensions": [
+        "jpg",
+        "jpeg",
+        "png",
+        "pdf",
+        "docx"
+      ],
+      "compression": "gzip",
+      "encryption": false,
+      "antivirus": true
+    },
+    {
+      "$id": "fraud-evidence",
+      "name": "Fraud Evidence",
+      "$permissions": [
+        "read(\"users\")"
+      ],
+      "fileSecurity": true,
+      "enabled": true,
+      "maximumFileSize": 5000000,
+      "allowedFileExtensions": [
+        "jpg",
+        "jpeg",
+        "png",
+        "pdf"
+      ],
+      "compression": "gzip",
+      "encryption": false,
+      "antivirus": true
+    }
+  ],
+  "functions": [
+    {
+      "$id": "create-user-wallet",
+      "name": "Create User Wallet",
+      "runtime": "node-18.0",
+      "execute": [],
+      "events": [
+        "users.*.create"
+      ],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/create-user-wallet"
+    },
+    {
+      "$id": "campaign-published",
+      "name": "Campaign Published",
+      "runtime": "node-18.0",
+      "execute": [],
+      "events": [
+        "databases.marketiv_db.collections.campaigns.documents.*.update"
+      ],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/campaign-published"
+    },
+    {
+      "$id": "ai-fraud-precheck",
+      "name": "AI Fraud Precheck",
+      "runtime": "node-18.0",
+      "execute": [],
+      "events": [
+        "databases.marketiv_db.collections.submissions.documents.*.create"
+      ],
+      "schedule": "",
+      "timeout": 60,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/ai-fraud-precheck"
+    },
+    {
+      "$id": "create-order",
+      "name": "Create Order",
+      "runtime": "node-18.0",
+      "execute": [],
+      "events": [
+        "databases.marketiv_db.collections.offers.documents.*.update"
+      ],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/create-order"
+    },
+    {
+      "$id": "create-escrow",
+      "name": "Create Escrow",
+      "runtime": "node-18.0",
+      "execute": [],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/create-escrow"
+    },
+    {
+      "$id": "release-escrow",
+      "name": "Release Escrow",
+      "runtime": "node-18.0",
+      "execute": [],
+      "events": [
+        "databases.marketiv_db.collections.deliverables.documents.*.update"
+      ],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/release-escrow"
+    }
+  ],
+  "tables": [
+    {
+      "$id": "profiles",
+      "name": "Profiles",
+      "$permissions": [
+        "read(\"any\")",
+        "create(\"users\")",
+        "update(\"users\")"
+      ],
+      "enabled": true,
+      "indexes": [
+        {
+          "key": "idx_user_id",
+          "type": "unique",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "user_id"
+          ]
+        },
+        {
+          "key": "idx_role",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "role"
+          ]
+        },
+        {
+          "key": "idx_city",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "city"
+          ]
+        },
+        {
+          "key": "idx_business_category",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "business_category"
+          ]
+        }
+      ],
+      "databaseId": "6a3110bf000de5a04844",
+      "columns": [
+        {
+          "key": "user_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "role",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null
+        },
+        {
+          "key": "avatar_url",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 2048,
+          "default": null
+        },
+        {
+          "key": "phone",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 50,
+          "default": null
+        },
+        {
+          "key": "city",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 100,
+          "default": null
+        },
+        {
+          "key": "bio",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 1000,
+          "default": null
+        },
+        {
+          "key": "business_name",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "business_category",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 100,
+          "default": null
+        },
+        {
+          "key": "rating",
+          "type": "double",
+          "required": false,
+          "array": false,
+          "default": 0
+        },
+        {
+          "key": "completed_jobs",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": 0
+        },
+        {
+          "key": "status",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 50,
+          "default": null
+        }
+      ],
+      "rowSecurity": true
+    },
+    {
+      "$id": "social_accounts",
+      "name": "Social Accounts",
+      "$permissions": [
+        "read(\"any\")",
+        "create(\"users\")",
+        "update(\"users\")"
+      ],
+      "enabled": true,
+      "indexes": [
+        {
+          "key": "idx_user_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "user_id"
+          ]
+        },
+        {
+          "key": "idx_platform",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "platform"
+          ]
+        }
+      ],
+      "databaseId": "6a3110bf000de5a04844",
+      "columns": [
+        {
+          "key": "user_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "platform",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null
+        },
+        {
+          "key": "username",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "followers",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": 0
+        },
+        {
+          "key": "verified",
+          "type": "boolean",
+          "required": false,
+          "array": false,
+          "default": false
+        },
+        {
+          "key": "engagement_rate",
+          "type": "double",
+          "required": false,
+          "array": false,
+          "default": 0
+        }
+      ],
+      "rowSecurity": true
+    },
+    {
+      "$id": "campaigns",
+      "name": "Campaigns",
+      "$permissions": [
+        "read(\"any\")",
+        "create(\"users\")",
+        "update(\"users\")"
+      ],
+      "enabled": true,
+      "indexes": [
+        {
+          "key": "idx_umkm_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "umkm_id"
+          ]
+        },
+        {
+          "key": "idx_status",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "key": "idx_category",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "category"
+          ]
+        }
+      ],
+      "databaseId": "6a3110bf000de5a04844",
+      "columns": [
+        {
+          "key": "umkm_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "title",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "type",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null
+        },
+        {
+          "key": "category",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 100,
+          "default": null
+        },
+        {
+          "key": "thumbnail_url",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 2048,
+          "default": null
+        },
+        {
+          "key": "budget_total",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "budget_used",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": 0
+        },
+        {
+          "key": "cpm",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "min_views",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "max_views",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "status",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null
+        },
+        {
+          "key": "submission_count",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": 0
+        },
+        {
+          "key": "approved_count",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": 0
+        },
+        {
+          "key": "created_at",
+          "type": "datetime",
+          "required": false,
+          "array": false
+        }
+      ],
+      "rowSecurity": true
+    },
+    {
+      "$id": "campaign_briefs",
+      "name": "Campaign Briefs",
+      "$permissions": [
+        "read(\"any\")",
+        "create(\"users\")",
+        "update(\"users\")"
+      ],
+      "enabled": true,
+      "indexes": [
+        {
+          "key": "idx_campaign_id",
+          "type": "unique",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "campaign_id"
+          ]
+        }
+      ],
+      "databaseId": "6a3110bf000de5a04844",
+      "columns": [
+        {
+          "key": "campaign_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "brief_json",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 10000,
+          "default": null
+        },
+        {
+          "key": "generated_by_ai",
+          "type": "boolean",
+          "required": false,
+          "array": false,
+          "default": false
+        }
+      ],
+      "rowSecurity": true
+    },
+    {
+      "$id": "campaign_claims",
+      "name": "Campaign Claims",
+      "$permissions": [
+        "read(\"any\")",
+        "create(\"users\")",
+        "update(\"users\")"
+      ],
+      "enabled": true,
+      "indexes": [
+        {
+          "key": "idx_campaign_creator",
+          "type": "unique",
+          "status": "available",
+          "orders": [
+            "ASC",
+            "ASC"
+          ],
+          "columns": [
+            "campaign_id",
+            "creator_id"
+          ]
+        },
+        {
+          "key": "idx_campaign_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "campaign_id"
+          ]
+        },
+        {
+          "key": "idx_creator_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "creator_id"
+          ]
+        }
+      ],
+      "databaseId": "6a3110bf000de5a04844",
+      "columns": [
+        {
+          "key": "campaign_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "creator_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "claim_status",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null
+        }
+      ],
+      "rowSecurity": true
+    },
+    {
+      "$id": "submissions",
+      "name": "Submissions",
+      "$permissions": [
+        "read(\"any\")",
+        "create(\"users\")",
+        "update(\"users\")"
+      ],
+      "enabled": true,
+      "indexes": [
+        {
+          "key": "idx_claim_id",
+          "type": "unique",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "claim_id"
+          ]
+        },
+        {
+          "key": "idx_creator_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "creator_id"
+          ]
+        },
+        {
+          "key": "idx_status",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "status"
+          ]
+        }
+      ],
+      "databaseId": "6a3110bf000de5a04844",
+      "columns": [
+        {
+          "key": "claim_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "creator_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "creator_name",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "platform",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null
+        },
+        {
+          "key": "video_url",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 2048,
+          "default": null
+        },
+        {
+          "key": "caption",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 1000,
+          "default": null
+        },
+        {
+          "key": "current_views",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": 0
+        },
+        {
+          "key": "analytics_file",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 2048,
+          "default": null
+        },
+        {
+          "key": "status",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null
+        },
+        {
+          "key": "fraud_score",
+          "type": "double",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "fraud_result",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 50,
+          "default": null
+        }
+      ],
+      "rowSecurity": true
+    },
+    {
+      "$id": "rate_cards",
+      "name": "Rate Cards",
+      "$permissions": [
+        "read(\"any\")",
+        "create(\"users\")",
+        "update(\"users\")"
+      ],
+      "enabled": true,
+      "indexes": [
+        {
+          "key": "idx_creator_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "creator_id"
+          ]
+        },
+        {
+          "key": "idx_platform",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "platform"
+          ]
+        },
+        {
+          "key": "idx_is_active",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "is_active"
+          ]
+        }
+      ],
+      "databaseId": "6a3110bf000de5a04844",
+      "columns": [
+        {
+          "key": "creator_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "title",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "platform",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null
+        },
+        {
+          "key": "content_type",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 100,
+          "default": null
+        },
+        {
+          "key": "price",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "delivery_days",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "revision_limit",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "description",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 2000,
+          "default": null
+        },
+        {
+          "key": "is_active",
+          "type": "boolean",
+          "required": false,
+          "array": false,
+          "default": true
+        }
+      ],
+      "rowSecurity": true
+    },
+    {
+      "$id": "conversations",
+      "name": "Conversations",
+      "$permissions": [
+        "read(\"users\")",
+        "create(\"users\")",
+        "update(\"users\")"
+      ],
+      "enabled": true,
+      "indexes": [
+        {
+          "key": "idx_umkm_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "umkm_id"
+          ]
+        },
+        {
+          "key": "idx_creator_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "creator_id"
+          ]
+        },
+        {
+          "key": "idx_offer_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "offer_id"
+          ]
+        }
+      ],
+      "databaseId": "6a3110bf000de5a04844",
+      "columns": [
+        {
+          "key": "umkm_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "creator_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "offer_id",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "last_message",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 1000,
+          "default": null
+        },
+        {
+          "key": "last_message_at",
+          "type": "datetime",
+          "required": false,
+          "array": false
+        }
+      ],
+      "rowSecurity": true
+    },
+    {
+      "$id": "messages",
+      "name": "Messages",
+      "$permissions": [
+        "read(\"users\")",
+        "create(\"users\")",
+        "update(\"users\")"
+      ],
+      "enabled": true,
+      "indexes": [
+        {
+          "key": "idx_conversation_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "conversation_id"
+          ]
+        },
+        {
+          "key": "idx_sender_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "sender_id"
+          ]
+        }
+      ],
+      "databaseId": "6a3110bf000de5a04844",
+      "columns": [
+        {
+          "key": "conversation_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "sender_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "message_type",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null
+        },
+        {
+          "key": "content",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 2000,
+          "default": null
+        },
+        {
+          "key": "attachment_url",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 2048,
+          "default": null
+        }
+      ],
+      "rowSecurity": true
+    },
+    {
+      "$id": "offers",
+      "name": "Offers",
+      "$permissions": [
+        "read(\"users\")",
+        "create(\"users\")",
+        "update(\"users\")"
+      ],
+      "enabled": true,
+      "indexes": [
+        {
+          "key": "idx_conversation_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "conversation_id"
+          ]
+        },
+        {
+          "key": "idx_creator_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "creator_id"
+          ]
+        },
+        {
+          "key": "idx_umkm_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "umkm_id"
+          ]
+        },
+        {
+          "key": "idx_status",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "status"
+          ]
+        }
+      ],
+      "databaseId": "6a3110bf000de5a04844",
+      "columns": [
+        {
+          "key": "conversation_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "creator_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "umkm_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "offer_type",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null
+        },
+        {
+          "key": "title",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "price",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "deadline",
+          "type": "datetime",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "revision_limit",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "status",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null
+        }
+      ],
+      "rowSecurity": true
+    },
+    {
+      "$id": "orders",
+      "name": "Orders",
+      "$permissions": [
+        "read(\"users\")",
+        "create(\"users\")",
+        "update(\"users\")"
+      ],
+      "enabled": true,
+      "indexes": [
+        {
+          "key": "idx_offer_id",
+          "type": "unique",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "offer_id"
+          ]
+        },
+        {
+          "key": "idx_creator_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "creator_id"
+          ]
+        },
+        {
+          "key": "idx_umkm_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "umkm_id"
+          ]
+        },
+        {
+          "key": "idx_order_status",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "order_status"
+          ]
+        }
+      ],
+      "databaseId": "6a3110bf000de5a04844",
+      "columns": [
+        {
+          "key": "offer_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "creator_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "umkm_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "title",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "price",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "deadline",
+          "type": "datetime",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "revision_limit",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "escrow_amount",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "escrow_status",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null
+        },
+        {
+          "key": "order_status",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null
+        }
+      ],
+      "rowSecurity": true
+    },
+    {
+      "$id": "wallets",
+      "name": "Wallets",
+      "$permissions": [
+        "read(\"users\")",
+        "create(\"users\")",
+        "update(\"users\")"
+      ],
+      "enabled": true,
+      "indexes": [
+        {
+          "key": "idx_user_id",
+          "type": "unique",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "user_id"
+          ]
+        }
+      ],
+      "databaseId": "6a3110bf000de5a04844",
+      "columns": [
+        {
+          "key": "user_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "available_balance",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": 0
+        },
+        {
+          "key": "pending_balance",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": 0
+        }
+      ],
+      "rowSecurity": true
+    },
+    {
+      "$id": "wallet_transactions",
+      "name": "Wallet Transactions",
+      "$permissions": [
+        "read(\"users\")",
+        "create(\"users\")",
+        "update(\"users\")"
+      ],
+      "enabled": true,
+      "indexes": [
+        {
+          "key": "idx_wallet_id",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "wallet_id"
+          ]
+        },
+        {
+          "key": "idx_type",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "type"
+          ]
+        }
+      ],
+      "databaseId": "6a3110bf000de5a04844",
+      "columns": [
+        {
+          "key": "wallet_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        },
+        {
+          "key": "type",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null
+        },
+        {
+          "key": "amount",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "reference_type",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null
+        },
+        {
+          "key": "reference_id",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null
+        }
+      ],
+      "rowSecurity": true
+    }
+  ]
+}

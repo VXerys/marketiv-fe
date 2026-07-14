@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
-import { Poppins } from "next/font/google";
-import { ChatbotFab } from "@/components/features/chatbot/ChatbotFab";
+import { Plus_Jakarta_Sans, Sora } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const poppins = Poppins({
-  weight: ["400", "500", "600", "700"],
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-poppins",
+  variable: "--font-plus-jakarta-sans",
+});
+
+const sora = Sora({
+  subsets: ["latin"],
+  variable: "--font-sora",
 });
 
 export const metadata: Metadata = {
@@ -21,9 +25,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${poppins.className} antialiased`}>
+      <body className={`${plusJakartaSans.className} ${sora.variable} antialiased`}>
         {children}
-        <ChatbotFab />
+        <Toaster />
       </body>
     </html>
   );

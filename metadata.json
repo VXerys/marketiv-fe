@@ -1,0 +1,20 @@
+{
+  "name": "dashboard-ui-system-refinement",
+  "project": "Marketiv Web",
+  "format": "Kiro spec",
+  "source_of_truth": "docs/design-system/marketiv-studio-system-v5-8.html",
+  "scope": [
+    "UMKM dashboard",
+    "Konten Kreator dashboard",
+    "UI QA",
+    "Responsive refinement",
+    "Design system normalization"
+  ],
+  "out_of_scope": [
+    "Backend integration",
+    "Real payment",
+    "Realtime chat",
+    "AI integration",
+    "New business features"
+  ]
+}

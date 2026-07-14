@@ -18,7 +18,7 @@ export function ChatbotFab() {
         onClick={() => setIsOpen((prev) => !prev)}
         aria-label="Toggle AI Message Bot"
         className={cn(
-          "fixed bottom-6 right-4 md:bottom-8 md:right-8 lg:bottom-10 lg:right-10 z-50",
+          "fixed bottom-6 right-6 z-40",
           "flex items-center justify-center",
           "w-14 h-14 md:w-16 md:h-16 lg:w-18 lg:h-18",
           "rounded-full bg-brand-coral shadow-2xl",

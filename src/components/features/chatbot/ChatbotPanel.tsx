@@ -80,14 +80,11 @@ export function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
   return (
     <div
       className={cn(
-        "fixed bottom-24 right-4 md:bottom-28 md:right-8 lg:bottom-32 lg:right-10 z-50",
-        "w-[calc(100vw-2rem)] max-w-[400px]",
-        "rounded-2xl bg-white shadow-2xl border border-gray-100",
-        "flex flex-col overflow-hidden",
+        "chatbot-panel-float",
+        // Animation — not covered by .chatbot-panel-float CSS class
         "transition-all duration-300 ease-out origin-bottom-right",
         isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-90 opacity-0 translate-y-4 pointer-events-none",
       )}
-      style={{ height: "min(520px, calc(100vh - 10rem))" }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-brand-coral to-orange-400 shrink-0">

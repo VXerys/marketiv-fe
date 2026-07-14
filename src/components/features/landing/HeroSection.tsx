@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import landingPageBg from "@/assets/images/landing-page.png";
 import { LANDING_CONTENT } from "@/data/content";
 
@@ -28,10 +28,10 @@ export function HeroSection() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 mt-12 sm:mt-16 md:mt-20 lg:mt-24">
-          <Button variant="primary" size="xl" href="/umkm">
+          <Button variant="primary" size="xl" href="/dashboard/umkm">
             {hero.ctaUmkm}
           </Button>
-          <Button variant="outline" size="xl" href="/creator">
+          <Button variant="outline" size="xl" href="/dashboard/kreator">
             {hero.ctaCreator}
           </Button>
         </div>

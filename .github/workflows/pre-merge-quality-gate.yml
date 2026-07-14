@@ -1,0 +1,23 @@
+name: Pre-Merge Quality Gate
+
+on:
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  domain-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run animation audit
+        run: npm run animation-audit
+      - name: Run data-contract validation
+        run: npm run validate-data-contracts
+      - name: Quality gate complete
+        run: echo "Pre-merge quality gate finished (annotate-only)"
