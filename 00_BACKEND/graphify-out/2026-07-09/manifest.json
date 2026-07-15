@@ -60,13 +60,13 @@
     "semantic_hash": ""
   },
   "docs/01_Global/30_Naming_Convention.md": {
-    "mtime": 1783470951.4943898,
-    "ast_hash": "4e44765e5a9cb8a0ee964165e1ae8644",
+    "mtime": 1783559945.910772,
+    "ast_hash": "06c2b23f467f2847b11626b2047d86d9",
     "semantic_hash": ""
   },
   "docs/01_Global/40_Folder_Structure.md": {
-    "mtime": 1783470952.9683607,
-    "ast_hash": "327237f1f4c9c8f63e7c132bc68d7301",
+    "mtime": 1783559701.8969538,
+    "ast_hash": "194239b2ceec3bd060407670628e2c2c",
     "semantic_hash": ""
   },
   "docs/01_Global/50_Security_Guidelines.md": {
@@ -85,8 +85,8 @@
     "semantic_hash": ""
   },
   "docs/01_Global/80_Deployment.md": {
-    "mtime": 1783470954.5983286,
-    "ast_hash": "03646156899dc751e6334387b70f4c86",
+    "mtime": 1783559899.3475702,
+    "ast_hash": "868ce0bbb8e91acffde8597c052ae34d",
     "semantic_hash": ""
   },
   "docs/01_Global/90_Design_System.md": {
@@ -180,8 +180,8 @@
     "semantic_hash": ""
   },
   "docs/02_Modules/Authentication/30_Business_Rules.md": {
-    "mtime": 1783473577.7849164,
-    "ast_hash": "fabf509a65267e78571152d9ccd18d87",
+    "mtime": 1783560006.833728,
+    "ast_hash": "4b8a4a326114e41ddd83720b2250e3e1",
     "semantic_hash": ""
   },
   "docs/02_Modules/Authentication/40_User_Flow.md": {
@@ -330,13 +330,13 @@
     "semantic_hash": ""
   },
   "docs/02_Modules/Notifications/10_Overview.md": {
-    "mtime": 1782823697.9866397,
-    "ast_hash": "263d03261b56a70d840a4547aa6ff55d",
+    "mtime": 1783559859.2772567,
+    "ast_hash": "d07f04d2e33f9401848e57e6d1e38a19",
     "semantic_hash": ""
   },
   "docs/02_Modules/Notifications/20_Concepts.md": {
-    "mtime": 1783033423.6775646,
-    "ast_hash": "7ef0c3c32dbc55dd413bca3784078cdb",
+    "mtime": 1783559866.962125,
+    "ast_hash": "51b9cc67e6e475d75d61cde3df3a9698",
     "semantic_hash": ""
   },
   "docs/02_Modules/Notifications/30_Business_Rules.md": {
@@ -345,8 +345,8 @@
     "semantic_hash": ""
   },
   "docs/02_Modules/Notifications/40_User_Flow.md": {
-    "mtime": 1783033423.6775646,
-    "ast_hash": "eb4591a04d5a76f105f4e8e6b6bbca40",
+    "mtime": 1783559873.67401,
+    "ast_hash": "3f84577f7b307311217710cdfea5213d",
     "semantic_hash": ""
   },
   "docs/02_Modules/Notifications/50_Database.md": {
@@ -360,8 +360,8 @@
     "semantic_hash": ""
   },
   "docs/02_Modules/Notifications/70_Backend.md": {
-    "mtime": 1783466069.5624228,
-    "ast_hash": "7589c07f7f1671557e6ca64c9e038d7f",
+    "mtime": 1783559907.52143,
+    "ast_hash": "66756d79f4446ce0d36cdbf8cb3b1137",
     "semantic_hash": ""
   },
   "docs/02_Modules/Notifications/80_Frontend.md": {
@@ -370,8 +370,8 @@
     "semantic_hash": ""
   },
   "docs/02_Modules/Notifications/90_Events.md": {
-    "mtime": 1783466056.8995402,
-    "ast_hash": "33127c9304a1db5aeff9f2179b260215",
+    "mtime": 1783559881.2548802,
+    "ast_hash": "e4cbbf55ada237a6cfad3a7796b763c6",
     "semantic_hash": ""
   },
   "docs/02_Modules/Offers/00_Index.md": {
@@ -525,8 +525,8 @@
     "semantic_hash": ""
   },
   "docs/02_Modules/Payments/70_Backend.md": {
-    "mtime": 1783470997.7924757,
-    "ast_hash": "2581873ccea26607014362af4a0303e9",
+    "mtime": 1783559817.363975,
+    "ast_hash": "a23eea57d1de2f1a508dec2fcf4b1948",
     "semantic_hash": ""
   },
   "docs/02_Modules/Payments/80_Frontend.md": {
@@ -675,8 +675,8 @@
     "semantic_hash": ""
   },
   "docs/03_Workflows/50_Withdrawal.md": {
-    "mtime": 1783393607.9204068,
-    "ast_hash": "5aa309edf21ff060a43ff6ccf3a3e0d6",
+    "mtime": 1783559929.3390563,
+    "ast_hash": "263a122ad25d5e02b78cc8f3721b2e3d",
     "semantic_hash": ""
   },
   "docs/03_Workflows/60_Dispute.md": {
@@ -825,13 +825,13 @@
     "semantic_hash": ""
   },
   "appwrite/appwrite.json": {
-    "mtime": 1783524992.4025831,
-    "ast_hash": "b4c298dd538e61a0cbe9299ee9f40b97",
+    "mtime": 1783559954.960617,
+    "ast_hash": "268c73017f3b14767ab0a24a3795793f",
     "semantic_hash": ""
   },
   "appwrite/generate_appwrite_json.js": {
-    "mtime": 1783524988.0057125,
-    "ast_hash": "6ccc502780195ea80c73afd4a1309637",
+    "mtime": 1783559666.8766959,
+    "ast_hash": "e39bdff9974116b2ebba7b406afbbcde",
     "semantic_hash": ""
   },
   "src/services/auth.service.ts": {
@@ -1304,24 +1304,14 @@
     "ast_hash": "5c27369b226fcf2be8a6cfe52224e767",
     "semantic_hash": ""
   },
-  "functions/ai-brief/ai-brief-backup/package.json": {
-    "mtime": 1783525001.029316,
-    "ast_hash": "a23da1230d8896ee4fb70b21950558dc",
-    "semantic_hash": ""
-  },
-  "functions/ai-brief/ai-brief-backup/src/main.js": {
-    "mtime": 1783525001.0291739,
-    "ast_hash": "92100fb21948b884076a4f2581997016",
-    "semantic_hash": ""
-  },
   "functions/ai-brief/package.json": {
     "mtime": 1783524839.5360816,
     "ast_hash": "a23da1230d8896ee4fb70b21950558dc",
     "semantic_hash": ""
   },
   "functions/ai-brief/src/main.js": {
-    "mtime": 1783524846.4258788,
-    "ast_hash": "92100fb21948b884076a4f2581997016",
+    "mtime": 1783560026.1143978,
+    "ast_hash": "2a2f78c36da1664254f6733a6459c473",
     "semantic_hash": ""
   },
   "functions/calculate-campaign-reward/src/main.js": {
@@ -1347,6 +1337,21 @@
   "docs/04_Decisions/ADR-009.md": {
     "mtime": 1783519451.6888304,
     "ast_hash": "6d57c6af085ba1ef32b89d591ef99757",
+    "semantic_hash": ""
+  },
+  "functions/calculate-campaign-reward/package.json": {
+    "mtime": 1783559659.6118731,
+    "ast_hash": "b452138c72fee57ec9a682931f49ece4",
+    "semantic_hash": ""
+  },
+  "functions/campaign-claimed/package.json": {
+    "mtime": 1783559660.1768594,
+    "ast_hash": "581f8f380b8d447f0456016490d36172",
+    "semantic_hash": ""
+  },
+  "functions/expire-stale-claims/package.json": {
+    "mtime": 1783559660.7888446,
+    "ast_hash": "f50f2d4d42c83ca03bd465383d221515",
     "semantic_hash": ""
   }
 }

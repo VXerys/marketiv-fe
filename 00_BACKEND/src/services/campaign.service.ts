@@ -1,5 +1,5 @@
 import { ID, Permission, Role } from 'appwrite';
-import { COLLECTIONS, DATABASE_ID, databases } from '../lib/appwrite';
+import { account, COLLECTIONS, DATABASE_ID, databases, functions, FUNCTIONS } from '../lib/appwrite';
 import { MINIMUM_CAMPAIGN_BUDGET } from './wallet.service';
 
 export type CampaignType = 'ugc' | 'clipping';
@@ -143,7 +143,68 @@ export const createCampaign = async (input: CreateCampaignInput): Promise<Campai
   }
 };
 
-export const generateBrief = async (data: any) => { /* Implementation */ };
+export type GenerateBriefInput = {
+  campaignId: string;
+  description: string;
+  type: CampaignType;
+  materials?: string[];
+  productName?: string;
+  targetMarket?: string;
+  goal?: string;
+};
+
+export type CampaignBrief = {
+  objective: string;
+  contentAngle: string;
+  cta: string;
+  briefDetail: string;
+  doAndDont: { do: string[]; dont: string[] };
+};
+
+export const generateBrief = async (input: GenerateBriefInput): Promise<CampaignBrief> => {
+  if (!input?.campaignId) throw new CampaignServiceError('validation', 'Campaign ID wajib diisi.');
+  if (!input?.description?.trim()) throw new CampaignServiceError('validation', 'Deskripsi wajib diisi.');
+  if (!['ugc', 'clipping'].includes(input.type)) {
+    throw new CampaignServiceError('validation', 'Tipe campaign tidak valid.');
+  }
+
+  try {
+    const user = await account.get();
+    const payload = {
+      ...input,
+      userId: user.$id,
+    };
+
+    const execution = await functions.createExecution(
+      FUNCTIONS.aiBrief,
+      JSON.stringify(payload),
+      false
+    );
+
+    if (execution.status === 'failed') {
+      throw new CampaignServiceError('server', 'Gagal menghasilkan brief via AI.');
+    }
+
+    if (!execution.responseBody) {
+      throw new CampaignServiceError('server', 'Response AI kosong.');
+    }
+
+    let result: { success: boolean; brief?: CampaignBrief; error?: string };
+    try {
+      result = JSON.parse(execution.responseBody);
+    } catch (err) {
+      throw new CampaignServiceError('server', 'Response AI tidak valid.', err);
+    }
+
+    if (!result.success || !result.brief) {
+      throw new CampaignServiceError('server', result.error || 'Gagal menghasilkan brief.');
+    }
+
+    return result.brief;
+  } catch (err) {
+    throw mapError(err, 'Gagal menghasilkan brief.');
+  }
+};
 
 export const publishCampaign = async (campaignId: string): Promise<Campaign> => {
   if (!campaignId) throw new CampaignServiceError('validation', 'Campaign ID wajib diisi.');

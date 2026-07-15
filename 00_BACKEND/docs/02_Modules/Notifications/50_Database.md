@@ -12,7 +12,7 @@ Modul Notifications memiliki collection `notifications`. Inilah satu-satunya lok
 | `title` | string | yes | |
 | `message` | string | yes | |
 | `type` | string | yes | mis. `system`, jenis event terkait |
-| `isRead` | boolean | yes | default `false` |
+| `isRead` | boolean | no | default `false` |
 | `createdAt` | datetime | — | |
 
 ### Index
@@ -28,7 +28,7 @@ createdAt DESC
 ### Permission
 
 ```text
-Owner : read
+Owner : read, update `isRead`
 System: write
 ```
 

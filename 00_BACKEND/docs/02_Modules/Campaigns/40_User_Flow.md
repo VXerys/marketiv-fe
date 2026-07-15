@@ -4,8 +4,15 @@
 
 ```text
 Buat Campaign (draft)
+  ├─ Pilih Tipe Campaign (UGC / Clipping)
+  ├─ Basic Info (judul, kategori, platform TikTok, deskripsi)
+  ├─ Upload Asset
+  │    ├─ Internal (storage) — upload via File Manager, terikat kuota 100 MB
+  │    └─ External URL — link Google Drive / Dropbox / CDN, bebas kuota
+  ├─ Generate Brief via AI (opsional)
+  └─ Atur Reward: budget ≥ Rp50.000, jumlah kreator, tarif/1.000 views (radio Rp1.000–Rp5.000)
 ↓
-Generate Brief via AI (opsional)
+Top-Up Budget — bayar budget + fee 5% via Midtrans
 ↓
 Publish Campaign → active
 ↓
@@ -25,7 +32,10 @@ Pilih Campaign → Claim
 ↓
 Validasi: profil lengkap, belum claim, claim limit tersedia
 ↓
-Buat Konten → Submit
+Buat Konten TikTok → Submit URL TikTok
+  (waktu terbatas: submissionDays hari sejak claim)
+  ↓ jika lewat batas ↓
+  Claim otomatis expired → slot kembali ke pool
 ↓
 Fraud Check (otomatis)
 ↓

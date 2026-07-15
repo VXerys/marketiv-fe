@@ -25,7 +25,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "role",
@@ -33,7 +34,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "status",
@@ -41,7 +43,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "email",
@@ -49,7 +52,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "phone",
@@ -57,7 +61,8 @@
           "required": false,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "createdAt",
@@ -132,7 +137,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "businessName",
@@ -140,7 +146,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "category",
@@ -148,7 +155,8 @@
           "required": true,
           "array": false,
           "size": 100,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "description",
@@ -156,7 +164,8 @@
           "required": false,
           "array": false,
           "size": 2000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "city",
@@ -164,7 +173,8 @@
           "required": false,
           "array": false,
           "size": 100,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "address",
@@ -172,7 +182,8 @@
           "required": false,
           "array": false,
           "size": 500,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "tiktok",
@@ -180,7 +191,8 @@
           "required": false,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "logoUrl",
@@ -188,7 +200,8 @@
           "required": false,
           "array": false,
           "size": 2048,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "isProfileCompleted",
@@ -263,7 +276,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "displayName",
@@ -271,7 +285,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "bio",
@@ -279,7 +294,8 @@
           "required": false,
           "array": false,
           "size": 2000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "city",
@@ -287,7 +303,8 @@
           "required": false,
           "array": false,
           "size": 100,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "avatarUrl",
@@ -295,28 +312,35 @@
           "required": false,
           "array": false,
           "size": 2048,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "totalFollowers",
           "type": "integer",
           "required": false,
           "array": false,
-          "default": 0
+          "default": 0,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "totalOrders",
           "type": "integer",
           "required": false,
           "array": false,
-          "default": 0
+          "default": 0,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "rating",
           "type": "double",
           "required": false,
           "array": false,
-          "default": 0
+          "default": 0,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "isProfileCompleted",
@@ -413,7 +437,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "platform",
@@ -421,7 +446,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "username",
@@ -429,21 +455,26 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "followers",
           "type": "integer",
           "required": false,
           "array": false,
-          "default": 0
+          "default": 0,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "engagementRate",
           "type": "double",
           "required": false,
           "array": false,
-          "default": 0
+          "default": 0,
+          "min": 0,
+          "max": 999999999
         }
       ],
       "indexes": [
@@ -500,7 +531,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "title",
@@ -508,7 +540,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "description",
@@ -516,7 +549,8 @@
           "required": false,
           "array": false,
           "size": 2000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "thumbnailUrl",
@@ -524,7 +558,8 @@
           "required": false,
           "array": false,
           "size": 2048,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "portfolioUrl",
@@ -532,7 +567,8 @@
           "required": false,
           "array": false,
           "size": 2048,
-          "default": null
+          "default": null,
+          "encrypt": false
         }
       ],
       "indexes": [
@@ -565,28 +601,35 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "usedBytes",
           "type": "integer",
           "required": false,
           "array": false,
-          "default": 0
+          "default": 0,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "quotaBytes",
           "type": "integer",
           "required": false,
           "array": false,
-          "default": 104857600
+          "default": 104857600,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "fileCount",
           "type": "integer",
           "required": false,
           "array": false,
-          "default": 0
+          "default": 0,
+          "min": 0,
+          "max": 999999999
         }
       ],
       "indexes": [
@@ -619,7 +662,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "storageFileId",
@@ -627,7 +671,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "bucketId",
@@ -635,7 +680,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "fileName",
@@ -643,7 +689,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "mimeType",
@@ -651,14 +698,17 @@
           "required": true,
           "array": false,
           "size": 100,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "sizeBytes",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "status",
@@ -666,7 +716,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "createdAt",
@@ -741,7 +792,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "title",
@@ -749,7 +801,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "category",
@@ -757,7 +810,8 @@
           "required": true,
           "array": false,
           "size": 100,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "type",
@@ -765,7 +819,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "platforms",
@@ -773,7 +828,8 @@
           "required": true,
           "array": true,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "description",
@@ -781,21 +837,26 @@
           "required": false,
           "array": false,
           "size": 2000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "budget",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "rewardPer1000Views",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "status",
@@ -803,42 +864,53 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "claimLimit",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "submissionDays",
           "type": "integer",
-          "required": true,
+          "required": false,
           "array": false,
-          "default": 7
+          "default": 7,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "totalClaims",
           "type": "integer",
-          "required": true,
+          "required": false,
           "array": false,
-          "default": 0
+          "default": 0,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "spentAmount",
           "type": "integer",
-          "required": true,
+          "required": false,
           "array": false,
-          "default": 0
+          "default": 0,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "remainingBudget",
           "type": "integer",
-          "required": true,
+          "required": false,
           "array": false,
-          "default": 0
+          "default": 0,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "publishedAt",
@@ -924,7 +996,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "source",
@@ -932,7 +1005,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "type",
@@ -940,7 +1014,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "fileUrl",
@@ -948,15 +1023,8 @@
           "required": true,
           "array": false,
           "size": 2048,
-          "default": null
-        },
-        {
-          "key": "fileId",
-          "type": "string",
-          "required": false,
-          "array": false,
-          "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "fileName",
@@ -964,7 +1032,8 @@
           "required": false,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         }
       ],
       "indexes": [
@@ -995,14 +1064,17 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "score",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "result",
@@ -1010,7 +1082,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "reason",
@@ -1018,7 +1091,8 @@
           "required": false,
           "array": false,
           "size": 2000,
-          "default": null
+          "default": null,
+          "encrypt": false
         }
       ],
       "indexes": [
@@ -1075,7 +1149,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "objective",
@@ -1083,7 +1158,8 @@
           "required": false,
           "array": false,
           "size": 2000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "contentAngle",
@@ -1091,7 +1167,8 @@
           "required": false,
           "array": false,
           "size": 2000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "cta",
@@ -1099,7 +1176,8 @@
           "required": false,
           "array": false,
           "size": 1000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "briefDetail",
@@ -1107,28 +1185,31 @@
           "required": false,
           "array": false,
           "size": 10000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "doAndDont",
           "type": "string",
           "required": false,
           "array": false,
-          "size": 5000,
-          "default": null
+          "size": 400,
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "materialsJson",
           "type": "string",
           "required": false,
           "array": false,
-          "size": 5000,
-          "default": null
+          "size": 300,
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "generatedByAi",
           "type": "boolean",
-          "required": true,
+          "required": false,
           "array": false,
           "default": false
         }
@@ -1165,7 +1246,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "creatorId",
@@ -1173,7 +1255,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "status",
@@ -1181,7 +1264,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "claimedAt",
@@ -1256,7 +1340,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "campaignId",
@@ -1264,7 +1349,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "creatorId",
@@ -1272,7 +1358,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "platform",
@@ -1280,7 +1367,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "postUrl",
@@ -1288,7 +1376,8 @@
           "required": true,
           "array": false,
           "size": 2048,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "caption",
@@ -1296,28 +1385,35 @@
           "required": false,
           "array": false,
           "size": 1000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "views",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "engagement",
           "type": "integer",
           "required": false,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "fraudScore",
           "type": "integer",
           "required": false,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "fraudStatus",
@@ -1325,7 +1421,8 @@
           "required": false,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "status",
@@ -1333,7 +1430,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         }
       ],
       "indexes": [
@@ -1412,7 +1510,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "title",
@@ -1420,7 +1519,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "description",
@@ -1428,7 +1528,8 @@
           "required": false,
           "array": false,
           "size": 2000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "status",
@@ -1436,7 +1537,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "createdAt",
@@ -1500,7 +1602,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "name",
@@ -1508,7 +1611,8 @@
           "required": true,
           "array": false,
           "size": 100,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "description",
@@ -1516,7 +1620,8 @@
           "required": true,
           "array": false,
           "size": 2000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "output",
@@ -1524,28 +1629,35 @@
           "required": true,
           "array": false,
           "size": 2000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "deliveryDays",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "price",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "revisionLimit",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         }
       ],
       "indexes": [
@@ -1591,7 +1703,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "creator_id",
@@ -1599,7 +1712,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "offer_id",
@@ -1607,7 +1721,8 @@
           "required": false,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "last_message",
@@ -1615,7 +1730,8 @@
           "required": false,
           "array": false,
           "size": 1000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "last_message_at",
@@ -1692,7 +1808,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "sender_id",
@@ -1700,7 +1817,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "message_type",
@@ -1708,7 +1826,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "content",
@@ -1716,7 +1835,8 @@
           "required": false,
           "array": false,
           "size": 2000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "offer_id",
@@ -1724,37 +1844,14 @@
           "required": false,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
-          "key": "attachment_url",
-          "type": "string",
+          "key": "read_at",
+          "type": "datetime",
           "required": false,
           "array": false,
-          "size": 2048,
-          "default": null
-        },
-        {
-          "key": "attachment_name",
-          "type": "string",
-          "required": false,
-          "array": false,
-          "size": 255,
-          "default": null
-        },
-        {
-          "key": "attachment_size",
-          "type": "integer",
-          "required": false,
-          "array": false,
-          "default": null
-        },
-        {
-          "key": "attachment_mime",
-          "type": "string",
-          "required": false,
-          "array": false,
-          "size": 255,
           "default": null
         }
       ],
@@ -1780,6 +1877,17 @@
           "columns": [
             "sender_id"
           ]
+        },
+        {
+          "key": "idx_read_at",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "read_at"
+          ]
         }
       ]
     },
@@ -1801,7 +1909,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "umkmId",
@@ -1809,7 +1918,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "creatorId",
@@ -1817,7 +1927,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "title",
@@ -1825,7 +1936,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "description",
@@ -1833,14 +1945,17 @@
           "required": false,
           "array": false,
           "size": 2000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "price",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "deadline",
@@ -1848,14 +1963,17 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "revisionLimit",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "status",
@@ -1863,7 +1981,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "createdAt",
@@ -1927,7 +2046,8 @@
           "required": false,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "packageId",
@@ -1935,7 +2055,8 @@
           "required": false,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "creatorId",
@@ -1943,7 +2064,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "umkmId",
@@ -1951,14 +2073,17 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "amount",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "status",
@@ -1966,7 +2091,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "createdAt",
@@ -2063,7 +2189,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "source",
@@ -2071,7 +2198,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "fileUrl",
@@ -2079,7 +2207,8 @@
           "required": true,
           "array": false,
           "size": 2048,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "fileId",
@@ -2087,7 +2216,8 @@
           "required": false,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "notes",
@@ -2095,14 +2225,17 @@
           "required": false,
           "array": false,
           "size": 2000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "version",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "status",
@@ -2110,7 +2243,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "createdAt",
@@ -2163,7 +2297,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "requestedBy",
@@ -2171,7 +2306,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "message",
@@ -2179,7 +2315,8 @@
           "required": true,
           "array": false,
           "size": 2000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "status",
@@ -2187,7 +2324,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         }
       ],
       "indexes": [
@@ -2231,21 +2369,26 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "balance",
           "type": "integer",
           "required": false,
           "array": false,
-          "default": 0
+          "default": 0,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "pendingBalance",
           "type": "integer",
           "required": false,
           "array": false,
-          "default": 0
+          "default": 0,
+          "min": 0,
+          "max": 999999999
         }
       ],
       "indexes": [
@@ -2278,7 +2421,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "order_id",
@@ -2286,7 +2430,8 @@
           "required": false,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "campaign_id",
@@ -2294,28 +2439,35 @@
           "required": false,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "amount",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "total_amount",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "fee_amount",
           "type": "integer",
           "required": false,
           "array": false,
-          "default": 0
+          "default": 0,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "purpose",
@@ -2323,7 +2475,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "gateway",
@@ -2331,7 +2484,8 @@
           "required": false,
           "array": false,
           "size": 50,
-          "default": "midtrans"
+          "default": "midtrans",
+          "encrypt": false
         },
         {
           "key": "gateway_reference",
@@ -2339,7 +2493,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "snap_token",
@@ -2347,7 +2502,8 @@
           "required": false,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "redirect_url",
@@ -2355,7 +2511,8 @@
           "required": false,
           "array": false,
           "size": 2048,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "status",
@@ -2363,7 +2520,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "paid_at",
@@ -2458,14 +2616,17 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "amount",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "type",
@@ -2473,7 +2634,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "referenceId",
@@ -2481,7 +2643,8 @@
           "required": false,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "referenceType",
@@ -2489,7 +2652,8 @@
           "required": false,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "status",
@@ -2497,7 +2661,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         }
       ],
       "indexes": [
@@ -2561,14 +2726,17 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "amount",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "status",
@@ -2576,7 +2744,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         }
       ],
       "indexes": [
@@ -2621,14 +2790,17 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "amount",
           "type": "integer",
           "required": true,
           "array": false,
-          "default": null
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "payoutMethod",
@@ -2636,7 +2808,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "providerName",
@@ -2644,7 +2817,8 @@
           "required": true,
           "array": false,
           "size": 100,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "accountNumber",
@@ -2652,7 +2826,8 @@
           "required": true,
           "array": false,
           "size": 100,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "accountName",
@@ -2660,7 +2835,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "status",
@@ -2668,45 +2844,14 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
-        },
-        {
-          "key": "adminNote",
-          "type": "string",
-          "required": false,
-          "array": false,
-          "size": 1000,
-          "default": null
-        },
-        {
-          "key": "rejectionReason",
-          "type": "string",
-          "required": false,
-          "array": false,
-          "size": 1000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "processedAt",
           "type": "datetime",
-          "required": false,
+          "required": true,
           "array": false,
-          "default": null
-        },
-        {
-          "key": "processedBy",
-          "type": "string",
-          "required": false,
-          "array": false,
-          "size": 255,
-          "default": null
-        },
-        {
-          "key": "transferProofUrl",
-          "type": "string",
-          "required": false,
-          "array": false,
-          "size": 2048,
           "default": null
         }
       ],
@@ -2720,28 +2865,6 @@
           ],
           "columns": [
             "userId"
-          ]
-        },
-        {
-          "key": "idx_status",
-          "type": "key",
-          "status": "available",
-          "orders": [
-            "ASC"
-          ],
-          "columns": [
-            "status"
-          ]
-        },
-        {
-          "key": "idx_payoutMethod",
-          "type": "key",
-          "status": "available",
-          "orders": [
-            "ASC"
-          ],
-          "columns": [
-            "payoutMethod"
           ]
         }
       ]
@@ -2760,7 +2883,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "title",
@@ -2768,7 +2892,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "message",
@@ -2776,7 +2901,8 @@
           "required": true,
           "array": false,
           "size": 1000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "type",
@@ -2784,7 +2910,8 @@
           "required": true,
           "array": false,
           "size": 50,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "isRead",
@@ -2851,7 +2978,8 @@
           "required": true,
           "array": false,
           "size": 255,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "feature",
@@ -2863,15 +2991,17 @@
             "fraud",
             "landing"
           ],
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "prompt",
           "type": "string",
           "required": true,
           "array": false,
-          "size": 10000,
-          "default": null
+          "size": 5000,
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "response",
@@ -2879,7 +3009,8 @@
           "required": false,
           "array": false,
           "size": 10000,
-          "default": null
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "createdAt",
@@ -3030,29 +3161,6 @@
       "antivirus": true
     },
     {
-      "$id": "chat-files",
-      "name": "Chat Files",
-      "$permissions": [
-        "read(\"users\")",
-        "create(\"users\")"
-      ],
-      "fileSecurity": true,
-      "enabled": true,
-      "maximumFileSize": 10000000,
-      "allowedFileExtensions": [
-        "jpg",
-        "jpeg",
-        "png",
-        "webp",
-        "pdf",
-        "doc",
-        "docx"
-      ],
-      "compression": "gzip",
-      "encryption": false,
-      "antivirus": true
-    },
-    {
       "$id": "fraud-evidence",
       "name": "Fraud Evidence",
       "$permissions": [
@@ -3108,7 +3216,7 @@
     {
       "$id": "create-user-profile",
       "name": "Create User Profile",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [
         "users"
       ],
@@ -3126,7 +3234,7 @@
     {
       "$id": "validate-and-upload",
       "name": "Validate And Upload",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [
         "users"
       ],
@@ -3142,7 +3250,7 @@
     {
       "$id": "delete-file",
       "name": "Delete File",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [
         "users"
       ],
@@ -3158,7 +3266,7 @@
     {
       "$id": "create-user-wallet",
       "name": "Create User Wallet",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [],
       "events": [
         "users.*.create"
@@ -3174,7 +3282,7 @@
     {
       "$id": "campaign-published",
       "name": "Campaign Published",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [],
       "events": [
         "databases.6a4c8598001da3b0d7f0.collections.campaigns.documents.*.update"
@@ -3190,7 +3298,7 @@
     {
       "$id": "ai-brief",
       "name": "AI Brief Generator",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [
         "users"
       ],
@@ -3206,7 +3314,7 @@
     {
       "$id": "ai-fraud-precheck",
       "name": "AI Fraud Precheck",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [],
       "events": [
         "databases.6a4c8598001da3b0d7f0.collections.campaign_submissions.documents.*.create"
@@ -3222,7 +3330,7 @@
     {
       "$id": "create-order",
       "name": "Create Order",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [],
       "events": [
         "databases.6a4c8598001da3b0d7f0.collections.offers.documents.*.update"
@@ -3238,7 +3346,7 @@
     {
       "$id": "calculate-campaign-reward",
       "name": "Calculate Campaign Reward",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [],
       "events": [
         "databases.6a4c8598001da3b0d7f0.collections.campaign_submissions.documents.*.update"
@@ -3254,7 +3362,7 @@
     {
       "$id": "campaign-claimed",
       "name": "Campaign Claimed",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [],
       "events": [
         "databases.6a4c8598001da3b0d7f0.collections.campaign_claims.documents.*.create"
@@ -3270,7 +3378,7 @@
     {
       "$id": "expire-stale-claims",
       "name": "Expire Stale Claims",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [],
       "events": [],
       "schedule": "0 */6 * * *",
@@ -3284,7 +3392,7 @@
     {
       "$id": "create-payment",
       "name": "Create Payment",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [
         "users"
       ],
@@ -3300,7 +3408,7 @@
     {
       "$id": "midtrans-webhook",
       "name": "Midtrans Webhook",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [
         "any"
       ],
@@ -3316,7 +3424,7 @@
     {
       "$id": "create-escrow",
       "name": "Create Escrow",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [],
       "events": [
         "databases.6a4c8598001da3b0d7f0.collections.payments.documents.*.update"
@@ -3332,7 +3440,7 @@
     {
       "$id": "release-escrow",
       "name": "Release Escrow",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [],
       "events": [
         "databases.6a4c8598001da3b0d7f0.collections.deliverables.documents.*.update"
@@ -3348,7 +3456,7 @@
     {
       "$id": "send-chat-notification",
       "name": "Send Chat Notification",
-      "runtime": "node-18.0",
+      "runtime": "node-22",
       "execute": [],
       "events": [
         "databases.6a4c8598001da3b0d7f0.collections.messages.documents.*.create"
@@ -3360,22 +3468,6 @@
       "entrypoint": "src/main.js",
       "commands": "npm install",
       "path": "../functions/send-chat-notification"
-    },
-    {
-      "$id": "upload-chat-attachment",
-      "name": "Upload Chat Attachment",
-      "runtime": "node-18.0",
-      "execute": [
-        "users"
-      ],
-      "events": [],
-      "schedule": "",
-      "timeout": 30,
-      "enabled": true,
-      "logging": true,
-      "entrypoint": "src/main.js",
-      "commands": "npm install",
-      "path": "../functions/upload-chat-attachment"
     }
   ]
 }

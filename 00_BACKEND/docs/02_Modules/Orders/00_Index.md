@@ -1,6 +1,6 @@
 # Modul Orders
 
-Order adalah aggregate utama alur Rate Card: terbentuk dari offer (atau direct order) dan mengendalikan escrow, deliverable, revisi, dan completion. Modul ini memiliki data `orders`, `deliverables`, dan `revisions`.
+Order adalah aggregate utama alur Rate Card: terbentuk dari offer (atau direct order) dan mengendalikan escrow, deliverable (via File Manager), revisi, dan completion. Modul ini memiliki data `orders`, `deliverables`, dan `revisions`.
 
 ## Daftar Dokumen
 

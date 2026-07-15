@@ -10,8 +10,8 @@ Panduan struktur folder `02_Modules/<NamaModul>/`. Tidak semua file wajib — bu
 - `30_Business_Rules.md` — Aturan bisnis bernomor, status/enum, validasi, invariant. (Lihat [Business_Rules_Template.md](Business_Rules_Template.md).)
 - `40_User_Flow.md` — Alur pengguna khusus modul ini (bukan lintas-modul; alur lintas-modul ada di `03_Workflows/`).
 - `50_Database.md` — Collection yang dimiliki modul. (Lihat [Database_Template.md](Database_Template.md).)
-- `60_API.md` — Kontrak service method. (Lihat [API_Template.md](API_Template.md).)
-- `70_Backend.md` — Appwrite Functions, logika server-side, integrasi eksternal.
+- `60_API.md` — Kontrak service method (Client SDK) & Appwrite Functions (Server-side). Pisahkan dengan section `## Service Layer` dan `## Appwrite Functions`. Jelaskan dengan tegas apakah fungsi dipanggil langsung dari frontend atau dipicu event/server-side. Label tiap fungsi dengan `[Client SDK]` atau `[Appwrite Function]`. (Lihat [API_Template.md](API_Template.md).)
+- `70_Backend.md` — Detail implementasi Appwrite Functions, logika server-side, integrasi eksternal, dan aturan backend yang tidak diekspos sebagai service client.
 - `80_Frontend.md` — Screen/route & komponen. (Lihat [Screen_Template.md](Screen_Template.md).)
 - `90_Events.md` — Event yang diterbitkan/dikonsumsi modul + tautan ke modul terkait.
 - `100_Testing.md` — Skenario uji, edge case, kriteria acceptance.

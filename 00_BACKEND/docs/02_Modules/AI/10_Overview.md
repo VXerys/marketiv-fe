@@ -1,6 +1,6 @@
 # AI — Overview
 
-Marketiv memakai AI melalui **Appwrite Functions** yang membungkus OpenAI. Semua pemanggilan berjalan **server-side** (API key tidak pernah ada di frontend).
+Marketiv memakai AI melalui **Appwrite Functions** yang membungkus Gemini API. Semua pemanggilan berjalan **server-side** (API key tidak pernah ada di frontend).
 
 ## Fitur
 

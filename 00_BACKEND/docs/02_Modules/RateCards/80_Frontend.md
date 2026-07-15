@@ -23,8 +23,9 @@
 
 ### Discovery / Browse Creators
 
-- Filter: platform social account, kota.
-- List creator dengan rating, totalFollowers, city.
+- Filter: kota, range harga (minPrice — maxPrice).
+- Sort by: harga terendah, harga tertinggi, rating tertinggi, pesanan terbanyak.
+- List creator dengan rating, totalFollowers, city, harga termurah dari paket rate card.
 - Klik → lihat profil + rate card.
 
 ## Komponen

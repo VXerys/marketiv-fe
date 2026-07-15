@@ -9,7 +9,7 @@ export default async ({ req, res, log, error }) => {
 
     const databases = createDatabasesClient(env);
 
-    if (payment.purpose === "topup") {
+    if (payment.purpose === "topup" || payment.purpose === "campaign") {
       const result = await completeTopup(databases, env, payment);
       log(`Top up payment ${payment.$id} completed for ${payment.user_id}`);
       return json(res, { status: "ok", ...result });

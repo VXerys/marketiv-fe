@@ -1,7 +1,7 @@
 import { ID, Permission, Query, Role } from 'appwrite';
 import { account, COLLECTIONS, DATABASE_ID, databases } from '../lib/appwrite';
 
-export type MessageType = 'text' | 'image' | 'file' | 'offer' | 'system';
+export type MessageType = 'text' | 'offer' | 'system';
 
 export type Conversation = {
   id: string;
@@ -20,10 +20,7 @@ export type ChatMessage = {
   type: MessageType;
   content?: string;
   offerId?: string;
-  attachmentUrl?: string;
-  attachmentName?: string;
-  attachmentSize?: number;
-  attachmentMime?: string;
+  readAt?: string;
   createdAt?: string;
 };
 
@@ -37,10 +34,6 @@ export type SendMessageInput = {
   type?: MessageType;
   content?: string;
   offerId?: string;
-  attachmentUrl?: string;
-  attachmentName?: string;
-  attachmentSize?: number;
-  attachmentMime?: string;
 };
 
 export class ChatServiceError extends Error {
@@ -72,10 +65,7 @@ const mapMessage = (document: Record<string, any>): ChatMessage => ({
   type: document.message_type,
   content: document.content || undefined,
   offerId: document.offer_id || undefined,
-  attachmentUrl: document.attachment_url || undefined,
-  attachmentName: document.attachment_name || undefined,
-  attachmentSize: document.attachment_size ?? undefined,
-  attachmentMime: document.attachment_mime || undefined,
+  readAt: document.read_at || undefined,
   createdAt: document.$createdAt,
 });
 
@@ -102,8 +92,6 @@ const ensureParticipant = (conversation: Conversation, userId: string): void => 
 const buildLastMessage = (input: SendMessageInput): string => {
   if (input.content?.trim()) return input.content.trim().slice(0, 1000);
   if (input.type === 'offer') return 'Offer dikirim';
-  if (input.type === 'image') return 'Gambar dikirim';
-  if (input.type === 'file') return 'File dikirim';
   return 'Pesan baru';
 };
 
@@ -161,10 +149,6 @@ export const sendMessage = async (data: SendMessageInput): Promise<ChatMessage> 
 
     if (data.content?.trim()) payload.content = data.content.trim();
     if (data.offerId) payload.offer_id = data.offerId;
-    if (data.attachmentUrl) payload.attachment_url = data.attachmentUrl;
-    if (data.attachmentName) payload.attachment_name = data.attachmentName;
-    if (data.attachmentSize !== undefined) payload.attachment_size = data.attachmentSize;
-    if (data.attachmentMime) payload.attachment_mime = data.attachmentMime;
 
     const message = await databases.createDocument(
       DATABASE_ID,
@@ -182,5 +166,47 @@ export const sendMessage = async (data: SendMessageInput): Promise<ChatMessage> 
     return mapMessage(message);
   } catch (err) {
     throw mapError(err, 'Gagal mengirim pesan. Coba lagi.');
+  }
+};
+
+export const markConversationAsRead = async (conversationId: string): Promise<void> => {
+  requireText(conversationId, 'Conversation ID wajib diisi.');
+
+  try {
+    const user = await account.get();
+
+    const unreadMessages = await databases.listDocuments(DATABASE_ID, COLLECTIONS.messages, [
+      Query.equal('conversation_id', conversationId),
+      Query.notEqual('sender_id', user.$id),
+      Query.isNull('read_at'),
+      Query.limit(100),
+    ]);
+
+    const now = new Date().toISOString();
+
+    for (const msg of unreadMessages.documents) {
+      await databases.updateDocument(DATABASE_ID, COLLECTIONS.messages, msg.$id, {
+        read_at: now,
+      });
+    }
+  } catch (err) {
+    throw mapError(err, 'Gagal menandai pesan telah dibaca.');
+  }
+};
+
+export const getMessages = async (conversationId: string, limit = 50): Promise<ChatMessage[]> => {
+  requireText(conversationId, 'Conversation ID wajib diisi.');
+
+  try {
+    const { Query } = await import('appwrite');
+    const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.messages, [
+      Query.equal('conversation_id', conversationId),
+      Query.orderDesc('$createdAt'),
+      Query.limit(limit),
+    ]);
+
+    return response.documents.map(mapMessage).reverse();
+  } catch (err) {
+    throw mapError(err, 'Gagal memuat pesan.');
   }
 };
