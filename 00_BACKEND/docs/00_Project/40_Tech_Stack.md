@@ -7,15 +7,19 @@
 ## Backend (BaaS)
 
 - **Appwrite** menyediakan:
-  - **Auth** — autentikasi & Google OAuth (khusus creator)
+  - **Auth** — autentikasi & Google OAuth
   - **Database** — koleksi data
-  - **Storage** — file (avatar, logo, campaign assets, deliverables, dll.)
-  - **Realtime** — update campaign/order/submission/notification
+  - **Storage** — file (avatar, logo, campaign assets, chat attachments, deliverables, dll.)
+  - **Realtime** — update chat/campaign/order/submission/notification
   - **Functions** — logika server-side berbasis event
+
+## Payment Gateway
+
+- **Midtrans (Snap)** — pembayaran order rate card via Appwrite Function `create-payment` + webhook `midtrans-webhook`. Server key hanya di environment function (lihat [80_Deployment](../01_Global/80_Deployment.md)).
 
 ## AI Layer
 
-- **OpenAI API** diakses melalui **Appwrite Function wrapper** (AI Brief Generator, AI Fraud Detection, Landing Assistant).
+- **Gemini API** diakses melalui **Appwrite Function wrapper** (AI Brief Generator, AI Fraud Detection, Landing Assistant). Model spesifik ditetapkan di modul [AI](../02_Modules/AI/00_Index.md).
 
 ## State Management
 
@@ -23,7 +27,7 @@
 
 ## Validation
 
-- **Zod** — skema validasi (auth, campaign, rate card, offer, withdraw).
+- **Zod** — skema validasi (auth, campaign, rate card, chat, offer, withdraw).
 
 ## Testing
 

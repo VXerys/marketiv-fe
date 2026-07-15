@@ -1,6 +1,6 @@
 # Modul Offers
 
-Custom offer (penawaran khusus) yang dibuat creator di dalam sebuah percakapan untuk menyepakati harga, deadline, dan batas revisi. Saat di-accept, offer memicu pembuatan order. Modul ini memiliki data `offers`.
+Custom offer (penawaran khusus) yang dibuat UMKM di dalam sebuah percakapan untuk menyepakati harga, deadline, dan batas revisi dengan creator. Saat creator accept, offer memicu pembuatan order. Modul ini memiliki data `offers`.
 
 ## Daftar Dokumen
 

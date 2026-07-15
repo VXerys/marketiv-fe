@@ -1,16 +1,16 @@
 # Graph Report - BackendMarketiv  (2026-07-09)
 
 ## Corpus Check
-- 270 files · ~110,624 words
+- 271 files · ~110,421 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2517 nodes · 2644 edges · 231 communities (222 shown, 9 thin omitted)
+- 2526 nodes · 2652 edges · 231 communities (223 shown, 8 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ffb18027`
+- Built from commit: `c13758a2`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -55,7 +55,6 @@
 - [[_COMMUNITY_00_Index|00_Index.md]]
 - [[_COMMUNITY_Orders — Testing|Orders — Testing]]
 - [[_COMMUNITY_Community 39|Community 39]]
-- [[_COMMUNITY_Community 40|Community 40]]
 - [[_COMMUNITY_Visi Marketiv|Visi Marketiv]]
 - [[_COMMUNITY_Aturan Kerja Proyek|Aturan Kerja Proyek]]
 - [[_COMMUNITY_Community 43|Community 43]]
@@ -163,6 +162,7 @@
 - [[_COMMUNITY_Community 155|Community 155]]
 - [[_COMMUNITY_Community 156|Community 156]]
 - [[_COMMUNITY_Community 157|Community 157]]
+- [[_COMMUNITY_Community 158|Community 158]]
 - [[_COMMUNITY_Community 160|Community 160]]
 - [[_COMMUNITY_Community 161|Community 161]]
 - [[_COMMUNITY_Community 162|Community 162]]
@@ -254,7 +254,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (231 total, 9 thin omitted)
+## Communities (231 total, 8 thin omitted)
 
 ### Community 0 - "00_Index.md"
 Cohesion: 0.05
@@ -589,8 +589,8 @@ Cohesion: 0.40
 Nodes (4): Aktor, Alur End-to-End, Campaigns — Overview, Koleksi yang Dimiliki
 
 ### Community 88 - "Community 88"
-Cohesion: 0.16
-Nodes (16): createPayment(), CreatePaymentInput, CreatePaymentResult, getPaidPayments(), getPayment(), getPayments(), GetPaymentsOptions, getPendingPayments() (+8 more)
+Cohesion: 0.33
+Nodes (5): dependencies, node-appwrite, name, type, version
 
 ### Community 89 - "Chat — Overview"
 Cohesion: 0.40
@@ -689,8 +689,8 @@ Cohesion: 0.40
 Nodes (5): ADR-001 — Gunakan Appwrite BaaS, Bukan Backend Custom, Consequences, Context, Decision, Status
 
 ### Community 115 - "ADR-002 — Abstraksi Service Layer Wajib"
-Cohesion: 0.40
-Nodes (5): ADR-002 — Abstraksi Service Layer Wajib, Consequences, Context, Decision, Status
+Cohesion: 0.22
+Nodes (7): 04_Decisions — Index, Daftar ADR, ADR-002 — Abstraksi Service Layer Wajib, Consequences, Context, Decision, Status
 
 ### Community 116 - "ADR-006 — Gunakan Zustand untuk State Management, Bukan Redux"
 Cohesion: 0.40
@@ -737,7 +737,7 @@ Cohesion: 0.50
 Nodes (3): Chat — Concepts, Istilah, Konsep
 
 ### Community 129 - "Community 129"
-Cohesion: 0.20
+Cohesion: 0.22
 Nodes (9): Appwrite Functions, Aturan Backend, complete-withdrawal (Admin), create-escrow, create-payment, create-user-wallet, midtrans-webhook, Payments — Backend (+1 more)
 
 ### Community 130 - "Notifications — Concepts"
@@ -781,11 +781,11 @@ Cohesion: 0.33
 Nodes (7): getNotifications(), mapError(), mapNotification(), markAllAsRead(), markAsRead(), Notification, NotificationServiceError
 
 ### Community 147 - "wallet.service.js"
-Cohesion: 0.10
-Nodes (26): calculateCreatorPayout(), calculatePlatformFee(), calculateTotalPayment(), getBalance(), getPendingBalance(), getPendingWithdrawals(), getTransactions(), GetTransactionsOptions (+18 more)
+Cohesion: 0.06
+Nodes (42): createPayment(), CreatePaymentInput, CreatePaymentResult, getPaidPayments(), getPayment(), getPayments(), GetPaymentsOptions, getPendingPayments() (+34 more)
 
 ### Community 149 - "claim.service.js"
-Cohesion: 0.22
+Cohesion: 0.29
 Nodes (6): escrows, payments, Payments — Database, transactions, wallets, withdrawals
 
 ### Community 152 - "Community 152"
@@ -793,8 +793,8 @@ Cohesion: 0.33
 Nodes (5): ADR-006 — Gunakan Zustand untuk State Management, Bukan Redux, Consequences, Context, Decision, Status
 
 ### Community 153 - "Community 153"
-Cohesion: 0.25
-Nodes (7): dependencies, @google/generative-ai, node-appwrite, main, name, type, version
+Cohesion: 0.33
+Nodes (5): dependencies, node-appwrite, name, type, version
 
 ### Community 154 - "Community 154"
 Cohesion: 0.07
@@ -812,8 +812,12 @@ Nodes (7): dependencies, @google/generative-ai, node-appwrite, main, name, type,
 Cohesion: 0.67
 Nodes (3): Lihat Juga, Notifications — Events, Pola Implementasi
 
+### Community 158 - "Community 158"
+Cohesion: 0.33
+Nodes (5): dependencies, node-appwrite, name, type, version
+
 ### Community 160 - "Community 160"
-Cohesion: 0.29
+Cohesion: 0.25
 Nodes (7): Checkout Created → Midtrans Payment, Deliverable Approved → Release Escrow, Midtrans Notification → Payment Status, Payment Success → Escrow Hold, Payments — Events, User Registered → Create Wallet, Withdraw Requested → Admin Review
 
 ### Community 161 - "Community 161"
@@ -1073,19 +1077,19 @@ Cohesion: 0.33
 Nodes (5): Controller with Swagger, Controllers & Routing, Global Prefix & Versioning, Nested Routes, Quick Reference
 
 ## Knowledge Gaps
-- **1557 isolated node(s):** `$schema`, `paths`, `plugin`, `@opencode-ai/plugin`, `fs` (+1552 more)
+- **1563 isolated node(s):** `$schema`, `paths`, `plugin`, `@opencode-ai/plugin`, `fs` (+1558 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **9 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **8 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Users — Database` connect `Users — Database` to `00_Index.md`?**
   _High betweenness centrality (0.010) - this node is a cross-community bridge._
-- **Why does `Campaigns — API` connect `Campaign Service` to `Community 40`?**
-  _High betweenness centrality (0.009) - this node is a cross-community bridge._
+- **Why does `Workflow: Registration & Onboarding` connect `Workflow: Registration & Onboarding` to `00_Index.md`?**
+  _High betweenness centrality (0.008) - this node is a cross-community bridge._
 - **What connects `$schema`, `paths`, `plugin` to the rest of the system?**
-  _1557 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1563 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `00_Index.md` be split into smaller, more focused modules?**
   _Cohesion score 0.04521276595744681 - nodes in this community are weakly interconnected._
 - **Should `AGENTS.md` be split into smaller, more focused modules?**

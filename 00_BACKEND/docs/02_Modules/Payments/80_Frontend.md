@@ -11,18 +11,17 @@
 ### Top Up
 
 - Form input amount.
-- Integrasi payment gateway.
+- Panggil `createPayment()` untuk membuat payment Midtrans.
+- Redirect/open Snap Midtrans menggunakan `snapToken` atau `redirectUrl` dari server.
+- Tampilkan status menunggu sampai webhook Midtrans mengubah payment menjadi `paid`.
 
 ### Withdrawal
 
-- Form: amount, bank name, account number, account name.
-- Validasi: min amount, balance cukup.
+- Form: amount, payout method (`bank` atau `ewallet`), provider name, account number/phone, account name.
+- Validasi: min amount, balance cukup, metode valid, data tujuan pencairan lengkap.
 - Riwayat withdrawal.
 
-### Admin: Withdrawal Review
-
-- Daftar withdrawal pending.
-- Approve / Reject dengan catatan.
+> Withdrawal langsung diproses tanpa review admin. Tidak ada halaman review withdrawal untuk admin.
 
 ## Komponen
 

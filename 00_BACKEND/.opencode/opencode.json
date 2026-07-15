@@ -1,4 +1,10 @@
 {
+  "$schema": "https://opencode.ai/config.json",
+  "skills": {
+    "paths": [
+      ".agents/skills"
+    ]
+  },
   "plugin": [
     ".opencode/plugins/graphify.js"
   ]

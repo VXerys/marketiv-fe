@@ -25,15 +25,17 @@ Aggregate utama alur Rate Card. Relasi: Offer (1) → Order (1) **atau** Package
 
 ## deliverables
 
-Draft/hasil kerja creator, berversi. Relasi: Order (1) → Deliverables (N).
+Draft/hasil kerja creator, berversi. Relasi: Order (1) → Deliverables (N). File dikelola via File Manager (`user_files`, modul Users). ⚠️ `user_files` dormant — tidak dipakai MVP, deliverable source selalu `external_url`.
 
-| Attribute | Type    | Required | Catatan                       |
-| --------- | ------- | -------- | ----------------------------- |
-| orderId   | string  | yes      | FK → orders                   |
-| fileUrl   | string  | yes      | URL Storage (bucket deliverables) |
-| notes     | string  | no       | catatan creator               |
-| version   | integer | yes      | nomor versi unggahan          |
-| status    | enum    | yes      | `submitted\|revision_requested\|approved` |
+| Attribute | Type    | Required | Catatan                                      |
+| --------- | ------- | -------- | -------------------------------------------- |
+| orderId   | string  | yes      | FK → orders                                  |
+| source    | enum    | yes      | `storage` \| `external_url`                  |
+| fileUrl   | string  | yes      | URL Appwrite Storage atau URL eksternal      |
+| fileId    | string  | no       | FK → user_files.$id; wajib jika `source = storage` |
+| notes     | string  | no       | catatan creator                              |
+| version   | integer | yes      | nomor versi unggahan                         |
+| status    | enum    | yes      | `submitted\|revision_requested\|approved`    |
 
 **Index**: `orderId`, `createdAt DESC`.
 

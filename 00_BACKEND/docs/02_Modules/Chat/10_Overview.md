@@ -1,19 +1,17 @@
 # Chat — Overview
 
-Chat menghubungkan UMKM dan Content Creator secara realtime menggunakan **Appwrite Realtime**. Ini adalah ruang negosiasi sebelum kesepakatan dibuat lewat custom offer.
+Chat menghubungkan UMKM dan Content Creator secara realtime menggunakan **Appwrite Realtime**. Dalam MVP, chat dibatasi sebagai ruang negosiasi sebelum kesepakatan dibuat lewat custom offer.
 
 ## Inti
 
 - Komunikasi dua arah UMKM ↔ Creator dalam satu **conversation** (ruang chat).
-- Pesan dikirim realtime: saat `messages.create`, subscriber UI penerima langsung ter-update tanpa polling.
-- Lampiran (image/file) disimpan di **Storage** (bucket `chat-files`), bukan langsung di dokumen pesan.
+- Pesan dikirim realtime sederhana: saat `messages.create`, subscriber UI penerima langsung ter-update tanpa polling.
+- MVP tidak mencakup typing indicator, multi-file upload, voice note, atau fitur chat sosial lanjutan.
 
 ## Tipe Pesan
 
 - `text` — pesan teks biasa.
-- `image` — gambar (URL ke Storage).
-- `file` — berkas (URL ke Storage).
-- `offer` — referensi custom offer yang dikirim creator di dalam chat (lihat `../Offers/`).
+- `offer` — referensi custom offer yang dikirim UMKM di dalam chat (lihat `../Offers/`).
 - `system` — pesan sistem (mis. notifikasi status).
 
 ## Tautan

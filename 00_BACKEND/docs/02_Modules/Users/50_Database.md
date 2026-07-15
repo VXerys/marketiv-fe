@@ -59,12 +59,13 @@ category            # diisi saat Register
 description
 city
 address
-instagram
 tiktok
-website
 logoUrl
 isProfileCompleted
 ```
+
+`tiktok` bersifat opsional dan tidak menentukan `isProfileCompleted`. Website tidak disimpan sebagai field profil UMKM pada MVP.
+`logoUrl` bersifat opsional saat onboarding dan dapat diisi dari halaman profil.
 
 ### Index
 
@@ -128,17 +129,16 @@ Public: read
 
 ## 4. `creator_social_accounts`
 
-Relasi: `creator_profiles` 1 ── N `creator_social_accounts`. Satu creator bisa punya banyak akun.
+Relasi: `creator_profiles` 1 ── N `creator_social_accounts`. Untuk MVP hanya akun TikTok yang valid. Struktur N dipertahankan agar ekspansi Instagram, Facebook, YouTube, dan platform lain dapat ditambahkan setelah MVP tanpa redesign skema.
 
 ### Attributes
 
 ```text
 creatorId
-platform            # tiktok | instagram | youtube | ...
+platform            # MVP: tiktok only; future: instagram | facebook | youtube | ...
 username
 followers
 engagementRate
-isVerified
 ```
 
 ### Index
@@ -172,6 +172,8 @@ thumbnailUrl
 portfolioUrl
 ```
 
+Portfolio creator bersifat opsional saat onboarding. Creator dapat memiliki nol atau banyak portfolio, dan menambahkannya nanti dari halaman profil.
+
 ### Index
 
 ```text
@@ -187,7 +189,71 @@ Public: read
 
 ---
 
+## 6. `user_storage_usage` ⚠️ DORMANT (post-MVP)
+
+Relasi: `users` 1 ── 1 `user_storage_usage`. Tidak digunakan di MVP — semua aset pakai external URL. Infrastruktur siap diaktifkan jika feedback demo minggu pertama meminta file manager internal.
+
+### Attributes
+
+```text
+userId            # FK → users, unique
+usedBytes         # total ukuran file aktif milik user
+quotaBytes        # default 104857600 (100 MB)
+fileCount         # jumlah file aktif
+```
+
+### Index
+
+```text
+userId (unique)
+```
+
+### Permission
+
+```text
+Owner : read
+System: write
+```
+
+---
+
+## 7. `user_files` ⚠️ DORMANT (post-MVP)
+
+Riwayat metadata setiap file yang diupload user ke Appwrite Storage. Relasi: `users` 1 ── N `user_files`. Tidak digunakan di MVP — semua aset pakai external URL. Infrastruktur siap diaktifkan jika feedback demo minggu pertama meminta file manager internal.
+
+### Attributes
+
+```text
+userId            # FK → users
+storageFileId     # Appwrite Storage file ID
+bucketId          # bucket Appwrite penyimpanan
+fileName          # nama file asli
+mimeType          # tipe file
+sizeBytes         # ukuran file dalam byte
+status            # active | deleted
+createdAt
+deletedAt         # null jika masih aktif
+```
+
+### Index
+
+```text
+userId, status
+storageFileId (unique)
+status, createdAt DESC
+```
+
+### Permission
+
+```text
+Owner : read
+System: write
+Admin : read
+```
+
+---
+
 ## Lihat Juga
 
-- [30_Business_Rules.md](30_Business_Rules.md) — aturan kelengkapan profil & denormalisasi.
+- [30_Business_Rules.md](30_Business_Rules.md) — aturan kelengkapan profil, denormalisasi, & storage kuota.
 - [60_API.md](60_API.md) — operasi terhadap collection ini.

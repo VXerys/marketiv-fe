@@ -6,7 +6,7 @@ Rate card adalah etalase layanan creator. Setiap creator dapat mempublikasikan r
 
 1. **Create Rate Card** — Creator membuat rate card (`draft`) dan menambahkan paket-paketnya.
 2. **Publish** — Rate card berstatus `published` agar muncul di profil & discovery.
-3. **Discovery** — UMKM menelusuri creator (filter platform, kota) lalu melihat rate card-nya.
+3. **Discovery** — UMKM menelusuri creator (filter kota, range harga, sort by harga/rating/totalOrders) lalu melihat rate card-nya.
 4. **Order** — UMKM memesan paket → masuk alur Order/Offer (lihat modul Orders/Offers).
 
 ## Aktor

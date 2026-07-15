@@ -136,6 +136,7 @@ export const getOrders = async (params?: { status?: OrderStatus }): Promise<Orde
 };
 
 export const uploadDeliverable = async (input: UploadDeliverableInput): Promise<Deliverable> => {
+  if (!input?.orderId) throw new OrderServiceError('validation', 'Order ID wajib diisi.');
   try {
     const user = await account.get();
     const order = await databases.getDocument(DATABASE_ID, COLLECTIONS.orders, input.orderId);
@@ -195,6 +196,8 @@ export const uploadDeliverable = async (input: UploadDeliverableInput): Promise<
 };
 
 export const approveDeliverable = async (input: ApproveDeliverableInput): Promise<void> => {
+  if (!input?.orderId) throw new OrderServiceError('validation', 'Order ID wajib diisi.');
+  if (!input?.deliverableId) throw new OrderServiceError('validation', 'Deliverable ID wajib diisi.');
   try {
     const user = await account.get();
     const order = await databases.getDocument(DATABASE_ID, COLLECTIONS.orders, input.orderId);
@@ -222,6 +225,7 @@ export const approveDeliverable = async (input: ApproveDeliverableInput): Promis
 };
 
 export const requestRevision = async (input: RequestRevisionInput): Promise<Revision> => {
+  if (!input?.orderId) throw new OrderServiceError('validation', 'Order ID wajib diisi.');
   try {
     const user = await account.get();
     const order = await databases.getDocument(DATABASE_ID, COLLECTIONS.orders, input.orderId);

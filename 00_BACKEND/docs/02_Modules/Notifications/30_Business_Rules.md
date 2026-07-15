@@ -7,6 +7,7 @@ Notifikasi dibuat saat event berikut terjadi:
 - Register (welcome notification)
 - Offer masuk (offer received)
 - Offer diterima (offer accepted)
+- Pesan chat baru (chat message)
 - Pembayaran berhasil (payment success)
 - Submission masuk
 - Revision request
@@ -21,7 +22,8 @@ Notifikasi dibuat saat event berikut terjadi:
 
 - **In-App** (notification center).
 - **Email**.
-- WhatsApp & Push Notification = future (di luar MVP).
+- **Push Notification** via Appwrite Messaging untuk chat dan event realtime penting.
+- WhatsApp = future (di luar MVP).
 
 ## Status Baca
 

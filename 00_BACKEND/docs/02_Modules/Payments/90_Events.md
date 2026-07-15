@@ -11,6 +11,18 @@ Automasi finansial berjalan event-driven via Appwrite Functions. Service yang me
 - **Aksi**: buat dokumen `wallets` (`balance = 0`, `pendingBalance = 0`) + welcome notification.
 - **Link**: alur registrasi → `../Authentication/`.
 
+## Checkout Created → Midtrans Payment
+
+- **Trigger**: UMKM memulai checkout order/top up dari frontend.
+- **Function**: `create-payment`.
+- **Aksi**: buat dokumen `payments` (`gateway = midtrans`, `status = pending`), panggil Midtrans, kembalikan `snapToken` dan/atau `redirectUrl`.
+
+## Midtrans Notification → Payment Status
+
+- **Trigger**: HTTP webhook/notification Midtrans.
+- **Function**: `midtrans-webhook`.
+- **Aksi**: validasi signature dan amount, update `payments.status` menjadi `paid | failed | expired | cancelled` secara idempotent.
+
 ## Payment Success → Escrow Hold
 
 - **Trigger**: `payments.status` `pending → paid`.
