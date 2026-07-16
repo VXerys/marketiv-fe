@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { formatCurrency } from "@/lib/formatters";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import {
   ResponsiveModal,
   ResponsiveModalContent,

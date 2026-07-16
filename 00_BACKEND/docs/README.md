@@ -79,7 +79,6 @@ docs/
 │   │   ├── 20_Concepts.md
 │   │   ├── 30_Business_Rules.md
 │   │   ├── 40_User_Flow.md
-│   │   ├── 50_Database.md
 │   │   ├── 60_API.md
 │   │   ├── 70_Backend.md
 │   │   ├── 80_Frontend.md
@@ -87,23 +86,24 @@ docs/
 │   │   └── 100_Testing.md
 │   │
 │   ├── Users/
-│   ├── Products/
-│   ├── Categories/
-│   ├── Inventory/
-│   ├── Cart/
+│   ├── Campaigns/
+│   ├── RateCards/
+│   ├── Chat/
+│   ├── Offers/
 │   ├── Orders/
 │   ├── Payments/
+│   ├── AI/
 │   ├── Notifications/
 │   └── ...
 │
 ├── 03_Workflows/
 │   ├── 00_Index.md
 │   ├── 10_Registration.md
-│   ├── 20_Login.md
-│   ├── 30_Checkout.md
-│   ├── 40_Order_Fulfillment.md
-│   ├── 50_Refund.md
-│   ├── 60_Cancel_Order.md
+│   ├── 20_Campaign_PPV.md
+│   ├── 30_RateCard_Order.md
+│   ├── 40_Submission_Fraud.md
+│   ├── 50_Withdrawal.md
+│   ├── 60_Dispute.md
 │   └── ...
 │
 ├── 04_Decisions/
@@ -171,7 +171,7 @@ Every business capability belongs to exactly one module.
 
 Each module is self-contained.
 
-Every module follows the same structure.
+Every module follows the same structure where relevant. Documents that do not apply to a module are omitted instead of creating empty placeholders.
 
 ```text
 Module/
@@ -181,7 +181,7 @@ Module/
 ├── 20_Concepts.md
 ├── 30_Business_Rules.md
 ├── 40_User_Flow.md
-├── 50_Database.md
+├── 50_Database.md      # only if the module owns collections/tables
 ├── 60_API.md
 ├── 70_Backend.md
 ├── 80_Frontend.md

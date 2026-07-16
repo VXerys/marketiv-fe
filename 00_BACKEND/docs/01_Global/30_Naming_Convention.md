@@ -5,7 +5,7 @@ Konvensi penamaan tunggal untuk seluruh Marketiv. Struktur folder di [`40_Folder
 ## Collection (Appwrite)
 
 - `snake_case` jamak (plural).
-- Contoh: `users`, `umkm_profiles`, `creator_profiles`, `creator_social_accounts`, `campaigns`, `campaign_claims`, `campaign_submissions`, `rate_cards`, `rate_card_packages`, `conversations`, `messages`, `offers`, `orders`, `deliverables`, `wallets`, `transactions`, `escrows`, `withdrawals`, `ai_requests`, `fraud_checks`, `notifications`.
+- Contoh: `users`, `umkm_profiles`, `creator_profiles`, `creator_social_accounts`, `campaigns`, `campaign_claims`, `campaign_submissions`, `rate_cards`, `rate_card_packages`, `conversations`, `messages`, `offers`, `orders`, `deliverables`, `payments`, `wallets`, `transactions`, `escrows`, `withdrawals`, `ai_requests`, `fraud_checks`, `notifications`.
 
 ## Attribute (Appwrite)
 
@@ -19,7 +19,7 @@ Konvensi penamaan tunggal untuk seluruh Marketiv. Struktur folder di [`40_Folder
 - Komponen React: **PascalCase** → `CampaignCard.jsx`, `WithdrawForm.jsx`, `FraudScoreBadge.jsx`.
 - Route App Router: file khusus lowercase → `page.jsx`, `layout.jsx`, `loading.jsx`, `error.jsx`. Folder segmen = URL (`[id]` untuk dinamis).
 - View halaman (di modul, di-import oleh `page.jsx`): PascalCase + sufiks `View` → `CreatorListView.jsx`, `CreatorDetailView.jsx`.
-- Service: **camelCase** + `Service` → `campaignService.js`, `walletService.js`.
+- Service: **domain.service.ts** → `campaign.service.ts`, `wallet.service.ts`.
 - Store: camelCase + `Store` → `authStore.js`.
 - Hook: prefiks `use` → `useRealtime.js`.
 - Schema (Zod): camelCase + `Schema` → `campaignSchema.js`.
@@ -28,7 +28,7 @@ Konvensi penamaan tunggal untuk seluruh Marketiv. Struktur folder di [`40_Folder
 ## Route (React Router)
 
 - `kebab-case`, lowercase, di-namespace per role.
-- Public: `/`, `/about`, `/pricing`, `/login?role=umkm`, `/register?role=creator`.
+- Public: `/`, `/about`, `/pricing`, `/login`, `/register?role=creator`.
 - UMKM: `/umkm/dashboard`, `/umkm/campaigns/create`, `/umkm/orders/:id`.
 - Creator: `/creator/rate-cards`, `/creator/submissions/:id`, `/creator/wallet`.
 - Admin: `/admin/users`, `/admin/fraud`, `/admin/withdraws`.
@@ -37,4 +37,4 @@ Konvensi penamaan tunggal untuk seluruh Marketiv. Struktur folder di [`40_Folder
 ## Appwrite Function
 
 - `kebab-case`.
-- Contoh: `create-user-wallet`, `create-order`, `create-escrow`, `release-escrow`, `campaign-published`, `ai-fraud-precheck`, `generate-brief`, `send-notification`.
+- Contoh: `create-user-profile`, `create-user-wallet`, `validate-and-upload`, `delete-file`, `campaign-published`, `ai-brief`, `ai-fraud-precheck`, `create-order`, `calculate-campaign-reward`, `campaign-claimed`, `expire-stale-claims`, `create-payment`, `midtrans-webhook`, `create-escrow`, `release-escrow`, `send-chat-notification`.

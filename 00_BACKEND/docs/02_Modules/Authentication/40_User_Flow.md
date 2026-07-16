@@ -1,21 +1,43 @@
 # Authentication — User Flow
 
-## Register → Verify → Complete Profile
+## Register → Complete Profile
+
+### UMKM
 
 ```text
 Landing Page
 ↓
-Pilih Daftar UMKM (/register?role=umkm) atau Creator (/register?role=creator)
+Daftar UMKM (/register?role=umkm)
 ↓
-Isi Data
-  - UMKM: Nama Usaha, Kategori, Email, Nomor HP, Password
-  - Creator: Nama Lengkap, Email, Password (atau Google OAuth)
+Pilih metode:
+  A. Manual: Isi Nama Usaha, Kategori, Email, Nomor HP, Password
+  B. Google OAuth: Klik "Daftar dengan Google" → Google Auth
+                      ↓
+                 Isi data tambahan: Nama Usaha, Kategori, Nomor HP
 ↓
 Submit
 ↓
-Verifikasi Email (link valid 10 menit)
-  ├─ Halaman Check Inbox
-  └─ Opsi Kirim Ulang Link
+Account Created
+↓
+Login
+↓
+Lengkapi Profil (Onboarding Wizard)
+↓
+Dashboard
+```
+
+### Creator
+
+```text
+Landing Page
+↓
+Daftar Creator (/register?role=creator)
+↓
+Pilih metode:
+  A. Manual: Isi Nama Lengkap, Email, Password
+  B. Google OAuth: Klik "Daftar dengan Google" → langsung jadi
+↓
+Submit
 ↓
 Account Created
 ↓
@@ -29,18 +51,16 @@ Dashboard
 ## Login
 
 ```text
-Login (/login?role=umkm atau ?role=creator)
+Login (/login)
 ↓
-UMKM   : Email + Password
-Creator: Email + Password ATAU Google Login
+Email + Password ATAU Google Login
 ↓
 Success
 ↓
 Dashboard
 ```
 
-- Login manual berlaku untuk UMKM dan Creator.
-- Google Login hanya untuk Creator.
+- Login manual dan Google Login berlaku untuk kedua role.
 
 ## Forgot Password
 

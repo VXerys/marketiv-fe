@@ -18,6 +18,7 @@ import {
   Landmark,
   ReceiptText,
   FlaskConical,
+  SlidersHorizontal,
 } from "lucide-react";
 import { CreatorMetric, CreatorTransaction } from "@/types/creator-dashboard";
 import { CreatorStatusBadge } from "./CreatorStatusBadge";
@@ -123,6 +124,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [sortBy, setSortBy] = useState("latest"); // "latest" | "oldest" | "highest" | "lowest"
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const ADMIN_FEE = 2500;
   const MIN_WITHDRAWAL = 50000;
@@ -336,23 +338,26 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
           </div>
         ) : (
           <>
-            {/* ===== Wallet Hero Row ===== */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+            {/* ===== Metrics Grid: 2 cols mobile → 3 cols sm+ ===== */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
               {simulatedState === "loading" ? (
                 <>
-                  <div className="rounded-2xl sm:rounded-[22px] border border-neutral-200/80 bg-white p-5 sm:p-6 animate-pulse h-[168px]">
+                  {/* Hero skeleton — full width on mobile */}
+                  <div className="col-span-2 sm:col-span-1 rounded-2xl sm:rounded-[22px] border border-neutral-200/80 bg-white p-5 sm:p-6 animate-pulse h-[168px]">
                     <div className="h-10 w-10 rounded-[14px] bg-neutral-100 mb-4" />
                     <div className="h-3 w-28 bg-neutral-200 rounded mb-3" />
                     <div className="h-8 w-44 bg-neutral-200 rounded" />
                   </div>
                   <SummaryCardSkeleton />
                   <SummaryCardSkeleton />
+                  <SummaryCardSkeleton />
+                  <SummaryCardSkeleton />
+                  <SummaryCardSkeleton />
                 </>
               ) : (
                 <>
-                  {/* Saldo Tersedia — hero card oranye */}
-                  <div className="relative overflow-hidden rounded-2xl sm:rounded-[22px] border border-orange-900/20 bg-gradient-to-br from-[#fb7a18] to-primary-600 p-5 sm:p-6 text-white shadow-[0_14px_34px_rgba(234,88,12,.22)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(234,88,12,.30)] group">
-                    {/* Dekorasi lingkaran lembut */}
+                  {/* Saldo Tersedia — hero card, full width on mobile */}
+                  <div className="col-span-2 sm:col-span-1 relative overflow-hidden rounded-2xl sm:rounded-[22px] border border-orange-900/20 bg-gradient-to-br from-[#fb7a18] to-primary-600 p-5 sm:p-6 text-white shadow-[0_14px_34px_rgba(234,88,12,.22)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(234,88,12,.30)] group">
                     <div
                       className="absolute inset-0 pointer-events-none opacity-70"
                       style={{
@@ -401,20 +406,6 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                     iconColor="#16a34a"
                     iconBorder="rgba(22,163,74,.18)"
                   />
-                </>
-              )}
-            </div>
-
-            {/* ===== Earning Splits Row ===== */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-              {simulatedState === "loading" ? (
-                <>
-                  <SummaryCardSkeleton />
-                  <SummaryCardSkeleton />
-                  <SummaryCardSkeleton />
-                </>
-              ) : (
-                <>
                   <SummaryCard
                     icon={Calendar}
                     label="Pendapatan Bulan Ini"
@@ -465,34 +456,49 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                 </div>
 
                 {/* Toolbar filters */}
-                <div className="flex flex-col md:flex-row gap-3 justify-between items-stretch md:items-center">
-                  {/* Search Bar */}
-                  <div className="relative w-full md:w-80">
-                    <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-neutral-400">
-                      <Search size={16} />
-                    </span>
-                    <input
-                      type="text"
+                <div className="flex flex-col gap-2.5">
+                  {/* Row 1: Search + mobile filter toggle */}
+                  <div className="flex gap-2.5 items-center">
+                    <div className="relative flex-1">
+                      <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-neutral-400">
+                        <Search size={16} />
+                      </span>
+                      <input
+                        type="text"
+                        disabled={simulatedState === "loading"}
+                        placeholder="Cari ID, deskripsi, atau campaign..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-white border border-neutral-200 rounded-xl pl-9 pr-8 py-2 text-xs font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all shadow-3xs disabled:opacity-50"
+                      />
+                      {searchQuery && (
+                        <button
+                          onClick={() => setSearchQuery("")}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer"
+                          aria-label="Hapus pencarian"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                    {/* Mobile filter toggle */}
+                    <button
+                      onClick={() => setFilterOpen((o) => !o)}
                       disabled={simulatedState === "loading"}
-                      placeholder="Cari ID, deskripsi, atau campaign..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full bg-white border border-neutral-200 rounded-xl pl-9 pr-8 py-2 text-xs font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all shadow-3xs disabled:opacity-50"
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery("")}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer"
-                        aria-label="Hapus pencarian"
-                      >
-                        <X size={14} />
-                      </button>
-                    )}
+                      className={`md:hidden shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer disabled:opacity-50 ${
+                        filterOpen || isFilterActive
+                          ? "bg-primary-50 text-primary-600 border-primary-200"
+                          : "bg-white text-neutral-600 border-neutral-200"
+                      }`}
+                    >
+                      <SlidersHorizontal size={14} />
+                      Filter
+                      {isFilterActive && <span className="w-1.5 h-1.5 rounded-full bg-primary-500 shrink-0" />}
+                    </button>
                   </div>
 
-                  {/* Filters Row */}
-                  <div className="flex flex-wrap gap-2 items-center">
-                    {/* Type Filter */}
+                  {/* Row 2: Filter selects — always on md+, collapsible on mobile */}
+                  <div className={`items-center gap-2 flex-wrap ${filterOpen ? "flex" : "hidden md:flex"}`}>
                     <div className="relative">
                       <select
                         disabled={simulatedState === "loading"}
@@ -508,7 +514,6 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                       <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
                     </div>
 
-                    {/* Status Filter */}
                     <div className="relative">
                       <select
                         disabled={simulatedState === "loading"}
@@ -525,7 +530,6 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                       <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
                     </div>
 
-                    {/* Sort Filter */}
                     <div className="relative">
                       <select
                         disabled={simulatedState === "loading"}
@@ -541,7 +545,6 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                       <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
                     </div>
 
-                    {/* Reset Filter Button */}
                     {isFilterActive && (
                       <button
                         onClick={handleResetFilters}

@@ -21,6 +21,8 @@ Standar coding wajib untuk frontend Marketiv (Next.js). Struktur folder lengkap 
 - DILARANG memanggil Appwrite SDK langsung dari komponen `page.jsx`/Component.
 - Service berisi: pemanggilan SDK, mapping data, dan throw error bertipe (lihat [`60_Error_Handling.md`](60_Error_Handling.md)).
 - Service global ada di `src/services/`; service spesifik fitur boleh di `src/modules/<feature>/services/`.
+- Service wajib ditulis dengan TypeScript dan menggunakan ekstensi `.ts`.
+- Jangan menaruh implementasi Appwrite Function di service layer; kode function berada di `functions/<function-id>/`.
 
 ## State Management (Zustand)
 
@@ -40,7 +42,7 @@ Standar coding wajib untuk frontend Marketiv (Next.js). Struktur folder lengkap 
 
 ## Konvensi Penamaan (ringkas)
 
-- Service: `camelCase` + sufiks `Service` → `campaignService.js`.
+- Service: `camelCase` + sufiks `Service` → `campaignService.ts`.
 - Store: `camelCase` + sufiks `Store` → `walletStore.js`.
 - Hook: prefiks `use` → `useWallet`.
 - Schema: `camelCase` + sufiks `Schema` → `withdrawSchema.js`.

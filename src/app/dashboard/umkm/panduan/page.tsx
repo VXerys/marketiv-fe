@@ -180,7 +180,7 @@ export default function FAQRulesDashboardPage() {
                   return (
                     <div
                       key={rule.id}
-                      className="flex gap-4 p-5 rounded-2xl bg-white border border-neutral-200/60 shadow-3xs hover:border-neutral-300 transition-all duration-200"
+                      className="flex gap-4 p-5 rounded-[26px] bg-white border border-neutral-200/60 shadow-[0_4px_16px_rgba(15,23,42,.05)] hover:-translate-y-0.5 hover:shadow-md hover:border-neutral-300/80 transition-all duration-300"
                     >
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
@@ -229,7 +229,7 @@ export default function FAQRulesDashboardPage() {
                     return (
                       <div
                         key={idx}
-                        className="rounded-2xl border border-neutral-200/60 bg-white overflow-hidden shadow-3xs hover:border-neutral-300 transition-all duration-200"
+                        className="rounded-[26px] border border-neutral-200/60 bg-white overflow-hidden shadow-[0_4px_16px_rgba(15,23,42,.05)] hover:-translate-y-0.5 hover:shadow-md hover:border-neutral-300/80 transition-all duration-300"
                       >
                         <button
                           onClick={() => toggleFAQ(idx)}
@@ -269,7 +269,7 @@ export default function FAQRulesDashboardPage() {
                 </span>
               </div>
 
-              <div className="rounded-2xl border border-neutral-200/60 bg-white p-6 shadow-3xs space-y-6 text-[0.86rem] leading-relaxed text-ink-700 font-semibold">
+              <div className="rounded-[26px] border border-neutral-200/60 bg-white p-6 shadow-[0_4px_16px_rgba(15,23,42,.05)] space-y-6 text-[0.86rem] leading-relaxed text-ink-700 font-semibold">
                 <div className="space-y-1 border-b border-neutral-100 pb-4">
                   <h3 className="text-[0.98rem] font-bold text-ink-900">
                     Konten.com: Syarat & Ketentuan untuk Kreator

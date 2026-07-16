@@ -7,7 +7,7 @@ export const PLATFORM_FEE_RATE = 0.05;
 export const WITHDRAW_PAYOUT_METHODS = ['bank', 'ewallet'] as const;
 
 export type WithdrawPayoutMethod = (typeof WITHDRAW_PAYOUT_METHODS)[number];
-export type WithdrawalStatus = 'pending' | 'processed' | 'rejected';
+export type WithdrawalStatus = 'processed';
 export type TransactionType = 'deposit' | 'withdrawal' | 'payment' | 'refund' | 'release' | 'fee';
 
 export type Wallet = {
@@ -31,11 +31,7 @@ export type Withdrawal = RequestWithdrawInput & {
   id: string;
   userId: string;
   status: WithdrawalStatus;
-  adminNote?: string;
-  rejectionReason?: string;
   processedAt?: string;
-  processedBy?: string;
-  transferProofUrl?: string;
   createdAt?: string;
 };
 
@@ -56,7 +52,6 @@ export type GetTransactionsOptions = {
 };
 
 export type GetWithdrawalsOptions = {
-  status?: WithdrawalStatus;
   limit?: number;
 };
 
@@ -90,11 +85,7 @@ const mapWithdrawal = (document: Record<string, any>): Withdrawal => ({
   accountNumber: document.accountNumber,
   accountName: document.accountName,
   status: document.status,
-  adminNote: document.adminNote || undefined,
-  rejectionReason: document.rejectionReason || undefined,
   processedAt: document.processedAt || undefined,
-  processedBy: document.processedBy || undefined,
-  transferProofUrl: document.transferProofUrl || undefined,
   createdAt: document.$createdAt,
 });
 
@@ -208,10 +199,6 @@ export const getWithdrawals = async (options: GetWithdrawalsOptions = {}): Promi
       Query.limit(options.limit ?? 50),
     ];
 
-    if (options.status) {
-      queries.push(Query.equal('status', options.status));
-    }
-
     const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.withdrawals, queries);
     return response.documents.map(mapWithdrawal);
   } catch (err) {
@@ -233,7 +220,9 @@ export const requestWithdraw = async (data: RequestWithdrawInput): Promise<Withd
       throw new WalletServiceError('validation', 'Saldo tidak mencukupi');
     }
 
-    const document = await databases.createDocument(
+    const now = new Date().toISOString();
+
+    const withdrawal = await databases.createDocument(
       DATABASE_ID,
       COLLECTIONS.withdrawals,
       ID.unique(),
@@ -244,12 +233,35 @@ export const requestWithdraw = async (data: RequestWithdrawInput): Promise<Withd
         providerName: providerName.trim(),
         accountNumber: accountNumber.trim(),
         accountName: accountName.trim(),
-        status: 'pending',
+        status: 'processed',
+        processedAt: now,
       },
       [Permission.read(Role.user(user.$id))]
     );
 
-    return mapWithdrawal(document);
+    await databases.updateDocument(
+      DATABASE_ID,
+      COLLECTIONS.wallets,
+      wallet.id,
+      { balance: wallet.balance - amount }
+    );
+
+    await databases.createDocument(
+      DATABASE_ID,
+      COLLECTIONS.transactions,
+      ID.unique(),
+      {
+        userId: user.$id,
+        amount: -amount,
+        type: 'withdrawal',
+        referenceId: withdrawal.$id,
+        referenceType: 'withdrawal',
+        status: 'completed',
+      },
+      [Permission.read(Role.user(user.$id))]
+    );
+
+    return mapWithdrawal(withdrawal);
   } catch (err) {
     throw mapError(err, 'Gagal mengajukan withdrawal. Coba lagi.');
   }
@@ -264,5 +276,3 @@ export const getPendingBalance = async (): Promise<number> => {
   const wallet = await getWallet();
   return wallet.pendingBalance;
 };
-
-export const getPendingWithdrawals = async (): Promise<Withdrawal[]> => getWithdrawals({ status: 'pending' });

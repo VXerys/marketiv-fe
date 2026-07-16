@@ -27,6 +27,7 @@ function getPageMeta(pathname: string): PageMeta {
     [`${BASE}/analitik`]:        { title: "Analitik",    subtitle: "Performa & insight" },
     [`${BASE}/pengaturan`]:      { title: "Pengaturan",  subtitle: "Profil & konfigurasi akun" },
     [`${BASE}/panduan`]:         { title: "FAQ & Rules", subtitle: "Kebijakan & bantuan platform" },
+    [`${BASE}/notifikasi`]:      { title: "Notifikasi",  subtitle: "Pusat notifikasi akun" },
   };
   if (map[pathname]) return map[pathname];
   if (new RegExp(`^${BASE}/campaign/[^/]+$`).test(pathname))
@@ -60,6 +61,7 @@ function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
     analitik: "Analitik",
     pengaturan: "Pengaturan",
     panduan: "FAQ & Rules",
+    notifikasi: "Notifikasi",
   };
   
   if (labelMap[mainModule]) {
@@ -175,7 +177,8 @@ export function DashboardTopbar({}: DashboardTopbarProps) {
       {/* ── Right: actions ────────────────────────────────────── */}
       <div className="flex items-center gap-3 shrink-0">
         {/* Notification bell */}
-        <button
+        <Link
+          href="/dashboard/umkm/notifikasi"
           className="relative w-11 h-11 flex items-center justify-center rounded-xl text-ink-500 hover:bg-neutral-100 hover:text-ink-800 active:scale-95 transition-all duration-150 cursor-pointer border border-neutral-200/60 bg-white/70 shadow-3xs hover:shadow-2xs"
           aria-label="Notifikasi"
         >
@@ -185,7 +188,7 @@ export function DashboardTopbar({}: DashboardTopbarProps) {
             className="absolute top-[12px] right-[12px] w-[8px] h-[8px] rounded-full border-[1.5px] border-white bg-primary shadow-[0_0_0_1px_rgba(249,115,22,.25)]"
             aria-hidden="true"
           />
-        </button>
+        </Link>
 
         {/* Avatar */}
         <Link

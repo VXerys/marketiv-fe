@@ -10,9 +10,15 @@
 
 ### Order Detail
 
-- Deliverable viewer (preview file, notes, version).
-- Tombol Approve / Request Revision.
-- Riwayat revisi.
+- Status badge sesuai status order.
+- **Saat `in_progress` (menunggu deliverable):**
+  - Informasi Creator, paket, amount.
+  - CTA pasif: "Menunggu deliverable dari Creator..."
+  - Belum ada tombol aksi.
+- **Saat `submitted` (deliverable sudah diupload):**
+  - Deliverable viewer (preview file, notes, version).
+  - Tombol Approve / Request Revision.
+- **Riwayat revisi** (tampil jika ada).
 
 ## Halaman Creator
 

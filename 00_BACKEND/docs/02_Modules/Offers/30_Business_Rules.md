@@ -5,13 +5,13 @@
 `pending | accepted | rejected`
 
 - Offer dibuat sebagai `pending`.
-- UMKM dapat `accept` → status `accepted`, memicu pembuatan order.
-- UMKM dapat `reject` → status `rejected`.
+- Creator dapat `accept` → status `accepted`, memicu pembuatan order.
+- Creator dapat `reject` → status `rejected`.
 
 ## Kepemilikan
 
-- Hanya **Content Creator** yang dapat membuat custom offer.
-- Hanya **UMKM** (peserta percakapan) yang dapat accept/reject.
+- Hanya **UMKM** yang dapat membuat custom offer.
+- Hanya **Content Creator** (peserta percakapan) yang dapat accept/reject.
 
 ## Field
 

@@ -1,6 +1,6 @@
 # Modul AI
 
-Dua fitur AI Marketiv via Appwrite Functions yang membungkus OpenAI: **Brief Generator** & **Fraud Detection**. Modul ini mendokumentasikan kontrak fungsi AI dan memiliki koleksi `ai_requests`. Data hasil fraud disimpan di modul Campaigns (`fraud_checks`) — ditautkan, tidak didefinisikan ulang.
+Dua fitur AI Marketiv via Appwrite Functions yang membungkus Gemini API: **Brief Generator** & **Fraud Detection**. Modul ini mendokumentasikan kontrak fungsi AI dan memiliki koleksi `ai_requests`. Data hasil fraud disimpan di modul Campaigns (`fraud_checks`) — ditautkan, tidak didefinisikan ulang.
 
 ## Daftar Dokumen
 
@@ -10,7 +10,7 @@ Dua fitur AI Marketiv via Appwrite Functions yang membungkus OpenAI: **Brief Gen
 - `40_User_Flow.md` — Alur Brief Generator & Fraud Detection.
 - `50_Database.md` — Skema koleksi `ai_requests`.
 - `60_API.md` — Kontrak endpoint AI Function.
-- `70_Backend.md` — Appwrite Functions & integrasi OpenAI.
+- `70_Backend.md` — Appwrite Functions & integrasi Gemini API.
 - `80_Frontend.md` — Komponen UI untuk AI Brief Generator.
 - `90_Events.md` — Event yang dikonsumsi AI (dari Campaigns).
 - `100_Testing.md` — Skenario uji Brief Generator & Fraud Detection.

@@ -14,7 +14,7 @@ import { CampaignErrorState } from "./CampaignErrorState";
 import { CampaignListSkeleton, CampaignSummaryCardsSkeleton } from "./CampaignListSkeleton";
 import { filterCampaigns } from "@/lib/umkm-filters";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/button";
 import {
   getCampaigns,
   getDashboardSummary,

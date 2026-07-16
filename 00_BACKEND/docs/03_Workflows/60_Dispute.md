@@ -2,42 +2,38 @@
 
 ## Purpose
 
-Sengketa pada order rate card aktif diselesaikan admin dengan tiga opsi keputusan yang menentukan apakah escrow dirilis ke creator atau di-refund ke UMKM.
+Sengketa atau aju banding pada order rate card — UMKM/creator cukup menghubungi admin via WhatsApp. Tidak ada sistem review sengketa di dalam platform.
 
 ## Modules Involved
 
-- [Orders](../02_Modules/Orders/00_Index.md) — order & status dispute.
-- [Payments](../02_Modules/Payments/00_Index.md) — escrow release/refund.
-- Admin — review & keputusan.
+- [Orders](../02_Modules/Orders/00_Index.md) — order terkait sengketa.
+- [Users](../02_Modules/Users/00_Index.md) — data profil kedua pihak.
 
 ## Trigger
 
-UMKM `Open Dispute` pada order aktif (alasan: Konten Tidak Sesuai, Tidak Posting, Spam).
+UMKM atau Creator ingin mengajukan sengketa/banding atas suatu order.
 
 ## Step-by-step Flow
 
-1. **Orders** — Dispute dibuka pada order `active`/`in_progress`; order ditandai disputed.
-2. **Admin** — Review bukti dari kedua pihak.
-3. **Admin** — Keputusan:
-   - **Creator Win** → **Payments** release escrow penuh ke wallet creator → order completed.
-   - **UMKM Win** → **Payments** refund escrow penuh ke wallet UMKM → order closed/refunded.
-   - **Partial Refund** → **Payments** bagi escrow: sebagian ke creator, sebagian refund ke UMKM.
-4. **Payments** — Update `escrows`, `wallets`, dan `wallet_transactions` sesuai keputusan; escrow balance → 0 setelah resolusi.
-5. **Notifications** — Notifikasi "Dispute Resolved" ke kedua pihak.
+### Tahap 1: Hubungi Admin
 
-## Events / Functions
+1. **Orders** — User buka halaman detail order.
+2. **Orders** — Tampilkan tombol "Hubungi Admin" yang mengarah ke nomor WhatsApp admin.
+3. User klik tombol → terbuka chat WhatsApp dengan pesan otomatis berisi informasi order (order ID, judul, dll).
+4. Admin akan merespon dan menangani sengketa secara manual di luar platform.
 
-- Resolusi escrow mengikuti fungsi escrow yang sama: `release-escrow` (Creator Win / porsi creator pada Partial) dan jalur refund (UMKM Win / porsi UMKM).
-- Lihat: [`../02_Modules/Orders/90_Events.md`](../02_Modules/Orders/00_Index.md), [`../02_Modules/Payments/90_Events.md`](../02_Modules/Payments/00_Index.md).
+## Nomor WhatsApp Admin
+
+- Nomor WhatsApp admin disimpan sebagai konstanta sistem (`ADMIN_WHATSAPP_NUMBER`).
+- Format link: `https://wa.me/{ADMIN_WHATSAPP_NUMBER}?text=Halo%20Admin%2C%20saya%20ingin%20mengajukan%20sengketa%20untuk%20order%20...`
 
 ## Edge Cases
 
-- Dispute hanya valid setelah pembayaran (escrow sudah locked).
-- Partial refund harus tetap menjaga invariant: total release + refund = jumlah escrow.
-- Campaign Viral memakai jalur appeal terpisah (creator appeal atas submission rejected → admin final decision), lihat [40_Submission_Fraud.md](40_Submission_Fraud.md).
+- **Dispute hanya untuk order aktif** — order `pending_payment` atau `completed` tidak perlu dispute.
+- **Semua keputusan final** — keputusan admin melalui WhatsApp bersifat final dan di luar platform.
+- **Campaign Viral dispute** — creator appeal atas auto-reject submission campaign. Sama: hubungi admin via WhatsApp (lihat [40_Submission_Fraud.md](40_Submission_Fraud.md)).
 
 ## Links
 
 - [Orders](../02_Modules/Orders/00_Index.md)
-- [Payments](../02_Modules/Payments/00_Index.md)
-- [RateCard Order workflow](30_RateCard_Order.md)
+- [Submission Fraud workflow](40_Submission_Fraud.md) — appeal creator campaign

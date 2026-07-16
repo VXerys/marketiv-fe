@@ -127,6 +127,9 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
   const [collabUrl, setCollabUrl] = useState("");
   const [collabError, setCollabError] = useState<string | null>(null);
 
+  const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false);
+  const quickMenuRef = useRef<HTMLDivElement>(null);
+
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -134,6 +137,17 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
   useEffect(() => {
     scrollToBottom();
   }, [chatMessages]);
+
+  useEffect(() => {
+    if (!isQuickMenuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (quickMenuRef.current && !quickMenuRef.current.contains(e.target as Node)) {
+        setIsQuickMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [isQuickMenuOpen]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -510,7 +524,105 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
                   </div>
                 )}
 
-                <form onSubmit={handleSendMessage} className="flex gap-2.5 items-end">
+                <form onSubmit={handleSendMessage} className="flex gap-2 items-center">
+                  {/* (+) Quick action button */}
+                  <div className="relative shrink-0" ref={quickMenuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setIsQuickMenuOpen((v) => !v)}
+                      aria-label="Aksi cepat"
+                      className="w-10 h-10 rounded-[13px] flex items-center justify-center transition-all duration-150 cursor-pointer"
+                      style={
+                        isQuickMenuOpen
+                          ? { background: "rgba(124,58,237,.08)", color: "#7c3aed" }
+                          : { color: "#9ca3af" }
+                      }
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                      </svg>
+                    </button>
+
+                    {isQuickMenuOpen && (
+                      <div
+                        className="absolute bottom-full left-0 mb-2 w-56 bg-white rounded-[16px] p-1.5 z-30"
+                        style={{
+                          border: "1px solid rgba(17,24,39,.08)",
+                          boxShadow: "0 16px 48px rgba(15,23,42,.16), 0 4px 12px rgba(15,23,42,.06)",
+                        }}
+                      >
+                        <div className="px-2.5 py-1.5 mb-0.5">
+                          <span className="text-[8px] font-black text-neutral-400 uppercase tracking-widest">Aksi Cepat</span>
+                        </div>
+
+                        {isNegoState && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOfferScope(neg.scope);
+                                setOfferDeliverables(neg.deliverables || "");
+                                setOfferPrice(neg.finalPrice);
+                                setIsOfferModalOpen(true);
+                                setIsQuickMenuOpen(false);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-left text-[11px] font-extrabold text-neutral-800 hover:bg-neutral-50 transition-colors cursor-pointer"
+                            >
+                              <span className="text-sm shrink-0">✨</span>
+                              <span>Buat Custom Offer</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { handleAcceptOrder(); setIsQuickMenuOpen(false); }}
+                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-left text-[11px] font-extrabold text-neutral-800 hover:bg-neutral-50 transition-colors cursor-pointer"
+                            >
+                              <span className="text-sm shrink-0">✅</span>
+                              <span>Terima Penawaran</span>
+                            </button>
+                          </>
+                        )}
+
+                        {(isEscrowState || isRevisionState) && (
+                          <button
+                            type="button"
+                            onClick={() => { setCollabUrl(""); setCollabError(null); setIsCollabModalOpen(true); setIsQuickMenuOpen(false); }}
+                            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-left text-[11px] font-extrabold text-neutral-800 hover:bg-neutral-50 transition-colors cursor-pointer"
+                          >
+                            <span className="text-sm shrink-0">🔗</span>
+                            <span>Submit Link Collab</span>
+                          </button>
+                        )}
+
+                        {isRevisionState && (
+                          <button
+                            type="button"
+                            onClick={() => { handleMarkRevisionDone(); setIsQuickMenuOpen(false); }}
+                            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-left text-[11px] font-extrabold text-neutral-800 hover:bg-neutral-50 transition-colors cursor-pointer"
+                          >
+                            <span className="text-sm shrink-0">🔄</span>
+                            <span>Tandai Revisi Selesai</span>
+                          </button>
+                        )}
+
+                        <div className="my-1 mx-2 border-t border-neutral-100" />
+                        {[
+                          { icon: "💬", label: "Sedang dikerjakan", text: "Konten sedang dalam proses pengerjaan kak, mohon ditunggu." },
+                          { icon: "⏳", label: "Minta perpanjangan", text: "Mohon maaf kak, apakah deadline bisa diundur sedikit?" },
+                        ].map((t, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => { setInputMessage(t.text); setIsQuickMenuOpen(false); }}
+                            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-left text-[11px] font-extrabold text-neutral-800 hover:bg-neutral-50 transition-colors cursor-pointer"
+                          >
+                            <span className="text-sm shrink-0">{t.icon}</span>
+                            <span className="truncate">{t.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <input
                     type="text"
                     value={inputMessage}
@@ -530,15 +642,15 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
             </div>
 
             {/* ── RIGHT: Info pane (4 cols) ──────────────────────────────── */}
-            <div className="lg:col-span-4 flex flex-col gap-5 overflow-y-auto px-4 py-4 -mx-4 -my-4 max-h-[calc(100%+32px)] pr-2 premium-scrollbar">
+            <div className="lg:col-span-4 flex flex-col gap-3 overflow-y-auto px-4 py-4 -mx-4 -my-4 max-h-[calc(100%+32px)] pr-2 premium-scrollbar">
 
               {/* Contract details card */}
-              <div className="bg-white border border-neutral-200/60 shadow-[0_4px_24px_rgba(15,23,42,.05)] rounded-[22px] p-5 space-y-5">
-                <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest border-b border-neutral-100 pb-3">
+              <div className="bg-white border border-neutral-200/60 shadow-[0_4px_24px_rgba(15,23,42,.05)] rounded-[22px] p-4 space-y-4">
+                <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest border-b border-neutral-100 pb-2">
                   Rincian Kontrak Kerja
                 </h4>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div>
                     <span className="block text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Nama Paket</span>
                     <span className="block font-extrabold text-[#1e1b4b] text-sm leading-tight">{neg.projectTitle}</span>
@@ -557,20 +669,20 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
                   )}
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-neutral-50 rounded-[12px] p-3 border border-neutral-100">
+                    <div className="bg-neutral-50 rounded-[12px] p-2.5 border border-neutral-100">
                       <span className="flex items-center gap-1 text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">
                         <Clock className="w-2.5 h-2.5" /> Deadline
                       </span>
                       <span className="block text-xs font-extrabold text-neutral-800">{deadline}</span>
                     </div>
-                    <div className="bg-neutral-50 rounded-[12px] p-3 border border-neutral-100">
+                    <div className="bg-neutral-50 rounded-[12px] p-2.5 border border-neutral-100">
                       <span className="block text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">Maks Revisi</span>
                       <span className="block text-xs font-extrabold text-neutral-800">{neg.revisionCount ?? 2}×</span>
                     </div>
                   </div>
 
                   {/* Billing breakdown */}
-                  <div className="bg-gradient-to-br from-violet-50/60 to-indigo-50/30 rounded-[14px] p-4 border border-violet-100/60 space-y-2.5">
+                  <div className="bg-gradient-to-br from-violet-50/60 to-indigo-50/30 rounded-[14px] p-3 border border-violet-100/60 space-y-2">
                     <div className="flex justify-between text-xs font-semibold text-neutral-500">
                       <span>Harga Rate Card</span>
                       <span>{formatCurrency(neg.finalPrice)}</span>
@@ -579,7 +691,7 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
                       <span>Biaya Platform (3%)</span>
                       <span>{formatCurrency(platFee)}</span>
                     </div>
-                    <div className="flex justify-between text-sm font-black text-[#1e1b4b] border-t border-violet-100 pt-2.5">
+                    <div className="flex justify-between text-sm font-black text-[#1e1b4b] border-t border-violet-100 pt-2">
                       <span>Total Biaya</span>
                       <span>{formatCurrency(totalAmt)}</span>
                     </div>
@@ -610,8 +722,8 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
               </div>
 
               {/* Deliverables checklist */}
-              <div className="bg-white border border-neutral-200/60 shadow-[0_4px_24px_rgba(15,23,42,.05)] rounded-[22px] p-5 space-y-4">
-                <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
+              <div className="bg-white border border-neutral-200/60 shadow-[0_4px_24px_rgba(15,23,42,.05)] rounded-[22px] p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-neutral-100 pb-2">
                   <h4 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">Checklist Deliverables</h4>
                   <span className="text-[9px] font-extrabold text-violet-600 bg-violet-50 border border-violet-200/50 px-2 py-0.5 rounded-full">
                     {doneCount}/{milestones.length}
@@ -629,7 +741,7 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
                   />
                 </div>
 
-                <div className="space-y-3.5">
+                <div className="space-y-2.5">
                   {milestones.map((m, i) => (
                     <div key={i} className={cn("flex items-center gap-3 transition-opacity", !m.done && "opacity-60")}>
                       <div className={cn(

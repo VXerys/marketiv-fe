@@ -21,9 +21,7 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <UmkmDashboardChrome businessName={businessName}>
-      <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-        <NegotiationRoomPage orderId={id_order} />
-      </div>
+      <NegotiationRoomPage orderId={id_order} />
     </UmkmDashboardChrome>
   );
 }
