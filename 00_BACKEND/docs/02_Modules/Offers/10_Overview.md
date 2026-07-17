@@ -1,20 +1,20 @@
 # Offers — Overview
 
-Custom offer adalah penawaran khusus yang dibuat di dalam sebuah **conversation** (lihat `../Chat/`) untuk menyepakati detail pekerjaan sebelum order dibuat.
+Custom offer adalah penawaran khusus yang dibuat UMKM di dalam sebuah **conversation** (lihat `../Chat/`) untuk menyepakati detail pekerjaan dengan creator sebelum order dibuat.
 
 ## Inti
 
-- Hanya **Content Creator** yang dapat membuat custom offer.
+- Hanya **UMKM** yang dapat membuat custom offer.
 - Offer berisi kesepakatan: judul, deskripsi, harga, deadline, dan batas revisi.
-- UMKM menerima (`accept`) atau menolak (`reject`) offer.
+- Content Creator menerima (`accept`) atau menolak (`reject`) offer.
 - Saat di-accept, offer langsung memicu pembuatan **order** (lihat `../Orders/`).
 
 ## Alur
 
 ```text
-Creator buat custom offer (dalam conversation)
+UMKM buat custom offer (dalam conversation)
 ↓
-UMKM Accept / Reject
+Creator Accept / Reject
 ↓
 Accept → Create Order (status pending_payment)
 ```

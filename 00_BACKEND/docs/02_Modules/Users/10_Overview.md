@@ -13,7 +13,7 @@
 - `creator_social_accounts` — akun sosial creator (1 creator → banyak akun).
 - `creator_portfolios` — portfolio creator (1 creator → banyak portfolio).
 
-Skema lengkap di [50_Database.md](50_Database.md).
+⚠️ `user_storage_usage` & `user_files` dormant — tidak dipakai MVP. Skema lengkap di [50_Database.md](50_Database.md).
 
 ## Ketergantungan
 

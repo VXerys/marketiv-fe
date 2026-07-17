@@ -17,11 +17,18 @@ Publish → muncul di profil & discovery
 ```text
 Browse Creator (discovery)
 ↓
-Filter: platform, kota
+Filter & Urutkan: kota, range harga, sort by harga/rating/totalOrders
 ↓
 Lihat profil Creator → Rate Card
 ↓
-Pilih Paket
-↓
-Klik "Pesan" → masuk ke alur Order (direct order)
+┌─ Pilih Paket ──────────────────────────────┐
+│ Klik "Pesan"                               │
+│ ↓                                          │
+│ masuk ke alur Order (Jalur A: Direct Order)│
+└────────────────────────────────────────────┘
+┌─ Atau Klik "Chat" ─────────────────────────┐
+│ Negosiasi → Buat Offer                     │
+│ ↓                                          │
+│ masuk ke alur Order (Jalur B: Custom Offer)│
+└────────────────────────────────────────────┘
 ```

@@ -16,6 +16,11 @@
 
 - Hasil kerja creator diunggah sebagai dokumen `deliverables` dengan **versi** (`version`) — tiap unggahan/reupload menambah versi.
 - Satu order dapat memiliki banyak deliverable (versi berurutan).
+- Deliverable bisa berasal dari dua sumber:
+  - `storage`: file diupload via File Manager ke Appwrite Storage (terikat kuota user — lihat modul Users).
+  - `external_url`: link eksternal (Google Drive, Dropbox, CDN) — tidak terikat kuota.
+- External URL hanya menerima protokol `https`.
+- `source = storage` wajib memiliki `fileId` yang valid dan milik creator seller.
 
 ## Revisi
 

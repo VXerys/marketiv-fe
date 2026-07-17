@@ -5,7 +5,7 @@
 - **In-App Notification** — notifikasi yang muncul di notification center aplikasi.
 - **Email Notification** — notifikasi yang dikirim ke email pengguna.
 - **Trigger Event** — event domain dari modul lain yang memicu pembuatan notifikasi.
-- **send-notification** — function global yang mengirim notifikasi ke seluruh kanal.
+- **send-notification** — function global yang mengirim notifikasi ke seluruh kanal (future — belum diimplementasikan).
 
 ## Konsep
 

@@ -20,6 +20,7 @@
 | `campaign_submissions` | R own, C, U before review | R on own campaign, U (approve/reject/revision) | Full | fraud update |
 | `offers` | R own, U (accept/reject) | C, R own, U (cancel) | Read only | — |
 | `orders` | R related | R related | Full | C/U (dari offer accepted) |
+| `payments` | R related | R own | Read all | CREATE, UPDATE status (via `create-payment` / `midtrans-webhook`) |
 | `escrows` | NO ACCESS | NO ACCESS | Read only | CREATE/UPDATE/RELEASE |
 | `wallets` | R own | R own | Read only | UPDATE balance, TRANSFER, RELEASE escrow, WITHDRAW |
 | `transactions` | R own | R own | Read all | CREATE |
@@ -53,6 +54,8 @@ Permission.update(Role.user(umkmId))
 Permission.read(Role.user(senderId)),
 Permission.read(Role.user(receiverId))
 ```
+
+> Chat tidak mendukung attachment. Hanya pesan teks dan offer.
 
 ## Function API Key Scope
 

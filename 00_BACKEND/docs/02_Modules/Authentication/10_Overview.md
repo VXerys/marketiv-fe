@@ -4,7 +4,7 @@
 
 - Mengelola identitas masuk pengguna Marketiv dengan dua role: **UMKM** dan **Creator**.
 - Dibangun di atas **Appwrite Auth** — Authentication tidak memiliki collection database sendiri.
-- Tanggung jawab: registrasi, verifikasi email, login (manual & Google OAuth), serta reset password.
+- Tanggung jawab: registrasi, login (manual & Google OAuth), serta reset password.
 
 ## Batasan Kepemilikan
 

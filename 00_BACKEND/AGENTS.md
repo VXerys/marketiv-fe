@@ -187,6 +187,80 @@ Read Database or API documentation only when required.
 
 ---
 
+## Service Layer
+
+Read
+
+```
+docs/01_Global/20_Coding_Standards.md
+
+↓
+
+docs/01_Global/40_Folder_Structure.md
+```
+
+Application services must be written in TypeScript.
+
+Use `.ts` for service files under:
+
+- `src/services/`
+- `src/modules/<feature>/services/`
+
+Service files are the only layer that should wrap Appwrite SDK calls for application code. Do not call Appwrite SDK directly from routes, pages, or UI components.
+
+Do not put Appwrite Function implementation code in `src/services/`. Appwrite Functions belong under `functions/<function-id>/`.
+
+---
+
+## Appwrite Development
+
+Read
+
+```
+docs/01_Global/40_Folder_Structure.md
+```
+
+Appwrite Function source code must be written under
+
+```
+functions/<function-id>/
+```
+
+Each function directory owns its own source and package files. The default function entrypoint is
+
+```
+functions/<function-id>/src/main.js
+```
+
+Do not place Appwrite Function implementation code in `src/` or in the repository root.
+
+Appwrite project configuration and generation scripts are maintained under
+
+```
+appwrite/
+```
+
+The generated Appwrite configuration lives at
+
+```
+appwrite/appwrite.json
+```
+
+The generator script lives at
+
+```
+appwrite/generate_appwrite_json.js
+```
+
+When adding, removing, or renaming an Appwrite Function, keep these in sync:
+
+- `functions/<function-id>/`
+- `appwrite/appwrite.json`
+- `appwrite/generate_appwrite_json.js`
+- relevant module documentation in `docs/02_Modules/<Module>/`
+
+---
+
 ## Database Tasks
 
 Read
@@ -222,6 +296,37 @@ docs/04_Decisions/
 
 Relevant ADR
 ```
+
+---
+
+# Agent Skills
+
+Agents may use repository-local skills installed under:
+
+```text
+.agents/skills/<skill-name>/SKILL.md
+```
+
+Use a skill only when the task matches its purpose. Read the selected `SKILL.md` before applying its workflow.
+
+Available skills:
+
+- `appwrite-cli` — Appwrite CLI project management, deployments, config, and CI/CD mode.
+- `api-designer` — REST or GraphQL API design, OpenAPI specs, API architecture.
+- `code-documenter` — technical documentation, docstrings, OpenAPI/Swagger, user guides.
+- `code-reviewer` — code review, bug risk, security risk, maintainability, test coverage.
+- `database-optimizer` — slow query analysis, indexes, query optimization, database performance.
+- `devops-engineer` — Docker, CI/CD, Kubernetes, Terraform, deployment automation.
+- `find-skills` — discover or install additional agent skills.
+- `fullstack-guardian` — full-stack feature implementation with frontend, backend, and security.
+- `nestjs-expert` — NestJS modules, controllers, services, DTOs, guards, interceptors, tests.
+
+Skill usage rules:
+
+- Project documentation remains the source of truth.
+- Skill instructions complement project documentation; they do not override it.
+- If a skill conflicts with `docs/` or this `AGENTS.md`, follow the project documentation and note the conflict.
+- Do not load every skill by default. Load only the smallest relevant skill for the task.
 
 ---
 

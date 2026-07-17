@@ -7,6 +7,7 @@ Notifikasi tidak memicu event; ia **dipicu** oleh event domain dari modul lain. 
 | User Registered (`users.create`) | [Authentication](../Authentication/90_Events.md) | User baru | "Selamat datang di Marketiv" |
 | Campaign Published | Campaigns | Eligible creators | "Campaign baru tersedia" |
 | Campaign Claimed | Campaigns | UMKM pemilik | Creator mengklaim campaign |
+| Chat Message Created | [Chat](../Chat/90_Events.md) | Participant penerima | Pesan chat baru |
 | Offer Received | Offers | Creator | Offer baru masuk |
 | Offer Accepted | Offers | UMKM | Offer diterima → order dibuat |
 | Payment Success | Payments | UMKM/Creator | Pembayaran berhasil / escrow terkunci |
@@ -22,7 +23,7 @@ Domain event di modul X
 ↓
 buat record di `notifications`  (notifications.create)
 ↓
-Function send-notification → kirim In-App + Email
+Function send-notification (future — belum diimplementasikan) / send-chat-notification → kirim In-App + Email/Push
 ```
 
 ## Lihat Juga

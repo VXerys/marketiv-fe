@@ -31,7 +31,7 @@ Update lastMessage + lastMessageAt pada conversation
 ## Membuat Offer dari Chat
 
 ```text
-Creator buka chat
+UMKM buka chat
 ↓
 Klik "Buat Offer"
 ↓

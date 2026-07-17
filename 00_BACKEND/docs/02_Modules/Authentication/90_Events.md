@@ -5,11 +5,13 @@
 ```text
 users.create
 ↓
+Function: create-user-profile
+↓
+Create User Profile
+↓
 Function: create-user-wallet
 ↓
 Create Wallet
-↓
-Create User Profile
 ↓
 Send Welcome Notification
 ```
@@ -17,9 +19,10 @@ Send Welcome Notification
 | Aspek | Detail |
 | --- | --- |
 | Trigger | `users.create` |
-| Function | `create-user-wallet` |
-| Efek 1 | Membuat record di `wallets` (saldo 0) — milik [Payments] |
-| Efek 2 | Mengirim Welcome Notification (`type: system`) — milik [Notifications](../Notifications/90_Events.md) |
+| Function | `create-user-profile` → `create-user-wallet` |
+| Efek 1 | `create-user-profile` membuat profil sesuai role + `user_storage_usage` — milik [Users](../Users/70_Backend.md) |
+| Efek 2 | `create-user-wallet` membuat record di `wallets` (saldo 0) — milik [Payments](../Payments/70_Backend.md) |
+| Efek 3 | `create-user-wallet` mengirim Welcome Notification (`type: system`) — milik [Notifications](../Notifications/90_Events.md) |
 
 Contoh notifikasi welcome:
 

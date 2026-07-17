@@ -1,6 +1,6 @@
 import { Client, Databases, ID, Permission, Role } from "node-appwrite";
 
-const PURPOSES = new Set(["order", "topup"]);
+const PURPOSES = new Set(["order", "topup", "campaign"]);
 
 export default async ({ req, res, log, error }) => {
   try {
