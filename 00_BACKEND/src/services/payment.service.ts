@@ -131,7 +131,7 @@ export const createPayment = async (input: CreatePaymentInput): Promise<CreatePa
     throw new PaymentServiceError('validation', 'Top up tidak boleh memakai order.');
   }
 
-  // Fee 5% ditambahkan hanya untuk campaign top-up (buyer side)
+  // Fee 2% ditambahkan hanya untuk campaign top-up (buyer side)
   // Rate card order (purpose=order) tidak ditambahkan fee — fee dipotong saat release escrow
   const totalAmount = input.purpose === 'campaign'
     ? calculateTotalPayment(input.amount)

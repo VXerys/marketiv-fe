@@ -135,7 +135,7 @@ describe('offer.service — integration (success paths)', () => {
 describe('payment.service — integration (success paths)', () => {
   beforeEach(() => __resetStore());
 
-  it('createPayment for campaign adds 5% fee to totalAmount', async () => {
+  it('createPayment for campaign adds 2% fee to totalAmount', async () => {
     const fnResp = { paymentId: 'pay-1', gateway: 'midtrans', snapToken: 'tok', redirectUrl: 'url', status: 'pending' };
     __mockFunctionExecution(() => ({ $id: 'e1', status: 'success', responseBody: JSON.stringify(fnResp) }));
     const { createPayment } = await import('../../src/services/payment.service');

@@ -44,7 +44,7 @@
 
 ## Platform Fee
 
-Marketiv membebankan **biaya platform 5%** dengan model berbeda per modul (lihat ADR-008):
+Marketiv membebankan **biaya platform 2%** dengan model berbeda per modul (lihat ADR-008):
 
 ### Rate Card Order (Seller Side)
 
@@ -54,8 +54,8 @@ Fee dipotong dari pendapatan creator saat escrow release.
 UMKM bayar:  Rp200.000 (harga paket)
 Escrow:      Rp200.000
 Saat rilis:
-  Creator:   Rp200.000 - Rp10.000 = Rp190.000
-  Platform:  Rp10.000 (fee 5%)
+  Creator:   Rp200.000 - Rp4.000 = Rp196.000
+  Platform:  Rp4.000 (fee 2%)
 ```
 
 ### Campaign Top-Up (Buyer Side)
@@ -63,9 +63,9 @@ Saat rilis:
 Fee ditambahkan ke total pembayaran UMKM saat top-up.
 
 ```text
-UMKM bayar:  Rp100.000 + Rp5.000 = Rp105.000
+UMKM bayar:  Rp100.000 + Rp2.000 = Rp102.000
 Budget:      Rp100.000 (penuh untuk reward)
-Platform:    Rp5.000 (fee 5%)
+Platform:    Rp2.000 (fee 2%)
 ```
 
 **Aturan umum:**
@@ -77,7 +77,7 @@ Platform:    Rp5.000 (fee 5%)
 Setiap campaign PPV wajib memiliki **minimum budget Rp50.000** (`50.000`).
 
 - Validasi dilakukan saat `createCampaign()` — budget < Rp50.000 ditolak.
-- Budget + fee 5% = total yang dibayar UMKM saat top-up.
+- Budget + fee 2% = total yang dibayar UMKM saat top-up.
 - Konsisten dengan minimum withdraw Rp50.000 (ADR-007).
 
 ## Withdraw

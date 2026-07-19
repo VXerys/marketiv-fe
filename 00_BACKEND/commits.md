@@ -120,6 +120,47 @@ Update knowledge graph setelah semua perubahan. Hanya affect `graphify-out/`.
 
 ---
 
+## 2026-07-18 — Platform Fee 5%→2% + Config Sync
+
+### 13. Feature: Platform Fee 2%
+
+### 13. Feature: Platform Fee 2%
+**`2ab8113`** 20:13 — `feat: turunkan platform fee 5%→2%`
+
+Platform fee diturunkan dari 5% ke 2% untuk semua modul:
+- Rate Card Order (seller side) — fee dipotong dari pendapatan creator
+- Campaign Top-Up (buyer side) — fee ditambahkan ke total pembayaran UMKM
+- Konstanta `PLATFORM_FEE_RATE` diubah 0.05→0.02, kalkulasi fee otomatis menyesuaikan
+
+Files:
+- `src/services/wallet.service.ts` — PLATFORM_FEE_RATE 0.05→0.02
+- `src/services/payment.service.ts` — comment sinkron "Fee 5%"→"Fee 2%"
+- `tests/unit/wallet.service.test.ts` — expect 0.05→0.02, nilai kalkulasi recalc (5000→2000, 2500→1000, 4999→1999, 105000→102000, 52500→51000, 95000→98000, 47500→49000)
+- `tests/integration/services.test.ts` — test name "5% fee"→"2% fee"
+- `docs/04_Decisions/ADR-008.md` — judul, fee 2%, PLATFORM_FEE_RATE=2, formula ×2%
+- `docs/04_Decisions/00_Index.md` — deskripsi sinkron "fee 2%"
+- `docs/03_Workflows/30_RateCard_Order.md` — fee 2% di release escrow & notifikasi
+- `docs/03_Workflows/20_Campaign_PPV.md` — fee 2% di top-up budget
+- `docs/02_Modules/RateCards/30_Business_Rules.md` — fee 2% di potongan creator
+- `docs/02_Modules/Campaigns/30_Business_Rules.md` — fee 2% UMKM, formula ×2/100
+- `docs/02_Modules/Campaigns/60_API.md` — formula ×2% di topUpCampaign()
+- `docs/02_Modules/Campaigns/40_User_Flow.md` — fee 2% di flow top-up
+- `docs/02_Modules/Payments/30_Business_Rules.md` — fee 2%, angka contoh recalc (Rp10.000→Rp4.000, Rp5.000→Rp2.000)
+- `docs/02_Modules/Payments/100_Testing.md` — fee 2%, 0.05→0.02
+- `docs/02_Modules/Payments/50_Database.md` — fee 2% di deskripsi kolom fee_amount
+
+**Verifikasi**: ✅ Unit test PASS (7/7), Integration test PASS (24/24). Tidak ada sisa "5%" atau "0.05" di `src/` dan `docs/`.
+
+### 14. Chore: Config Sync
+**`649b630`** 20:13 — `chore: sinkron appwrite.config.json key tablesDB→databasesDB, tables→databases`
+
+Appwrite CLI v22 rename key `tablesDB` → `databasesDB`, `tables` → `databases`. Isi identik (hanya rename key).
+
+Files:
+- `appwrite.config.json` — 3466 insert/delete, pure key rename
+
+---
+
 ## Ringkasan Perubahan MVP
 
 | Area | Status | Keterangan |

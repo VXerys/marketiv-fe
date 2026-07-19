@@ -50,7 +50,7 @@ UMKM klik `Buat Campaign` dari dashboard (tipe Campaign Viral).
 ### Tahap 2: Top-Up Budget
 
 6. **Payments** — UMKM `topUpCampaign(campaignId)`:
-   - Total bayar = `budget + floor(budget × 5%)` (sudah termasuk fee platform 5%).
+   - Total bayar = `budget + floor(budget × 2%)` (sudah termasuk fee platform 2%).
    - `create-payment` Function membuat transaksi Midtrans dengan `purpose = campaign`.
    - UMKM menyelesaikan pembayaran via Midtrans Snap.
 7. **Event `payments.status (pending→paid)`** dengan `purpose = campaign`:

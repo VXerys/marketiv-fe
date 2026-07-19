@@ -85,10 +85,10 @@ Reward dihitung saat submission di-approve dan masuk ke **pending balance** wall
 
 ## Platform Fee
 
-Platform Marketiv membebankan **fee 5%** kepada UMKM saat melakukan top-up budget campaign (lihat modul Payments).
+Platform Marketiv membebankan **fee 2%** kepada UMKM saat melakukan top-up budget campaign (lihat modul Payments).
 
 - Creator menerima **full reward** sesuai rumus — fee tidak dipotong dari pendapatan creator.
-- Total yang dibayar UMKM = `budget + floor(budget × 5 / 100)`.
+- Total yang dibayar UMKM = `budget + floor(budget × 2 / 100)`.
 - Fee dicatat sebagai transaksi `fee` di ledger.
 
 ## Data Denormalisasi

@@ -10,8 +10,8 @@ import {
 } from '../../src/services/wallet.service';
 
 describe('wallet.service — pure helpers', () => {
-  it('PLATFORM_FEE_RATE is 0.05', () => {
-    expect(PLATFORM_FEE_RATE).toBe(0.05);
+  it('PLATFORM_FEE_RATE is 0.02', () => {
+    expect(PLATFORM_FEE_RATE).toBe(0.02);
   });
 
   it('MINIMUM_WITHDRAW is 50000', () => {
@@ -26,19 +26,19 @@ describe('wallet.service — pure helpers', () => {
     expect(WITHDRAW_PAYOUT_METHODS).toEqual(['bank', 'ewallet']);
   });
 
-  it('calculatePlatformFee floors 5% of nominal', () => {
-    expect(calculatePlatformFee(100000)).toBe(5000);
-    expect(calculatePlatformFee(50000)).toBe(2500);
-    expect(calculatePlatformFee(99999)).toBe(4999);
+  it('calculatePlatformFee floors 2% of nominal', () => {
+    expect(calculatePlatformFee(100000)).toBe(2000);
+    expect(calculatePlatformFee(50000)).toBe(1000);
+    expect(calculatePlatformFee(99999)).toBe(1999);
   });
 
   it('calculateTotalPayment adds fee to nominal', () => {
-    expect(calculateTotalPayment(100000)).toBe(105000);
-    expect(calculateTotalPayment(50000)).toBe(52500);
+    expect(calculateTotalPayment(100000)).toBe(102000);
+    expect(calculateTotalPayment(50000)).toBe(51000);
   });
 
   it('calculateCreatorPayout subtracts fee from nominal', () => {
-    expect(calculateCreatorPayout(100000)).toBe(95000);
-    expect(calculateCreatorPayout(50000)).toBe(47500);
+    expect(calculateCreatorPayout(100000)).toBe(98000);
+    expect(calculateCreatorPayout(50000)).toBe(49000);
   });
 });

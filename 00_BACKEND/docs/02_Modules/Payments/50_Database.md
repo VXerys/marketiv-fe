@@ -31,7 +31,7 @@ Payment intent lokal untuk pembayaran yang diproses oleh Midtrans. Relasi: Order
 | campaign_id      | string  | no       | FK → campaigns untuk top-up campaign                          |
 | amount           | integer | yes      | nominal transaksi (sebelum fee)                                |
 | total_amount     | integer | yes      | nominal + fee platform (yang dibayar ke Midtrans)             |
-| fee_amount       | integer | no       | jumlah fee platform (5% dari amount)                          |
+| fee_amount       | integer | no       | jumlah fee platform (2% dari amount)                          |
 | purpose          | enum    | yes      | `order\|topup\|campaign`                                      |
 | gateway          | enum    | yes      | `midtrans`                                                    |
 | gateway_reference| string  | yes      | `order_id` Midtrans, unik                                     |

@@ -11,5 +11,5 @@ Folder ini berisi Architecture Decision Records (ADR) yang menjelaskan **WHY** d
 - [ADR-005.md](ADR-005.md) — Simpan counter denormalisasi di `campaigns` (dashboard cepat).
 - [ADR-006.md](ADR-006.md) — Pakai Zustand, bukan Redux (lebih ringan, tanpa boilerplate).
 - [ADR-007.md](ADR-007.md) — Minimum withdraw dipasang sebagai konstanta sistem `Rp50.000` (hardcode di Function; tanpa UI admin).
-- [ADR-008.md](ADR-008.md) — Platform fee 5% dari buyer side (UMKM) untuk Rate Card Order dan Campaign Top-Up.
+- [ADR-008.md](ADR-008.md) — Platform fee 2% dari buyer side (UMKM) untuk Rate Card Order dan Campaign Top-Up.
 - [ADR-009.md](ADR-009.md) — Minimum budget campaign Rp50.000 agar reward creator layak.
