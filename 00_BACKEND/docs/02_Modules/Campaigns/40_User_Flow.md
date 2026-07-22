@@ -12,7 +12,7 @@ Buat Campaign (draft)
   ├─ Generate Brief via AI (opsional)
   └─ Atur Reward: budget ≥ Rp50.000, jumlah kreator, tarif/1.000 views (radio Rp1.000–Rp5.000)
 ↓
-Top-Up Budget — bayar budget + fee 5% via Midtrans
+Top-Up Budget — bayar budget + fee 2% via Midtrans
 ↓
 Publish Campaign → active
 ↓

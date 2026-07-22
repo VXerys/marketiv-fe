@@ -41,7 +41,7 @@ Dimiliki UMKM. Inti alur PPV.
 #### `topUpCampaign()` — [Client SDK]
 
 - **Input**: `{ campaignId, snapToken? }`
-- **Proses**: Buat payment dengan `purpose = campaign`, amount = `budget`, total = `budget + floor(budget × 5%)`. Redirect ke Midtrans Snap.
+- **Proses**: Buat payment dengan `purpose = campaign`, amount = `budget`, total = `budget + floor(budget × 2%)`. Redirect ke Midtrans Snap.
 - **Validasi**:
   - Campaign harus milik UMKM yang sama.
   - Campaign harus `draft` — hanya bisa top-up sebelum publish (atau saat masih draft).

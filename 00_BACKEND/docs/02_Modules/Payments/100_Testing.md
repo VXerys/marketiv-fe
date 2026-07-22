@@ -10,7 +10,7 @@
 - `purpose === 'order'` tanpa `orderId` → throw `PaymentServiceError('validation', 'Order wajib diisi untuk pembayaran order.')`.
 - `purpose === 'campaign'` tanpa `campaignId` → throw `PaymentServiceError('validation', 'Campaign wajib diisi untuk top-up campaign.')`.
 - `purpose === 'topup'` dengan `orderId` → throw `PaymentServiceError('validation', 'Top up tidak boleh memakai order.')`.
-- `purpose === 'campaign'` → `totalAmount = amount + floor(amount ×5%)` (fee 5% via `calculateTotalPayment`).
+- `purpose === 'campaign'` → `totalAmount = amount + floor(amount ×2%)` (fee 2% via `calculateTotalPayment`).
 - `purpose === 'order'` → `totalAmount = amount` (tanpa fee, fee dipotong saat release escrow).
 - Function gagal → throw `PaymentServiceError('server', 'Gagal membuat pembayaran. Coba lagi.')`.
 - Response tidak lengkap (tanpa `paymentId`/`gateway`/`status`) → throw `PaymentServiceError('server', 'Response pembayaran tidak lengkap.')`.
@@ -19,7 +19,7 @@
 > (ditambah ke `PURPOSES`), dan `create-escrow` menjalankan `purpose: 'campaign'`
 > melalui jalur `completeTopup` yang mengkredit **wallet.balance** (sama seperti `topup`).
 > Model dompet: UMKM top-up campaign → saldo wallet bertambah (besaran `amount`/budget bersih,
-> fee 5% menjadi pendapatan platform karena `totalAmount = amount + fee` yang dibayar ke Midtrans);
+> fee 2% menjadi pendapatan platform karena `totalAmount = amount + fee` yang dibayar ke Midtrans);
 > saat UMKM membeli order → saldo berkurang via `create-escrow` → `release-escrow` mencairkan
 > ke wallet creator. Sesuai dengan `60_API.md` (`purpose: order|topup|campaign`).
 
@@ -31,10 +31,10 @@
 
 ### Pure Functions (`wallet.service.ts`)
 
-- `calculatePlatformFee(nominal)` = `Math.floor(nominal × 0.05)`.
+- `calculatePlatformFee(nominal)` = `Math.floor(nominal × 0.02)`.
 - `calculateTotalPayment(nominal)` = `nominal + calculatePlatformFee(nominal)`.
 - `calculateCreatorPayout(nominal)` = `nominal - calculatePlatformFee(nominal)`.
-- `MINIMUM_WITHDRAW` = 50000; `MINIMUM_CAMPAIGN_BUDGET` = 50000; `PLATFORM_FEE_RATE` = 0.05.
+- `MINIMUM_WITHDRAW` = 50000; `MINIMUM_CAMPAIGN_BUDGET` = 50000; `PLATFORM_FEE_RATE` = 0.02.
 - `WITHDRAW_PAYOUT_METHODS` = `['bank', 'ewallet']`.
 
 ### Wallet (`getWallet`, `getTransactions`, `getWithdrawals`, `requestWithdraw`)

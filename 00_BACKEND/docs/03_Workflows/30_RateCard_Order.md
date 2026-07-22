@@ -115,10 +115,10 @@ UMKM buka `Creator Discovery` → profil creator → lihat rate card → pilih j
     - Jumlah revisi dibatasi `revisionLimit` (dari package/offer).
 19. **Jika Approve:**
     - **Event `deliverables.status (revision_requested→approved)`** memicu function **`release-escrow`**.
-20. **Payments** — Release escrow (dipotong fee 5%):
+20. **Payments** — Release escrow (dipotong fee 2%):
     - `escrows.status: held → released`.
     - `wallets.escrowBalance -= amount` (dana keluar dari escrow).
-    - Hitung fee: `feeAmount = floor(amount × 5%)`.
+    - Hitung fee: `feeAmount = floor(amount × 2%)`.
     - Hitung bersih: `creatorAmount = amount - feeAmount`.
     - `wallets.balance += creatorAmount` (dana masuk available balance creator setelah fee).
     - Buat `transactions`:
@@ -126,7 +126,7 @@ UMKM buka `Creator Discovery` → profil creator → lihat rate card → pilih j
       - `{ userId: creatorId, amount: feeAmount, type: 'fee', referenceType: 'order', referenceId: orderId }`.
 21. **Orders** — Update order: `status: in_progress/revision → completed`.
 22. **Notifications** — Notifikasi ke kedua pihak: "Order selesai — dana sudah dirilis ke wallet creator".
-23. **Notifications** — Notifikasi ke creator: "Fee platform 5% ({feeAmount}) telah dipotong dari order ini".
+23. **Notifications** — Notifikasi ke creator: "Fee platform 2% ({feeAmount}) telah dipotong dari order ini".
 
 ## State Transitions
 
@@ -186,7 +186,7 @@ DELIVERABLE STATUS: submitted → approved | revision_requested
 | Revision requested | "UMKM minta revisi: {message}" | Creator |
 | Deliverable approved | "Deliverable disetujui" | Creator |
 | Escrow released | "Order selesai — dana dirilis" | Creator + UMKM |
-| Fee deducted | "Fee platform 5% ({amount}) telah dipotong dari order ini" | Creator |
+| Fee deducted | "Fee platform 2% ({amount}) telah dipotong dari order ini" | Creator |
 
 ## Edge Cases
 

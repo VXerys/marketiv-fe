@@ -24,18 +24,18 @@
 
 ## Platform Fee
 
-Fee platform **5%** dipotong dari pendapatan creator saat escrow release.
+Fee platform **2%** dipotong dari pendapatan creator saat escrow release.
 
 ```text
 UMKM bayar: hargaPaket (sesuai rate card)
-Creator terima: hargaPaket - floor(hargaPaket × 5%)
-Platform: floor(hargaPaket × 5%) sebagai fee
+Creator terima: hargaPaket - floor(hargaPaket × 2%)
+Platform: floor(hargaPaket × 2%) sebagai fee
 ```
 
 - UMKM membayar **persis sesuai harga paket** — tidak ada biaya tambahan.
-- Creator menerima harga paket **dikurangi fee 5%**.
+- Creator menerima harga paket **dikurangi fee 2%**.
 - Fee dicatat sebagai transaksi `fee` di ledger.
-- Creator perlu mempertimbangkan fee 5% saat menentukan harga paket rate card.
+- Creator perlu mempertimbangkan fee 2% saat menentukan harga paket rate card.
 
 ## Field Wajib Paket
 
