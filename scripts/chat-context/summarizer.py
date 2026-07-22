@@ -7,8 +7,7 @@ from datetime import datetime, timezone
 
 import anthropic
 
-MEMORY_DIR = Path(__file__).parent.parent.parent / "memory"
-SUMMARY_FILE = MEMORY_DIR / "project_context_summary.md"
+from paths import MEMORY_DIR, SUMMARY_FILE
 
 SYSTEM_PROMPT = """Kamu adalah asisten yang bertugas membuat ringkasan konteks proyek Marketiv
 dari percakapan-percakapan terdahulu. Ringkasan harus padat, informatif, dan berguna bagi
@@ -103,7 +102,7 @@ def create_incremental_summary(
 
 
 def write_summary(content: str, sessions_covered: int) -> None:
-    MEMORY_DIR.mkdir(parents=True, exist_ok=True)
+    SUMMARY_FILE.parent.mkdir(parents=True, exist_ok=True)
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
     full_content = SUMMARY_TEMPLATE.format(
         generated_at=generated_at,

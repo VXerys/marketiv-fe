@@ -18,6 +18,7 @@ import db
 import archiver
 import summarizer
 import searcher
+import phases
 
 
 STAGING_FILE = Path(__file__).parent / "data" / "sessions_staging.json"
@@ -149,28 +150,67 @@ def cmd_list_archives() -> None:
         print(f"  {i:>3}. {path.name}  ({size_kb:.1f} KB)")
 
 
+# ── phase & task commands ────────────────────────────────────────────────────
+
+def cmd_seed_phases() -> None:
+    """Seed definisi 6 sprint ke SQLite (idempoten)."""
+    phases.seed_phases()
+    print("[OK] Phase definitions seeded ke database.")
+    phases.print_status_table()
+
+
+def cmd_phase_status() -> None:
+    phases.seed_phases()
+    phases.print_status_table()
+
+
+def cmd_phase_start(phase_no: int) -> None:
+    phases.seed_phases()
+    phases.set_phase_status(phase_no, "in_progress")
+    print(f"[OK] Sprint {phase_no} → in_progress")
+    cmd_sync_progress()
+
+
+def cmd_phase_done(phase_no: int) -> None:
+    phases.seed_phases()
+    phases.set_phase_status(phase_no, "done")
+    print(f"[OK] Sprint {phase_no} → done")
+    cmd_sync_progress()
+
+
+def cmd_task_done(task_key: str) -> None:
+    phases.seed_phases()
+    phases.set_task_status(task_key, "done")
+    print(f"[OK] Task '{task_key}' → done")
+    cmd_sync_progress()
+
+
+def cmd_task_block(task_key: str, reason: str) -> None:
+    phases.seed_phases()
+    phases.set_task_status(task_key, "blocked", note=reason)
+    print(f"[OK] Task '{task_key}' → blocked: {reason}")
+    cmd_sync_progress()
+
+
+def cmd_task_start(task_key: str) -> None:
+    phases.seed_phases()
+    phases.set_task_status(task_key, "in_progress")
+    print(f"[OK] Task '{task_key}' → in_progress")
+    cmd_sync_progress()
+
+
+def cmd_sync_progress() -> None:
+    phases.seed_phases()
+    phases.write_progress()
+    from paths import PROGRESS_FILE
+    print(f"[OK] integration_progress.md diperbarui → {PROGRESS_FILE}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Chat Context Manager untuk proyek Marketiv"
     )
-    subparsers = parser.add_subparsers(dest="command")
-
-    subparsers.add_parser("--ingest", help="Proses sesi baru dari sessions_staging.json")
-    subparsers.add_parser("--status", help="Tampilkan status database")
-
-    search_parser = subparsers.add_parser("--search", help="Cari di summary dan memory")
-    search_parser.add_argument("query", help="Kata kunci atau regex")
-    search_parser.add_argument(
-        "--archives", action="store_true", help="Sertakan arsip lama dalam pencarian"
-    )
-    search_parser.add_argument(
-        "--regex", action="store_true", help="Perlakukan query sebagai regex"
-    )
-
-    subparsers.add_parser("--list-archives", help="Daftar file arsip")
-
-    # Support flat flag style: python main.py --ingest (bukan subcommand)
-    args, unknown = parser.parse_known_args()
+    # No subparsers — gunakan flat flag style yang sudah berjalan
 
     if "--ingest" in sys.argv:
         cmd_ingest()
@@ -187,6 +227,45 @@ def main() -> None:
         cmd_search(query, include_archives=include_archives, is_regex=is_regex)
     elif "--list-archives" in sys.argv:
         cmd_list_archives()
+
+    # ── phase / task commands ─────────────────────────────────────────────
+    elif "--seed-phases" in sys.argv:
+        cmd_seed_phases()
+    elif "--phase-status" in sys.argv:
+        cmd_phase_status()
+    elif "--phase-start" in sys.argv:
+        idx = sys.argv.index("--phase-start")
+        if idx + 1 >= len(sys.argv):
+            print("[ERROR] Masukkan nomor sprint setelah --phase-start")
+            sys.exit(1)
+        cmd_phase_start(int(sys.argv[idx + 1]))
+    elif "--phase-done" in sys.argv:
+        idx = sys.argv.index("--phase-done")
+        if idx + 1 >= len(sys.argv):
+            print("[ERROR] Masukkan nomor sprint setelah --phase-done")
+            sys.exit(1)
+        cmd_phase_done(int(sys.argv[idx + 1]))
+    elif "--task-done" in sys.argv:
+        idx = sys.argv.index("--task-done")
+        if idx + 1 >= len(sys.argv):
+            print("[ERROR] Masukkan task key setelah --task-done")
+            sys.exit(1)
+        cmd_task_done(sys.argv[idx + 1])
+    elif "--task-start" in sys.argv:
+        idx = sys.argv.index("--task-start")
+        if idx + 1 >= len(sys.argv):
+            print("[ERROR] Masukkan task key setelah --task-start")
+            sys.exit(1)
+        cmd_task_start(sys.argv[idx + 1])
+    elif "--task-block" in sys.argv:
+        idx = sys.argv.index("--task-block")
+        if idx + 2 >= len(sys.argv):
+            print('[ERROR] Gunakan: --task-block <key> "<alasan>"')
+            sys.exit(1)
+        cmd_task_block(sys.argv[idx + 1], sys.argv[idx + 2])
+    elif "--sync-progress" in sys.argv:
+        cmd_sync_progress()
+
     else:
         parser.print_help()
 

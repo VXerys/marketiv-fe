@@ -2,11 +2,7 @@
 
 import re
 from pathlib import Path
-from typing import Generator
-
-MEMORY_DIR = Path(__file__).parent.parent.parent / "memory"
-ARCHIVE_DIR = Path(__file__).parent / "data" / "archive"
-SUMMARY_FILE = MEMORY_DIR / "project_context_summary.md"
+from paths import MEMORY_DIR, ARCHIVE_DIR, SUMMARY_FILE
 
 
 def _search_file(path: Path, pattern: re.Pattern) -> list[dict]:

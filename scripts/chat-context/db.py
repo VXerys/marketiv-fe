@@ -32,6 +32,24 @@ def init_db() -> None:
                 created_at TEXT,
                 archived_at TEXT
             );
+
+            CREATE TABLE IF NOT EXISTS phases (
+                phase_no INTEGER PRIMARY KEY,
+                name TEXT,
+                status TEXT DEFAULT 'pending',
+                started_at TEXT,
+                completed_at TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS phase_tasks (
+                key TEXT PRIMARY KEY,
+                phase_no INTEGER,
+                title TEXT,
+                status TEXT DEFAULT 'pending',
+                note TEXT,
+                updated_at TEXT,
+                FOREIGN KEY (phase_no) REFERENCES phases(phase_no)
+            );
         """)
 
 

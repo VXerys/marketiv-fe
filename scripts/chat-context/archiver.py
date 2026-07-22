@@ -4,9 +4,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 import shutil
 
-MEMORY_DIR = Path(__file__).parent.parent.parent / "memory"
-ARCHIVE_DIR = Path(__file__).parent / "data" / "archive"
-SUMMARY_FILE = MEMORY_DIR / "project_context_summary.md"
+from paths import ARCHIVE_DIR, SUMMARY_FILE
 
 
 def archive_current_summary() -> Path | None:
