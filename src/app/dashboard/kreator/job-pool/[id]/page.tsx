@@ -1,4 +1,4 @@
-import { getCreatorJobById } from "@/services/creator-dashboard.service";
+import { getCreatorJobById } from "@/services/creator/creator-dashboard.service";
 import { JobDetailView } from "@/components/features/creator-dashboard";
 
 interface JobDetailPageProps {

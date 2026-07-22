@@ -18,6 +18,7 @@ import {
   Eye,
 } from "lucide-react";
 import { CreatorActiveWork } from "@/types/creator-dashboard";
+import { getFraudStatusLabel, getSubmissionStatusLabel } from "@/lib/creator-status";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { DashboardCard, DashboardModal, DashboardButton, DashboardStateCard } from "@/components/features/dashboard/shared";
@@ -66,14 +67,9 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
   const showToast = (msg: string) => toast.success(msg);
 
   const getSubStatusLabel = (w: CreatorActiveWork): string => {
-    if (w.submissionStatus) {
-      if (w.submissionStatus === "Pending") return "Menunggu Validasi";
-      if (w.submissionStatus === "Valid") return "Valid";
-      if (w.submissionStatus === "Fraud") return "Fraud";
-      if (w.submissionStatus === "Dispute") return "Dispute";
-      if (w.submissionStatus === "Rejected") return "Rejected";
-    }
-    if (w.status === "Selesai") return "Selesai";
+    if (w.fraudStatus && w.fraudStatus !== "safe") return getFraudStatusLabel(w.fraudStatus);
+    if (w.submissionStatus) return getSubmissionStatusLabel(w.submissionStatus);
+    if (w.status === "approved") return "Selesai";
     return "Belum Submit";
   };
 
@@ -113,7 +109,9 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
           ...prev,
           contentUrl: contentUrl.trim(),
           platform,
-          submissionStatus: "Pending",
+          status: "submitted" as const,
+          submissionStatus: "pending" as const,
+          fraudStatus: "safe" as const,
           submittedAt: new Date().toISOString(),
           notes: notes.trim(),
         };
@@ -165,8 +163,8 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
 
   const statusLabel  = getSubStatusLabel(work);
   const isSubmitted  = !!work.contentUrl;
-  const isFraud      = ["Fraud", "Dispute", "Rejected"].includes(statusLabel);
-  const isValid      = statusLabel === "Valid" || statusLabel === "Selesai";
+  const isFraud      = work.fraudStatus === "rejected" || work.submissionStatus === "rejected" || work.status === "rejected";
+  const isValid      = work.submissionStatus === "approved" || work.status === "approved";
   const dummyViews   = work.actualViews || (isSubmitted ? 12500 : 0);
   const earningsEstimate = work.earnings || (work.ratePerThousandViews * dummyViews) / 1000;
   const thumbnailUrl = getThumbnailUrl(work.campaignId);
@@ -180,14 +178,15 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
     return { text: `${diffDays} hari lagi`, days: diffDays };
   })();
 
+  // Key = label hasil getSubStatusLabel (lihat src/lib/creator-status.ts)
   const STATUS_BADGE: Record<string, string> = {
-    "Belum Submit":      "bg-blue-500/25 text-blue-200 border-blue-400/30",
-    "Menunggu Validasi": "bg-amber-500/25 text-amber-200 border-amber-400/30",
-    "Valid":             "bg-emerald-500/25 text-emerald-200 border-emerald-400/30",
-    "Selesai":           "bg-emerald-500/25 text-emerald-200 border-emerald-400/30",
-    "Fraud":             "bg-red-500/25 text-red-200 border-red-400/30",
-    "Dispute":           "bg-red-500/25 text-red-200 border-red-400/30",
-    "Rejected":          "bg-red-500/25 text-red-200 border-red-400/30",
+    "Belum Submit":       "bg-blue-500/25 text-blue-200 border-blue-400/30",
+    "Menunggu Review":    "bg-amber-500/25 text-amber-200 border-amber-400/30",
+    "Perlu Ditinjau":     "bg-amber-500/25 text-amber-200 border-amber-400/30",
+    "Disetujui":          "bg-emerald-500/25 text-emerald-200 border-emerald-400/30",
+    "Selesai":            "bg-emerald-500/25 text-emerald-200 border-emerald-400/30",
+    "Ditolak":            "bg-red-500/25 text-red-200 border-red-400/30",
+    "Terindikasi Fraud":  "bg-red-500/25 text-red-200 border-red-400/30",
   };
 
   return (

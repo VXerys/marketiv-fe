@@ -6,7 +6,7 @@ import { EscrowSummaryCard } from "./EscrowSummaryCard";
 import { ReviewSubmissionCard } from "./ReviewSubmissionCard";
 import { UmkmDashboardChrome } from "./UmkmDashboardChrome";
 import { UmkmViewsChartCard } from "./UmkmViewsChartCard";
-import type { UmkmDashboardData } from "@/types/umkmDashboard";
+import type { UmkmDashboardData } from "@/data/umkmDashboard";
 import { cn } from "@/lib/utils";
 import {
   DashboardMetricCard,

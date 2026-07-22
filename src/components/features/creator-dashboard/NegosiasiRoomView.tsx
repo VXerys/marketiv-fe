@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { CreatorEmptyState } from "./CreatorEmptyState";
 import { CreatorErrorState } from "./CreatorErrorState";
 import { formatCurrency } from "@/lib/formatters";
+import { getEscrowStatusLabel } from "@/lib/creator-status";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
@@ -50,17 +51,19 @@ interface ChatMessage {
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
+// Key = orders.status kanon (lihat src/types/domain.ts)
 const STATUS_CONFIG: Record<string, { dot: string; text: string; bg: string; border: string; label: string }> = {
-  Negosiasi:          { dot: "bg-amber-400",   text: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200/60",   label: "Negosiasi" },
-  MenungguPembayaran: { dot: "bg-blue-400",    text: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-200/60",    label: "Menunggu Pembayaran" },
-  Escrow:             { dot: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200/60", label: "Escrow Aktif" },
-  Revisi:             { dot: "bg-orange-400",  text: "text-orange-700",  bg: "bg-orange-50",  border: "border-orange-200/60",  label: "Revisi Diminta" },
-  MenungguVerifikasi: { dot: "bg-violet-400",  text: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200/60",  label: "Menunggu Verifikasi" },
-  Selesai:            { dot: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200/60", label: "Selesai" },
+  pending_payment: { dot: "bg-blue-400",    text: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-200/60",    label: "Menunggu Pembayaran" },
+  escrow:          { dot: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200/60", label: "Escrow Aktif" },
+  in_progress:     { dot: "bg-amber-400",   text: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200/60",   label: "Sedang Dikerjakan" },
+  revision:        { dot: "bg-orange-400",  text: "text-orange-700",  bg: "bg-orange-50",  border: "border-orange-200/60",  label: "Revisi Diminta" },
+  approved:        { dot: "bg-violet-400",  text: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200/60",  label: "Disetujui" },
+  completed:       { dot: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200/60", label: "Selesai" },
+  cancelled:       { dot: "bg-neutral-400", text: "text-neutral-600", bg: "bg-neutral-50", border: "border-neutral-200/60", label: "Dibatalkan" },
 };
 
 function StatusPill({ status }: { status: string }) {
-  const s = STATUS_CONFIG[status] ?? STATUS_CONFIG.Negosiasi;
+  const s = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending_payment;
   return (
     <span className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-extrabold border", s.text, s.bg, s.border)}>
       <span className={cn("w-1.5 h-1.5 rounded-full", s.dot)} />
@@ -200,7 +203,7 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
 
   const handleAcceptOrder = () => {
     if (!neg) return;
-    setNeg(prev => prev ? { ...prev, status: "MenungguPembayaran" } : null);
+    setNeg(prev => prev ? { ...prev, status: "pending_payment" } : null);
     setChatMessages(prev => [...prev, {
       id: `sys_${Date.now()}`,
       sender: "system",
@@ -224,7 +227,7 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
     }
 
     setCollabError(null);
-    setNeg(prev => prev ? { ...prev, status: "MenungguVerifikasi", submittedCollabUrl: trimmed } : null);
+    setNeg(prev => prev ? { ...prev, status: "approved", submittedCollabUrl: trimmed } : null);
     setChatMessages(prev => [...prev, {
       id: `sys_collab_${Date.now()}`,
       sender: "system",
@@ -238,7 +241,7 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
 
   const handleMarkRevisionDone = () => {
     if (!neg) return;
-    setNeg(prev => prev ? { ...prev, status: "MenungguVerifikasi" } : null);
+    setNeg(prev => prev ? { ...prev, status: "approved" } : null);
     setChatMessages(prev => [...prev, {
       id: `sys_rev_${Date.now()}`,
       sender: "system",
@@ -278,9 +281,9 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
     );
   }
 
-  const isNegoState     = neg.status === "Negosiasi";
-  const isEscrowState   = neg.status === "Escrow";
-  const isRevisionState = neg.status === "Revisi";
+  const isNegoState     = neg.status === "pending_payment";
+  const isEscrowState   = neg.status === "escrow" || neg.status === "in_progress";
+  const isRevisionState = neg.status === "revision";
 
   const platFee   = neg.platformFee   ?? Math.round(neg.finalPrice * 0.03);
   const totalAmt  = neg.totalAmount   ?? (neg.finalPrice + platFee);
@@ -294,7 +297,7 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
     },
     {
       label: "Pembayaran Escrow UMKM",
-      done: !["Negosiasi", "MenungguPembayaran"].includes(neg.status),
+      done: neg.status !== "pending_payment",
     },
     {
       label: "Submit Collab Post URL",
@@ -302,7 +305,7 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
     },
     {
       label: "Pelepasan Dana Escrow",
-      done: neg.status === "Selesai",
+      done: neg.status === "completed",
     },
   ];
   const doneCount = milestones.filter(m => m.done).length;
@@ -433,7 +436,7 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
                               </div>
 
                               <div className="border-t border-neutral-100 pt-3">
-                                {neg.status === "Negosiasi" ? (
+                                {neg.status === "pending_payment" ? (
                                   <button
                                     onClick={handleAcceptOrder}
                                     className="w-full py-2.5 rounded-[12px] text-[10px] font-extrabold text-white cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0"
@@ -702,19 +705,19 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
                     <span className="block text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-2">Status Escrow</span>
                     <div className={cn(
                       "flex items-center gap-2 px-3.5 py-2.5 rounded-[12px] border w-fit",
-                      neg.escrowStatus === "Escrowed"
+                      neg.escrowStatus === "held"
                         ? "bg-emerald-50 border-emerald-200/50 text-emerald-700"
-                        : neg.escrowStatus === "Released"
+                        : neg.escrowStatus === "released"
                         ? "bg-blue-50 border-blue-200/50 text-blue-700"
                         : "bg-amber-50 border-amber-200/50 text-amber-700"
                     )}>
-                      {neg.escrowStatus === "Escrowed" ? (
+                      {neg.escrowStatus === "held" ? (
                         <ShieldCheck className="w-3.5 h-3.5" />
                       ) : (
                         <Lock className="w-3.5 h-3.5" />
                       )}
                       <span className="text-[10px] font-extrabold uppercase tracking-wider">
-                        {neg.escrowStatus ?? "Pending"}
+                        {neg.escrowStatus ? getEscrowStatusLabel(neg.escrowStatus) : "Belum Ada Escrow"}
                       </span>
                     </div>
                   </div>

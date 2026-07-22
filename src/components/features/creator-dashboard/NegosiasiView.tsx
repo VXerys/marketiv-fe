@@ -65,17 +65,19 @@ function MetricTile({ label, value, helper, icon, iconClass, cardClass, badge, b
 
 // ─── NegotiationCard ─────────────────────────────────────────────────────────
 
+// Key = orders.status kanon (lihat src/types/domain.ts)
 const STATUS_STYLES: Record<string, { dot: string; text: string; bg: string; border: string; label: string }> = {
-  Negosiasi:          { dot: "bg-amber-400",  text: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-200/50",  label: "Negosiasi" },
-  MenungguPembayaran: { dot: "bg-blue-400",   text: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-200/50",   label: "Menunggu Bayar" },
-  Escrow:             { dot: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200/50", label: "Escrow Aktif" },
-  Revisi:             { dot: "bg-orange-400",  text: "text-orange-700",  bg: "bg-orange-50",  border: "border-orange-200/50",  label: "Revisi" },
-  MenungguVerifikasi: { dot: "bg-violet-400",  text: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200/50",  label: "Verifikasi" },
-  Selesai:            { dot: "bg-neutral-400", text: "text-neutral-600", bg: "bg-neutral-50", border: "border-neutral-200/50", label: "Selesai" },
+  pending_payment: { dot: "bg-blue-400",   text: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-200/50",   label: "Menunggu Bayar" },
+  escrow:          { dot: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200/50", label: "Escrow Aktif" },
+  in_progress:     { dot: "bg-amber-400",  text: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-200/50",  label: "Dikerjakan" },
+  revision:        { dot: "bg-orange-400",  text: "text-orange-700",  bg: "bg-orange-50",  border: "border-orange-200/50",  label: "Revisi" },
+  approved:        { dot: "bg-violet-400",  text: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200/50",  label: "Disetujui" },
+  completed:       { dot: "bg-neutral-400", text: "text-neutral-600", bg: "bg-neutral-50", border: "border-neutral-200/50", label: "Selesai" },
+  cancelled:       { dot: "bg-neutral-400", text: "text-neutral-600", bg: "bg-neutral-50", border: "border-neutral-200/50", label: "Dibatalkan" },
 };
 
 function NegotiationCard({ neg }: { neg: CreatorNegotiation }) {
-  const s = STATUS_STYLES[neg.status] ?? STATUS_STYLES.Negosiasi;
+  const s = STATUS_STYLES[neg.status] ?? STATUS_STYLES.pending_payment;
   const dateStr = new Date(neg.lastMessageAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
   const hasUrgent = neg.unreadCount > 0;
 
@@ -182,10 +184,10 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
     setSelectedStatus("all");
   };
 
-  const countNegotiation        = negotiations.filter(n => n.status === "Negosiasi").length;
-  const countPendingPayment     = negotiations.filter(n => n.status === "MenungguPembayaran").length;
-  const countEscrow             = negotiations.filter(n => ["Escrow","Revisi","MenungguVerifikasi"].includes(n.status)).length;
-  const countCompleted          = negotiations.filter(n => n.status === "Selesai").length;
+  const countNegotiation        = negotiations.filter(n => n.status === "pending_payment").length;
+  const countPendingPayment     = negotiations.filter(n => n.status === "pending_payment").length;
+  const countEscrow             = negotiations.filter(n => ["escrow","in_progress","revision","approved"].includes(n.status)).length;
+  const countCompleted          = negotiations.filter(n => n.status === "completed").length;
   const totalUnread             = negotiations.reduce((acc, n) => acc + (n.unreadCount || 0), 0);
 
   const filteredNegotiations = negotiations
@@ -197,10 +199,10 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
 
       const matchesStatus =
         selectedStatus === "all" ||
-        (selectedStatus === "negosiasi" && n.status === "Negosiasi") ||
-        (selectedStatus === "menunggu-pembayaran" && n.status === "MenungguPembayaran") ||
-        (selectedStatus === "escrow" && ["Escrow","Revisi","MenungguVerifikasi"].includes(n.status)) ||
-        (selectedStatus === "selesai" && n.status === "Selesai");
+        (selectedStatus === "negosiasi" && n.status === "pending_payment") ||
+        (selectedStatus === "menunggu-pembayaran" && n.status === "pending_payment") ||
+        (selectedStatus === "escrow" && ["escrow","in_progress","revision","approved"].includes(n.status)) ||
+        (selectedStatus === "selesai" && n.status === "completed");
 
       return matchesSearch && matchesStatus;
     })

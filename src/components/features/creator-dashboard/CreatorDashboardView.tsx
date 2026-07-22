@@ -314,7 +314,7 @@ export function CreatorDashboardView({
       brandAvatar: targetJob.brandAvatar,
       brief: targetJob.brief,
       ratePerThousandViews: targetJob.ratePerThousandViews,
-      status: "Aktif",
+      status: "claimed" as const,
       claimedAt: new Date().toISOString(),
       deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     }, ...prev]);
@@ -371,7 +371,7 @@ export function CreatorDashboardView({
     setActiveWorks(prev =>
       prev.map(w =>
         w.id === selectedWorkToSubmit.id
-          ? { ...w, status: "Selesai" as const, submissionStatus: "Pending" as const, contentUrl: submitUrl }
+          ? { ...w, status: "submitted" as const, submissionStatus: "pending" as const, fraudStatus: "safe" as const, contentUrl: submitUrl }
           : w
       )
     );
@@ -642,7 +642,7 @@ export function CreatorDashboardView({
               {/* Submit Bukti */}
               <button
                 onClick={() => {
-                  const activeJob = activeWorks.find(w => w.status === "Aktif");
+                  const activeJob = activeWorks.find(w => w.status === "claimed");
                   if (activeJob) { setSelectedWorkToSubmit(activeJob); setSubmitUrl(""); setIsSubmitBuktiOpen(true); }
                   else showToast("Anda tidak memiliki pekerjaan aktif.");
                 }}
@@ -759,7 +759,7 @@ export function CreatorDashboardView({
               ) : (
                 <div className="space-y-3">
                   {activeWorks.slice(0, 3).map((work) => {
-                    const showSubmitBtn = !work.contentUrl && work.status === "Aktif";
+                    const showSubmitBtn = !work.contentUrl && work.status === "claimed";
                     return (
                       <div
                         key={work.id}

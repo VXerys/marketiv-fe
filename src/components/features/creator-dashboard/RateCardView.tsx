@@ -131,6 +131,7 @@ interface PackageCardProps {
 function PackageCard({ pkg, onToggle, onEdit, onDelete }: PackageCardProps) {
   const p: Platform = (pkg.platform as Platform) ?? "all";
   const cfg = PLATFORM[p];
+  const isPublished = pkg.status === "published";
 
   return (
     <div
@@ -139,7 +140,7 @@ function PackageCard({ pkg, onToggle, onEdit, onDelete }: PackageCardProps) {
         "shadow-[0_8px_24px_rgba(15,23,42,.06)]",
         "hover:shadow-[0_18px_46px_rgba(15,23,42,.11)] hover:-translate-y-1",
         "transition-all duration-[240ms]",
-        !pkg.isActive && "opacity-60"
+        !isPublished && "opacity-60"
       )}
     >
       {/* Platform accent stripe */}
@@ -151,17 +152,17 @@ function PackageCard({ pkg, onToggle, onEdit, onDelete }: PackageCardProps) {
         <div className="flex items-center justify-between gap-2">
           <PlatformBadge platform={p} />
           <button
-            onClick={() => onToggle(pkg.id, pkg.isActive)}
-            aria-label={pkg.isActive ? "Nonaktifkan paket" : "Aktifkan paket"}
+            onClick={() => onToggle(pkg.id, isPublished)}
+            aria-label={isPublished ? "Jadikan draft" : "Tayangkan paket"}
             className={cn(
               "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border cursor-pointer select-none transition-all duration-200 shrink-0",
-              pkg.isActive
+              isPublished
                 ? "bg-green-50 text-green-700 border-green-200/80 hover:bg-green-100"
                 : "bg-neutral-50 text-neutral-400 border-neutral-200 hover:bg-neutral-100"
             )}
           >
-            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", pkg.isActive ? "bg-green-500" : "bg-neutral-300")} />
-            {pkg.isActive ? "Aktif" : "Nonaktif"}
+            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", isPublished ? "bg-green-500" : "bg-neutral-300")} />
+            {isPublished ? "Tayang" : "Draft"}
           </button>
         </div>
 
@@ -173,15 +174,15 @@ function PackageCard({ pkg, onToggle, onEdit, onDelete }: PackageCardProps) {
         {/* Price chip */}
         <div className={cn(
           "rounded-2xl px-4 py-3.5 border transition-colors duration-200",
-          pkg.isActive
+          isPublished
             ? "bg-gradient-to-br from-orange-50/90 via-amber-50/50 to-transparent border-orange-100 group-hover:border-orange-200"
             : "bg-neutral-50/80 border-neutral-200/50"
         )}>
-          <span className={cn("block text-[9px] font-bold uppercase tracking-wider mb-1.5", pkg.isActive ? "text-orange-500" : "text-neutral-400")}>
+          <span className={cn("block text-[9px] font-bold uppercase tracking-wider mb-1.5", isPublished ? "text-orange-500" : "text-neutral-400")}>
             Harga Paket
           </span>
           <span
-            className={cn("font-display font-black tracking-tight leading-none", pkg.isActive ? "text-orange-700" : "text-neutral-600")}
+            className={cn("font-display font-black tracking-tight leading-none", isPublished ? "text-orange-700" : "text-neutral-600")}
             style={{ fontSize: "clamp(1.3rem, 2.5vw, 1.6rem)" }}
           >
             {formatCurrency(pkg.price)}
@@ -291,8 +292,8 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
   const [isErrorSimulated, setIsErrorSimulated] = useState(false);
 
   // Derived
-  const activeCount = packages.filter((p) => p.isActive).length;
-  const activePrices = packages.filter((p) => p.isActive).map((p) => p.price);
+  const activeCount = packages.filter((p) => p.status === "published").length;
+  const activePrices = packages.filter((p) => p.status === "published").map((p) => p.price);
   const startingPrice = activePrices.length > 0 ? Math.min(...activePrices) : 0;
   const mockOrdersCount = 14;
   const mostPopularPkg = packages.length > 0 ? packages[0].name : "Standard Single Post";
@@ -309,7 +310,7 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
   };
 
   const handleToggleActive = (id: string, current: boolean) => {
-    setPackages((prev) => prev.map((p) => (p.id === id ? { ...p, isActive: !current } : p)));
+    setPackages((prev) => prev.map((p) => (p.id === id ? { ...p, status: current ? "draft" as const : "published" as const } : p)));
     showToast(`Paket berhasil ${current ? "dinonaktifkan" : "diaktifkan"}!`);
   };
 
@@ -331,7 +332,7 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
         estimatedDays: formDuration,
         revisionCount: formRevisions,
         platform: formPlatform,
-        isActive: formIsActive,
+        status: formIsActive ? "published" as const : "draft" as const,
       },
     ]);
     setIsCreateOpen(false);
@@ -343,7 +344,7 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
     setFormName(pkg.name); setFormPrice(pkg.price);
     setFormDeliverables(pkg.deliverable); setFormDesc(pkg.description);
     setFormDuration(pkg.estimatedDays); setFormRevisions(pkg.revisionCount ?? 2);
-    setFormPlatform((pkg.platform as Platform) ?? "all"); setFormIsActive(pkg.isActive);
+    setFormPlatform((pkg.platform as Platform) ?? "all"); setFormIsActive(pkg.status === "published");
     setIsEditOpen(true);
   };
 
@@ -353,7 +354,7 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
     setPackages((prev) =>
       prev.map((p) =>
         p.id === activePackage.id
-          ? { ...p, name: formName.trim(), price: formPrice, deliverable: formDeliverables.trim(), description: formDesc.trim(), estimatedDays: formDuration, revisionCount: formRevisions, platform: formPlatform, isActive: formIsActive }
+          ? { ...p, name: formName.trim(), price: formPrice, deliverable: formDeliverables.trim(), description: formDesc.trim(), estimatedDays: formDuration, revisionCount: formRevisions, platform: formPlatform, status: formIsActive ? "published" as const : "draft" as const }
           : p
       )
     );

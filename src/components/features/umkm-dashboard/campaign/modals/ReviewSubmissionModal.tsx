@@ -116,39 +116,29 @@ export function ReviewSubmissionModal({
           <span className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">
             Keputusan Validasi
           </span>
-          <div className="grid grid-cols-3 gap-2.5">
+          {/* UMKM hanya boleh approve/reject — fraudStatus ditentukan ai-fraud-precheck */}
+          <div className="grid grid-cols-2 gap-2.5">
             <button
               type="button"
               className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                selectedStatus === "valid"
+                selectedStatus === "approved"
                   ? "bg-success-soft text-success-strong border-success shadow-sm"
                   : "bg-white text-text-secondary border-border-soft hover:bg-neutral-50"
               }`}
-              onClick={() => setSelectedStatus("valid")}
+              onClick={() => setSelectedStatus("approved")}
             >
-              Setujui (Valid)
+              Setujui
             </button>
             <button
               type="button"
               className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                selectedStatus === "fraud"
+                selectedStatus === "rejected"
                   ? "bg-danger-soft text-danger-strong border-danger shadow-sm"
                   : "bg-white text-text-secondary border-border-soft hover:bg-neutral-50"
               }`}
-              onClick={() => setSelectedStatus("fraud")}
+              onClick={() => setSelectedStatus("rejected")}
             >
-              Tandai Fraud
-            </button>
-            <button
-              type="button"
-              className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                selectedStatus === "dispute"
-                  ? "bg-warning-soft text-warning-strong border-warning shadow-sm"
-                  : "bg-white text-text-secondary border-border-soft hover:bg-neutral-50"
-              }`}
-              onClick={() => setSelectedStatus("dispute")}
-            >
-              Ajukan Dispute
+              Tolak
             </button>
           </div>
         </div>

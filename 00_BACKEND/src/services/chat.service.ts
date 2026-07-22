@@ -194,6 +194,40 @@ export const markConversationAsRead = async (conversationId: string): Promise<vo
   }
 };
 
+/**
+ * Inbox percakapan milik user yang sedang login (UMKM maupun kreator).
+ * Collection `conversations` memakai snake_case attribute.
+ */
+export const getConversations = async (limit = 50): Promise<Conversation[]> => {
+  try {
+    const user = await account.get();
+
+    const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.conversations, [
+      Query.or([Query.equal('umkm_id', user.$id), Query.equal('creator_id', user.$id)]),
+      Query.orderDesc('last_message_at'),
+      Query.limit(limit),
+    ]);
+
+    return response.documents.map(mapConversation);
+  } catch (err) {
+    throw mapError(err, 'Gagal memuat daftar percakapan.');
+  }
+};
+
+export const getConversationById = async (conversationId: string): Promise<Conversation> => {
+  requireText(conversationId, 'Conversation ID wajib diisi.');
+
+  try {
+    const user = await account.get();
+    const document = await databases.getDocument(DATABASE_ID, COLLECTIONS.conversations, conversationId);
+    const conversation = mapConversation(document);
+    ensureParticipant(conversation, user.$id);
+    return conversation;
+  } catch (err) {
+    throw mapError(err, 'Gagal memuat percakapan.');
+  }
+};
+
 export const getMessages = async (conversationId: string, limit = 50): Promise<ChatMessage[]> => {
   requireText(conversationId, 'Conversation ID wajib diisi.');
 

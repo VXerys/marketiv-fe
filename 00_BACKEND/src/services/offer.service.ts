@@ -1,4 +1,4 @@
-import { ID, Permission, Role } from 'appwrite';
+import { ID, Permission, Query, Role } from 'appwrite';
 import { account, COLLECTIONS, DATABASE_ID, databases } from '../lib/appwrite';
 
 export type CreateOfferInput = {
@@ -61,6 +61,52 @@ const mapError = (err: any, fallbackMessage: string): OfferServiceError => {
 const getOfferOrThrow = async (offerId: string): Promise<Offer> => {
   const document = await databases.getDocument(DATABASE_ID, COLLECTIONS.offers, offerId);
   return mapOffer(document);
+};
+
+export type GetOffersOptions = {
+  status?: Offer['status'];
+  conversationId?: string;
+  limit?: number;
+};
+
+/** Offer milik user yang login — sebagai UMKM (pengirim) atau creator (penerima). */
+export const getOffers = async (options: GetOffersOptions = {}): Promise<Offer[]> => {
+  try {
+    const user = await account.get();
+
+    const queries = [
+      Query.or([Query.equal('umkmId', user.$id), Query.equal('creatorId', user.$id)]),
+      Query.orderDesc('$createdAt'),
+      Query.limit(options.limit ?? 50),
+    ];
+
+    if (options.status) queries.push(Query.equal('status', options.status));
+    if (options.conversationId) queries.push(Query.equal('conversationId', options.conversationId));
+
+    const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.offers, queries);
+
+    return response.documents.map(mapOffer);
+  } catch (err) {
+    throw mapError(err, 'Gagal memuat daftar offer.');
+  }
+};
+
+/** Detail offer — hanya participant (UMKM pengirim atau creator penerima). */
+export const getOfferById = async (offerId: string): Promise<Offer> => {
+  if (!offerId) throw new OfferServiceError('validation', 'Offer ID wajib diisi.');
+
+  try {
+    const user = await account.get();
+    const offer = await getOfferOrThrow(offerId);
+
+    if (![offer.umkmId, offer.creatorId].includes(user.$id)) {
+      throw new OfferServiceError('forbidden', 'Kamu tidak memiliki akses ke offer ini.');
+    }
+
+    return offer;
+  } catch (err) {
+    throw mapError(err, 'Gagal memuat offer.');
+  }
 };
 
 export const createOffer = async (input: CreateOfferInput): Promise<Offer> => {

@@ -23,13 +23,27 @@ import {
   mockCreatorTransactions,
   mockCreatorActivities,
 } from "@/mocks/creator-dashboard.mock";
+import {
+  getCreatorProfileFromAppwrite,
+  getCreatorMetricsFromAppwrite,
+  getCreatorJobsFromAppwrite,
+  getCreatorJobByIdFromAppwrite,
+  getCreatorActiveWorksFromAppwrite,
+  getCreatorActiveWorkByIdFromAppwrite,
+  getCreatorSubmissionsFromAppwrite,
+  getCreatorNegotiationsFromAppwrite,
+  getCreatorNegotiationByIdFromAppwrite,
+  getCreatorRateCardPackagesFromAppwrite,
+  getCreatorTransactionsFromAppwrite,
+  getCreatorActivitiesFromAppwrite,
+} from "./creator-appwrite.service";
 
 export async function getCreatorProfile(): Promise<ServiceResult<CreatorProfile>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(300);
     return { success: true, data: mockCreatorProfile };
   }
-  return { success: false, data: null, error: "Appwrite integration not implemented yet" };
+  return getCreatorProfileFromAppwrite();
 }
 
 export async function getCreatorMetrics(): Promise<ServiceResult<CreatorMetric>> {
@@ -37,7 +51,7 @@ export async function getCreatorMetrics(): Promise<ServiceResult<CreatorMetric>>
     await mockDelay(300);
     return { success: true, data: mockCreatorMetrics };
   }
-  return { success: false, data: null, error: "Appwrite integration not implemented yet" };
+  return getCreatorMetricsFromAppwrite();
 }
 
 export async function getCreatorJobs(): Promise<ServiceResult<CreatorJob[]>> {
@@ -45,7 +59,7 @@ export async function getCreatorJobs(): Promise<ServiceResult<CreatorJob[]>> {
     await mockDelay(300);
     return { success: true, data: mockCreatorJobs };
   }
-  return { success: false, data: null, error: "Appwrite integration not implemented yet" };
+  return getCreatorJobsFromAppwrite();
 }
 
 export async function getCreatorJobById(id: string): Promise<ServiceResult<CreatorJob>> {
@@ -57,7 +71,7 @@ export async function getCreatorJobById(id: string): Promise<ServiceResult<Creat
     }
     return { success: true, data: job };
   }
-  return { success: false, data: null, error: "Appwrite integration not implemented yet" };
+  return getCreatorJobByIdFromAppwrite(id);
 }
 
 export async function getCreatorActiveWorks(): Promise<ServiceResult<CreatorActiveWork[]>> {
@@ -65,7 +79,7 @@ export async function getCreatorActiveWorks(): Promise<ServiceResult<CreatorActi
     await mockDelay(300);
     return { success: true, data: mockCreatorActiveWorks };
   }
-  return { success: false, data: null, error: "Appwrite integration not implemented yet" };
+  return getCreatorActiveWorksFromAppwrite();
 }
 
 export async function getCreatorActiveWorkById(id: string): Promise<ServiceResult<CreatorActiveWork>> {
@@ -77,7 +91,7 @@ export async function getCreatorActiveWorkById(id: string): Promise<ServiceResul
     }
     return { success: true, data: work };
   }
-  return { success: false, data: null, error: "Appwrite integration not implemented yet" };
+  return getCreatorActiveWorkByIdFromAppwrite(id);
 }
 
 export async function getCreatorSubmissions(): Promise<ServiceResult<CreatorSubmission[]>> {
@@ -85,7 +99,7 @@ export async function getCreatorSubmissions(): Promise<ServiceResult<CreatorSubm
     await mockDelay(300);
     return { success: true, data: mockCreatorSubmissions };
   }
-  return { success: false, data: null, error: "Appwrite integration not implemented yet" };
+  return getCreatorSubmissionsFromAppwrite();
 }
 
 export async function getCreatorNegotiations(): Promise<ServiceResult<CreatorNegotiation[]>> {
@@ -93,7 +107,7 @@ export async function getCreatorNegotiations(): Promise<ServiceResult<CreatorNeg
     await mockDelay(300);
     return { success: true, data: mockCreatorNegotiations };
   }
-  return { success: false, data: null, error: "Appwrite integration not implemented yet" };
+  return getCreatorNegotiationsFromAppwrite();
 }
 
 export async function getCreatorNegotiationById(id: string): Promise<ServiceResult<CreatorNegotiation>> {
@@ -105,7 +119,7 @@ export async function getCreatorNegotiationById(id: string): Promise<ServiceResu
     }
     return { success: true, data: order };
   }
-  return { success: false, data: null, error: "Appwrite integration not implemented yet" };
+  return getCreatorNegotiationByIdFromAppwrite(id);
 }
 
 export async function getCreatorRateCardPackages(): Promise<ServiceResult<CreatorRateCardPackage[]>> {
@@ -113,7 +127,7 @@ export async function getCreatorRateCardPackages(): Promise<ServiceResult<Creato
     await mockDelay(300);
     return { success: true, data: mockCreatorRateCardPackages };
   }
-  return { success: false, data: null, error: "Appwrite integration not implemented yet" };
+  return getCreatorRateCardPackagesFromAppwrite();
 }
 
 export async function getCreatorTransactions(): Promise<ServiceResult<CreatorTransaction[]>> {
@@ -121,7 +135,7 @@ export async function getCreatorTransactions(): Promise<ServiceResult<CreatorTra
     await mockDelay(300);
     return { success: true, data: mockCreatorTransactions };
   }
-  return { success: false, data: null, error: "Appwrite integration not implemented yet" };
+  return getCreatorTransactionsFromAppwrite();
 }
 
 export async function getCreatorActivities(): Promise<ServiceResult<CreatorActivity[]>> {
@@ -129,5 +143,5 @@ export async function getCreatorActivities(): Promise<ServiceResult<CreatorActiv
     await mockDelay(300);
     return { success: true, data: mockCreatorActivities };
   }
-  return { success: false, data: null, error: "Appwrite integration not implemented yet" };
+  return getCreatorActivitiesFromAppwrite();
 }

@@ -2,7 +2,7 @@ import Image from "next/image";
 import { MetricBlock } from "./MetricBlock";
 import { ProgressBar } from "./ProgressBar";
 import { StatusBadge } from "./StatusBadge";
-import type { CampaignSummary } from "@/types/umkmDashboard";
+import type { CampaignSummary } from "@/data/umkmDashboard";
 
 const CAMPAIGN_THUMBNAIL_IMAGE_URL =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuAyf1KY8klccty8IMDWFK-BlEo9nmtsXVTGH2L8AHPvyZwlK2Tt5p1E63SRAwkJttok9Z5sBdY4QQrDVSgjDXWrV3PbzUfs8qnLx3PSp_vaXqA-sHNfkdpVfAJCFzJbfyscn_582cxG3ERa1oXj2LctbNbA_Ym2VnFMbbGjCzdHwMf71p0nA6cns9agJd-9AWNyhBw5GGMHA5EZuwJVFvVFifp9rmT0TjD__tLgDygzBUL7HgFmAG-6M7Mmk1IITUYY4CVJ-7wSG8wk";

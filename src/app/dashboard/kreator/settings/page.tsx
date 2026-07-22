@@ -1,4 +1,4 @@
-import { getCreatorProfile } from "@/services/creator-dashboard.service";
+import { getCreatorProfile } from "@/services/creator/creator-dashboard.service";
 import { SettingsView } from "@/components/features/creator-dashboard/SettingsView";
 import { CreatorErrorState } from "@/components/features/creator-dashboard/CreatorErrorState";
 

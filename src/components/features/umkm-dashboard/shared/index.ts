@@ -22,3 +22,5 @@ export type { DashboardMetricCardProps } from "./DashboardMetricCard";
 export { UmkmPageWrapper } from "./UmkmPageWrapper";
 export type { UmkmPageWrapperProps } from "./UmkmPageWrapper";
 
+
+export { UmkmPageSkeleton } from "./UmkmPageSkeleton";

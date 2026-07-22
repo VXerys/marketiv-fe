@@ -1,4 +1,4 @@
-import { getCreatorNegotiationById } from "@/services/creator-dashboard.service";
+import { getCreatorNegotiationById } from "@/services/creator/creator-dashboard.service";
 import { NegosiasiRoomView } from "@/components/features/creator-dashboard";
 
 interface NegosiasiDetailPageProps {

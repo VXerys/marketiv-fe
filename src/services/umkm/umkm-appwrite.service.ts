@@ -75,7 +75,7 @@ export async function getCreatorByIdFromAppwrite(_id: string): Promise<ServiceRe
 
 export async function getCreatorRateCardsFromAppwrite(_creatorId: string): Promise<ServiceResult<RateCardPackage[]>> {
   // TODO: Query Appwrite collection "RateCards" (verify collection name in schema)
-  // Filter: creatorId === creatorId AND isActive === true
+  // Filter: creatorId === creatorId AND status === "published"
   // RBAC: Public read — UMKM may browse active rate card packages
   return { success: false, data: [], error: "Not implemented" };
 }

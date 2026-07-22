@@ -15,9 +15,8 @@ interface CampaignSectionProps {
 const STATUS_CONFIG: Record<CampaignStatus, { label: string; bg: string; color: string; border: string }> = {
   active: { label: "Aktif", bg: "#f1fbf5", color: "#177b42", border: "rgba(22,163,74,.22)" },
   draft: { label: "Draft", bg: "#f8fafc", color: "#687386", border: "rgba(148,163,184,.28)" },
-  full: { label: "Penuh", bg: "#fff7ed", color: "#bd4b0b", border: "rgba(251,146,60,.24)" },
+  paused: { label: "Dijeda", bg: "#fff7ed", color: "#bd4b0b", border: "rgba(251,146,60,.24)" },
   completed: { label: "Selesai", bg: "#f0f6ff", color: "#2d5bd1", border: "rgba(96,165,250,.25)" },
-  cancelled: { label: "Dibatalkan", bg: "#fff3f3", color: "#b4232a", border: "rgba(248,113,113,.24)" },
 };
 
 function CampaignSkeleton() {

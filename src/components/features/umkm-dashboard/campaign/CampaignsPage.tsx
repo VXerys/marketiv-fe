@@ -94,8 +94,8 @@ export function CampaignsPage() {
             const subRes = await getCampaignSubmissions(c.id);
             if (subRes.success && subRes.data) {
               const pending = subRes.data.filter((s) => s.validationStatus === "pending").length;
-              const valid = subRes.data.filter((s) => s.validationStatus === "valid").length;
-              const dispute = subRes.data.filter((s) => s.validationStatus === "dispute").length;
+              const valid = subRes.data.filter((s) => s.validationStatus === "approved").length;
+              const dispute = subRes.data.filter((s) => s.fraudStatus !== "safe").length;
               subCounts[c.id] = { pending, valid, dispute };
             }
           })
@@ -138,9 +138,8 @@ export function CampaignsPage() {
     all: campaigns.length,
     active: campaigns.filter((c) => c.status === "active").length,
     draft: campaigns.filter((c) => c.status === "draft").length,
-    full: campaigns.filter((c) => c.status === "full").length,
+    paused: campaigns.filter((c) => c.status === "paused").length,
     completed: campaigns.filter((c) => c.status === "completed").length,
-    cancelled: campaigns.filter((c) => c.status === "cancelled").length,
   };
 
   // Modal actions
@@ -150,7 +149,7 @@ export function CampaignsPage() {
     setCampaigns(
       campaigns.map((c) =>
         c.id === activeCancelCampaign.id
-          ? { ...c, status: "cancelled" as const }
+          ? { ...c, status: "paused" as const }
           : c
       )
     );

@@ -60,16 +60,16 @@ export function CampaignActivityTimeline({ campaign }: CampaignActivityTimelineP
       return activeEvents;
     }
 
-    if (campaign.status === "full") {
+    if (campaign.status === "paused") {
       const claimDate = new Date(campaign.updatedAt);
       claimDate.setHours(claimDate.getHours() + 1);
       return [
         ...activeEvents,
         {
-          title: "Kuota Kreator Terpenuhi",
-          desc: "Seluruh kuota penayangan telah diklaim.",
+          title: "Campaign Dijeda",
+          desc: "Campaign dihentikan sementara oleh UMKM.",
           date: campaign.updatedAt,
-          type: "full",
+          type: "pause",
         },
       ];
     }
@@ -88,18 +88,6 @@ export function CampaignActivityTimeline({ campaign }: CampaignActivityTimelineP
           desc: "Campaign telah berakhir secara resmi.",
           date: campaign.updatedAt,
           type: "complete",
-        },
-      ];
-    }
-
-    if (campaign.status === "cancelled") {
-      return [
-        ...baseEvents,
-        {
-          title: "Campaign Dibatalkan",
-          desc: "Sisa dana escrow dikembalikan ke saldo.",
-          date: campaign.updatedAt,
-          type: "cancel",
         },
       ];
     }

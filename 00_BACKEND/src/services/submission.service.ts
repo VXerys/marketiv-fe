@@ -144,6 +144,38 @@ const assertCampaignOwner = async (campaignId: string, userId: string): Promise<
   }
 };
 
+export type GetSubmissionsByCampaignOptions = {
+  status?: Submission['status'];
+  limit?: number;
+};
+
+/** Semua submission satu campaign — hanya UMKM pemilik campaign. */
+export const getSubmissionsByCampaign = async (
+  campaignId: string,
+  options: GetSubmissionsByCampaignOptions = {}
+): Promise<Submission[]> => {
+  if (!campaignId) throw new SubmissionServiceError('validation', 'Campaign ID wajib diisi.');
+
+  try {
+    const user = await account.get();
+    await assertCampaignOwner(campaignId, user.$id);
+
+    const queries = [
+      Query.equal('campaignId', campaignId),
+      Query.orderDesc('$createdAt'),
+      Query.limit(options.limit ?? 100),
+    ];
+
+    if (options.status) queries.push(Query.equal('status', options.status));
+
+    const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.submissions, queries);
+
+    return response.documents.map(mapSubmission);
+  } catch (err) {
+    throw mapError(err, 'Gagal memuat submission campaign.');
+  }
+};
+
 export const approveSubmission = async (submissionId: string): Promise<Submission> => {
   if (!submissionId) throw new SubmissionServiceError('validation', 'Submission ID wajib diisi.');
 

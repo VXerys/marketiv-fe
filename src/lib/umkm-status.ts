@@ -1,71 +1,98 @@
-import { CampaignStatus, SubmissionStatus, NegotiationOrder, TransactionStatus } from "@/types/umkm-dashboard.types";
+import {
+  CampaignStatus,
+  SubmissionStatus,
+  FraudStatus,
+  OrderStatus,
+  TransactionStatus,
+} from "@/types/umkm-dashboard.types";
+
+/**
+ * Map status kanon (nilai backend) → label Bahasa Indonesia + varian badge.
+ * Ini SATU-SATUNYA tempat penerjemahan status untuk dashboard UMKM.
+ * Jangan pernah membandingkan label Indonesia di layer data.
+ */
+
+type BadgeVariant = "neutral" | "success" | "warning" | "info" | "danger";
 
 export function getCampaignStatusLabel(status: CampaignStatus): string {
   const map: Record<CampaignStatus, string> = {
     draft: "Draft",
     active: "Aktif",
-    full: "Kuota Penuh",
+    paused: "Dijeda",
     completed: "Selesai",
-    cancelled: "Dibatalkan",
   };
   return map[status] || status;
 }
 
-export function getCampaignStatusVariant(status: CampaignStatus): "neutral" | "success" | "warning" | "info" | "danger" {
-  const map: Record<CampaignStatus, "neutral" | "success" | "warning" | "info" | "danger"> = {
+export function getCampaignStatusVariant(status: CampaignStatus): BadgeVariant {
+  const map: Record<CampaignStatus, BadgeVariant> = {
     draft: "neutral",
     active: "success",
-    full: "warning",
+    paused: "warning",
     completed: "info",
-    cancelled: "danger",
   };
   return map[status] || "neutral";
 }
 
 export function getSubmissionStatusLabel(status: SubmissionStatus): string {
   const map: Record<SubmissionStatus, string> = {
-    pending: "Menunggu Validasi",
-    valid: "Valid",
-    fraud: "Terindikasi Fraud",
-    dispute: "Sengketa",
+    pending: "Menunggu Review",
+    approved: "Disetujui",
+    rejected: "Ditolak",
   };
   return map[status] || status;
 }
 
-export function getSubmissionStatusVariant(status: SubmissionStatus): "neutral" | "success" | "warning" | "danger" {
-  const map: Record<SubmissionStatus, "neutral" | "success" | "warning" | "danger"> = {
+export function getSubmissionStatusVariant(status: SubmissionStatus): BadgeVariant {
+  const map: Record<SubmissionStatus, BadgeVariant> = {
     pending: "warning",
-    valid: "success",
-    fraud: "danger",
-    dispute: "danger",
+    approved: "success",
+    rejected: "danger",
   };
   return map[status] || "neutral";
 }
 
-export function getNegotiationStatusLabel(status: NegotiationOrder["status"]): string {
-  const map: Record<NegotiationOrder["status"], string> = {
-    negotiation: "Negosiasi",
-    waiting_payment: "Menunggu Pembayaran",
-    escrow: "Dana di Escrow",
-    revision: "Revisi",
-    waiting_verification: "Menunggu Verifikasi",
-    completed: "Selesai",
-    cancelled: "Dibatalkan",
-    dispute: "Sengketa",
+/** fraudStatus adalah field terpisah dari status — ditampilkan sebagai badge sendiri. */
+export function getFraudStatusLabel(status: FraudStatus): string {
+  const map: Record<FraudStatus, string> = {
+    safe: "Aman",
+    review: "Perlu Ditinjau",
+    rejected: "Terindikasi Fraud",
   };
   return map[status] || status;
 }
 
-export function getNegotiationStatusVariant(status: NegotiationOrder["status"]): "neutral" | "success" | "warning" | "info" | "danger" {
-  const map: Record<NegotiationOrder["status"], "neutral" | "success" | "warning" | "info" | "danger"> = {
-    negotiation: "neutral",
-    waiting_payment: "warning",
+export function getFraudStatusVariant(status: FraudStatus): BadgeVariant {
+  const map: Record<FraudStatus, BadgeVariant> = {
+    safe: "success",
+    review: "warning",
+    rejected: "danger",
+  };
+  return map[status] || "neutral";
+}
+
+export function getNegotiationStatusLabel(status: OrderStatus): string {
+  const map: Record<OrderStatus, string> = {
+    pending_payment: "Menunggu Pembayaran",
+    escrow: "Dana di Escrow",
+    in_progress: "Sedang Dikerjakan",
+    revision: "Revisi",
+    approved: "Disetujui",
+    completed: "Selesai",
+    cancelled: "Dibatalkan",
+  };
+  return map[status] || status;
+}
+
+export function getNegotiationStatusVariant(status: OrderStatus): BadgeVariant {
+  const map: Record<OrderStatus, BadgeVariant> = {
+    pending_payment: "warning",
     escrow: "info",
+    in_progress: "info",
     revision: "warning",
-    waiting_verification: "warning",
+    approved: "success",
     completed: "success",
     cancelled: "neutral",
-    dispute: "danger",
   };
   return map[status] || "neutral";
 }
@@ -73,20 +100,26 @@ export function getNegotiationStatusVariant(status: NegotiationOrder["status"]):
 export function getTransactionStatusLabel(status: TransactionStatus): string {
   const map: Record<TransactionStatus, string> = {
     pending: "Menunggu Pembayaran",
-    escrow: "Dana Ditahan (Escrow)",
-    success: "Berhasil",
+    paid: "Berhasil",
     failed: "Gagal",
+    expired: "Kedaluwarsa",
+    cancelled: "Dibatalkan",
+    held: "Dana Ditahan (Escrow)",
+    released: "Dana Dicairkan",
     refunded: "Dikembalikan (Refund)",
   };
   return map[status] || status;
 }
 
-export function getTransactionStatusVariant(status: TransactionStatus): "neutral" | "success" | "warning" | "danger" {
-  const map: Record<TransactionStatus, "neutral" | "success" | "warning" | "danger"> = {
+export function getTransactionStatusVariant(status: TransactionStatus): BadgeVariant {
+  const map: Record<TransactionStatus, BadgeVariant> = {
     pending: "warning",
-    escrow: "warning",
-    success: "success",
+    paid: "success",
     failed: "danger",
+    expired: "neutral",
+    cancelled: "neutral",
+    held: "warning",
+    released: "success",
     refunded: "neutral",
   };
   return map[status] || "neutral";

@@ -1,4 +1,4 @@
-import type { EscrowBalance } from "@/types/umkmDashboard";
+import type { EscrowBalance } from "@/data/umkmDashboard";
 
 interface EscrowSummaryCardProps {
   escrow: EscrowBalance;

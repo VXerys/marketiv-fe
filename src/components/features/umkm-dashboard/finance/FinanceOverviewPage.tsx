@@ -70,7 +70,7 @@ export function FinanceOverviewPage() {
   // Recalculate summary metrics from the local transaction state
   const computedSummary: UmkmFinanceSummary = (() => {
     const successOrEscrow = transactions.filter(
-      (tx) => tx.status === "success" || tx.status === "escrow"
+      (tx) => tx.status === "paid" || tx.status === "held"
     );
 
     const totalExpenses = successOrEscrow
@@ -78,7 +78,7 @@ export function FinanceOverviewPage() {
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const escrowBalance = transactions
-      .filter((tx) => tx.status === "escrow")
+      .filter((tx) => tx.status === "held")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const pendingPayments = transactions
@@ -90,11 +90,11 @@ export function FinanceOverviewPage() {
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const platformFees = transactions
-      .filter((tx) => tx.type === "fee" && tx.status === "success")
+      .filter((tx) => tx.type === "fee" && tx.status === "paid")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const successfulTransactionsCount = transactions.filter(
-      (tx) => tx.status === "success" || tx.status === "escrow" || tx.status === "refunded"
+      (tx) => tx.status === "paid" || tx.status === "held" || tx.status === "refunded"
     ).length;
 
     return {
@@ -110,15 +110,15 @@ export function FinanceOverviewPage() {
   // Recalculate escrow metrics from the local transaction state
   const computedEscrowOverview: EscrowOverview = (() => {
     const activeEscrow = transactions
-      .filter((tx) => tx.status === "escrow")
+      .filter((tx) => tx.status === "held")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const campaignEscrow = transactions
-      .filter((tx) => tx.status === "escrow" && tx.referenceType === "campaign")
+      .filter((tx) => tx.status === "held" && tx.referenceType === "campaign")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const rateCardEscrow = transactions
-      .filter((tx) => tx.status === "escrow" && tx.referenceType === "rate_card")
+      .filter((tx) => tx.status === "held" && tx.referenceType === "rate_card")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const pendingRelease = rateCardEscrow;
@@ -194,7 +194,7 @@ export function FinanceOverviewPage() {
           // If transaction type is deposit or escrow, change status appropriately
           return {
             ...tx,
-            status: tx.referenceType === "rate_card" && tx.description.includes("escrow") ? "escrow" : "success",
+            status: tx.referenceType === "rate_card" && tx.description.includes("escrow") ? "held" as const : "paid" as const,
           };
         }
         return tx;

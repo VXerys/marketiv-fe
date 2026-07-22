@@ -35,7 +35,7 @@ export function CampaignTable({
   const router = useRouter();
 
   function getActionItems(campaign: Campaign, detailUrl: string): ActionMenuItem[] {
-    const isCancelDisabled = campaign.status === "completed" || campaign.status === "cancelled";
+    const isCancelDisabled = campaign.status === "completed";
     const isEditVisible = campaign.status === "draft";
 
     return [

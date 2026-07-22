@@ -1,16 +1,34 @@
-import {
+/**
+ * Tipe view-model dashboard Kreator.
+ *
+ * Semua nilai status di-reexport dari kanon `@/types/domain` — jangan
+ * mendefinisikan ulang union status di file ini.
+ */
+import type {
   CampaignStatus,
-  CampaignClaimStatus,
+  ClaimStatus,
   SubmissionStatus,
-  RateCardOrderStatus,
+  FraudStatus,
+  OrderStatus,
+  EscrowStatus,
+  RateCardStatus,
   TransactionStatus,
-} from "./status";
+  TransactionType,
+} from "./domain";
 
-export interface ServiceResult<T> {
-  success: boolean;
-  data: T | null;
-  error?: string;
-}
+export type {
+  ServiceResult,
+  ServiceErrorCode,
+  CampaignStatus,
+  ClaimStatus,
+  SubmissionStatus,
+  FraudStatus,
+  OrderStatus,
+  EscrowStatus,
+  RateCardStatus,
+  TransactionStatus,
+  TransactionType,
+} from "./domain";
 
 export type CreatorNiche =
   | "kuliner"
@@ -106,11 +124,14 @@ export interface CreatorActiveWork {
   brandAvatar: string;
   brief: string;
   ratePerThousandViews: number;
-  status: CampaignClaimStatus;
+  /** campaign_claims.status kanon */
+  status: ClaimStatus;
   claimedAt: string;
   deadline: string;
   submissionId?: string;
   submissionStatus?: SubmissionStatus;
+  /** hasil ai-fraud-precheck — terpisah dari submissionStatus */
+  fraudStatus?: FraudStatus;
   contentUrl?: string;
   actualViews?: number;
   earnings?: number;
@@ -129,6 +150,7 @@ export interface CreatorSubmission {
   contentUrl: string;
   actualViews: number;
   status: SubmissionStatus;
+  fraudStatus?: FraudStatus;
   submittedAt: string;
   validatedAt?: string;
   earnings: number;
@@ -143,7 +165,8 @@ export interface CreatorNegotiation {
   scope: string;
   finalPrice: number;
   deadline: string;
-  status: RateCardOrderStatus;
+  /** orders.status kanon */
+  status: OrderStatus;
   lastMessage: string;
   lastMessageAt: string;
   unreadCount: number;
@@ -151,7 +174,8 @@ export interface CreatorNegotiation {
   revisionCount?: number;
   platformFee?: number;
   totalAmount?: number;
-  escrowStatus?: "Pending" | "Escrowed" | "Released" | "Refunded";
+  /** escrows.status kanon */
+  escrowStatus?: EscrowStatus;
   submittedCollabUrl?: string;
 }
 
@@ -162,14 +186,15 @@ export interface CreatorRateCardPackage {
   price: number;
   deliverable: string;
   estimatedDays: number;
-  isActive: boolean;
+  /** rate_cards.status — bukan boolean isActive */
+  status: RateCardStatus;
   revisionCount?: number;
   platform?: "tiktok" | "instagram" | "youtube" | "all";
 }
 
 export interface CreatorTransaction {
   id: string;
-  type: "withdrawal" | "payout" | "adjustment" | "escrow_release";
+  type: TransactionType;
   amount: number;
   status: TransactionStatus;
   description: string;

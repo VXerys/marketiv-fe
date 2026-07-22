@@ -1,4 +1,4 @@
-import { getCreatorMetrics, getCreatorTransactions } from "@/services/creator-dashboard.service";
+import { getCreatorMetrics, getCreatorTransactions } from "@/services/creator/creator-dashboard.service";
 import { KeuanganView } from "@/components/features/creator-dashboard/KeuanganView";
 
 export default async function KeuanganPage() {

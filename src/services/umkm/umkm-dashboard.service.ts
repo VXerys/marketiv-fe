@@ -121,7 +121,7 @@ export async function getCreatorById(id: string): Promise<ServiceResult<CreatorP
 export async function getCreatorRateCards(creatorId: string): Promise<ServiceResult<RateCardPackage[]>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(300);
-    const packages = mockRateCardPackages.filter((p) => p.creatorId === creatorId && p.isActive);
+    const packages = mockRateCardPackages.filter((p) => p.creatorId === creatorId && p.status === "published");
     return { success: true, data: packages };
   }
   return getCreatorRateCardsFromAppwrite(creatorId);
@@ -182,11 +182,11 @@ export async function getFinanceSummary(): Promise<ServiceResult<UmkmFinanceSumm
     
     // Total expenses: deposit + fee transactions that are success or escrow
     const totalExpenses = mockTransactions
-      .filter((tx) => (tx.status === "success" || tx.status === "escrow") && (tx.type === "deposit" || tx.type === "fee"))
+      .filter((tx) => (tx.status === "paid" || tx.status === "held") && (tx.type === "deposit" || tx.type === "fee"))
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const escrowBalance = mockTransactions
-      .filter((tx) => tx.status === "escrow")
+      .filter((tx) => tx.status === "held")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const pendingPayments = mockTransactions
@@ -198,11 +198,11 @@ export async function getFinanceSummary(): Promise<ServiceResult<UmkmFinanceSumm
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const platformFees = mockTransactions
-      .filter((tx) => tx.type === "fee" && tx.status === "success")
+      .filter((tx) => tx.type === "fee" && tx.status === "paid")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const successfulTransactionsCount = mockTransactions
-      .filter((tx) => tx.status === "success" || tx.status === "escrow" || tx.status === "refunded")
+      .filter((tx) => tx.status === "paid" || tx.status === "held" || tx.status === "refunded")
       .length;
 
     return {
@@ -225,15 +225,15 @@ export async function getEscrowOverview(): Promise<ServiceResult<EscrowOverview>
     await mockDelay(300);
     
     const activeEscrow = mockTransactions
-      .filter((tx) => tx.status === "escrow")
+      .filter((tx) => tx.status === "held")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const campaignEscrow = mockTransactions
-      .filter((tx) => tx.status === "escrow" && tx.referenceType === "campaign")
+      .filter((tx) => tx.status === "held" && tx.referenceType === "campaign")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const rateCardEscrow = mockTransactions
-      .filter((tx) => tx.status === "escrow" && tx.referenceType === "rate_card")
+      .filter((tx) => tx.status === "held" && tx.referenceType === "rate_card")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const pendingRelease = rateCardEscrow; // Rate card custom offers pending verification / collab post URL

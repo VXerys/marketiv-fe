@@ -135,6 +135,63 @@ export const getOrders = async (params?: { status?: OrderStatus }): Promise<Orde
   }
 };
 
+/** Detail order — hanya participant (UMKM pemesan atau creator pengerja). */
+export const getOrderById = async (orderId: string): Promise<Order> => {
+  if (!orderId) throw new OrderServiceError('validation', 'Order ID wajib diisi.');
+
+  try {
+    const user = await account.get();
+    const document = await databases.getDocument(DATABASE_ID, COLLECTIONS.orders, orderId);
+    const order = mapOrder(document);
+
+    if (![order.umkmId, order.creatorId].includes(user.$id)) {
+      throw new OrderServiceError('forbidden', 'Kamu tidak memiliki akses ke order ini.');
+    }
+
+    return order;
+  } catch (err) {
+    throw mapError(err, 'Gagal memuat order.');
+  }
+};
+
+/** Deliverable milik satu order — participant only, urut versi menaik. */
+export const getDeliverables = async (orderId: string): Promise<Deliverable[]> => {
+  if (!orderId) throw new OrderServiceError('validation', 'Order ID wajib diisi.');
+
+  try {
+    await getOrderById(orderId);
+
+    const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.deliverables, [
+      Query.equal('orderId', orderId),
+      Query.orderAsc('version'),
+      Query.limit(50),
+    ]);
+
+    return response.documents.map(mapDeliverable);
+  } catch (err) {
+    throw mapError(err, 'Gagal memuat deliverable.');
+  }
+};
+
+/** Riwayat permintaan revisi satu order — participant only. */
+export const getRevisions = async (orderId: string): Promise<Revision[]> => {
+  if (!orderId) throw new OrderServiceError('validation', 'Order ID wajib diisi.');
+
+  try {
+    await getOrderById(orderId);
+
+    const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.revisions, [
+      Query.equal('orderId', orderId),
+      Query.orderAsc('$createdAt'),
+      Query.limit(50),
+    ]);
+
+    return response.documents.map(mapRevision);
+  } catch (err) {
+    throw mapError(err, 'Gagal memuat riwayat revisi.');
+  }
+};
+
 export const uploadDeliverable = async (input: UploadDeliverableInput): Promise<Deliverable> => {
   if (!input?.orderId) throw new OrderServiceError('validation', 'Order ID wajib diisi.');
   try {

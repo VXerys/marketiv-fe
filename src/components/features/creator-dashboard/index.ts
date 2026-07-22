@@ -19,3 +19,5 @@ export * from "./RateCardView";
 export * from "./KeuanganView";
 export * from "./ActiveWorkDetailView";
 export * from "./NegosiasiRoomView";
+
+export * from "./CreatorPageSkeleton";

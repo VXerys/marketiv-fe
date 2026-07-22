@@ -19,13 +19,7 @@ export function calculateTotalPayment(finalPrice: number): number {
  */
 export function getStatusDetails(status: string): StatusDetail {
   switch (status) {
-    case "negotiation":
-      return {
-        label: "Negosiasi",
-        textClass: "text-info-strong",
-        bgClass: "bg-info-soft/30 border-info-soft",
-      };
-    case "waiting_payment":
+    case "pending_payment":
       return {
         label: "Menunggu Pembayaran",
         textClass: "text-warning-strong",
@@ -37,29 +31,29 @@ export function getStatusDetails(status: string): StatusDetail {
         textClass: "text-primary-800",
         bgClass: "bg-primary-50/50 border-primary-200/50",
       };
+    case "in_progress":
+      return {
+        label: "Sedang Dikerjakan",
+        textClass: "text-info-strong",
+        bgClass: "bg-info-soft/30 border-info-soft",
+      };
     case "revision":
       return {
         label: "Revisi",
         textClass: "text-danger-strong",
         bgClass: "bg-danger-soft/30 border-danger-soft",
       };
-    case "waiting_verification":
+    case "approved":
       return {
-        label: "Menunggu Verifikasi",
-        textClass: "text-warning-strong",
-        bgClass: "bg-warning-soft/30 border-warning-soft",
+        label: "Disetujui",
+        textClass: "text-success-strong",
+        bgClass: "bg-success-soft/30 border-success-soft",
       };
     case "completed":
       return {
         label: "Selesai",
         textClass: "text-success-strong",
         bgClass: "bg-success-soft/30 border-success-soft",
-      };
-    case "dispute":
-      return {
-        label: "Dispute / Sengketa",
-        textClass: "text-danger-strong",
-        bgClass: "bg-danger-soft/30 border-danger-soft animate-pulse",
       };
     case "cancelled":
       return {
@@ -88,23 +82,22 @@ export function getStepStatus(stepIdx: number, orderStatus: string): EscrowStepS
     case 0:
       return "completed";
     case 1:
-      if (orderStatus === "negotiation") return "active";
+      if (orderStatus === "pending_payment") return "active";
       return "completed";
     case 2:
-      if (orderStatus === "negotiation" || orderStatus === "waiting_payment") return "pending";
+      if (orderStatus === "pending_payment") return "pending";
       if (orderStatus === "escrow") return "active";
       return "completed";
     case 3:
-      if (["negotiation", "waiting_payment", "escrow"].includes(orderStatus)) return "pending";
-      if (orderStatus === "revision") return "active";
+      if (["pending_payment", "escrow"].includes(orderStatus)) return "pending";
+      if (orderStatus === "in_progress" || orderStatus === "revision") return "active";
       return "completed";
     case 4:
-      if (["negotiation", "waiting_payment", "escrow", "revision"].includes(orderStatus)) return "pending";
-      if (orderStatus === "waiting_verification") return "active";
+      if (["pending_payment", "escrow", "in_progress", "revision"].includes(orderStatus)) return "pending";
+      if (orderStatus === "approved") return "active";
       return "completed";
     case 5:
       if (orderStatus === "completed") return "completed";
-      if (orderStatus === "dispute") return "dispute";
       return "pending";
     default:
       return "pending";

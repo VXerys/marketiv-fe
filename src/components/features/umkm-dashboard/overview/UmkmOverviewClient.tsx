@@ -11,7 +11,7 @@ import { FinancialOverview } from "./FinancialOverview";
 import { InsightSection } from "./InsightSection";
 import { QuickActions } from "./QuickActions";
 import { formatCompactViews, formatCompactCurrency } from "@/lib/formatters";
-import type { UmkmDashboardData } from "@/types/umkmDashboard";
+import type { UmkmDashboardData } from "@/data/umkmDashboard";
 import type { Campaign } from "@/types/umkm-dashboard.types";
 
 interface UmkmOverviewClientProps {

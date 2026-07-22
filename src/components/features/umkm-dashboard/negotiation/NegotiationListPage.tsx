@@ -58,13 +58,13 @@ export function NegotiationListPage() {
   // Status counts for toolbar badge indicators
   const statusCounts: Partial<Record<string, number>> = {
     all: negotiations.length,
-    negotiation: negotiations.filter((n) => n.status === "negotiation").length,
-    waiting_payment: negotiations.filter((n) => n.status === "waiting_payment").length,
+    pending_payment: negotiations.filter((n) => n.status === "pending_payment").length,
+    in_progress: negotiations.filter((n) => n.status === "in_progress").length,
     escrow: negotiations.filter((n) => n.status === "escrow").length,
     revision: negotiations.filter((n) => n.status === "revision").length,
-    waiting_verification: negotiations.filter((n) => n.status === "waiting_verification").length,
+    approved: negotiations.filter((n) => n.status === "approved").length,
     completed: negotiations.filter((n) => n.status === "completed").length,
-    dispute: negotiations.filter((n) => n.status === "dispute").length,
+    cancelled: negotiations.filter((n) => n.status === "cancelled").length,
   };
 
   // Filter & Sort operations

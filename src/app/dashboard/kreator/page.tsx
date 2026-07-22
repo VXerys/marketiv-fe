@@ -5,7 +5,7 @@ import {
   getCreatorNegotiations,
   getCreatorActivities,
   getCreatorJobs,
-} from "@/services/creator-dashboard.service";
+} from "@/services/creator/creator-dashboard.service";
 import { CreatorDashboardView } from "@/components/features/creator-dashboard";
 
 export default async function CreatorPage() {

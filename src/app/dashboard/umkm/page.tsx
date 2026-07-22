@@ -1,7 +1,7 @@
 import { UmkmOverviewClient } from "@/components/features/umkm-dashboard/overview/UmkmOverviewClient";
 import { UMKM_DASHBOARD_MOCK_DATA } from "@/data/umkmDashboard";
 import type { Campaign, CampaignStatus } from "@/types/umkm-dashboard.types";
-import type { UmkmDashboardData } from "@/types/umkmDashboard";
+import type { UmkmDashboardData } from "@/data/umkmDashboard";
 
 /**
  * Server-side helper: maps mock UmkmDashboardData to Campaign[] format.
@@ -12,11 +12,12 @@ function mapCampaignsFromDashboardData(data: UmkmDashboardData): Campaign[] {
 
   let status: CampaignStatus = "active";
   const rawStatus = data.campaign.status.toLowerCase();
+  // Label legacy Bahasa Indonesia → status kanon (bypass ini dihapus di s1-overview)
   if (rawStatus.includes("aktif"))  status = "active";
   else if (rawStatus.includes("draft"))  status = "draft";
-  else if (rawStatus.includes("penuh"))  status = "full";
+  else if (rawStatus.includes("penuh"))  status = "active";
   else if (rawStatus.includes("selesai")) status = "completed";
-  else if (rawStatus.includes("batal"))  status = "cancelled";
+  else if (rawStatus.includes("batal"))  status = "paused";
 
   return [
     {

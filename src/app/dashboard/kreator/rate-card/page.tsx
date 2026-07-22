@@ -1,4 +1,4 @@
-import { getCreatorRateCardPackages } from "@/services/creator-dashboard.service";
+import { getCreatorRateCardPackages } from "@/services/creator/creator-dashboard.service";
 import { RateCardView } from "@/components/features/creator-dashboard/RateCardView";
 import { CreatorErrorState } from "@/components/features/creator-dashboard/CreatorErrorState";
 

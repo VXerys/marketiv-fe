@@ -1,5 +1,5 @@
 import { StatusBadge, type StatusBadgeVariant } from "./StatusBadge";
-import type { SubmissionPending } from "@/types/umkmDashboard";
+import type { SubmissionPending } from "@/data/umkmDashboard";
 
 interface ReviewSubmissionCardProps {
   submissions: SubmissionPending[];

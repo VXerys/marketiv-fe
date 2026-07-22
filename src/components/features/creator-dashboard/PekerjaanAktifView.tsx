@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { DashboardStateCard } from "@/components/features/dashboard/shared";
 import { formatCurrency } from "@/lib/formatters";
+import { getFraudStatusLabel, getSubmissionStatusLabel } from "@/lib/creator-status";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle2,
@@ -115,9 +116,9 @@ function ActiveJobCard({
   const hasSubmitted = !!work.contentUrl;
   const { text: deadlineText, days } = getDaysRemaining(work.deadline);
   const thumbnailUrl = getThumbnailUrl(work.campaignId);
-  const isFraud  = ["Fraud", "Dispute", "Rejected"].includes(subStatus);
-  const isValid  = subStatus === "Valid" || subStatus === "Selesai";
-  const isPending = subStatus === "Menunggu Validasi";
+  const isFraud   = work.submissionStatus === "rejected" || work.status === "rejected" || work.fraudStatus === "rejected";
+  const isValid   = work.submissionStatus === "approved" || work.status === "approved";
+  const isPending = work.submissionStatus === "pending";
 
   // Earnings data
   const mockViews    = work.actualViews ?? (hasSubmitted ? 12500 : 50000);
@@ -133,14 +134,15 @@ function ActiveJobCard({
 
   const platform = work.platform;
 
+  // Key = label hasil getSubStatusLabel (lihat src/lib/creator-status.ts)
   const STATUS_CHIP: Record<string, string> = {
     "Belum Submit":      "bg-blue-600/90 text-white border-blue-400/30",
-    "Menunggu Validasi": "bg-amber-500/90 text-white border-amber-300/30",
-    "Valid":             "bg-emerald-600/90 text-white border-emerald-400/30",
+    "Menunggu Review":   "bg-amber-500/90 text-white border-amber-300/30",
+    "Perlu Ditinjau":    "bg-amber-500/90 text-white border-amber-300/30",
+    "Disetujui":         "bg-emerald-600/90 text-white border-emerald-400/30",
     "Selesai":           "bg-emerald-600/90 text-white border-emerald-400/30",
-    "Fraud":             "bg-red-600/90 text-white border-red-400/30",
-    "Dispute":           "bg-red-600/90 text-white border-red-400/30",
-    "Rejected":          "bg-red-600/90 text-white border-red-400/30",
+    "Ditolak":           "bg-red-600/90 text-white border-red-400/30",
+    "Terindikasi Fraud": "bg-red-600/90 text-white border-red-400/30",
   };
 
   return (
@@ -332,21 +334,18 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
   };
 
   const getSubStatusLabel = (work: CreatorActiveWork): string => {
-    if (work.submissionStatus) {
-      if (work.submissionStatus === "Pending") return "Menunggu Validasi";
-      if (work.submissionStatus === "Valid") return "Valid";
-      if (work.submissionStatus === "Fraud") return "Fraud";
-      if (work.submissionStatus === "Dispute") return "Dispute";
-      if (work.submissionStatus === "Rejected") return "Rejected";
-    }
-    if (work.status === "Selesai") return "Selesai";
+    if (work.fraudStatus && work.fraudStatus !== "safe") return getFraudStatusLabel(work.fraudStatus);
+    if (work.submissionStatus) return getSubmissionStatusLabel(work.submissionStatus);
+    if (work.status === "approved") return "Selesai";
     return "Belum Submit";
   };
 
-  const countBelumSubmit  = works.filter(w => !w.submissionStatus && w.status === "Aktif").length;
-  const countPending      = works.filter(w => w.submissionStatus === "Pending").length;
-  const countValid        = works.filter(w => w.submissionStatus === "Valid" || w.status === "Selesai").length;
-  const countReviewFraud  = works.filter(w => ["Fraud", "Dispute", "Rejected"].includes(w.submissionStatus ?? "")).length;
+  const countBelumSubmit  = works.filter(w => !w.submissionStatus && w.status === "claimed").length;
+  const countPending      = works.filter(w => w.submissionStatus === "pending").length;
+  const countValid        = works.filter(w => w.submissionStatus === "approved" || w.status === "approved").length;
+  const countReviewFraud  = works.filter(
+    w => w.submissionStatus === "rejected" || (w.fraudStatus != null && w.fraudStatus !== "safe")
+  ).length;
 
   const getDaysRemaining = (deadlineStr: string) => {
     const deadline = new Date(deadlineStr);
@@ -364,13 +363,13 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
         w.brandName.toLowerCase().includes(search.toLowerCase()) ||
         w.brief.toLowerCase().includes(search.toLowerCase());
 
-      const subStatus = getSubStatusLabel(w);
       const matchesStatus =
         selectedStatus === "all" ||
-        (selectedStatus === "belum-submit" && subStatus === "Belum Submit") ||
-        (selectedStatus === "pending" && subStatus === "Menunggu Validasi") ||
-        (selectedStatus === "valid" && (subStatus === "Valid" || subStatus === "Selesai")) ||
-        (selectedStatus === "review-fraud" && ["Fraud", "Dispute", "Rejected"].includes(subStatus));
+        (selectedStatus === "belum-submit" && !w.submissionStatus && w.status === "claimed") ||
+        (selectedStatus === "pending" && w.submissionStatus === "pending") ||
+        (selectedStatus === "valid" && (w.submissionStatus === "approved" || w.status === "approved")) ||
+        (selectedStatus === "review-fraud" &&
+          (w.submissionStatus === "rejected" || (w.fraudStatus != null && w.fraudStatus !== "safe")));
 
       const { days } = getDaysRemaining(w.deadline);
       const matchesDeadline =

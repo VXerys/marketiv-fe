@@ -2,13 +2,13 @@ import { ToolbarStatusFilterOption, ToolbarSortOption, EscrowStep } from "./nego
 
 export const NEGOTIATION_STATUS_FILTERS: ToolbarStatusFilterOption[] = [
   { id: "all", label: "Semua" },
-  { id: "negotiation", label: "Negosiasi" },
-  { id: "waiting_payment", label: "Menunggu Pembayaran" },
+  { id: "pending_payment", label: "Menunggu Pembayaran" },
   { id: "escrow", label: "Escrow" },
+  { id: "in_progress", label: "Sedang Dikerjakan" },
   { id: "revision", label: "Revisi" },
-  { id: "waiting_verification", label: "Menunggu Verifikasi" },
+  { id: "approved", label: "Disetujui" },
   { id: "completed", label: "Selesai" },
-  { id: "dispute", label: "Dispute" },
+  { id: "cancelled", label: "Dibatalkan" },
 ];
 
 export const NEGOTIATION_SORT_OPTIONS: ToolbarSortOption[] = [

@@ -1,4 +1,4 @@
-import { getCreatorNegotiations } from "@/services/creator-dashboard.service";
+import { getCreatorNegotiations } from "@/services/creator/creator-dashboard.service";
 import { NegosiasiView } from "@/components/features/creator-dashboard/NegosiasiView";
 
 export default async function NegosiasiPage() {

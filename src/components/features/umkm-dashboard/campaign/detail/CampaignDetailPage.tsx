@@ -98,7 +98,7 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
 
     // Estimate released funds locally if approved (e.g. rate per 1000 views)
     let releasedFund = 0;
-    if (status === "valid") {
+    if (status === "approved") {
       releasedFund = Math.round(
         (activeReviewSubmission.actualViews || 15000) *
           (campaign.pricePerThousandViews / 1000)
@@ -121,7 +121,7 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
     // Recompute total views & budget used for the campaign
     const totalViews = updatedSubmissions.reduce((sum, s) => sum + s.actualViews, 0);
     const usedBudget = updatedSubmissions
-      .filter((s) => s.validationStatus === "valid")
+      .filter((s) => s.validationStatus === "approved")
       .reduce((sum, s) => sum + s.releasedFund, 0);
 
     setCampaign({
@@ -130,8 +130,7 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
       usedBudget,
     });
 
-    const statusLabel =
-      status === "valid" ? "Disetujui" : status === "fraud" ? "Ditandai Fraud" : "Disengketakan";
+    const statusLabel = status === "approved" ? "Disetujui" : "Ditolak";
     showToast(`Ulasan oleh "${activeReviewSubmission.creatorName}" berhasil ${statusLabel}. Catatan: ${notes || "-"}`);
   };
 
@@ -139,9 +138,9 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
     if (!campaign) return;
     setCampaign({
       ...campaign,
-      status: "cancelled",
+      status: "paused",
     });
-    showToast(`Campaign "${campaign.title}" berhasil dibatalkan.`);
+    showToast(`Campaign "${campaign.title}" berhasil dijeda.`);
   };
 
   if (loading) {

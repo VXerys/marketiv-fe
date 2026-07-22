@@ -34,17 +34,15 @@ const COVER_GRADIENTS: Record<string, string> = {
 const STATUS_DOT_COLOR: Record<CampaignStatus, string> = {
   active:    "text-emerald-700 border-emerald-200/60",
   draft:     "text-ink-500 border-ink-200/60",
-  full:      "text-orange-700 border-orange-200/60",
+  paused:    "text-orange-700 border-orange-200/60",
   completed: "text-blue-700 border-blue-200/60",
-  cancelled: "text-red-700 border-red-200/60",
 };
 
 const STATUS_LABEL: Record<CampaignStatus, string> = {
   active:    "Aktif",
   draft:     "Draft",
-  full:      "Penuh",
+  paused:    "Dijeda",
   completed: "Selesai",
-  cancelled: "Dibatalkan",
 };
 
 // Niche (kategori) color configuration untuk label bervariasi sesuai best practices
@@ -76,7 +74,7 @@ export function CampaignCard({
     ? Math.min(100, Math.round((campaign.usedBudget / campaign.totalBudgetEscrow) * 100))
     : 0;
 
-  const isCancelDisabled = campaign.status === "completed" || campaign.status === "cancelled";
+  const isCancelDisabled = campaign.status === "completed";
   const isEditVisible    = campaign.status === "draft";
 
   const actionItems = [

@@ -40,6 +40,36 @@ const mapError = (err: any, fallbackMessage: string): ClaimServiceError => {
   return new ClaimServiceError(err?.type || 'unknown', fallbackMessage, err);
 };
 
+export type GetMyClaimsOptions = {
+  status?: ClaimStatus;
+  campaignId?: string;
+  limit?: number;
+};
+
+/** Semua klaim milik kreator yang sedang login. */
+export const getMyClaims = async (options: GetMyClaimsOptions = {}): Promise<Claim[]> => {
+  const { account } = await import('../lib/appwrite');
+
+  try {
+    const user = await account.get();
+
+    const queries = [
+      Query.equal('creatorId', user.$id),
+      Query.orderDesc('claimedAt'),
+      Query.limit(options.limit ?? 50),
+    ];
+
+    if (options.status) queries.push(Query.equal('status', options.status));
+    if (options.campaignId) queries.push(Query.equal('campaignId', options.campaignId));
+
+    const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.claims, queries);
+
+    return response.documents.map(mapClaim);
+  } catch (err) {
+    throw mapError(err, 'Gagal memuat daftar klaim.');
+  }
+};
+
 export const claimCampaign = async (campaignId: string): Promise<Claim> => {
   if (!campaignId) throw new ClaimServiceError('validation', 'Campaign ID wajib diisi.');
 

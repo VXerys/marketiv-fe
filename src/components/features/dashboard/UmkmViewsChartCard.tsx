@@ -2,7 +2,7 @@
 
 import { type MouseEvent, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import type { ChartBarData } from "@/types/umkmDashboard";
+import type { ChartBarData } from "@/data/umkmDashboard";
 
 const TIME_RANGE_OPTIONS = ["7 Hari Terakhir", "30 Hari Terakhir"] as const;
 

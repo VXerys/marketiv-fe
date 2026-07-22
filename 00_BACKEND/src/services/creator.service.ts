@@ -228,6 +228,109 @@ export const updateRateCard = async (input: UpdateRateCardInput): Promise<RateCa
   }
 };
 
+const loadPackages = async (rateCardId: string): Promise<RateCardPackage[]> => {
+  const packages = await databases.listDocuments(DATABASE_ID, COLLECTIONS.rateCardPackages, [
+    Query.equal('rateCardId', rateCardId),
+  ]);
+  return packages.documents.map(mapPackage);
+};
+
+/**
+ * Detail satu rate card beserta paketnya.
+ * Rate card `draft` hanya bisa dibaca pemiliknya.
+ */
+export const getRateCardById = async (rateCardId: string): Promise<RateCard> => {
+  if (!rateCardId) throw new CreatorServiceError('validation', 'Rate card ID wajib diisi.');
+
+  try {
+    const document = await databases.getDocument(DATABASE_ID, COLLECTIONS.rateCards, rateCardId);
+    const rateCard = mapRateCard(document);
+
+    if (rateCard.status !== 'published') {
+      const user = await account.get();
+      if (rateCard.creatorId !== user.$id) {
+        throw new CreatorServiceError('forbidden', 'Rate card ini belum dipublikasikan.');
+      }
+    }
+
+    rateCard.packages = await loadPackages(rateCardId);
+    return rateCard;
+  } catch (err) {
+    throw mapError(err, 'Gagal memuat rate card.');
+  }
+};
+
+/** Rate card milik kreator yang login — termasuk yang masih `draft`. */
+export const getMyRateCards = async (options: { status?: RateCard['status'] } = {}): Promise<RateCard[]> => {
+  try {
+    const user = await account.get();
+
+    const queries = [Query.equal('creatorId', user.$id), Query.orderDesc('$createdAt')];
+    if (options.status) queries.push(Query.equal('status', options.status));
+
+    const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.rateCards, queries);
+
+    return Promise.all(
+      response.documents.map(async (doc) => {
+        const rateCard = mapRateCard(doc);
+        rateCard.packages = await loadPackages(doc.$id);
+        return rateCard;
+      })
+    );
+  } catch (err) {
+    throw mapError(err, 'Gagal memuat rate card milikmu.');
+  }
+};
+
+/**
+ * Hapus rate card beserta paketnya.
+ * Ditolak bila masih ada order berjalan yang memakai salah satu paketnya —
+ * riwayat order tidak boleh kehilangan referensi.
+ */
+export const deleteRateCard = async (rateCardId: string): Promise<void> => {
+  if (!rateCardId) throw new CreatorServiceError('validation', 'Rate card ID wajib diisi.');
+
+  const ACTIVE_ORDER_STATUSES = ['pending_payment', 'escrow', 'in_progress', 'revision', 'approved'];
+
+  try {
+    const user = await account.get();
+    const existing = await databases.getDocument(DATABASE_ID, COLLECTIONS.rateCards, rateCardId);
+
+    if (existing.creatorId !== user.$id) {
+      throw new CreatorServiceError('forbidden', 'Kamu bukan pemilik rate card ini.');
+    }
+
+    const packages = await databases.listDocuments(DATABASE_ID, COLLECTIONS.rateCardPackages, [
+      Query.equal('rateCardId', rateCardId),
+    ]);
+
+    if (packages.documents.length > 0) {
+      const activeOrders = await databases.listDocuments(DATABASE_ID, COLLECTIONS.orders, [
+        Query.equal('packageId', packages.documents.map((doc) => doc.$id)),
+        Query.equal('status', ACTIVE_ORDER_STATUSES),
+        Query.limit(1),
+      ]);
+
+      if (activeOrders.documents.length > 0) {
+        throw new CreatorServiceError(
+          'validation',
+          'Rate card tidak bisa dihapus karena masih ada order berjalan. Jadikan draft saja.'
+        );
+      }
+    }
+
+    await Promise.all(
+      packages.documents.map((doc) =>
+        databases.deleteDocument(DATABASE_ID, COLLECTIONS.rateCardPackages, doc.$id)
+      )
+    );
+
+    await databases.deleteDocument(DATABASE_ID, COLLECTIONS.rateCards, rateCardId);
+  } catch (err) {
+    throw mapError(err, 'Gagal menghapus rate card.');
+  }
+};
+
 export const getRateCards = async ({ creatorId }: { creatorId: string }): Promise<RateCard[]> => {
   if (!creatorId) throw new CreatorServiceError('validation', 'Creator ID wajib diisi.');
 

@@ -164,7 +164,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
       id: txId,
       type: "withdrawal",
       amount: withdrawAmt,
-      status: "Pending",
+      status: "pending",
       description: `Penarikan saldo wallet ke ${bankName.toUpperCase()} (${accountNumber})`,
       createdAt: new Date().toISOString(),
       source: "Withdrawal",

@@ -1,4 +1,4 @@
-import { getCreatorActiveWorks } from "@/services/creator-dashboard.service";
+import { getCreatorActiveWorks } from "@/services/creator/creator-dashboard.service";
 import { PekerjaanAktifView } from "@/components/features/creator-dashboard/PekerjaanAktifView";
 
 export default async function PekerjaanAktifPage() {

@@ -20,16 +20,19 @@ export function getCalculatedDashboardSummary(): UmkmDashboardSummary {
 
   // Escrow balance: campaigns remaining budget + rate cards currently in escrow/revision/waiting_verification
   const campaignEscrow = mockCampaigns
-    .filter((c) => c.status === "active" || c.status === "full")
+    .filter((c) => c.status === "active")
     .reduce((sum, c) => sum + (c.totalBudgetEscrow - c.usedBudget), 0);
   const rateCardEscrow = mockNegotiations
-    .filter((n) => n.status === "escrow" || n.status === "revision" || n.status === "waiting_verification")
+    .filter((n) => n.status === "escrow" || n.status === "in_progress" || n.status === "revision" || n.status === "approved")
     .reduce((sum, n) => sum + n.finalPrice, 0);
   const escrowBalance = campaignEscrow + rateCardEscrow;
 
   const pendingSubmissions = mockSubmissions.filter((s) => s.validationStatus === "pending").length;
-  const activeNegotiations = mockNegotiations.filter((n) => n.status === "negotiation").length;
-  const pendingPayments = mockNegotiations.filter((n) => n.status === "waiting_payment").length;
+  // Order yang masih berjalan (belum completed/cancelled) dihitung sebagai negosiasi aktif
+  const activeNegotiations = mockNegotiations.filter(
+    (n) => n.status !== "completed" && n.status !== "cancelled"
+  ).length;
+  const pendingPayments = mockNegotiations.filter((n) => n.status === "pending_payment").length;
 
   return {
     activeCampaigns,

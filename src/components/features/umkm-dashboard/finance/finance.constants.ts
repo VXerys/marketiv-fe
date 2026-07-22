@@ -1,17 +1,20 @@
 export const TRANSACTION_STATUS_OPTIONS = [
   { value: "all", label: "Semua Status" },
   { value: "pending", label: "Menunggu Pembayaran" },
-  { value: "escrow", label: "Dalam Escrow" },
-  { value: "success", label: "Sukses" },
+  { value: "held", label: "Dalam Escrow" },
+  { value: "paid", label: "Sukses" },
+  { value: "released", label: "Dana Dicairkan" },
   { value: "failed", label: "Gagal" },
   { value: "refunded", label: "Refunded" },
 ] as const;
 
 export const TRANSACTION_TYPE_OPTIONS = [
   { value: "all", label: "Semua Tipe" },
-  { value: "deposit", label: "Deposit / Pembayaran" },
+  { value: "deposit", label: "Deposit / Top-up" },
+  { value: "payment", label: "Pembayaran" },
   { value: "refund", label: "Refund / Pengembalian" },
-  { value: "payout", label: "Payout / Pencairan" },
+  { value: "release", label: "Pencairan Escrow" },
+  { value: "withdrawal", label: "Penarikan Dana" },
   { value: "fee", label: "Platform Fee" },
 ] as const;
 
