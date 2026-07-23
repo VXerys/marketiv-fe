@@ -75,9 +75,9 @@ Jangan menulis implementasi Appwrite Function di `src/` atau root proyek.
 
 ## Appwrite Project Config (`appwrite/`)
 
-- `appwrite/appwrite.json`: konfigurasi Appwrite yang dihasilkan untuk project, database, storage, dan functions.
-- `appwrite/generate_appwrite_json.js`: script generator untuk membuat ulang `appwrite/appwrite.json`.
-- Saat menambah, menghapus, atau mengganti nama function, sinkronkan `functions/<function-id>/`, `appwrite/appwrite.json`, dan `appwrite/generate_appwrite_json.js`.
+- `appwrite/generate_appwrite_json.cjs`: script generator untuk membuat ulang `appwrite.config.json` (root).
+- `appwrite.config.json`: konfigurasi Appwrite yang dihasilkan untuk project, database, storage, dan functions.
+- Saat menambah, menghapus, atau mengganti nama function, sinkronkan `functions/<function-id>/`, `appwrite.config.json`, dan `appwrite/generate_appwrite_json.cjs`.
 
 ## Storage Buckets (`storage/`)
 

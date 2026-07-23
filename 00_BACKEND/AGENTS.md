@@ -243,20 +243,20 @@ appwrite/
 The generated Appwrite configuration lives at
 
 ```
-appwrite/appwrite.json
+appwrite.config.json
 ```
 
 The generator script lives at
 
 ```
-appwrite/generate_appwrite_json.js
+appwrite/generate_appwrite_json.cjs
 ```
 
 When adding, removing, or renaming an Appwrite Function, keep these in sync:
 
 - `functions/<function-id>/`
-- `appwrite/appwrite.json`
-- `appwrite/generate_appwrite_json.js`
+- `appwrite.config.json`
+- `appwrite/generate_appwrite_json.cjs`
 - relevant module documentation in `docs/02_Modules/<Module>/`
 
 ---
