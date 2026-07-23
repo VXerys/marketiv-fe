@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { CreatorEmptyState } from "./CreatorEmptyState";
 import { CreatorErrorState } from "./CreatorErrorState";
 import { formatCurrency } from "@/lib/formatters";
+import { PLATFORM_FEE_RATE, calculatePlatformFee, calculateCreatorPayout } from "@/types/domain";
 import { getEscrowStatusLabel } from "@/lib/creator-status";
 import { cn } from "@/lib/utils";
 import {
@@ -182,8 +183,8 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
     e.preventDefault();
     if (!neg || !offerScope.trim() || !offerDeliverables.trim()) return;
 
-    const platFee = Math.round(offerPrice * 0.03);
-    const total = offerPrice + platFee;
+    const platFee = calculatePlatformFee(offerPrice);
+    const total = calculateCreatorPayout(offerPrice);
 
     setNeg(prev => prev ? { ...prev, finalPrice: offerPrice, deliverables: offerDeliverables.trim(), revisionCount: offerRevisions, platformFee: platFee, totalAmount: total } : null);
 
@@ -285,8 +286,8 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
   const isEscrowState   = neg.status === "escrow" || neg.status === "in_progress";
   const isRevisionState = neg.status === "revision";
 
-  const platFee   = neg.platformFee   ?? Math.round(neg.finalPrice * 0.03);
-  const totalAmt  = neg.totalAmount   ?? (neg.finalPrice + platFee);
+  const platFee   = neg.platformFee   ?? calculatePlatformFee(neg.finalPrice);
+  const totalAmt  = neg.totalAmount   ?? (neg.finalPrice - platFee);
   const deadline  = new Date(neg.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 
   // Checklist milestones
@@ -691,11 +692,11 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
                       <span>{formatCurrency(neg.finalPrice)}</span>
                     </div>
                     <div className="flex justify-between text-xs font-semibold text-neutral-500">
-                      <span>Biaya Platform (3%)</span>
-                      <span>{formatCurrency(platFee)}</span>
+                      <span>Biaya Platform ({PLATFORM_FEE_RATE * 100}%)</span>
+                      <span>-{formatCurrency(platFee)}</span>
                     </div>
                     <div className="flex justify-between text-sm font-black text-[#1e1b4b] border-t border-violet-100 pt-2">
-                      <span>Total Biaya</span>
+                      <span>Total Diterima</span>
                       <span>{formatCurrency(totalAmt)}</span>
                     </div>
                   </div>
@@ -792,8 +793,8 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
                 <FieldLabel>Harga Penawaran (Rupiah)</FieldLabel>
                 <FieldInput type="number" required min={50000} value={offerPrice} onChange={(e) => setOfferPrice(Number(e.target.value))} />
                 <p className="text-[10px] text-neutral-400 font-semibold mt-1.5">
-                  Biaya platform 3%: <span className="font-bold text-neutral-600">{formatCurrency(Math.round(offerPrice * 0.03))}</span>
-                  {" · "}Total: <span className="font-bold text-violet-700">{formatCurrency(offerPrice + Math.round(offerPrice * 0.03))}</span>
+                  Biaya platform {PLATFORM_FEE_RATE * 100}%: <span className="font-bold text-neutral-600">{formatCurrency(calculatePlatformFee(offerPrice))}</span>
+                  {" · "}Anda terima: <span className="font-bold text-violet-700">{formatCurrency(calculateCreatorPayout(offerPrice))}</span>
                 </p>
               </div>
 

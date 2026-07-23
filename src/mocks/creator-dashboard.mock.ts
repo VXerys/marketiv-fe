@@ -283,8 +283,8 @@ export const mockCreatorNegotiations: CreatorNegotiation[] = [
     unreadCount: 0,
     deliverables: "3 Instagram Reels + 1 IG Story Link",
     revisionCount: 3,
-    platformFee: 22500,
-    totalAmount: 772500,
+    platformFee: 15000,
+    totalAmount: 735000,
     escrowStatus: "held",
   },
   {
@@ -302,8 +302,8 @@ export const mockCreatorNegotiations: CreatorNegotiation[] = [
     unreadCount: 2,
     deliverables: "1 Video TikTok Review Skincare",
     revisionCount: 2,
-    platformFee: 9000,
-    totalAmount: 309000,
+    platformFee: 6000,
+    totalAmount: 294000,
 
   },
   {
@@ -321,8 +321,8 @@ export const mockCreatorNegotiations: CreatorNegotiation[] = [
     unreadCount: 0,
     deliverables: "2 Video Instagram Reels Home Cafe",
     revisionCount: 1,
-    platformFee: 12000,
-    totalAmount: 412000,
+    platformFee: 8000,
+    totalAmount: 392000,
 
   },
   {
@@ -340,8 +340,8 @@ export const mockCreatorNegotiations: CreatorNegotiation[] = [
     unreadCount: 0,
     deliverables: "1 Video Instagram Reels Collab Post",
     revisionCount: 2,
-    platformFee: 15000,
-    totalAmount: 515000,
+    platformFee: 10000,
+    totalAmount: 490000,
     escrowStatus: "released",
     submittedCollabUrl: "https://instagram.com/reel/CtDaily123/",
   },

@@ -1,20 +1,6 @@
 import { StatusDetail, EscrowStepStatus } from "./negotiation.types";
 
 /**
- * Calculates the platform escrow fee for Rate Card Mode (10%).
- */
-export function calculatePlatformFee(finalPrice: number): number {
-  return Math.round(finalPrice * 0.10);
-}
-
-/**
- * Calculates the total payment amount including platform escrow fee.
- */
-export function calculateTotalPayment(finalPrice: number): number {
-  return finalPrice + calculatePlatformFee(finalPrice);
-}
-
-/**
  * Maps the negotiation status string to labels and CSS classes.
  */
 export function getStatusDetails(status: string): StatusDetail {

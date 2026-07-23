@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { formatCurrency } from "@/lib/formatters";
-import { calculatePlatformFee, calculateTotalPayment } from "../negotiation.utils";
+import {
+  PLATFORM_FEE_RATE,
+  calculatePlatformFee,
+  calculateTotalPayment,
+} from "@/types/domain";
 import {
   ResponsiveModal,
   ResponsiveModalContent,
@@ -62,7 +66,7 @@ export function PaymentSimulationModal({
             <span className="font-extrabold text-text-primary">{formatCurrency(finalPrice)}</span>
           </div>
           <div className="flex items-center justify-between text-text-muted">
-            <span>Biaya Rekening Escrow (10%)</span>
+            <span>Biaya Rekening Escrow ({PLATFORM_FEE_RATE * 100}%)</span>
             <span className="font-extrabold text-text-primary">{formatCurrency(platformFee)}</span>
           </div>
           <div className="flex items-center justify-between pt-3 border-t border-dashed border-border-soft text-text-primary">
