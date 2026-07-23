@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useCallback, useTransition } from "react";
 import { useStickyToolbar } from "@/hooks/useStickyToolbar";
-import { dummyCreators } from "@/data/creators";
+import { getCreators } from "@/services/umkm/umkm-dashboard.service";
+import type { CreatorProfile } from "@/types/umkm-dashboard.types";
+import { toCreatorView } from "./creator.adapter";
 import { UmkmPageWrapper } from "../shared/UmkmPageWrapper";
 import { CreatorDirectoryHeader } from "./CreatorDirectoryHeader";
 import { CreatorSummaryCards } from "./CreatorSummaryCards";
@@ -10,21 +12,40 @@ import { CreatorToolbar } from "./CreatorToolbar";
 import { CreatorCard } from "./CreatorCard";
 import { CreatorGridSkeleton } from "./CreatorGridSkeleton";
 import { CreatorEmptyState } from "./CreatorEmptyState";
+import { CreatorErrorState } from "./CreatorErrorState";
 
 export function CreatorDirectoryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("rating");
 
+  const [creators, setCreators] = useState<CreatorProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const { toolbarRef, isSticky: isToolbarSticky } = useStickyToolbar();
 
-  // Simulate loading delay on mount to showcase premium skeletons
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 600);
-    return () => clearTimeout(timer);
+  // Fetch nyata lewat facade service (s1-creators) — bukan lagi src/data/creators.ts.
+  const loadCreators = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getCreators();
+      if (res.success && res.data) {
+        setCreators(res.data);
+      } else {
+        setError(res.error || "Gagal memuat data kreator.");
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan sistem.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadCreators();
+  }, [loadCreators]);
 
   const handleResetFilters = () => {
     setSearchQuery("");
@@ -32,35 +53,20 @@ export function CreatorDirectoryPage() {
     setSortBy("rating");
   };
 
-  const parseFollowers = (val: string) => {
-    const numericStr = val.toUpperCase().replace("K", "").replace("M", "");
-    const base = parseFloat(numericStr) || 0;
-    if (val.toUpperCase().includes("M")) return base * 1_000_000;
-    if (val.toUpperCase().includes("K")) return base * 1_000;
-    return base;
-  };
-
-  const parsePrice = (val: string) => {
-    const cleaned = val.replace(/[^0-9,.]/g, "").replace(",", ".");
-    const base = parseFloat(cleaned) || 0;
-    if (val.toUpperCase().includes("JT") || val.toUpperCase().includes("JUTA")) return base * 1_000_000;
-    return base;
-  };
-
-  const filteredCreators = dummyCreators
+  // Filter & sort memakai field kanon (bukan parsing string followers/harga).
+  const filteredCreators = creators
     .filter((c) => {
+      const q = searchQuery.toLowerCase();
       const matchSearch =
-        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchCategory =
-        selectedCategory === "all" || c.category.toLowerCase() === selectedCategory.toLowerCase();
+        c.name.toLowerCase().includes(q) || c.bio.toLowerCase().includes(q);
+      const matchCategory = selectedCategory === "all" || c.niche === selectedCategory;
       return matchSearch && matchCategory;
     })
     .sort((a, b) => {
-      if (sortBy === "rating")    return b.rating - a.rating;
-      if (sortBy === "followers") return parseFollowers(b.followers) - parseFollowers(a.followers);
-      if (sortBy === "price_asc") return parsePrice(a.estimatedSalary) - parsePrice(b.estimatedSalary);
-      if (sortBy === "reviews")   return b.totalReviews - a.totalReviews;
+      if (sortBy === "rating") return b.rating - a.rating;
+      if (sortBy === "price_asc") return a.startingPrice - b.startingPrice;
+      if (sortBy === "jobs") return b.completedJobs - a.completedJobs;
+      if (sortBy === "engagement") return b.engagementRate - a.engagementRate;
       return 0;
     });
 
@@ -85,13 +91,15 @@ export function CreatorDirectoryPage() {
         />
       </div>
 
-      {/* Creators Grid / Empty State */}
+      {/* Creators Grid / Loading / Error / Empty State */}
       {loading ? (
         <CreatorGridSkeleton />
+      ) : error ? (
+        <CreatorErrorState message={error} onRetry={loadCreators} />
       ) : filteredCreators.length > 0 ? (
         <div className="responsive-card-grid-2">
           {filteredCreators.map((creator) => (
-            <CreatorCard key={creator.id} creator={creator} />
+            <CreatorCard key={creator.id} creator={toCreatorView(creator)} />
           ))}
         </div>
       ) : (

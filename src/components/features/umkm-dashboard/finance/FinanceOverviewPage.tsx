@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { Transaction, UmkmFinanceSummary, EscrowOverview } from "@/types/umkm-dashboard.types";
-import { getTransactions } from "@/services/umkm/umkm-dashboard.service";
+import { getTransactions, getFinanceOverview } from "@/services/umkm/umkm-dashboard.service";
 import { FinanceHeader } from "./FinanceHeader";
 import { FinanceSummaryCards } from "./FinanceSummaryCards";
 import { EscrowOverviewCard } from "./EscrowOverviewCard";
@@ -18,6 +18,8 @@ import { FinanceActionSuccessModal } from "./modals/FinanceActionSuccessModal";
 
 export function FinanceOverviewPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [summary, setSummary] = useState<UmkmFinanceSummary | null>(null);
+  const [escrowOverview, setEscrowOverview] = useState<EscrowOverview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,17 +46,24 @@ export function FinanceOverviewPage() {
     message: "",
   });
 
-  // Fetch initial transactions
+  // Fetch transaksi + ringkasan finansial (dihitung backend, bukan di klien).
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await getTransactions();
-      if (res.success && res.data) {
-        setTransactions(res.data);
-      } else {
-        setError(res.error || "Gagal mengambil data transaksi");
+      // Satu panggilan untuk finance + escrow — menghindari dua agregasi identik.
+      const [txRes, financeRes] = await Promise.all([
+        getTransactions(),
+        getFinanceOverview(),
+      ]);
+
+      if (!txRes.success || !txRes.data) {
+        setError(txRes.error || "Gagal mengambil data transaksi");
+        return;
       }
+      setTransactions(txRes.data);
+      setSummary(financeRes.success && financeRes.data ? financeRes.data.finance : null);
+      setEscrowOverview(financeRes.success && financeRes.data ? financeRes.data.escrow : null);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Terjadi kesalahan sistem";
       setError(errorMessage);
@@ -66,72 +75,6 @@ export function FinanceOverviewPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  // Recalculate summary metrics from the local transaction state
-  const computedSummary: UmkmFinanceSummary = (() => {
-    const successOrEscrow = transactions.filter(
-      (tx) => tx.status === "paid" || tx.status === "held"
-    );
-
-    const totalExpenses = successOrEscrow
-      .filter((tx) => tx.type === "deposit" || tx.type === "fee")
-      .reduce((sum, tx) => sum + tx.amount, 0);
-
-    const escrowBalance = transactions
-      .filter((tx) => tx.status === "held")
-      .reduce((sum, tx) => sum + tx.amount, 0);
-
-    const pendingPayments = transactions
-      .filter((tx) => tx.status === "pending")
-      .reduce((sum, tx) => sum + tx.amount, 0);
-
-    const refundsReceived = transactions
-      .filter((tx) => tx.type === "refund" && tx.status === "refunded")
-      .reduce((sum, tx) => sum + tx.amount, 0);
-
-    const platformFees = transactions
-      .filter((tx) => tx.type === "fee" && tx.status === "paid")
-      .reduce((sum, tx) => sum + tx.amount, 0);
-
-    const successfulTransactionsCount = transactions.filter(
-      (tx) => tx.status === "paid" || tx.status === "held" || tx.status === "refunded"
-    ).length;
-
-    return {
-      totalExpenses,
-      escrowBalance,
-      pendingPayments,
-      refundsReceived,
-      platformFees,
-      successfulTransactionsCount,
-    };
-  })();
-
-  // Recalculate escrow metrics from the local transaction state
-  const computedEscrowOverview: EscrowOverview = (() => {
-    const activeEscrow = transactions
-      .filter((tx) => tx.status === "held")
-      .reduce((sum, tx) => sum + tx.amount, 0);
-
-    const campaignEscrow = transactions
-      .filter((tx) => tx.status === "held" && tx.referenceType === "campaign")
-      .reduce((sum, tx) => sum + tx.amount, 0);
-
-    const rateCardEscrow = transactions
-      .filter((tx) => tx.status === "held" && tx.referenceType === "rate_card")
-      .reduce((sum, tx) => sum + tx.amount, 0);
-
-    const pendingRelease = rateCardEscrow;
-    const refundEligible = campaignEscrow > 0 ? Math.min(campaignEscrow, 1200000) : 0;
-
-    return {
-      activeEscrow,
-      pendingRelease,
-      refundEligible,
-      campaignEscrow,
-      rateCardEscrow,
-    };
-  })();
 
   // Filter & Sort computation
   const filteredTransactions = transactions
@@ -242,11 +185,11 @@ export function FinanceOverviewPage() {
       {/* Header */}
       <FinanceHeader onTriggerExport={() => setIsExportOpen(true)} />
 
-      {/* Summary metrics */}
-      <FinanceSummaryCards summary={computedSummary} />
+      {/* Summary metrics — dari service (getFinanceSummary), bukan hitung ulang klien */}
+      {summary && <FinanceSummaryCards summary={summary} />}
 
-      {/* Escrow overview diagram */}
-      <EscrowOverviewCard overview={computedEscrowOverview} />
+      {/* Escrow overview diagram — dari service (getEscrowOverview) */}
+      {escrowOverview && <EscrowOverviewCard overview={escrowOverview} />}
 
       {/* Control bar / Toolbar — sticky direct child of space-y-6 container */}
       <div ref={toolbarRef} style={{ position: "sticky", top: 0, zIndex: 30 }}>

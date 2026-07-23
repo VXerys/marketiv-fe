@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 
 const NICHE_GRADIENTS: Record<string, [string, string]> = {
   kuliner:    ["#f59e0b", "#ef4444"],
-  fesyen:     ["#ec4899", "#8b5cf6"],
+  fashion:     ["#ec4899", "#8b5cf6"],
   pariwisata: ["#14b8a6", "#3b82f6"],
   edukasi:    ["#3b82f6", "#1d4ed8"],
   kecantikan: ["#f472b6", "#d946ef"],
@@ -34,7 +34,7 @@ const NICHE_GRADIENTS: Record<string, [string, string]> = {
 
 const NICHE_LABELS: Record<string, string> = {
   kuliner:    "Kuliner",
-  fesyen:     "Fashion",
+  fashion:     "Fashion",
   pariwisata: "Travel",
   edukasi:    "Edukasi",
   kecantikan: "Beauty",
@@ -462,7 +462,7 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
                 <option value="all">Semua Kategori</option>
                 <option value="kecantikan">Kecantikan</option>
                 <option value="kuliner">Kuliner</option>
-                <option value="fesyen">Fesyen</option>
+                <option value="fashion">Fashion</option>
                 <option value="pariwisata">Pariwisata</option>
                 <option value="edukasi">Edukasi</option>
               </select>

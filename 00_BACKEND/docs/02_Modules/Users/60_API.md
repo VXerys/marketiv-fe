@@ -46,6 +46,8 @@ Contoh:
 
 Memakai index pada `creator_profiles` (city, rating, totalFollowers) dan `rate_card_packages` (price). Filter platform tidak diperlukan karena MVP hanya TikTok.
 
+⚠️ Untuk daftar/detail kreator yang butuh `username`, `engagementRate`, dan `startingPrice`, gunakan Function `get-creator-directory` — bukan query Client SDK. Ketiga field itu berada di `creator_social_accounts` dan `rate_cards` → `rate_card_packages`, sehingga tidak bisa dipetakan setia dari satu collection. Lihat [70_Backend.md](70_Backend.md).
+
 ---
 
 ### `uploadFile()` — [Client SDK] ⚠️ DORMANT

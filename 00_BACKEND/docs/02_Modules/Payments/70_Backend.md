@@ -31,6 +31,31 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 - **Trigger**: `deliverables.status` → `approved`.
 - **Aksi**: rilis escrow, tambah balance wallet Creator, catat transaksi `release`, update order.
 
+### get-umkm-finance-summary
+
+- **Trigger**: dipanggil frontend (`executeFunction`), bukan event.
+- **Execute**: authenticated users. Identitas dari header `x-appwrite-user-id`.
+- **Output**: `{ finance: UmkmFinanceSummary, escrow: EscrowOverview }` — dua view-model sekaligus, supaya halaman Keuangan tidak memicu dua agregasi identik atas data yang sama.
+- **Aksi**: agregasi `payments` + `transactions` + `campaigns` + `escrows` milik UMKM pemanggil.
+
+Pemetaan angka:
+
+| Field | Sumber |
+| --- | --- |
+| `totalExpenses` | Σ `payments.total_amount` berstatus `paid` (sudah termasuk fee) |
+| `pendingPayments` | Σ `payments.total_amount` berstatus `pending` |
+| `platformFees` | Σ `payments.fee_amount` berstatus `paid` — dibaca dari kolom, tidak dihitung ulang, karena tarif bisa berubah antar periode |
+| `refundsReceived` | Σ `transactions.amount` bertipe `refund` (refund tidak melewati `payments`) |
+| `successfulTransactionsCount` | jumlah `payments` berstatus `paid` |
+| `campaignEscrow` | Σ `campaigns.remainingBudget` berstatus `active` / `paused` |
+| `rateCardEscrow` | Σ `escrows.amount` berstatus `held` milik order UMKM ini |
+| `activeEscrow` | `campaignEscrow + rateCardEscrow` |
+| `pendingRelease` | escrow `held` yang order-nya berstatus `approved` — deliverable sudah disetujui, tinggal menunggu `release-escrow` |
+| `refundEligible` | Σ `campaigns.remainingBudget` berstatus `completed` — sisa budget yang berhak kembali ke UMKM |
+
+- `escrows` tidak menyimpan `umkmId`, jadi kepemilikan ditegakkan lewat daftar `orders` milik UMKM — bukan query langsung ke `escrows`.
+- Read-only. Function ini tidak pernah memutasi saldo.
+
 ## Aturan Backend
 
 - `MINIMUM_WITHDRAW = 50000` (Rp50.000) — **konstanta sistem** di service layer (`wallet.service.ts`). Lihat [ADR-007](../../04_Decisions/ADR-007.md).

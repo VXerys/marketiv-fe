@@ -258,6 +258,70 @@
             "entrypoint": "src/main.js",
             "commands": "npm install",
             "path": "functions/send-chat-notification"
+        },
+        {
+            "$id": "get-umkm-dashboard-summary",
+            "name": "Get UMKM Dashboard Summary",
+            "runtime": "node-22",
+            "execute": [
+                "users"
+            ],
+            "events": [],
+            "schedule": "",
+            "timeout": 30,
+            "enabled": true,
+            "logging": true,
+            "entrypoint": "src/main.js",
+            "commands": "npm install",
+            "path": "functions/get-umkm-dashboard-summary"
+        },
+        {
+            "$id": "get-umkm-finance-summary",
+            "name": "Get UMKM Finance Summary",
+            "runtime": "node-22",
+            "execute": [
+                "users"
+            ],
+            "events": [],
+            "schedule": "",
+            "timeout": 30,
+            "enabled": true,
+            "logging": true,
+            "entrypoint": "src/main.js",
+            "commands": "npm install",
+            "path": "functions/get-umkm-finance-summary"
+        },
+        {
+            "$id": "get-umkm-profile",
+            "name": "Get UMKM Profile",
+            "runtime": "node-22",
+            "execute": [
+                "users"
+            ],
+            "events": [],
+            "schedule": "",
+            "timeout": 15,
+            "enabled": true,
+            "logging": true,
+            "entrypoint": "src/main.js",
+            "commands": "npm install",
+            "path": "functions/get-umkm-profile"
+        },
+        {
+            "$id": "get-creator-directory",
+            "name": "Get Creator Directory",
+            "runtime": "node-22",
+            "execute": [
+                "users"
+            ],
+            "events": [],
+            "schedule": "",
+            "timeout": 30,
+            "enabled": true,
+            "logging": true,
+            "entrypoint": "src/main.js",
+            "commands": "npm install",
+            "path": "functions/get-creator-directory"
         }
     ],
     "tablesDB": [
@@ -574,6 +638,23 @@
                     "encrypt": false
                 },
                 {
+                    "key": "niche",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": null,
+                    "encrypt": false,
+                    "elements": [
+                        "kuliner",
+                        "fashion",
+                        "pariwisata",
+                        "edukasi",
+                        "kecantikan",
+                        "lainnya"
+                    ]
+                },
+                {
                     "key": "totalFollowers",
                     "type": "integer",
                     "required": false,
@@ -640,6 +721,17 @@
                     ],
                     "columns": [
                         "city"
+                    ]
+                },
+                {
+                    "key": "idx_niche",
+                    "type": "key",
+                    "status": "available",
+                    "orders": [
+                        "ASC"
+                    ],
+                    "columns": [
+                        "niche"
                     ]
                 },
                 {

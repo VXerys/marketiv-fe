@@ -21,16 +21,13 @@ export default function CampaignCreatePage() {
       } catch (err) {
         console.warn("Failed to load profile", err);
       } finally {
-        // Mock a slight delay for realistic skeleton presentation
-        setTimeout(() => {
-          setLoading(false);
-        }, 500);
+        setLoading(false);
       }
     }
     loadProfile();
   }, []);
 
-  const businessName = profile?.businessName || "Dapur Sehat Sukabumi";
+  const businessName = profile?.businessName ?? "";
 
   return (
     <UmkmDashboardChrome businessName={businessName}>

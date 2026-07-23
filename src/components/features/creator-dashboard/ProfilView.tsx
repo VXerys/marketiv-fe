@@ -407,7 +407,7 @@ export function ProfilView({ initialProfile }: ProfilViewProps) {
                     <div className="space-y-2">
                       <label className="block text-[10px] font-black text-neutral-400 uppercase tracking-wider">Kategori Niche Utama</label>
                       <div className="flex flex-wrap gap-2">
-                        {(["kecantikan", "kuliner", "fesyen", "pariwisata", "lainnya"] as CreatorNiche[]).map(n => (
+                        {(["kecantikan", "kuliner", "fashion", "pariwisata", "lainnya"] as CreatorNiche[]).map(n => (
                           <button
                             key={n}
                             type="button"
@@ -702,7 +702,7 @@ export function ProfilView({ initialProfile }: ProfilViewProps) {
                   >
                     <option value="kecantikan">Kecantikan</option>
                     <option value="kuliner">Kuliner</option>
-                    <option value="fesyen">Fesyen</option>
+                    <option value="fashion">Fashion</option>
                     <option value="pariwisata">Pariwisata</option>
                     <option value="lainnya">Lainnya</option>
                   </select>
@@ -820,7 +820,7 @@ export function ProfilView({ initialProfile }: ProfilViewProps) {
                   >
                     <option value="kecantikan">Kecantikan</option>
                     <option value="kuliner">Kuliner</option>
-                    <option value="fesyen">Fesyen</option>
+                    <option value="fashion">Fashion</option>
                     <option value="pariwisata">Pariwisata</option>
                     <option value="lainnya">Lainnya</option>
                   </select>

@@ -33,6 +33,28 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
   - Kurangi `campaigns.totalClaims` untuk campaign terkait.
   - Notifikasi ke kreator: "Claim-mu expired karena melebihi batas waktu submit".
 
+### get-umkm-dashboard-summary
+
+- **Trigger**: dipanggil frontend (`executeFunction`), bukan event.
+- **Execute**: authenticated users. Identitas dari header `x-appwrite-user-id`.
+- **Output**: `UmkmDashboardSummary` — kartu metrik dashboard UMKM. Kontrak [08-frontend-data-contract.md §6](../../../../docs/marketiv-md/database/08-frontend-data-contract.md).
+- **Aksi**: agregasi `campaigns` + `campaign_submissions` + `orders` + `escrows` milik UMKM pemanggil. Frontend tidak boleh menghitung summary dengan me-load semua campaign.
+
+Pemetaan angka:
+
+| Field | Sumber |
+| --- | --- |
+| `activeCampaigns` / `completedCampaigns` | jumlah `campaigns` per status |
+| `totalViews` | Σ `campaign_submissions.views`; submission `rejected` diabaikan |
+| `totalSpent` | Σ `campaigns.spentAmount` + Σ `orders.amount` berstatus `completed` |
+| `escrowBalance` | Σ `campaigns.remainingBudget` (`active`/`paused`) + Σ `escrows.amount` berstatus `held` |
+| `pendingSubmissions` | jumlah submission berstatus `pending` |
+| `activeNegotiations` | jumlah `orders` di luar `completed` / `cancelled` |
+| `pendingPayments` | **jumlah** `orders` berstatus `pending_payment` — count, bukan rupiah. Versi rupiah ada di `get-umkm-finance-summary`. |
+
+- `campaign_submissions` tidak menyimpan `umkmId`; submission dicari lewat daftar `campaigns` milik UMKM.
+- Cross-module: membaca `orders` ([Orders](../Orders/50_Database.md)) dan `escrows` ([Payments](../Payments/50_Database.md)) read-only.
+
 ## Aturan Backend
 
 - Unique constraint `campaignId + creatorId` pada claim (backend validation).

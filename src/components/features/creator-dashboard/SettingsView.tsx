@@ -573,7 +573,7 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
                 Kategori Niche Utama
               </label>
               <div className="flex flex-wrap gap-2">
-                {(["kecantikan", "kuliner", "fesyen", "pariwisata", "lainnya"] as CreatorNiche[]).map(
+                {(["kecantikan", "kuliner", "fashion", "pariwisata", "lainnya"] as CreatorNiche[]).map(
                   (n) => (
                     <button
                       key={n}
@@ -1217,7 +1217,7 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
                 >
                   <option value="kecantikan">Kecantikan</option>
                   <option value="kuliner">Kuliner</option>
-                  <option value="fesyen">Fesyen</option>
+                  <option value="fashion">Fashion</option>
                   <option value="pariwisata">Pariwisata</option>
                   <option value="lainnya">Lainnya</option>
                 </select>
@@ -1337,7 +1337,7 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
                 >
                   <option value="kecantikan">Kecantikan</option>
                   <option value="kuliner">Kuliner</option>
-                  <option value="fesyen">Fesyen</option>
+                  <option value="fashion">Fashion</option>
                   <option value="pariwisata">Pariwisata</option>
                   <option value="lainnya">Lainnya</option>
                 </select>

@@ -23,7 +23,7 @@ interface CampaignCardProps {
 // Cover gradients per niche — dipertahankan karena nilai dinamis runtime
 const COVER_GRADIENTS: Record<string, string> = {
   kuliner:    "linear-gradient(135deg, #fb923c, #c2410c)",
-  fesyen:     "linear-gradient(135deg, #16a34a, #84cc16)",
+  fashion:     "linear-gradient(135deg, #16a34a, #84cc16)",
   pariwisata: "linear-gradient(135deg, #1e3a5f, #93c5fd)",
   edukasi:    "linear-gradient(135deg, #a78bfa, #6d28d9)",
   kecantikan: "linear-gradient(135deg, #f472b6, #be185d)",
@@ -48,7 +48,7 @@ const STATUS_LABEL: Record<CampaignStatus, string> = {
 // Niche (kategori) color configuration untuk label bervariasi sesuai best practices
 const NICHE_COLOR_CONFIG: Record<string, { bg: string; text: string; border: string }> = {
   kuliner:    { bg: "bg-orange-50",     text: "text-orange-700",    border: "border-orange-200/40" },
-  fesyen:     { bg: "bg-emerald-50",    text: "text-emerald-700",   border: "border-emerald-200/40" },
+  fashion:     { bg: "bg-emerald-50",    text: "text-emerald-700",   border: "border-emerald-200/40" },
   pariwisata: { bg: "bg-blue-50",       text: "text-blue-700",      border: "border-blue-200/40" },
   edukasi:    { bg: "bg-purple-50",     text: "text-purple-700",    border: "border-purple-200/40" },
   kecantikan: { bg: "bg-rose-50",       text: "text-rose-600",      border: "border-rose-200/40" },

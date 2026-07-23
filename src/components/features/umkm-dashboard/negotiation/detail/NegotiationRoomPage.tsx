@@ -62,7 +62,7 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
     } catch {
       setError("Kesalahan memuat data Negosiasi.");
     } finally {
-      setTimeout(() => setLoading(false), 600);
+      setLoading(false);
     }
   }, [orderId]);
 

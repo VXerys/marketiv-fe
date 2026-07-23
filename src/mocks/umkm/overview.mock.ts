@@ -1,10 +1,10 @@
 /**
- * LEGACY — jalur data bypass Overview UMKM.
+ * Mock view-model Overview UMKM.
  *
- * Tipe view-model di bawah ini SENGAJA dikolokasi di sini (bukan di
- * src/types/) karena file ini satu-satunya konsumennya, dan keduanya akan
- * dihapus bersamaan pada task `s1-delete-data` setelah Overview di-wire ke
- * getDashboardSummary()/getCampaigns() (`s1-overview`).
+ * Direlokasi dari src/data/umkmDashboard.ts (dihapus di s1-delete-data) ke
+ * lapisan mock service (s1-overview). Konsumsi HANYA lewat facade
+ * getOverview() di umkm-dashboard.service.ts — komponen tidak import file ini
+ * langsung.
  *
  * Label Bahasa Indonesia di sini adalah teks tampilan, bukan nilai status
  * kanon. Nilai status kanon ada di src/types/domain.ts.
@@ -45,7 +45,7 @@ export interface ChartBarData {
   active: boolean;
 }
 
-export interface UmkmDashboardData {
+export interface UmkmOverviewData {
   businessName: string;
   greeting: string;
   subtitle: string;
@@ -75,7 +75,7 @@ export interface UmkmDashboardData {
   }[];
 }
 
-export const UMKM_DASHBOARD_MOCK_DATA: UmkmDashboardData = {
+export const mockUmkmOverview: UmkmOverviewData = {
   businessName: "Dapur Sehat Sukabumi",
   greeting: "Selamat pagi, Dapur Sehat",
   subtitle: "Berikut ringkasan performa campaign Anda hari ini.",
@@ -90,11 +90,12 @@ export const UMKM_DASHBOARD_MOCK_DATA: UmkmDashboardData = {
     activeCreatorsCount: 8,
     targetCreatorsCount: 12,
     progressPercent: 45,
-    imageUrl: "https://images.unsplash.com/photo-1626132647523-66f5bf380027?q=80&w=200&auto=format&fit=crop" // fallback free high quality image or similar
+    imageUrl:
+      "https://images.unsplash.com/photo-1626132647523-66f5bf380027?q=80&w=200&auto=format&fit=crop",
   },
   escrow: {
     totalAmount: 3250000, // Rp 3.250.000
-    infoText: "Dana sedang ditahan aman. Akan dilepas setelah bukti tayang diverifikasi."
+    infoText: "Dana sedang ditahan aman. Akan dilepas setelah bukti tayang diverifikasi.",
   },
   submissions: [
     {
@@ -103,7 +104,7 @@ export const UMKM_DASHBOARD_MOCK_DATA: UmkmDashboardData = {
       campaignTitle: "Sambal Matah Dapur Sehat",
       platform: "tiktok",
       status: "Pending",
-      timeAgo: "2 jam lalu"
+      timeAgo: "2 jam lalu",
     },
     {
       id: "sub-2",
@@ -111,8 +112,8 @@ export const UMKM_DASHBOARD_MOCK_DATA: UmkmDashboardData = {
       campaignTitle: "Paket Nasi Sehat",
       platform: "instagram",
       status: "Pending",
-      timeAgo: "5 jam lalu"
-    }
+      timeAgo: "5 jam lalu",
+    },
   ],
   chartData: [
     { day: "Sen", value: "12k", percent: 30, active: false },
@@ -121,7 +122,7 @@ export const UMKM_DASHBOARD_MOCK_DATA: UmkmDashboardData = {
     { day: "Kam", value: "45k", percent: 90, active: false },
     { day: "Jum", value: "38k", percent: 75, active: false },
     { day: "Sab", value: "52k", percent: 100, active: true },
-    { day: "Min", value: "28k", percent: 55, active: false }
+    { day: "Min", value: "28k", percent: 55, active: false },
   ],
   kpis: {
     campaignActive: 1,
@@ -129,24 +130,24 @@ export const UMKM_DASHBOARD_MOCK_DATA: UmkmDashboardData = {
     escrowBalance: 3250000,
     creatorJoined: 8,
     viewsValid: 184200,
-    pendingSubmissions: 2
+    pendingSubmissions: 2,
   },
   insights: [
     {
       id: "ins-1",
       text: "Campaign Kuliner/Food memiliki performa views 28% lebih tinggi minggu ini.",
-      type: "purple"
+      type: "purple",
     },
     {
       id: "ins-2",
       text: "Tambahkan kreator ke campaign aktif Anda untuk meningkatkan estimasi views mingguan.",
-      type: "info"
+      type: "info",
     },
     {
       id: "ins-3",
       text: "Dana escrow sebesar Rp 3.250.000 aman terjamin di dalam escrow pool Marketiv.",
-      type: "success"
-    }
+      type: "success",
+    },
   ],
   activities: [
     {
@@ -154,28 +155,28 @@ export const UMKM_DASHBOARD_MOCK_DATA: UmkmDashboardData = {
       title: "Submission baru dari Nadia Foodie",
       description: "Mengirimkan link posting TikTok untuk campaign 'Sambal Matah'",
       type: "submission",
-      time: "2 jam lalu"
+      time: "2 jam lalu",
     },
     {
       id: "act-2",
       title: "Submission baru dari Chef Budi",
       description: "Mengirimkan link posting Instagram untuk campaign 'Paket Nasi Sehat'",
       type: "submission",
-      time: "5 jam lalu"
+      time: "5 jam lalu",
     },
     {
       id: "act-3",
       title: "Pembayaran Escrow Berhasil",
       description: "Dana Rp 3.300.000 sukses diamankan ke sistem Escrow",
       type: "payment",
-      time: "1 hari lalu"
+      time: "1 hari lalu",
     },
     {
       id: "act-4",
       title: "Campaign Baru Aktif",
       description: "Campaign 'Sambal Matah' resmi aktif dengan kuota 12 kreator",
       type: "campaign",
-      time: "2 hari lalu"
-    }
-  ]
+      time: "2 hari lalu",
+    },
+  ],
 };

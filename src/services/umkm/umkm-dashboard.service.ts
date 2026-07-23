@@ -23,8 +23,10 @@ import {
   mockNegotiations,
   mockChatMessages,
   mockTransactions,
+  mockUmkmOverview,
   getCalculatedDashboardSummary,
 } from "@/mocks/umkm";
+import type { UmkmOverviewData } from "@/mocks/umkm/overview.mock";
 import {
   getUmkmProfileFromAppwrite,
   getDashboardSummaryFromAppwrite,
@@ -42,7 +44,9 @@ import {
   getTransactionByIdFromAppwrite,
   getFinanceSummaryFromAppwrite,
   getEscrowOverviewFromAppwrite,
+  getFinanceOverviewFromAppwrite,
 } from "./umkm-appwrite.service";
+import type { UmkmFinanceOverview } from "./umkm-appwrite.service";
 
 export async function getUmkmProfile(): Promise<ServiceResult<UmkmProfile>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
@@ -50,6 +54,24 @@ export async function getUmkmProfile(): Promise<ServiceResult<UmkmProfile>> {
     return { success: true, data: mockUmkmProfile };
   }
   return getUmkmProfileFromAppwrite();
+}
+
+/**
+ * View-model kaya untuk halaman Overview (hero, KPI, insights, activities).
+ * Mock ON  → mock overview terelokasi. Mock OFF → memerlukan Function DTO
+ * `get-umkm-dashboard-summary` (belum ada) — lihat chip task backend.
+ */
+export async function getOverview(): Promise<ServiceResult<UmkmOverviewData>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return { success: true, data: mockUmkmOverview };
+  }
+  return {
+    success: false,
+    data: null,
+    error: "Belum tersedia — memerlukan Function DTO backend.",
+    code: "unknown",
+  };
 }
 
 export async function getDashboardSummary(): Promise<ServiceResult<UmkmDashboardSummary>> {
@@ -73,7 +95,7 @@ export async function getCampaignById(id: string): Promise<ServiceResult<Campaig
     await mockDelay(300);
     const campaign = mockCampaigns.find((c) => c.id === id);
     if (!campaign) {
-      return { success: false, data: null, error: "Campaign tidak ditemukan" };
+      return { success: false, data: null, error: "Campaign tidak ditemukan", code: "not_found" };
     }
     return { success: true, data: campaign };
   }
@@ -111,7 +133,7 @@ export async function getCreatorById(id: string): Promise<ServiceResult<CreatorP
     await mockDelay(300);
     const creator = mockCreators.find((c) => c.id === id);
     if (!creator) {
-      return { success: false, data: null, error: "Kreator tidak ditemukan" };
+      return { success: false, data: null, error: "Kreator tidak ditemukan", code: "not_found" };
     }
     return { success: true, data: creator };
   }
@@ -140,7 +162,7 @@ export async function getNegotiationById(id: string): Promise<ServiceResult<Nego
     await mockDelay(300);
     const order = mockNegotiations.find((n) => n.id === id);
     if (!order) {
-      return { success: false, data: null, error: "Negosiasi tidak ditemukan" };
+      return { success: false, data: null, error: "Negosiasi tidak ditemukan", code: "not_found" };
     }
     return { success: true, data: order };
   }
@@ -169,7 +191,7 @@ export async function getTransactionById(id: string): Promise<ServiceResult<Tran
     await mockDelay(300);
     const transaction = mockTransactions.find((tx) => tx.id === id);
     if (!transaction) {
-      return { success: false, data: null, error: "Transaksi tidak ditemukan" };
+      return { success: false, data: null, error: "Transaksi tidak ditemukan", code: "not_found" };
     }
     return { success: true, data: transaction };
   }
@@ -218,6 +240,32 @@ export async function getFinanceSummary(): Promise<ServiceResult<UmkmFinanceSumm
     };
   }
   return getFinanceSummaryFromAppwrite();
+}
+
+/**
+ * Ringkasan keuangan + escrow dalam satu perjalanan.
+ *
+ * Mock OFF → satu eksekusi Function `get-umkm-finance-summary`. Halaman Keuangan
+ * harus memakai ini, bukan getFinanceSummary() + getEscrowOverview() bersamaan,
+ * karena keduanya memicu agregasi backend yang sama dua kali.
+ */
+export async function getFinanceOverview(): Promise<ServiceResult<UmkmFinanceOverview>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    const [financeRes, escrowRes] = await Promise.all([
+      getFinanceSummary(),
+      getEscrowOverview(),
+    ]);
+    if (!financeRes.success || !financeRes.data || !escrowRes.success || !escrowRes.data) {
+      return {
+        success: false,
+        data: null,
+        error: financeRes.error ?? escrowRes.error ?? "Gagal memuat ringkasan keuangan.",
+        code: financeRes.code ?? escrowRes.code ?? "unknown",
+      };
+    }
+    return { success: true, data: { finance: financeRes.data, escrow: escrowRes.data } };
+  }
+  return getFinanceOverviewFromAppwrite();
 }
 
 export async function getEscrowOverview(): Promise<ServiceResult<EscrowOverview>> {

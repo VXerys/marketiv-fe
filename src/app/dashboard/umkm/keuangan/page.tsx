@@ -23,7 +23,7 @@ export default function KeuanganPage() {
     loadProfile();
   }, []);
 
-  const businessName = profile?.businessName || "Dapur Sehat Sukabumi";
+  const businessName = profile?.businessName ?? "";
 
   return (
     <UmkmDashboardChrome businessName={businessName}>

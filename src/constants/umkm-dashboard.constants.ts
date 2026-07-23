@@ -8,7 +8,7 @@ export const CAMPAIGN_STATUS_OPTIONS = [
 
 export const CREATOR_NICHE_OPTIONS = [
   { label: "Kuliner", value: "kuliner" },
-  { label: "Fesyen", value: "fesyen" },
+  { label: "Fashion", value: "fashion" },
   { label: "Pariwisata", value: "pariwisata" },
   { label: "Edukasi", value: "edukasi" },
   { label: "Kecantikan", value: "kecantikan" },

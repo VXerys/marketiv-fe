@@ -91,6 +91,9 @@ const collections = [
             createStringAttr("bio", false, 2000),
             createStringAttr("city", false, 100),
             createStringAttr("avatarUrl", false, 2048),
+            // Tidak ada kolom lain yang bisa menurunkan niche kreator — campaigns.category
+            // milik UMKM. Dipakai get-creator-directory; kosong → "lainnya".
+            createEnumAttr("niche", false, ["kuliner", "fashion", "pariwisata", "edukasi", "kecantikan", "lainnya"]),
             createIntAttr("totalFollowers", false, 0),
             createIntAttr("totalOrders", false, 0),
             createFloatAttr("rating", false, 0),
@@ -100,6 +103,7 @@ const collections = [
             createIndex("idx_userId", "unique", ["userId"]),
             createIndex("idx_displayName", "key", ["displayName"]),
             createIndex("idx_city", "key", ["city"]),
+            createIndex("idx_niche", "key", ["niche"]),
             createIndex("idx_rating", "key", ["rating"]),
             createIndex("idx_totalFollowers", "key", ["totalFollowers"]),
             createIndex("idx_isProfileCompleted", "key", ["isProfileCompleted"])
@@ -951,6 +955,65 @@ const functions = [
         entrypoint: "src/main.js",
         commands: "npm install",
         path: "../functions/send-chat-notification"
+    },
+    // ── Function DTO baca (Sprint 1 / s1-appwrite-read) ────────────────────────
+    // Agregasi & join yang tidak bisa dipetakan setia dari satu collection.
+    // Kontrak: docs/marketiv-md/database/08-frontend-data-contract.md §6, §15, §28.
+    {
+        $id: "get-umkm-dashboard-summary",
+        name: "Get UMKM Dashboard Summary",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 30,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/get-umkm-dashboard-summary"
+    },
+    {
+        $id: "get-umkm-finance-summary",
+        name: "Get UMKM Finance Summary",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 30,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/get-umkm-finance-summary"
+    },
+    {
+        $id: "get-umkm-profile",
+        name: "Get UMKM Profile",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/get-umkm-profile"
+    },
+    {
+        $id: "get-creator-directory",
+        name: "Get Creator Directory",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 30,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/get-creator-directory"
     },
 
 ];

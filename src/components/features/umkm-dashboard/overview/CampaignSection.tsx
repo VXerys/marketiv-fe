@@ -56,7 +56,7 @@ function formatBudget(num: number): string {
 
 const NICHE_COLOR_CONFIG: Record<string, { bg: string; text: string; border: string }> = {
   kuliner:    { bg: "rgba(249,115,22,.05)",  text: "#ea580c", border: "rgba(249,115,22,.10)" },
-  fesyen:     { bg: "rgba(22,163,74,.05)",   text: "#16a34a", border: "rgba(22,163,74,.10)" },
+  fashion:     { bg: "rgba(22,163,74,.05)",   text: "#16a34a", border: "rgba(22,163,74,.10)" },
   pariwisata: { bg: "rgba(37,99,235,.05)",   text: "#2563eb", border: "rgba(37,99,235,.10)" },
   edukasi:    { bg: "rgba(124,58,237,.05)",  text: "#7c3aed", border: "rgba(124,58,237,.10)" },
   kecantikan: { bg: "rgba(244,114,182,.05)", text: "#db2777", border: "rgba(244,114,182,.10)" },
@@ -70,7 +70,7 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
   // Custom cover gradients based on niche
   const coverGradients: Record<string, string> = {
     kuliner: "linear-gradient(135deg, #fb923c, #c2410c)",
-    fesyen: "linear-gradient(135deg, #16a34a, #84cc16)",
+    fashion: "linear-gradient(135deg, #16a34a, #84cc16)",
     pariwisata: "linear-gradient(135deg, #1e3a5f, #93c5fd)",
     edukasi: "linear-gradient(135deg, #a78bfa, #6d28d9)",
     kecantikan: "linear-gradient(135deg, #f472b6, #be185d)",

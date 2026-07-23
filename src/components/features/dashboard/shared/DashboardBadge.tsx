@@ -86,8 +86,8 @@ function getCategoryLabel(category: string): string {
   switch (normalizedCategory) {
     case "kuliner":
       return "Kuliner";
-    case "fesyen":
-      return "Fesyen";
+    case "fashion":
+      return "Fashion";
     case "pariwisata":
       return "Pariwisata";
     case "edukasi":

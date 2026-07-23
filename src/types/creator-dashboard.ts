@@ -32,7 +32,7 @@ export type {
 
 export type CreatorNiche =
   | "kuliner"
-  | "fesyen"
+  | "fashion"
   | "pariwisata"
   | "edukasi"
   | "kecantikan"

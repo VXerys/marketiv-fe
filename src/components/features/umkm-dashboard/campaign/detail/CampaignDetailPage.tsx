@@ -145,7 +145,7 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
 
   if (loading) {
     return (
-      <UmkmDashboardChrome businessName="Memuat...">
+      <UmkmDashboardChrome businessName={profile?.businessName ?? ""}>
         <CampaignDetailSkeleton />
       </UmkmDashboardChrome>
     );
@@ -153,13 +153,13 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
 
   if (error || !campaign) {
     return (
-      <UmkmDashboardChrome businessName="Tidak Ditemukan">
+      <UmkmDashboardChrome businessName={profile?.businessName ?? ""}>
         <CampaignNotFoundState />
       </UmkmDashboardChrome>
     );
   }
 
-  const businessName = profile?.businessName || "Dapur Sehat Sukabumi";
+  const businessName = profile?.businessName ?? "";
   const pendingSubmissionsCount = submissions.filter((s) => s.validationStatus === "pending").length;
 
   return (

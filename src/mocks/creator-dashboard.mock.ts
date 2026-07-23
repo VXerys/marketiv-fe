@@ -115,7 +115,7 @@ export const mockCreatorJobs: CreatorJob[] = [
     brandName: "Anggun Apparel",
     brandAvatar: MOCK_ASSETS.campaigns.hijabModern,
     brief: "Bagikan tutorial styling hijab instan Anggun Apparel yang praktis, rapi, dan menutup dada dengan sempurna dalam waktu kurang dari 2 menit. Tunjukkan kelembutan bahan jersey premium yang adem.",
-    niche: "fesyen",
+    niche: "fashion",
     quota: 10,
     usedQuota: 9, // Kuota hampir penuh (9/10)
     ratePerThousandViews: 5500,
@@ -148,7 +148,7 @@ export const mockCreatorJobs: CreatorJob[] = [
     brandName: "Batik Cantik Solo",
     brandAvatar: "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=100&h=100&fit=crop",
     brief: "Buat konten fashion mix and match menggunakan produk outer Batik Solo premium (lini apparel). Perlihatkan bagaimana outer batik ini bisa digunakan baik untuk gaya kasual nongkrong maupun formal saat kerja/kuliah.",
-    niche: "fesyen",
+    niche: "fashion",
     quota: 6,
     usedQuota: 4,
     ratePerThousandViews: 6000,

@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { dummyCreators } from "@/data/creators";
+import { getCreatorById, getCreatorRateCards } from "@/services/umkm/umkm-dashboard.service";
+import type { CreatorProfile } from "@/types/umkm-dashboard.types";
+import { toCreatorView, toRateCardPackageView } from "../creator.adapter";
 import { CreatorProfileHero } from "./CreatorProfileHero";
 import { CreatorStatsCards } from "./CreatorStatsCards";
 import { RateCardPackagesSection } from "./RateCardPackagesSection";
@@ -10,6 +12,7 @@ import { CreatorPortfolioSection } from "./CreatorPortfolioSection";
 import { CreatorSocialLinksCard } from "./CreatorSocialLinksCard";
 import { CreatorDetailSkeleton } from "./CreatorDetailSkeleton";
 import { CreatorNotFoundState } from "./CreatorNotFoundState";
+import { CreatorErrorState } from "../CreatorErrorState";
 import { StartNegotiationModal } from "../modals/StartNegotiationModal";
 import type { RateCardPackage } from "./RateCardPackageCard";
 
@@ -18,26 +21,63 @@ interface CreatorDetailPageProps {
 }
 
 export function CreatorDetailPage({ creatorId }: CreatorDetailPageProps) {
+  const [creator, setCreator] = useState<CreatorProfile | null>(null);
+  const [packages, setPackages] = useState<RateCardPackage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<RateCardPackage | null>(null);
 
-  // Simulate loading delay for skeleton
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 600);
-    return () => clearTimeout(timer);
-  }, []);
+  // Fetch nyata lewat facade service (s1-creators).
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setNotFound(false);
+    try {
+      const [creatorRes, packagesRes] = await Promise.all([
+        getCreatorById(creatorId),
+        getCreatorRateCards(creatorId),
+      ]);
 
-  const creator = dummyCreators.find((c) => c.id === creatorId);
+      if (!creatorRes.success || !creatorRes.data) {
+        if (creatorRes.code === "not_found") {
+          setNotFound(true);
+        } else {
+          setError(creatorRes.error || "Gagal memuat profil kreator.");
+        }
+        return;
+      }
+
+      setCreator(creatorRes.data);
+      setPackages((packagesRes.data ?? []).map(toRateCardPackageView));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan sistem.");
+    } finally {
+      setLoading(false);
+    }
+  }, [creatorId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   if (loading) {
     return <CreatorDetailSkeleton />;
   }
 
+  if (notFound) {
+    return <CreatorNotFoundState />;
+  }
+
+  if (error) {
+    return <CreatorErrorState message={error} onRetry={loadData} />;
+  }
+
   if (!creator) {
     return <CreatorNotFoundState />;
   }
+
+  const creatorView = toCreatorView(creator);
 
   const handleSelectPackage = (pkg: RateCardPackage) => {
     setSelectedPackage(pkg);
@@ -59,14 +99,14 @@ export function CreatorDetailPage({ creatorId }: CreatorDetailPageProps) {
       </div>
 
       {/* Profile Identity */}
-      <CreatorProfileHero creator={creator} />
+      <CreatorProfileHero creator={creatorView} />
 
       {/* Stats Quick Cards */}
       <CreatorStatsCards creatorId={creatorId} />
 
-      {/* Rate card packages section — FULL WIDTH to allow packages to stretch comfortably */}
+      {/* Rate card packages — dari getCreatorRateCards() */}
       <RateCardPackagesSection
-        creatorCategory={creator.category}
+        packages={packages}
         onSelectPackage={handleSelectPackage}
       />
 
@@ -81,9 +121,7 @@ export function CreatorDetailPage({ creatorId }: CreatorDetailPageProps) {
 
         {/* Right side: Social links card */}
         <div className="h-full">
-          <CreatorSocialLinksCard
-            creatorName={creator.name}
-          />
+          <CreatorSocialLinksCard creatorName={creator.name} />
         </div>
       </div>
 

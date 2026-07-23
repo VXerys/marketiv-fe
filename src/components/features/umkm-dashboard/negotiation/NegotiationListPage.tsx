@@ -36,10 +36,7 @@ export function NegotiationListPage() {
     } catch {
       setError("Terjadi kesalahan sistem saat memuat data.");
     } finally {
-      // Keep loading active for mock latency feedback
-      setTimeout(() => {
-        setLoading(false);
-      }, 600);
+      setLoading(false);
     }
   };
 

@@ -61,27 +61,43 @@ export function AnalitikClient({ businessName }: AnalitikClientProps) {
                 <span className="block w-[18px] h-0.5 rounded-full bg-orange-500 shrink-0" />
                 Performa Bisnis
               </div>
-              <h2 className="font-display text-[clamp(1.5rem,2.8vw,2.1rem)] font-bold tracking-[-0.065em] text-ink-950 m-0 mb-1.5 leading-none">
-                Analitik &amp; Insight
-              </h2>
+              <div className="flex items-center gap-2.5 flex-wrap mb-1.5">
+                <h2 className="font-display text-[clamp(1.5rem,2.8vw,2.1rem)] font-bold tracking-[-0.065em] text-ink-950 m-0 leading-none">
+                  Analitik &amp; Insight
+                </h2>
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200/70 text-amber-700 text-[.7rem] font-[800] tracking-tight uppercase">
+                  Segera Hadir
+                </span>
+              </div>
               <p className="text-ink-500 text-[.88rem] m-0">
-                Pantau performa campaign, kreator, dan ROI bisnis Anda secara menyeluruh.
+                Data di bawah masih ilustrasi. Analitik nyata akan aktif setelah pipeline data campaign siap.
               </p>
             </div>
 
             <div className="flex items-center gap-2.5 flex-shrink-0 flex-wrap">
               {/* Period selector */}
               <div className="relative inline-flex items-center">
-                <select className="appearance-none min-h-[40px] pl-3.5 pr-9 rounded-xl border border-neutral-200/80 bg-white text-ink-700 text-[.84rem] font-[700] shadow-3xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-shadow">
+                <select
+                  disabled
+                  aria-disabled="true"
+                  title="Segera hadir"
+                  className="appearance-none min-h-[40px] pl-3.5 pr-9 rounded-xl border border-neutral-200/80 bg-neutral-50 text-ink-400 text-[.84rem] font-[700] shadow-3xs cursor-not-allowed opacity-70 focus:outline-none"
+                >
                   <option>6 Bulan Terakhir</option>
                   <option>3 Bulan Terakhir</option>
                   <option>Tahun Ini</option>
                 </select>
-                <ChevronDown size={14} className="absolute right-3 pointer-events-none text-neutral-400" />
+                <ChevronDown size={14} className="absolute right-3 pointer-events-none text-neutral-300" />
               </div>
 
-              {/* Export CTA */}
-              <button className="inline-flex items-center gap-2 min-h-[46px] px-[22px] rounded-xl border border-orange-900/20 bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white font-[800] text-[.9rem] tracking-[-0.012em] shadow-[0_14px_34px_rgba(234,88,12,.22),inset_0_1px_0_rgba(255,255,255,.22)] cursor-pointer whitespace-nowrap hover:shadow-[0_18px_40px_rgba(234,88,12,.30)] hover:-translate-y-px transition-all duration-200">
+              {/* Export CTA — dinonaktifkan sampai analitik nyata siap */}
+              <button
+                type="button"
+                disabled
+                aria-disabled="true"
+                title="Segera hadir"
+                className="inline-flex items-center gap-2 min-h-[46px] px-[22px] rounded-xl border border-neutral-200/80 bg-neutral-100 text-ink-400 font-[800] text-[.9rem] tracking-[-0.012em] cursor-not-allowed opacity-70 whitespace-nowrap"
+              >
                 <Download size={17} />
                 Export Laporan
               </button>

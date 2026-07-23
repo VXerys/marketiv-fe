@@ -99,11 +99,16 @@ displayName
 bio
 city
 avatarUrl
+niche               # enum, opsional — lihat catatan di bawah
 totalFollowers      # denormalisasi
 totalOrders         # denormalisasi
 rating              # denormalisasi
 isProfileCompleted
 ```
+
+`niche` bernilai salah satu dari `kuliner | fashion | pariwisata | edukasi | kecantikan | lainnya`.
+
+Kolom ini ditambahkan untuk `get-creator-directory` ([70_Backend.md](70_Backend.md)). Tidak ada kolom lain yang bisa menurunkannya: `campaigns.category` menggambarkan kategori usaha UMKM, bukan spesialisasi kreator. Selama kolom belum di-backfill, Function mengembalikan `lainnya`.
 
 ### Index
 
@@ -111,6 +116,7 @@ isProfileCompleted
 userId (unique)
 displayName
 city
+niche
 rating
 totalFollowers
 isProfileCompleted
