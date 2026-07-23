@@ -161,6 +161,54 @@ Files:
 
 ---
 
+## 2026-07-23 — Appwrite Config Cleanup
+
+### 1. Chore: Hapus Generator Legacy
+**`787ed59`** 14:27 — `chore: hapus generator legacy js`
+
+Hapus dua file generator `.js` yang sudah digantikan oleh `generate_appwrite_json.cjs`.
+
+Files:
+- `00_BACKEND/generate_appwrite_json.js` — deleted (legacy V1, DB ID beda, flat `profiles`, 6 functions)
+- `00_BACKEND/appwrite/generate_appwrite_json.js` — deleted (stale copy, node-18.0 target)
+
+### 2. Chore: Hapus appwrite.json Legacy
+**`a04612e`** 14:27 — `chore: hapus appwrite.json legacy`
+
+Hapus file `appwrite.json` legacy yang sudah tidak dipakai. CLI v22 hanya baca `appwrite.config.json`.
+
+Files:
+- `00_BACKEND/appwrite.json` — deleted (legacy V1 output)
+- `00_BACKEND/appwrite/appwrite.json` — deleted (duplikat dari `appwrite.config.json`, hanya beda path prefix)
+
+### 3. Chore: Simplify Generator ke Output Tunggal
+**`1d65ded`** 14:27 — `chore: simplify generator ke output tunggal appwrite.config.json`
+
+Generator `.cjs` hanya output `appwrite.config.json` (CLI v22). Hapus output legacy `appwrite/appwrite.json`. Hapus blok try/catch baca existing `appwrite.json`.
+
+Files:
+- `00_BACKEND/appwrite/generate_appwrite_json.cjs` — hapus legacy output, hardcode projectId/name
+- `00_BACKEND/appwrite.config.json` — regenerated (output identik)
+
+### 4. Docs: Sinkron Referensi Appwrite Config
+**`bc6b506`** 14:27 — `docs: sinkron referensi appwrite.config.json`
+
+Update dokumentasi yang masih merujuk `appwrite/appwrite.json` → `appwrite.config.json`.
+
+Files:
+- `00_BACKEND/AGENTS.md` — `appwrite/appwrite.json` → `appwrite.config.json`
+- `00_BACKEND/docs/01_Global/40_Folder_Structure.md` — urutan dan path disesuaikan
+
+### 5. Docs: Update Data Contract Frontend
+**`9205f37`** 14:27 — `docs: update data contract frontend`
+
+Rewrite `08-frontend-data-contract.md` dari snake_case Indonesian ke camelCase English, sinkron dengan `src/types/domain.ts` dan `src/types/*.ts`.
+
+Files:
+- `docs/marketiv-md/database/08-frontend-data-contract.md` — rewrite 1102 line
+
+---
+
 ## Ringkasan Perubahan MVP
 
 | Area | Status | Keterangan |
