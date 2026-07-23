@@ -73,8 +73,12 @@ export type TransactionType =
  * Status yang ditampilkan pada baris transaksi di UI.
  * Gabungan payments.status + escrows.status karena satu baris riwayat bisa
  * berasal dari salah satunya.
+ *
+ * `"completed"` adalah nilai yang benar-benar ditulis ke kolom
+ * `transactions.status` oleh calculate-campaign-reward, release-escrow, dan
+ * wallet.service.ts:259 — bukan bagian dari payments/escrows, tapi nyata.
  */
-export type TransactionStatus = PaymentStatus | EscrowStatus;
+export type TransactionStatus = PaymentStatus | EscrowStatus | "completed";
 
 // ---------------------------------------------------------------------------
 // Chat
@@ -104,7 +108,7 @@ export interface ServiceResult<T> {
 // Konstanta bisnis
 // Mirror 00_BACKEND/src/services/wallet.service.ts — jangan hardcode ulang.
 // ---------------------------------------------------------------------------
-export const PLATFORM_FEE_RATE = 0.05;
+export const PLATFORM_FEE_RATE = 0.02;
 export const MINIMUM_WITHDRAW = 50_000;
 export const MINIMUM_CAMPAIGN_BUDGET = 50_000;
 

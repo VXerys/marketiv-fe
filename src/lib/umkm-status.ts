@@ -107,6 +107,8 @@ export function getTransactionStatusLabel(status: TransactionStatus): string {
     held: "Dana Ditahan (Escrow)",
     released: "Dana Dicairkan",
     refunded: "Dikembalikan (Refund)",
+    // Nilai yang benar-benar ditulis ke `transactions.status` oleh backend.
+    completed: "Selesai",
   };
   return map[status] || status;
 }
@@ -121,6 +123,7 @@ export function getTransactionStatusVariant(status: TransactionStatus): BadgeVar
     held: "warning",
     released: "success",
     refunded: "neutral",
+    completed: "success",
   };
   return map[status] || "neutral";
 }

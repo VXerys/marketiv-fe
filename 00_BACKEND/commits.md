@@ -161,7 +161,40 @@ Files:
 
 ---
 
-## 2026-07-23 — Appwrite Config Cleanup
+## 2026-07-23 (pagi) — Sprint 1 Frontend Integration
+
+> Batch ini sempat terlewat dari tracker. Dicatat menyusul agar urutan hari ini utuh:
+> pagi = perubahan dari sisi frontend, siang = respons backend atas dokumen handoff-nya.
+
+### 0. Refactor: Dashboard UMKM + 4 Function DTO
+**`b31f6e2`** 09:13 — `refactor: restructure dashboards, add backend functions, consolidate services`
+
+Sprint 1 memindahkan dashboard UMKM dari mock ke service layer. Empat field view-model
+tidak punya sumber data, dan sebagian butuh join lintas collection yang tidak bisa
+dilakukan klien — maka lahir 4 Function DTO read-only.
+
+Files (66 berkas, +2393/−1418):
+- `00_BACKEND/functions/get-umkm-profile/` — new
+- `00_BACKEND/functions/get-umkm-dashboard-summary/` — new
+- `00_BACKEND/functions/get-umkm-finance-summary/` — new
+- `00_BACKEND/functions/get-creator-directory/` — new
+- `00_BACKEND/appwrite.config.json` + generator — kolom `creator_profiles.niche` + index `idx_niche`, enum `fesyen` → `fashion`
+- `00_BACKEND/integration-context/2026-07-23-frontend-sprint1-appwrite-changes.md` — new, dokumen handoff berisi 4 pertanyaan keputusan
+- `src/services/umkm/umkm-appwrite.service.ts` — 16 fungsi read
+- `src/lib/appwrite/functions.ts` — `executeFunction` + `FUNCTION_IDS`
+- `src/components/features/dashboard/*` — dihapus, digantikan `umkm-dashboard/*`
+
+**Bug yang ditemukan**: id kreator sempat dipetakan dari `creator_profiles.$id`. Salah —
+`orders.creatorId`, `rate_cards.creatorId`, dan `wallets.userId` semuanya memakai `userId`.
+Pencarian rate card akan selalu kosong tanpa error. `get-creator-directory` mengembalikan `userId`.
+
+---
+
+## 2026-07-23 (siang) — Appwrite Config Cleanup
+
+> Respons tim backend atas §7 dokumen handoff Sprint 1: pertanyaan #1 (generator divergen)
+> dan #2 (data contract usang) tuntas; #3 (`campaigns.category` jadi enum) dan #4 (scope API
+> key `users.read`) belum dijawab.
 
 ### 1. Chore: Hapus Generator Legacy
 **`787ed59`** 14:27 — `chore: hapus generator legacy js`
@@ -209,6 +242,59 @@ Files:
 
 ---
 
+## 2026-07-23 (sore) — Sprint 2 Fondasi Read-only Kreator
+
+> Belum di-commit saat catatan ini ditulis. Dokumen handoff:
+> `integration-context/2026-07-23-frontend-sprint2-appwrite-changes.md`
+
+### 1. Fix: `Query` tidak di-import di 5 Function
+
+Kelima Function memakai `Query.equal`/`Query.limit` tanpa meng-import-nya —
+`ReferenceError` begitu dijalankan. Seluruh pipeline Campaign Mode (PPV) terdampak;
+tidak terlihat selama ini karena frontend masih memakai mock.
+
+Files: `ai-fraud-precheck`, `calculate-campaign-reward`, `campaign-claimed`,
+`campaign-published`, `expire-stale-claims` — masing-masing `src/main.js` baris import.
+
+### 2. Fix: Notifikasi ditulis tanpa permission baris
+
+`notifications` punya `$permissions: []` + `rowSecurity`, tapi 4 dari 5 Function penulisnya
+tidak memasang `Permission.read` — baris tercipta tapi tidak akan pernah terbaca pemiliknya.
+Gagal senyap tanpa error.
+
+Files: `calculate-campaign-reward` (creatorId), `campaign-claimed` (campaign.umkmId),
+`campaign-published` (creator.userId), `expire-stale-claims` (claim.creatorId).
+`calculate-campaign-reward` juga kini memasang permission baris pada `transactions`.
+
+### 3. Feature: 3 Function DTO Kreator
+
+Read-only, pola sama dengan 4 Function Sprint 1. Wajib lewat Function karena `escrows`
+tidak terbaca klien dan agregasi uang melanggar kontrak §9/§26.
+
+Files:
+- `00_BACKEND/functions/get-creator-profile/` — new, 15s
+- `00_BACKEND/functions/get-creator-dashboard-summary/` — new, 30s
+- `00_BACKEND/functions/get-creator-negotiations/` — new, 30s, dual-mode list/single
+- `00_BACKEND/appwrite/generate_appwrite_json.cjs` + `appwrite.config.json` — +48/−0, murni 3 blok Function
+
+### 4. Feature: Service layer Kreator (`s2-appwrite-read`)
+
+Files:
+- `src/services/creator/creator-appwrite.service.ts` — 12 stub → implementasi (4 via Function, 8 query langsung)
+- `src/lib/appwrite/functions.ts` — 3 id baru di `FUNCTION_IDS`
+
+### 5. Fix: Drift kanon frontend
+
+Files:
+- `src/types/domain.ts` — `PLATFORM_FEE_RATE` 0.05 → 0.02 (tertinggal sejak `2ab8113`); `TransactionStatus` + `"completed"` (nilai yang benar-benar ditulis backend)
+- `src/types/creator-dashboard.ts` — `CreatorActivityType` diperluas dengan nilai `notifications.type` nyata
+- `src/lib/creator-status.ts`, `src/lib/umkm-status.ts` — label & variant untuk `completed`
+
+**Verifikasi**: ✅ `tsc --noEmit` bersih, ✅ `node --check` bersih untuk 8 Function tersentuh.
+Lint: 8 error pre-existing di komponen view kreator (target wiring Sprint 2), nol di berkas yang disentuh.
+
+---
+
 ## Ringkasan Perubahan MVP
 
 | Area | Status | Keterangan |
@@ -219,4 +305,4 @@ Files:
 | Storage | ⏸️ DORMANT | `user_files`/`user_storage_usage` tidak aktif, kode siap diaktifkan |
 | Docs | ✅ Synced | 30+ file dokumentasi sinkron dengan kode |
 | Tests | ✅ 121/121 pass | Unit, integration, e2e |
-| Functions | ✅ 16 functions | 2 legacy dihapus, sisanya runtime node-22 |
+| Functions | ✅ 23 functions | 16 asal + 4 DTO UMKM (Sprint 1) + 3 DTO Kreator (Sprint 2), semua node-22 |

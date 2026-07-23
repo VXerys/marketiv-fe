@@ -1014,6 +1014,51 @@ const functions = [
         commands: "npm install",
         path: "../functions/get-creator-directory"
     },
+    // ── Function DTO baca (Sprint 2 / s2-appwrite-read) ────────────────────────
+    // Sisi kreator. Tiga di antaranya wajib lewat Function karena `escrows` dan
+    // `notifications` tidak terbaca klien, dan agregasi metrik melanggar §9.
+    {
+        $id: "get-creator-profile",
+        name: "Get Creator Profile",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/get-creator-profile"
+    },
+    {
+        $id: "get-creator-dashboard-summary",
+        name: "Get Creator Dashboard Summary",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 30,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/get-creator-dashboard-summary"
+    },
+    {
+        $id: "get-creator-negotiations",
+        name: "Get Creator Negotiations",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 30,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/get-creator-negotiations"
+    },
 
 ];
 

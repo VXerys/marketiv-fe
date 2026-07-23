@@ -1,4 +1,4 @@
-import { Client, Databases, ID } from "node-appwrite";
+import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -68,7 +68,12 @@ export default async ({ req, res, log, error }) => {
         referenceId: submissionId,
         referenceType: "campaign_submission",
         status: "completed",
-      }
+      },
+      // Sejajar dengan release-escrow: baris ledger dimiliki kreator. Saat ini
+      // `transactions` masih punya read("users") di level koleksi, jadi tanpa baris
+      // ini pun terbaca — justru itu masalahnya (semua user bisa membaca semua
+      // transaksi). Permission baris membuat koleksi itu aman untuk diperketat.
+      [Permission.read(Role.user(creatorId))]
     );
 
     const spentAmount = Number(campaign.spentAmount) + reward;
@@ -98,7 +103,11 @@ export default async ({ req, res, log, error }) => {
         type: "reward",
         isRead: false,
         createdAt: new Date().toISOString(),
-      }
+      },
+      // `notifications` punya $permissions kosong + rowSecurity — tanpa permission
+      // baris, notifikasi tidak akan pernah terbaca pemiliknya. `update` diperlukan
+      // agar penerima bisa menandainya sudah dibaca.
+      [Permission.read(Role.user(creatorId)), Permission.update(Role.user(creatorId))]
     );
 
     log(`Reward ${reward} calculated for submission ${submissionId}`);

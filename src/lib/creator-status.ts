@@ -84,6 +84,8 @@ export function getCreatorTransactionStatusLabel(status: TransactionStatus): str
     held: "Dana Ditahan",
     released: "Dana Dicairkan",
     refunded: "Dikembalikan",
+    // Nilai yang benar-benar ditulis ke `transactions.status` oleh backend.
+    completed: "Selesai",
   };
   return map[status] || status;
 }

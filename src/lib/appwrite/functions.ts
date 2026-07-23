@@ -20,6 +20,9 @@ export const FUNCTION_IDS = {
   umkmFinanceSummary: "get-umkm-finance-summary",
   umkmProfile: "get-umkm-profile",
   creatorDirectory: "get-creator-directory",
+  creatorProfile: "get-creator-profile",
+  creatorDashboardSummary: "get-creator-dashboard-summary",
+  creatorNegotiations: "get-creator-negotiations",
 } as const;
 
 export type FunctionId = (typeof FUNCTION_IDS)[keyof typeof FUNCTION_IDS];

@@ -1,4 +1,4 @@
-import { Client, Databases, ID } from "node-appwrite";
+import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -50,7 +50,11 @@ export default async ({ req, res, log, error }) => {
         type: "claim",
         isRead: false,
         createdAt: new Date().toISOString(),
-      }
+      },
+      // `notifications` punya $permissions kosong + rowSecurity — tanpa permission
+      // baris, notifikasi tidak akan pernah terbaca pemiliknya. `update` diperlukan
+      // agar penerima bisa menandainya sudah dibaca.
+      [Permission.read(Role.user(campaign.umkmId)), Permission.update(Role.user(campaign.umkmId))]
     );
 
     log(`Claim ${claimId} verified, UMKM ${campaign.umkmId} notified`);

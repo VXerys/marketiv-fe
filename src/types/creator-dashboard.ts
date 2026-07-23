@@ -205,9 +205,24 @@ export interface CreatorTransaction {
   notes?: string;
 }
 
+/**
+ * Empat nilai pertama adalah kategori tampilan yang sudah punya warna & label di
+ * CreatorDashboardView. Sisanya adalah nilai `notifications.type` yang benar-benar
+ * ditulis backend dan tidak punya padanan — diteruskan apa adanya, dan UI
+ * menampilkannya sebagai "INFO" lewat cabang default-nya.
+ */
+export type CreatorActivityType =
+  | "submission_valid"
+  | "payout"
+  | "negotiation_new"
+  | "pending_escrow"
+  | "claim"
+  | "claim_expired"
+  | "campaign_published";
+
 export interface CreatorActivity {
   id: string;
-  type: "submission_valid" | "payout" | "negotiation_new" | "pending_escrow";
+  type: CreatorActivityType;
   title: string;
   description: string;
   amount?: number;
