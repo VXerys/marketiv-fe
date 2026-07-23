@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 
-const appwriteJsonPath = path.join(__dirname, 'appwrite.json');
 
 const databaseId = "6a4c8598001da3b0d7f0";
 const databaseName = "prod_marketiv_db";
@@ -1018,42 +1017,12 @@ const functions = [
 
 ];
 
-let existingProjectId = "69f9d45b00315cb0ec2f";
-let existingProjectName = "Marketiv";
-
-try {
-    if (fs.existsSync(appwriteJsonPath)) {
-        const existingData = JSON.parse(fs.readFileSync(appwriteJsonPath, 'utf8'));
-        if (existingData.projectId) existingProjectId = existingData.projectId;
-        if (existingData.projectName) existingProjectName = existingData.projectName;
-    }
-} catch (error) {
-    console.log('Could not read existing appwrite.json, using default project details.');
-}
-
 const appwriteConfigPath = path.join(__dirname, '..', 'appwrite.config.json');
 
-const appwriteJson = {
-    projectId: existingProjectId,
-    projectName: existingProjectName,
-    endpoint: "https://sgp.cloud.appwrite.io/v1",
-    tablesDB: [
-        {
-            $id: databaseId,
-            name: databaseName
-        }
-    ],
-    tables,
-    buckets,
-    functions: functions.filter((fn) => fs.existsSync(path.join(__dirname, fn.path)))
-};
+const existingProjectId = "69f9d45b00315cb0ec2f";
+const existingProjectName = "Marketiv";
 
-// Legacy format (appwrite/appwrite.json) — uses ../functions/ paths
-fs.writeFileSync(appwriteJsonPath, JSON.stringify(appwriteJson, null, 2));
-console.log(`Successfully generated ${appwriteJsonPath}`);
-
-// CLI v22 format (appwrite.config.json) — uses functions/ paths
-const rootConfig = {
+const config = {
     projectId: existingProjectId,
     projectName: existingProjectName,
     endpoint: "https://sgp.cloud.appwrite.io/v1",
@@ -1072,5 +1041,5 @@ const rootConfig = {
             path: fn.path.replace('../', '')
         }))
 };
-fs.writeFileSync(appwriteConfigPath, JSON.stringify(rootConfig, null, 2));
+fs.writeFileSync(appwriteConfigPath, JSON.stringify(config, null, 2));
 console.log(`Successfully generated ${appwriteConfigPath}`);
