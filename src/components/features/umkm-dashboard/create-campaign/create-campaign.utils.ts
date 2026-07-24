@@ -11,7 +11,7 @@ export function getDerivedBudgetValues(
   totalBudgetEscrow: number,
   creatorQuota: number
 ): DerivedBudgetValues {
-  const platformFee = Math.round(totalBudgetEscrow * 0.15);
+  const platformFee = Math.round(totalBudgetEscrow * 0.02);
   const totalPayment = totalBudgetEscrow + platformFee;
   
   const estimatedViews = pricePerThousandViews > 0 
