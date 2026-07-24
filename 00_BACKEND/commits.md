@@ -397,3 +397,20 @@ Files:
 | Docs | ✅ Synced | 30+ file dokumentasi sinkron dengan kode |
 | Tests | ✅ 121/121 pass | Unit, integration, e2e |
 | Functions | ✅ 23 functions | 16 asal + 4 DTO UMKM (Sprint 1) + 3 DTO Kreator (Sprint 2), semua node-22 |
+
+---
+
+## 2026-07-24 — Security & Data Integrity Investigation (6 items)
+
+> Investigasi menyeluruh dari dokumen handoff Sprint 2 + audit skema Appwrite. Temuan utama:
+
+| # | Item | Temuan | Tindakan / Status |
+|---|------|--------|-------------------|
+| 1 | Notifikasi lama backfill | 0 baris — frontend masih mock, notifikasi belum pernah ditulis | Skip (tidak perlu backfill) |
+| 2 | `$permissions` `wallets` & `transactions` | **KRITIS** — collection-level `read("users")` membuka semua baris ke semua user login. Sudah **di-fix** di config (`c222063`), row-level permission sudah pasang di 5 penulis utama. Perlu **deploy** `appwrite.config.json` ke Appwrite. |
+| 3 | `transactions.status = "completed"` | Sengaja — frontend (`TransactionStatus` di `domain.ts:77`) sudah handle nilai ini. Aman. |
+| 4 | `fesyen` → `fashion` backfill | Enum `creator_profiles.niche` sudah `fashion`. `campaigns.category` string bebas tapi **0 data** `fesyen` di DB. Skip. |
+| 5 | Scope API key `users.read` | `get-creator-profile` & `get-umkm-profile` pakai `users.get().catch(() => null)` — graceful degradation. Cek Console Appwrite: API key kedua function **harus** punya scope `users.read` agar nama user dari Auth terbaca (fallback `displayName` dari collection). |
+| 6 | Fee rate 2% UI | Seller-side (backend + domain.ts) sudah 2% sejak `2ab8113`. Buyer-side `create-campaign.utils.ts` sudah fix `0.15→0.02` di `c649de7`. Seluruh stack seragam 2%. |
+
+**Next step prioritas**: Deploy `appwrite.config.json` (hapus `read("users")` dari `wallets` & `transactions`) + set scope `users.read` di Console untuk 2 function profile.
