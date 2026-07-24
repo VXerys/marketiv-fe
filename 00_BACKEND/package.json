@@ -12,6 +12,7 @@
     "sync:scopes": "tsx appwrite/sync-scopes.ts"
   },
   "dependencies": {
+    "@opendataloader/pdf": "^2.5.0",
     "appwrite": "^26.1.0"
   },
   "devDependencies": {
