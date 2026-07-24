@@ -2383,9 +2383,7 @@
     {
       "$id": "wallets",
       "name": "Wallets",
-      "$permissions": [
-        "read(\"users\")"
-      ],
+      "$permissions": [],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
       "rowSecurity": true,
@@ -2630,9 +2628,7 @@
     {
       "$id": "transactions",
       "name": "Transactions",
-      "$permissions": [
-        "read(\"users\")"
-      ],
+      "$permissions": [],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
       "rowSecurity": true,
