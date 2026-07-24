@@ -295,6 +295,97 @@ Lint: 8 error pre-existing di komponen view kreator (target wiring Sprint 2), no
 
 ---
 
+## 2026-07-24 — Function Standardization + Security Hardening (7 commits)
+
+### 15. Fix: Env Var Naming Convention di Semua Function
+**`1f6e3ec`** 07:56 — `fix: ganti var APPWRITE_API_KEY → APPWRITE_FUNCTION_API_KEY di semua function`
+
+Appwrite Function runtime meng-inject key dengan prefix `FUNCTION_`; pakai
+`APPWRITE_API_KEY` sebagai fallback di `getEnv()` berisiko baca env kosong
+saat autocomplete tidak ketat. Standarisasi ke nama kanonik `APPWRITE_FUNCTION_API_KEY`
+supaya sinkron injeksi runtime dan env var manual.
+
+20 function tersentuh (masing-masing `.env.example` + `src/main.js`, 40 file):
+`ai-fraud-precheck`, `campaign-claimed`, `campaign-published`, `create-escrow`,
+`create-order`, `create-payment`, `create-user-profile`, `create-user-wallet`,
+`delete-file`, `expire-stale-claims`, `get-creator-dashboard-summary`,
+`get-creator-directory`, `get-creator-negotiations`, `get-creator-profile`,
+`get-umkm-dashboard-summary`, `get-umkm-finance-summary`, `get-umkm-profile`,
+`midtrans-webhook`, `release-escrow`, `send-chat-notification`, `validate-and-upload`
+
+### 16. Fix: Standarisasi Client Init ai-brief
+**`466fc08`** 07:56 — `fix: ganti client init ai-brief dari req.variables ke process.env`
+
+ai-brief adalah satu-satunya function yang memakai `req.variables?.APPWRITE_*`
+untuk init Client; 22 function lain sudah pakai `process.env.APPWRITE_FUNCTION_*`.
+Standarisasi agar inject runtime seragam dan bisa di-repro env local.
+
+Files:
+- `00_BACKEND/functions/ai-brief/src/main.js` — 3 baris `.setEndpoint`/`.setProject`/`.setKey`
+
+### 17. Fix: Permission Baris di Auto-Create Wallet
+**`17d5241`** 07:57 — `fix: tambah Permission.read di auto-create wallet calculate-campaign-reward`
+
+Wallets collection punya `rowSecurity=true`. `findOrCreateWallet` membuat
+dokumen wallet baru tanpa `Permission.read` — baris tercipta tapi
+tidak akan terbaca pemiliknya. Gagal senyap tanpa error.
+
+Files:
+- `00_BACKEND/functions/calculate-campaign-reward/src/main.js` — `[Permission.read(Role.user(userId))]`
+
+### 18. Fix: Hapus Collection-Level Read Users
+**`c222063`** 07:57 — `fix: hapus collection-level read users dari wallets & transactions`
+
+Permission `read("users")` di level collection membuka semua baris ke
+semua user auth. Wallets & transactions sudah pakai `rowSecurity=true`
+dengan permission per-baris — collection-level `read("users")` redudan
+dan melanggar isolasi data.
+
+Files:
+- `00_BACKEND/appwrite.config.json` — hapus `"read(\"users\")"` dari `wallets` & `transactions`
+
+### 19. Fix: Platform Fee 0.15→0.02 di Dashboard UMKM
+**`c649de7`** 07:57 — `fix: koreksi platform fee 0.15→0.02 di create-campaign utils`
+
+Platform fee kanon sudah 2% sejak `2ab8113` di backend. Frontend masih
+pakai `0.15` (15%) — mismatch menyebabkan perhitungan budget tidak akurat
+di UI dashboard UMKM.
+
+Files:
+- `src/components/features/umkm-dashboard/create-campaign/create-campaign.utils.ts` — `0.15 → 0.02`
+
+### 20. Feature: Sync Function Scopes
+**`c5467ec`** 07:57 — `feat: tambah script sync function scopes ke Appwrite`
+
+Script `sync-scopes.ts` membaca mapping scope dari `function-scopes.json`,
+membandingkan dengan scope existing di Appwrite, lalu update yang berbeda.
+Jalan dengan `npx tsx appwrite/sync-scopes.ts` + 3 env var.
+
+23 function tercakup:
+- 16 function read-write: `databases.read`, `databases.write`
+- 2 function read-write + users: `get-creator-profile`, `get-umkm-profile`
+- 2 function read-only: `get-creator-directory`, `get-creator-negotiations`
+- 1 function read-write + files: `validate-and-upload`
+- 1 function read-write + files + storage: `delete-file`
+- 1 function read-write + messages: `send-chat-notification`
+
+Files:
+- `00_BACKEND/appwrite/function-scopes.json` — new, mapping 23 function → scopes
+- `00_BACKEND/appwrite/sync-scopes.ts` — new, script sync via Appwrite Functions API
+
+### 21. Chore: DevDependencies untuk Sync Script
+**`d178521`** 07:57 — `chore: tambah node-appwrite + tsx ke devDependencies`
+
+`node-appwrite` (SDK v14) dibutuhkan `sync-scopes.ts` untuk panggil
+Appwrite Functions API. `tsx` dibutuhkan untuk jalankan script TypeScript
+tanpa kompilasi manual.
+
+Files:
+- `00_BACKEND/package.json` — `+ node-appwrite ^14.1.0`, `+ tsx ^4.19.0`
+- `00_BACKEND/package-lock.json` — 540+ lines deps baru
+
+---
+
 ## Ringkasan Perubahan MVP
 
 | Area | Status | Keterangan |
