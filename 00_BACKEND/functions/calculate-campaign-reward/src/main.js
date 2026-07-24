@@ -127,7 +127,8 @@ async function findOrCreateWallet(databases, env, userId) {
   if (existing.documents.length > 0) return existing.documents[0];
   return await databases.createDocument(
     env.databaseId, env.walletsCollectionId, ID.unique(),
-    { userId, balance: 0, pendingBalance: 0 }
+    { userId, balance: 0, pendingBalance: 0 },
+    [Permission.read(Role.user(userId))]
   );
 }
 
@@ -135,7 +136,7 @@ function getEnv() {
   const env = {
     appwriteEndpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT || process.env.APPWRITE_ENDPOINT,
     appwriteProjectId: process.env.APPWRITE_FUNCTION_PROJECT_ID || process.env.APPWRITE_PROJECT_ID,
-    appwriteApiKey: process.env.APPWRITE_API_KEY,
+    appwriteApiKey: process.env.APPWRITE_FUNCTION_API_KEY,
     databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
     campaignsCollectionId: process.env.CAMPAIGNS_COLLECTION_ID || process.env.NEXT_PUBLIC_CAMPAIGN_COLLECTION || "campaigns",
     walletsCollectionId: process.env.WALLETS_COLLECTION_ID || process.env.NEXT_PUBLIC_WALLET_COLLECTION || "wallets",
