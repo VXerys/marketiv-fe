@@ -825,3 +825,60 @@ export async function uploadUmkmLogoInAppwrite(file: File): Promise<ServiceResul
     return failFromWriteError<string>(err, "");
   }
 }
+
+// ── AI brief (Sprint 3) ──────────────────────────────────────────────────────
+
+export type AiBriefInput = {
+  description: string;
+  type: CampaignType;
+  productName?: string;
+  targetMarket?: string;
+  goal?: string;
+  materials?: string[];
+};
+
+export type AiBrief = {
+  objective: string;
+  contentAngle: string;
+  cta: string;
+  briefDetail: string;
+  doAndDont: { do: string[]; dont: string[] };
+};
+
+/**
+ * Panggil Function `ai-brief`.
+ *
+ * Dua penghilangan sengaja dari body:
+ * - TANPA `campaignId`: campaign belum ada di langkah 2, dan bila dikirim
+ *   ai-brief menulis baris campaign_briefs sendiri yang bersaing dengan tulisan
+ *   createCampaignDraft dan gagal senyap di batas kolom doAndDont (400 char).
+ * - TANPA `userId`: ai-brief menerima userId dari klien (spoofable). Dikirim
+ *   kosong: baris audit ai_requests terdegradasi, bukan dipalsukan. Handoff
+ *   meminta backend membaca header x-appwrite-user-id seperti 10 Function lain.
+ */
+export async function generateCampaignBriefFromAppwrite(
+  input: AiBriefInput
+): Promise<ServiceResult<AiBrief>> {
+  const empty = null as unknown as AiBrief;
+  const auth = await requireUserId<AiBrief>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await executeFunction<{ success: boolean; brief?: AiBrief; error?: string }>(
+      FUNCTION_IDS.aiBrief,
+      {
+        description: input.description,
+        type: input.type,
+        productName: input.productName || "Not specified",
+        targetMarket: input.targetMarket || "General",
+        goal: input.goal || "Brand awareness",
+        materials: input.materials ?? [],
+      }
+    );
+    if (!res.success || !res.brief) {
+      return fail(res.error ?? "Gagal menghasilkan brief AI. Coba lagi.", "server", empty);
+    }
+    return ok(res.brief);
+  } catch (err) {
+    return failFromWriteError<AiBrief>(err, empty);
+  }
+}

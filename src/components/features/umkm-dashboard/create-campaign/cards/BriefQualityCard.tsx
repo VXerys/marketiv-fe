@@ -23,7 +23,9 @@ export function BriefQualityCard({
   const checklist = [
     { label: "Informasi Produk Jelas", met: campaignTitle.trim().length > 3 && productDescription.trim().length >= 30 },
     { label: "Kategori Niche Terpilih", met: productCategory.trim().length > 0 },
-    { label: "Brief & Instruksi Jelas", met: mainBrief.trim().length >= 40 },
+    // Ambang 50 agar sepakat dengan validator langkah 2 (dulu 40 → indikator
+    // bisa hijau padahal step-nya masih invalid).
+    { label: "Brief & Instruksi Jelas", met: mainBrief.trim().length >= 50 },
     { label: "CTA Kampanye Ditentukan", met: callToAction.trim().length > 0 },
     { label: "Tautan Aset Terhubung", met: externalAssetUrl.trim().startsWith("https://") },
   ];
@@ -42,7 +44,7 @@ export function BriefQualityCard({
     <DashboardCard className="bg-neutral-50/45 border border-border-soft/60 p-5.5 space-y-4">
       <div className="flex items-center justify-between gap-4 border-b border-border-soft/50 pb-3">
         <span className="text-[10px] font-extrabold text-text-secondary uppercase tracking-wider">
-          Skor Kualitas Brief Anda
+          Indikator Kelengkapan Brief
         </span>
         <DashboardBadge type="tone" tone={status.tone} className="text-[9px] h-4.5 px-2">
           {status.text}

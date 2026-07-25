@@ -54,9 +54,12 @@ import {
   getUmkmSettingsProfileFromAppwrite,
   updateUmkmProfileInAppwrite,
   uploadUmkmLogoInAppwrite,
+  generateCampaignBriefFromAppwrite,
 } from "./umkm-appwrite.service";
 import type {
   UmkmFinanceOverview,
+  AiBriefInput,
+  AiBrief,
   CreateCampaignDraftInput,
   CampaignDraftResult,
   DuplicateCampaignOptions,
@@ -436,4 +439,47 @@ export async function uploadUmkmLogo(file: File): Promise<ServiceResult<string>>
     return { success: true, data: `https://placehold.co/128x128?text=${encodeURIComponent(file.name.slice(0, 8))}` };
   }
   return uploadUmkmLogoInAppwrite(file);
+}
+
+// ── AI brief (Sprint 3) ──────────────────────────────────────────────────────
+
+export type { AiBriefInput, AiBrief };
+
+/**
+ * Mock mengembalikan brief tetap setelah delay supaya UX loading/confirm/error
+ * bisa diuji di browser hari ini — Function-nya sendiri masih kena blocker
+ * APPWRITE_FUNCTION_API_KEY. Ini tempat yang jujur untuk contoh brief lama.
+ */
+export async function generateCampaignBrief(
+  input: AiBriefInput
+): Promise<ServiceResult<AiBrief>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(1400);
+    return {
+      success: true,
+      data: {
+        objective: `Meningkatkan awareness ${input.productName ?? "produk"} di kalangan pengguna TikTok.`,
+        contentAngle: "Daily vlog santai menikmati produk di sore hari.",
+        cta: input.goal ?? "Kunjungi toko",
+        briefDetail: [
+          "Konsep Video:",
+          "Daily vlog santai saat menikmati produk.",
+          "",
+          "Panduan Produksi:",
+          "- Tunjukkan kemasan produk dengan jelas di awal video.",
+          "- Ambil close-up detail tekstur dan penyajian produk.",
+          "- Perlihatkan reaksi jujur saat mencoba produk.",
+          "- Tutup video dengan mengarahkan penonton ke tautan di bio.",
+        ].join("\n"),
+        doAndDont: {
+          do: [
+            "Wajib menunjukkan kemasan di awal video",
+            "Wajib memperlihatkan reaksi saat mencoba produk",
+          ],
+          dont: ["membandingkan produk dengan kompetitor", "menggunakan musik berhak cipta"],
+        },
+      },
+    };
+  }
+  return generateCampaignBriefFromAppwrite(input);
 }

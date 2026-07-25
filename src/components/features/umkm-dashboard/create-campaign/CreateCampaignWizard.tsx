@@ -24,7 +24,10 @@ import { CampaignWizardState } from "./types";
 import { validateStepFields, isStepCompleted } from "./create-campaign.validation";
 import { TONE_OPTIONS, CTA_OPTIONS } from "./create-campaign.constants";
 import { composeBriefDetail, packDoAndDontJson } from "@/lib/validations/campaign.schema";
-import { createCampaignDraft } from "@/services/umkm/umkm-dashboard.service";
+import {
+  createCampaignDraft,
+  generateCampaignBrief,
+} from "@/services/umkm/umkm-dashboard.service";
 import type { CampaignType } from "@/types/domain";
 import { toast } from "sonner";
 
@@ -61,6 +64,13 @@ export function CreateCampaignWizard() {
   // Validation state
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [stepValidationTried, setStepValidationTried] = useState<Record<number, boolean>>({});
+
+  // AI brief state
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  /** Diisi hasil AI agar ikut tersimpan ke campaign_briefs saat draft dibuat. */
+  const [aiObjective, setAiObjective] = useState("");
+  const [aiGenerated, setAiGenerated] = useState(false);
 
   // Modals state
   const [isDraftOpen, setIsDraftOpen] = useState(false);
@@ -126,6 +136,48 @@ export function CreateCampaignWizard() {
     setIsDraftOpen(true);
   };
 
+  /**
+   * Aksi eksplisit "Bantu dengan AI". Mengisi brief + poin wajib; TIDAK menimpa
+   * videoStyle/callToAction karena itu pilihan enumerated user (AI mengembalikan
+   * prosa, bukan id opsi).
+   */
+  const handleGenerateAiBrief = async () => {
+    if (brief.trim() && !window.confirm("Brief yang sudah Anda tulis akan ditimpa. Lanjutkan?")) {
+      return;
+    }
+    setAiError(null);
+    setIsGeneratingAi(true);
+    const res = await generateCampaignBrief({
+      description,
+      type: (type as CampaignType) || "ugc",
+      productName: title || undefined,
+      targetMarket: location || undefined,
+      goal: CTA_OPTIONS.find((o) => o.id === callToAction)?.label,
+      materials: externalAssetUrl.trim() ? [externalAssetUrl.trim()] : [],
+    });
+    setIsGeneratingAi(false);
+
+    if (!res.success || !res.data) {
+      setAiError(
+        res.code === "validation"
+          ? res.error ?? "Data belum cukup untuk menyusun brief."
+          : "Layanan AI sedang tidak tersedia. Coba lagi nanti."
+      );
+      return;
+    }
+
+    const ai = res.data;
+    setBrief(ai.briefDetail);
+    setRequiredPoints(
+      [
+        ...ai.doAndDont.do.map((d) => `- ${d}`),
+        ...ai.doAndDont.dont.map((d) => `- Dilarang: ${d}`),
+      ].join("\n")
+    );
+    setAiObjective(ai.objective);
+    setAiGenerated(true);
+  };
+
   const handleConfirmDraft = async () => {
     // Kolom wajib campaigns (title/category/type/description) = langkah 1.
     if (!isStepCompleted(1, wizardState)) {
@@ -155,6 +207,8 @@ export function CreateCampaignWizard() {
         contentAngle: tone ? `${tone.label} — ${tone.desc}` : videoStyle,
         cta: ctaOpt ? ctaOpt.label : callToAction,
         doAndDont: requiredPoints.trim() ? packDoAndDontJson(requiredPoints) : "",
+        objective: aiObjective || undefined,
+        generatedByAi: aiGenerated,
       },
       asset: externalAssetUrl.trim() ? { fileUrl: externalAssetUrl.trim() } : undefined,
     });
@@ -214,6 +268,9 @@ export function CreateCampaignWizard() {
     setTermsAgreed(false);
     setValidationErrors({});
     setStepValidationTried({});
+    setAiError(null);
+    setAiObjective("");
+    setAiGenerated(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -250,6 +307,10 @@ export function CreateCampaignWizard() {
             hashtags={hashtags}
             onChangeHashtags={setHashtags}
             validationErrors={validationErrors}
+            onGenerateAi={handleGenerateAiBrief}
+            isGeneratingAi={isGeneratingAi}
+            aiError={aiError}
+            canGenerateAi={description.trim().length >= 30}
           />
         );
       case 3:

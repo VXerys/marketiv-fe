@@ -16,6 +16,12 @@ interface BriefGuidelineStepProps {
   hashtags: string;
   onChangeHashtags: (val: string) => void;
   validationErrors?: Record<string, string>;
+  /** Aksi AI diangkat ke wizard — wizard yang memiliki description/title/type. */
+  onGenerateAi: () => void;
+  isGeneratingAi?: boolean;
+  aiError?: string | null;
+  /** Tombol AI butuh deskripsi produk (langkah 1) minimal 30 karakter. */
+  canGenerateAi?: boolean;
 }
 
 export function BriefGuidelineStep({
@@ -30,6 +36,10 @@ export function BriefGuidelineStep({
   hashtags,
   onChangeHashtags,
   validationErrors = {},
+  onGenerateAi,
+  isGeneratingAi = false,
+  aiError = null,
+  canGenerateAi = true,
 }: BriefGuidelineStepProps) {
 
   const handleSuggestionClick = (sug: string) => {
@@ -38,23 +48,6 @@ export function BriefGuidelineStep({
     } else {
       onChangeBrief("- " + sug);
     }
-  };
-
-  const handleAiAutoFill = () => {
-    const aiBrief = 
-      "Konsep Video:\nDaily Vlog santai menikmati cemilan sore hari.\n\n" +
-      "Panduan Produksi:\n- Menunjukkan kemasan Keripik Tempe Sunda di awal video secara jelas.\n" +
-      "- Mengambil close-up detail tekstur keripik yang tipis dan taburan bumbu rempah.\n" +
-      "- Mengambil audio 'crunch test' saat keripik digigit untuk menonjolkan kerenyahan.\n" +
-      "- Menutup video dengan ajakan mengunjungi link marketplace di bio profil.";
-    
-    onChangeBrief(aiBrief);
-    onChangeVideoStyle("natural");
-    onChangeCallToAction("kunjungi_toko");
-    onChangeRequiredPoints(
-      "- Wajib menunjukkan kemasan di awal video\n- Wajib melakukan crunch test (suara renyah saat digigit)\n- Dilarang membandingkan produk dengan kompetitor"
-    );
-    onChangeHashtags("#KeripikTempeSunda #KulinerSunda #CrunchySnacks");
   };
 
   return (
@@ -72,13 +65,27 @@ export function BriefGuidelineStep({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={handleAiAutoFill}
-              className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-[9px] font-extrabold text-primary flex items-center gap-1 transition-all cursor-pointer border border-primary/20"
+              onClick={onGenerateAi}
+              disabled={isGeneratingAi || !canGenerateAi}
+              aria-busy={isGeneratingAi}
+              title={
+                !canGenerateAi
+                  ? "Lengkapi Deskripsi Produk (langkah 1) minimal 30 karakter."
+                  : undefined
+              }
+              className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-[9px] font-extrabold text-primary flex items-center gap-1 transition-all cursor-pointer border border-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg className="w-3 h-3 text-primary animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              <span>Bantu dengan AI (Simulasi)</span>
+              {isGeneratingAi ? (
+                <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg className="w-3 h-3 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              )}
+              <span>{isGeneratingAi ? "Menyusun brief…" : "Bantu dengan AI"}</span>
             </button>
             <span className={`text-[10px] font-bold ${brief.length < 50 ? "text-text-muted" : "text-success"}`}>
               {brief.length} karakter (Min. 50)
@@ -86,6 +93,13 @@ export function BriefGuidelineStep({
           </div>
         </div>
         
+        {/* Banner error AI — inline, bukan toast telanjang */}
+        {aiError && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-[11px] font-bold text-red-700">
+            {aiError}
+          </div>
+        )}
+
         {/* Suggestion Chips */}
         <div className="flex flex-wrap gap-1.5 mb-1">
           {BRIEF_SUGGESTIONS.map((sug, idx) => (
