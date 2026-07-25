@@ -37,6 +37,18 @@ export const requiredString = (fieldName = "Field ini") =>
     .min(1, `${fieldName} tidak boleh kosong.`);
 
 /**
+ * String wajib DENGAN batas panjang kolom Appwrite.
+ *
+ * Pakai ini kalau nilainya masuk ke kolom string ber-size. Tanpa batas, input
+ * yang lebih panjang dari kolom baru ditolak Appwrite saat createDocument/
+ * updateDocument (400) dan user cuma melihat pesan generik "Gagal menyimpan
+ * data" — bukan "Nama paket maksimal 100 karakter". `max` harus disamakan
+ * dengan `size` kolom di 00_BACKEND/appwrite.config.json.
+ */
+export const requiredStringMax = (fieldName: string, max: number) =>
+  requiredString(fieldName).max(max, `${fieldName} maksimal ${max} karakter.`);
+
+/**
  * Optional URL string.
  * Accepts empty string or a valid URL. Returns undefined when empty.
  */

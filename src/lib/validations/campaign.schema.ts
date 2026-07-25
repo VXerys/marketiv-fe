@@ -37,10 +37,19 @@ export type CampaignWizardInput = z.infer<typeof campaignWizardSchema>;
 /** Aturan per langkah. Object non-strict → key ekstra dari state di-strip, bukan error. */
 export const campaignStepSchemas: Record<1 | 2 | 3 | 4 | 5, z.ZodType> = {
   1: z.object({
-    title: z.string().trim().min(1, "Judul campaign wajib diisi."),
+    // max = size kolom `campaigns` di appwrite.config.json (title 255, description 2000).
+    title: z
+      .string()
+      .trim()
+      .min(1, "Judul campaign wajib diisi.")
+      .max(255, "Judul campaign maksimal 255 karakter."),
     category: z.string().min(1, "Kategori Niche wajib dipilih."),
     type: z.enum(["ugc", "clipping"], { error: "Tipe campaign wajib dipilih." }),
-    description: z.string().trim().min(30, "Deskripsi produk minimal 30 karakter."),
+    description: z
+      .string()
+      .trim()
+      .min(30, "Deskripsi produk minimal 30 karakter.")
+      .max(2000, "Deskripsi produk maksimal 2000 karakter."),
   }),
   2: z.object({
     brief: z.string().trim().min(50, "Brief utama minimal 50 karakter."),

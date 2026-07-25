@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { requiredString, digitsOnly } from "./common";
+import { requiredStringMax, digitsOnly } from "./common";
 import { MINIMUM_WITHDRAW } from "@/types/domain";
 
 /**
@@ -25,9 +25,9 @@ export const withdrawalRequestSchema = (balance: number) =>
       .min(MINIMUM_WITHDRAW, `Minimum penarikan Rp ${MINIMUM_WITHDRAW.toLocaleString("id-ID")}.`)
       .max(balance, "Nominal melebihi saldo yang tersedia."),
     payoutMethod: z.enum(["bank", "ewallet"], { error: "Metode penarikan tidak valid." }),
-    providerName: requiredString("Nama bank/e-wallet"),
+    providerName: requiredStringMax("Nama bank/e-wallet", 100),
     accountNumber: digitsOnly("Nomor rekening/HP", 6, 20),
-    accountName: requiredString("Nama pemilik rekening"),
+    accountName: requiredStringMax("Nama pemilik rekening", 255),
   });
 
 export type WithdrawalRequestInput = z.infer<ReturnType<typeof withdrawalRequestSchema>>;

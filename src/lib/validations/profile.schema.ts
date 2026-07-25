@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { requiredString, optionalString, enumOf, requiredHttpsUrl } from "./common";
+import { requiredStringMax, optionalString, enumOf, requiredHttpsUrl } from "./common";
 
 /**
  * Skema update profil UMKM & Kreator + portofolio.
@@ -19,8 +19,8 @@ export const CREATOR_NICHES = [
 ] as const;
 
 export const umkmProfileUpdateSchema = z.object({
-  businessName: requiredString("Nama bisnis"),
-  category: requiredString("Kategori"),
+  businessName: requiredStringMax("Nama bisnis", 255),
+  category: requiredStringMax("Kategori", 100),
   description: optionalString(2000, "Deskripsi"),
   city: optionalString(100, "Kota"),
   address: optionalString(500, "Alamat"),
@@ -29,7 +29,7 @@ export const umkmProfileUpdateSchema = z.object({
 export type UmkmProfileUpdateInput = z.infer<typeof umkmProfileUpdateSchema>;
 
 export const creatorProfileUpdateSchema = z.object({
-  displayName: requiredString("Nama display"),
+  displayName: requiredStringMax("Nama display", 255),
   bio: optionalString(2000, "Bio"),
   city: optionalString(100, "Kota/Lokasi"),
   niche: enumOf(CREATOR_NICHES, "Niche").optional(),
@@ -37,7 +37,7 @@ export const creatorProfileUpdateSchema = z.object({
 export type CreatorProfileUpdateInput = z.infer<typeof creatorProfileUpdateSchema>;
 
 export const creatorPortfolioSchema = z.object({
-  title: requiredString("Judul portofolio"),
+  title: requiredStringMax("Judul portofolio", 255),
   portfolioUrl: requiredHttpsUrl("Link portofolio"),
   description: optionalString(2000, "Deskripsi"),
   thumbnailUrl: optionalString(2048, "Thumbnail"),
@@ -46,7 +46,7 @@ export type CreatorPortfolioInput = z.infer<typeof creatorPortfolioSchema>;
 
 export const socialHandleSchema = z.object({
   platform: enumOf(["tiktok", "instagram"] as const, "Platform"),
-  username: requiredString("Username"),
+  username: requiredStringMax("Username", 255),
 });
 export type SocialHandleInput = z.infer<typeof socialHandleSchema>;
 
