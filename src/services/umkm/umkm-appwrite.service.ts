@@ -882,3 +882,37 @@ export async function generateCampaignBriefFromAppwrite(
     return failFromWriteError<AiBrief>(err, empty);
   }
 }
+
+// ── pembayaran campaign (Sprint 3 / 6b) ──────────────────────────────────────
+
+export type PaymentIntent = {
+  paymentId: string;
+  gateway: "midtrans";
+  snapToken?: string;
+  redirectUrl?: string;
+  status: "pending";
+};
+
+/**
+ * Buat payment untuk top-up escrow campaign lewat Function `create-payment`.
+ * `amount` = budget DASAR; Function yang menurunkan fee 2% dan total_amount.
+ * `payments` read-only dari klien, jadi jalur ini wajib lewat Function.
+ */
+export async function createCampaignPaymentInAppwrite(input: {
+  campaignId: string;
+  budget: number;
+}): Promise<ServiceResult<PaymentIntent>> {
+  const empty = null as unknown as PaymentIntent;
+  const auth = await requireUserId<PaymentIntent>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await executeFunction<PaymentIntent>(FUNCTION_IDS.createPayment, {
+      purpose: "campaign",
+      amount: input.budget,
+      campaignId: input.campaignId,
+    });
+    return ok(res);
+  } catch (err) {
+    return failFromWriteError<PaymentIntent>(err, empty);
+  }
+}

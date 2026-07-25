@@ -31,9 +31,10 @@ export function PaymentSimulationModal({
   const platformFee = calculatePlatformFee(totalBudgetEscrow);
   const totalPayment = calculateTotalPayment(totalBudgetEscrow);
 
+  // Metode sebenarnya dipilih di popup Midtrans Snap; daftar ini hanya preview.
   const paymentMethods = [
-    { id: "va", name: "Virtual Account (Simulasi)", desc: "Transfer Bank Otomatis 24 Jam" },
-    { id: "wallet", name: "Saldo Dompet Marketiv", desc: "Bayar instan potong saldo langsung" },
+    { id: "va", name: "Virtual Account", desc: "Transfer Bank Otomatis 24 Jam" },
+    { id: "wallet", name: "E-Wallet / QRIS", desc: "GoPay, OVO, Dana, ShopeePay" },
   ];
 
   return (
@@ -46,10 +47,10 @@ export function PaymentSimulationModal({
             </svg>
           </div>
           <ResponsiveModalTitle className="text-sm sm:text-base font-extrabold text-text-primary uppercase tracking-wider text-center">
-            Simulasi Pembayaran
+            Pembayaran Escrow
           </ResponsiveModalTitle>
           <ResponsiveModalDescription className="text-[11px] text-text-muted leading-relaxed text-center mt-2">
-            Pilih metode pembayaran simulasi di bawah untuk mendepositkan dana escrow Anda.
+            Campaign disimpan sebagai draft lalu Anda diarahkan ke pembayaran Midtrans untuk mendepositkan dana escrow.
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
@@ -121,7 +122,7 @@ export function PaymentSimulationModal({
             onClick={onConfirm}
             className="flex-1 h-10 text-xs bg-primary text-white hover:bg-primary/90"
           >
-            Konfirmasi Bayar
+            Lanjut ke Pembayaran
           </Button>
         </ResponsiveModalFooter>
       </ResponsiveModalContent>

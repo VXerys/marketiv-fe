@@ -27,7 +27,9 @@ import { composeBriefDetail, packDoAndDontJson } from "@/lib/validations/campaig
 import {
   createCampaignDraft,
   generateCampaignBrief,
+  createCampaignPayment,
 } from "@/services/umkm/umkm-dashboard.service";
+import { loadSnap } from "@/lib/midtrans/snap";
 import type { CampaignType } from "@/types/domain";
 import { toast } from "sonner";
 
@@ -71,6 +73,9 @@ export function CreateCampaignWizard() {
   /** Diisi hasil AI agar ikut tersimpan ke campaign_briefs saat draft dibuat. */
   const [aiObjective, setAiObjective] = useState("");
   const [aiGenerated, setAiGenerated] = useState(false);
+
+  /** Id campaign draft yang sudah tertulis — mencegah create ganda saat bayar. */
+  const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
 
   // Modals state
   const [isDraftOpen, setIsDraftOpen] = useState(false);
@@ -178,18 +183,21 @@ export function CreateCampaignWizard() {
     setAiGenerated(true);
   };
 
-  const handleConfirmDraft = async () => {
+  /**
+   * Tulis campaign draft. Dipakai tombol "Simpan Draft" maupun jalur pembayaran
+   * (campaign harus ada dulu supaya create-payment punya campaignId).
+   * Idempoten lewat createdCampaignId — konfirmasi ulang tidak membuat duplikat.
+   */
+  const saveDraft = async (): Promise<string | null> => {
+    if (createdCampaignId) return createdCampaignId;
+
     // Kolom wajib campaigns (title/category/type/description) = langkah 1.
     if (!isStepCompleted(1, wizardState)) {
-      setIsDraftOpen(false);
       setCurrentStep(1);
       validateStep(1);
       toast.error("Lengkapi Informasi Produk (langkah 1) sebelum menyimpan draft.");
-      return;
+      return null;
     }
-
-    setIsDraftOpen(false);
-    setIsSubmitting(true);
 
     const tone = TONE_OPTIONS.find((o) => o.id === videoStyle);
     const ctaOpt = CTA_OPTIONS.find((o) => o.id === callToAction);
@@ -213,16 +221,10 @@ export function CreateCampaignWizard() {
       asset: externalAssetUrl.trim() ? { fileUrl: externalAssetUrl.trim() } : undefined,
     });
 
-    setIsSubmitting(false);
-
     if (res.success && res.data) {
-      if (res.data.warnings.length > 0) {
-        res.data.warnings.forEach((w) => toast.warning(w));
-      } else {
-        toast.success("Draft campaign berhasil disimpan.");
-      }
-      router.push("/dashboard/umkm/campaign");
-      return;
+      res.data.warnings.forEach((w) => toast.warning(w));
+      setCreatedCampaignId(res.data.campaign.id);
+      return res.data.campaign.id;
     }
 
     toast.error(
@@ -230,16 +232,78 @@ export function CreateCampaignWizard() {
         ? "Sesi berakhir, silakan login kembali."
         : res.error ?? "Gagal menyimpan draft. Coba lagi."
     );
+    return null;
   };
 
-  const handleConfirmPayment = () => {
+  const handleConfirmDraft = async () => {
+    setIsDraftOpen(false);
+    setIsSubmitting(true);
+    const id = await saveDraft();
+    setIsSubmitting(false);
+    if (!id) return;
+    toast.success("Draft campaign berhasil disimpan.");
+    router.push("/dashboard/umkm/campaign");
+  };
+
+  /**
+   * Bayar: pastikan draft ada → create-payment → Snap.
+   * Publish ke `active` BUKAN di sini — itu Sprint 4 lewat webhook Midtrans
+   * (create-escrow), bukan aksi klien.
+   */
+  const handleConfirmPayment = async () => {
     setIsPaymentOpen(false);
     setIsSubmitting(true);
-    // Simulate payment API transaction time
-    setTimeout(() => {
+
+    const campaignId = await saveDraft();
+    if (!campaignId) {
       setIsSubmitting(false);
-      setIsCreatedOpen(true);
-    }, 1500);
+      return;
+    }
+
+    const res = await createCampaignPayment({ campaignId, budget: totalBudgetEscrow });
+    if (!res.success || !res.data) {
+      setIsSubmitting(false);
+      toast.error(
+        res.code === "auth"
+          ? "Sesi berakhir, silakan login kembali."
+          : res.error ?? "Gagal membuat pembayaran. Draft Anda sudah tersimpan."
+      );
+      return;
+    }
+
+    const intent = res.data;
+
+    // Snap token → buka popup pembayaran.
+    if (intent.snapToken) {
+      try {
+        const snap = await loadSnap();
+        setIsSubmitting(false);
+        snap.pay(intent.snapToken, {
+          onSuccess: () => setIsCreatedOpen(true),
+          onPending: () => {
+            toast.info("Pembayaran menunggu konfirmasi. Campaign tetap tersimpan sebagai draft.");
+            router.push("/dashboard/umkm/campaign");
+          },
+          onError: () => toast.error("Pembayaran gagal. Draft Anda tetap tersimpan."),
+          onClose: () =>
+            toast.info("Pembayaran dibatalkan. Campaign tersimpan sebagai draft."),
+        });
+      } catch (err) {
+        setIsSubmitting(false);
+        toast.error(err instanceof Error ? err.message : "Gagal membuka pembayaran.");
+      }
+      return;
+    }
+
+    // Hanya redirect URL → alihkan halaman.
+    if (intent.redirectUrl) {
+      window.location.assign(intent.redirectUrl);
+      return;
+    }
+
+    // Tidak ada keduanya (mock) → tampilkan modal berhasil seperti sebelumnya.
+    setIsSubmitting(false);
+    setIsCreatedOpen(true);
   };
 
   const handleSuccessRedirect = () => {
@@ -271,6 +335,7 @@ export function CreateCampaignWizard() {
     setAiError(null);
     setAiObjective("");
     setAiGenerated(false);
+    setCreatedCampaignId(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 

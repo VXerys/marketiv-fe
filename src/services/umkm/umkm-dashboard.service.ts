@@ -55,11 +55,13 @@ import {
   updateUmkmProfileInAppwrite,
   uploadUmkmLogoInAppwrite,
   generateCampaignBriefFromAppwrite,
+  createCampaignPaymentInAppwrite,
 } from "./umkm-appwrite.service";
 import type {
   UmkmFinanceOverview,
   AiBriefInput,
   AiBrief,
+  PaymentIntent,
   CreateCampaignDraftInput,
   CampaignDraftResult,
   DuplicateCampaignOptions,
@@ -482,4 +484,30 @@ export async function generateCampaignBrief(
     };
   }
   return generateCampaignBriefFromAppwrite(input);
+}
+
+// ── pembayaran campaign (Sprint 3 / 6b) ──────────────────────────────────────
+
+export type { PaymentIntent };
+
+/**
+ * Mock mengembalikan intent tanpa snapToken/redirectUrl, sehingga modal jatuh ke
+ * jalur "berhasil" lokal dan UX mock tidak berubah.
+ */
+export async function createCampaignPayment(input: {
+  campaignId: string;
+  budget: number;
+}): Promise<ServiceResult<PaymentIntent>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(800);
+    return {
+      success: true,
+      data: {
+        paymentId: `mock_pay_${Date.now()}`,
+        gateway: "midtrans",
+        status: "pending",
+      },
+    };
+  }
+  return createCampaignPaymentInAppwrite(input);
 }
