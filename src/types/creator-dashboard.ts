@@ -202,6 +202,8 @@ export interface CreatorNegotiation {
 
 export interface CreatorRateCardPackage {
   id: string;
+  /** $id parent rate_cards — dibutuhkan write (model 1 rate_cards per paket). */
+  rateCardId: string;
   name: string;
   description: string;
   price: number;
@@ -210,7 +212,7 @@ export interface CreatorRateCardPackage {
   /** rate_cards.status — bukan boolean isActive */
   status: RateCardStatus;
   revisionCount?: number;
-  platform?: "tiktok" | "instagram" | "youtube" | "all";
+  // Tidak ada kolom platform di rate_card_packages (MVP TikTok-only).
 }
 
 export interface CreatorTransaction {

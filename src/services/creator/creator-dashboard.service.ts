@@ -39,7 +39,13 @@ import {
   getCreatorRateCardPackagesFromAppwrite,
   getCreatorTransactionsFromAppwrite,
   getCreatorActivitiesFromAppwrite,
+  createCreatorRateCardPackageInAppwrite,
+  updateCreatorRateCardPackageInAppwrite,
+  setCreatorRateCardPackageStatusInAppwrite,
+  deleteCreatorRateCardPackageInAppwrite,
 } from "./creator-appwrite.service";
+import type { RateCardPackageWriteInput } from "./creator-appwrite.service";
+import type { RateCardStatus } from "@/types/domain";
 
 export async function getCreatorProfile(): Promise<ServiceResult<CreatorProfile>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
@@ -155,4 +161,68 @@ export async function getCreatorActivities(): Promise<ServiceResult<CreatorActiv
     return { success: true, data: mockCreatorActivities };
   }
   return getCreatorActivitiesFromAppwrite();
+}
+
+// ── rate card CRUD (Sprint 3) ─────────────────────────────────────────────────
+
+export type { RateCardPackageWriteInput };
+
+function mockRcEcho(
+  input: RateCardPackageWriteInput,
+  ids?: { id: string; rateCardId: string }
+): CreatorRateCardPackage {
+  return {
+    id: ids?.id ?? `mock_pkg_${Date.now()}`,
+    rateCardId: ids?.rateCardId ?? `mock_rc_${Date.now()}`,
+    name: input.name,
+    description: input.description,
+    price: input.price,
+    deliverable: input.output,
+    estimatedDays: input.deliveryDays,
+    status: input.published ? "published" : "draft",
+    revisionCount: input.revisionLimit,
+  };
+}
+
+export async function createRateCardPackage(
+  input: RateCardPackageWriteInput
+): Promise<ServiceResult<CreatorRateCardPackage>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return { success: true, data: mockRcEcho(input) };
+  }
+  return createCreatorRateCardPackageInAppwrite(input);
+}
+
+export async function updateRateCardPackage(
+  pkg: { id: string; rateCardId: string },
+  input: RateCardPackageWriteInput
+): Promise<ServiceResult<CreatorRateCardPackage>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return { success: true, data: mockRcEcho(input, pkg) };
+  }
+  return updateCreatorRateCardPackageInAppwrite(pkg, input);
+}
+
+export async function setRateCardPackageStatus(
+  pkg: { id: string; rateCardId: string; base: CreatorRateCardPackage },
+  status: RateCardStatus
+): Promise<ServiceResult<CreatorRateCardPackage>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    return { success: true, data: { ...pkg.base, status } };
+  }
+  return setCreatorRateCardPackageStatusInAppwrite({ id: pkg.id, rateCardId: pkg.rateCardId }, status);
+}
+
+export async function deleteRateCardPackage(pkg: {
+  id: string;
+  rateCardId: string;
+}): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    return { success: true, data: null };
+  }
+  return deleteCreatorRateCardPackageInAppwrite(pkg);
 }

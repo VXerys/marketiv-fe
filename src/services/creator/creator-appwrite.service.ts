@@ -1,4 +1,4 @@
-import { Query } from "appwrite";
+import { Query, ID, Permission, Role } from "appwrite";
 import { databases } from "@/lib/appwrite/databases";
 import { appwriteConfig } from "@/lib/appwrite/config";
 import {
@@ -10,7 +10,11 @@ import {
   type Doc,
   str,
   num,
+  ok,
+  fail,
+  failValidation,
   failFromError,
+  failFromWriteError,
   requireUserId,
 } from "@/services/shared/service-result";
 import {
@@ -79,6 +83,7 @@ const COLLECTIONS = {
   umkmProfiles: "umkm_profiles",
   transactions: "transactions",
   notifications: "notifications",
+  orders: "orders",
 } as const;
 
 const PAGE_LIMIT = 100;
@@ -536,6 +541,7 @@ export async function getCreatorRateCardPackagesFromAppwrite(): Promise<
 
     const data: CreatorRateCardPackage[] = packages.map((p) => ({
       id: str(p.$id),
+      rateCardId: str(p.rateCardId),
       name: str(p.name),
       description: str(p.description),
       price: num(p.price),
@@ -589,5 +595,239 @@ export async function getCreatorActivitiesFromAppwrite(): Promise<ServiceResult<
     };
   } catch (err) {
     return failFromError<CreatorActivity[]>(err, []);
+  }
+}
+
+// ── rate card CRUD (Sprint 3) ─────────────────────────────────────────────────
+//
+// Model 1 rate_cards per paket UI (1:1): status ada di parent, toggle per paket
+// jalan tanpa restrukturisasi, dan update TIDAK pernah delete-recreate sibling
+// (menghindari bug creator.service.ts yang mengorphankan orders.packageId).
+
+const RC_MAX_PACKAGES = 3;
+const RC_ACTIVE_ORDER_STATUSES = [
+  "pending_payment",
+  "escrow",
+  "in_progress",
+  "revision",
+  "approved",
+];
+
+export type RateCardPackageWriteInput = {
+  name: string;
+  description: string;
+  output: string;
+  deliveryDays: number;
+  price: number;
+  revisionLimit: number;
+  /** → rate_cards.status */
+  published: boolean;
+};
+
+const mapRcPackage = (child: Doc, status: RateCardStatus): CreatorRateCardPackage => ({
+  id: str(child.$id),
+  rateCardId: str(child.rateCardId),
+  name: str(child.name),
+  description: str(child.description),
+  price: num(child.price),
+  deliverable: str(child.output),
+  estimatedDays: num(child.deliveryDays),
+  status,
+  revisionCount: num(child.revisionLimit),
+});
+
+/** Baca parent rate_cards milik user; forbidden bila bukan miliknya. */
+async function requireOwnedRateCard(
+  rateCardId: string,
+  userId: string
+): Promise<{ ok: true; doc: Doc } | { ok: false; result: ServiceResult<never> }> {
+  const res = await databases.listDocuments(DB, COLLECTIONS.rateCards, [
+    Query.equal("$id", rateCardId),
+    Query.equal("creatorId", userId),
+    Query.limit(1),
+  ]);
+  const doc = res.documents[0] as unknown as Doc | undefined;
+  if (!doc) {
+    return {
+      ok: false,
+      result: fail("Paket tidak ditemukan atau bukan milik Anda.", "forbidden", null as never),
+    };
+  }
+  return { ok: true, doc };
+}
+
+export async function createCreatorRateCardPackageInAppwrite(
+  input: RateCardPackageWriteInput
+): Promise<ServiceResult<CreatorRateCardPackage>> {
+  const empty = null as unknown as CreatorRateCardPackage;
+  const auth = await requireUserId<CreatorRateCardPackage>(empty);
+  if (!auth.ok) return auth.result;
+  const uid = auth.userId;
+  const perms = [
+    Permission.read(Role.any()),
+    Permission.update(Role.user(uid)),
+    Permission.delete(Role.user(uid)),
+  ];
+  const status: RateCardStatus = input.published ? "published" : "draft";
+
+  try {
+    const existing = await databases.listDocuments(DB, COLLECTIONS.rateCards, [
+      Query.equal("creatorId", uid),
+      Query.limit(RC_MAX_PACKAGES + 1),
+    ]);
+    if (existing.total >= RC_MAX_PACKAGES) {
+      return failValidation("Maksimal 3 paket. Hapus satu paket dulu.", empty);
+    }
+
+    const parent = (await databases.createDocument(
+      DB,
+      COLLECTIONS.rateCards,
+      ID.unique(),
+      {
+        creatorId: uid,
+        title: input.name.trim(),
+        description: input.description.trim(),
+        status,
+        createdAt: new Date().toISOString(),
+      },
+      perms
+    )) as unknown as Doc;
+
+    let child: Doc;
+    try {
+      child = (await databases.createDocument(
+        DB,
+        COLLECTIONS.rateCardPackages,
+        ID.unique(),
+        {
+          rateCardId: str(parent.$id),
+          name: input.name.trim(),
+          description: input.description.trim(),
+          output: input.output.trim(),
+          deliveryDays: input.deliveryDays,
+          price: input.price,
+          revisionLimit: input.revisionLimit,
+        },
+        perms
+      )) as unknown as Doc;
+    } catch (childErr) {
+      // Rate card tanpa paket akan jadi hantu di direktori UMKM — buang parent.
+      try {
+        await databases.deleteDocument(DB, COLLECTIONS.rateCards, str(parent.$id));
+      } catch {
+        /* biarkan — sudah dilaporkan lewat error di bawah */
+      }
+      return failFromWriteError<CreatorRateCardPackage>(childErr, empty);
+    }
+
+    return ok(mapRcPackage(child, status));
+  } catch (err) {
+    return failFromWriteError<CreatorRateCardPackage>(err, empty);
+  }
+}
+
+export async function updateCreatorRateCardPackageInAppwrite(
+  pkg: { id: string; rateCardId: string },
+  input: RateCardPackageWriteInput
+): Promise<ServiceResult<CreatorRateCardPackage>> {
+  const empty = null as unknown as CreatorRateCardPackage;
+  const auth = await requireUserId<CreatorRateCardPackage>(empty);
+  if (!auth.ok) return auth.result;
+
+  try {
+    const owned = await requireOwnedRateCard(pkg.rateCardId, auth.userId);
+    if (!owned.ok) return owned.result as ServiceResult<CreatorRateCardPackage>;
+
+    const status: RateCardStatus = input.published ? "published" : "draft";
+
+    // Update baris anak in-place (JANGAN delete-recreate — orders.packageId stabil).
+    const child = (await databases.updateDocument(
+      DB,
+      COLLECTIONS.rateCardPackages,
+      pkg.id,
+      {
+        name: input.name.trim(),
+        description: input.description.trim(),
+        output: input.output.trim(),
+        deliveryDays: input.deliveryDays,
+        price: input.price,
+        revisionLimit: input.revisionLimit,
+      }
+    )) as unknown as Doc;
+
+    // Mirror title + status ke parent.
+    await databases.updateDocument(DB, COLLECTIONS.rateCards, pkg.rateCardId, {
+      title: input.name.trim(),
+      status,
+    });
+
+    return ok(mapRcPackage(child, status));
+  } catch (err) {
+    return failFromWriteError<CreatorRateCardPackage>(err, empty);
+  }
+}
+
+export async function setCreatorRateCardPackageStatusInAppwrite(
+  pkg: { id: string; rateCardId: string },
+  status: RateCardStatus
+): Promise<ServiceResult<CreatorRateCardPackage>> {
+  const empty = null as unknown as CreatorRateCardPackage;
+  const auth = await requireUserId<CreatorRateCardPackage>(empty);
+  if (!auth.ok) return auth.result;
+
+  try {
+    const owned = await requireOwnedRateCard(pkg.rateCardId, auth.userId);
+    if (!owned.ok) return owned.result as ServiceResult<CreatorRateCardPackage>;
+
+    await databases.updateDocument(DB, COLLECTIONS.rateCards, pkg.rateCardId, { status });
+    const child = (await databases.getDocument(
+      DB,
+      COLLECTIONS.rateCardPackages,
+      pkg.id
+    )) as unknown as Doc;
+    return ok(mapRcPackage(child, status));
+  } catch (err) {
+    return failFromWriteError<CreatorRateCardPackage>(err, empty);
+  }
+}
+
+export async function deleteCreatorRateCardPackageInAppwrite(pkg: {
+  id: string;
+  rateCardId: string;
+}): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+
+  try {
+    const owned = await requireOwnedRateCard(pkg.rateCardId, auth.userId);
+    if (!owned.ok) return owned.result as ServiceResult<null>;
+
+    // Tolak hapus bila paket terpakai order berjalan.
+    const orders = await databases.listDocuments(DB, COLLECTIONS.orders, [
+      Query.equal("packageId", pkg.id),
+      Query.equal("status", RC_ACTIVE_ORDER_STATUSES),
+      Query.limit(1),
+    ]);
+    if (orders.total > 0) {
+      return failValidation(
+        "Paket tidak bisa dihapus karena masih ada order berjalan. Jadikan Draft saja.",
+        null
+      );
+    }
+
+    await databases.deleteDocument(DB, COLLECTIONS.rateCardPackages, pkg.id);
+    await databases.deleteDocument(DB, COLLECTIONS.rateCards, pkg.rateCardId);
+    return ok(null);
+  } catch (err) {
+    // Baris yang dibuat sebelum fitur ini aktif tidak punya row-perm delete.
+    const code = (err as { code?: number })?.code;
+    if (code === 401 || code === 403) {
+      return fail(
+        "Paket ini tidak bisa dihapus dari aplikasi karena dibuat sebelum fitur ini aktif. Jadikan Draft saja agar tidak tampil di marketplace.",
+        "forbidden",
+        null
+      );
+    }
+    return failFromWriteError<null>(err, null);
   }
 }

@@ -376,6 +376,7 @@ export const mockCreatorNegotiations: CreatorNegotiation[] = [
 export const mockCreatorRateCardPackages: CreatorRateCardPackage[] = [
   {
     id: "pkg_001",
+    rateCardId: "rc_001",
     name: "Standard Single Post",
     description: "Review produk kecantikan tunggal, soft selling dengan visual estetik, berdurasi 30-60 detik dan diposting di akun TikTok pribadi. Termasuk tautan link bio gratis selama 3 hari.",
     price: 200000,
@@ -383,10 +384,10 @@ export const mockCreatorRateCardPackages: CreatorRateCardPackage[] = [
     estimatedDays: 3,
     status: "published",
     revisionCount: 2,
-    platform: "tiktok",
   },
   {
     id: "pkg_002",
+    rateCardId: "rc_002",
     name: "Premium Combo Reels",
     description: "Pembuatan 3 video Instagram Reels bertema mix-and-match lookbook fashion. Diposting menggunakan fitur Instagram Collab Post.",
     price: 500000,
@@ -394,10 +395,10 @@ export const mockCreatorRateCardPackages: CreatorRateCardPackage[] = [
     estimatedDays: 5,
     status: "published",
     revisionCount: 3,
-    platform: "instagram",
   },
   {
     id: "pkg_003",
+    rateCardId: "rc_003",
     name: "YouTube Brand Showcase",
     description: "Ulasan mendalam durasi 5-8 menit tentang produk kecantikan/kosmetik. Penayangan visual high resolution full HD, ulasan bahan aktif produk secara komparatif.",
     price: 1200000,
@@ -405,7 +406,6 @@ export const mockCreatorRateCardPackages: CreatorRateCardPackage[] = [
     estimatedDays: 10,
     status: "draft",
     revisionCount: 1,
-    platform: "youtube",
   },
 ];
 
