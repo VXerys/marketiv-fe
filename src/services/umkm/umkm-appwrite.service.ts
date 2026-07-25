@@ -1,4 +1,4 @@
-import { Query } from "appwrite";
+import { Query, ID, Permission, Role } from "appwrite";
 import { databases } from "@/lib/appwrite/databases";
 import { appwriteConfig } from "@/lib/appwrite/config";
 import {
@@ -6,11 +6,14 @@ import {
   FunctionExecutionError,
   FUNCTION_IDS,
 } from "@/lib/appwrite/functions";
+import type { CampaignType } from "@/types/domain";
 import {
   type Doc,
   str,
   num,
+  ok,
   failFromError,
+  failFromWriteError,
   requireUserId,
 } from "@/services/shared/service-result";
 import {
@@ -61,6 +64,8 @@ const DB = appwriteConfig.databaseId;
 
 const COLLECTIONS = {
   campaigns: "campaigns",
+  campaignBriefs: "campaign_briefs",
+  campaignAssets: "campaign_assets",
   submissions: "campaign_submissions",
   rateCards: "rate_cards",
   rateCardPackages: "rate_card_packages",
@@ -469,4 +474,135 @@ export async function getTransactionByIdFromAppwrite(id: string): Promise<Servic
   } catch (err) {
     return failFromError<Transaction>(err, null as unknown as Transaction);
   }
+}
+
+// ── writes (Sprint 3) ────────────────────────────────────────────────────────
+
+export type CreateCampaignDraftInput = {
+  title: string;
+  category: string;
+  type: CampaignType;
+  description: string;
+  budget: number;
+  rewardPer1000Views: number;
+  claimLimit: number;
+  submissionDays?: number;
+  /** Brief sudah dikomposisi klien (composeBriefDetail/packDoAndDontJson). */
+  brief?: {
+    briefDetail: string;
+    contentAngle: string;
+    cta: string;
+    objective?: string;
+    doAndDont?: string;
+    generatedByAi?: boolean;
+  };
+  asset?: { fileUrl: string; fileName?: string };
+};
+
+export type CampaignDraftResult = {
+  campaign: Campaign;
+  /** false bila brief/asset gagal ditulis — campaign-nya tetap ada & bisa diedit. */
+  complete: boolean;
+  warnings: string[];
+};
+
+/**
+ * Tulis campaign draft (status "draft") + campaign_briefs + campaign_assets.
+ * TANPA transaction — SDK 25 mendukungnya tapi belum teruji di server ini.
+ * Kebijakan gagal: campaign row adalah sumber keberhasilan; brief/asset yang
+ * gagal hanya menambah warning, campaign tidak di-rollback (draft tetap ada).
+ * Permission baris read(any)/update+delete(owner) — grant delete adalah satu-
+ * satunya cara baris ini nanti bisa dihapus (tak ada collection delete("users")).
+ */
+export async function createCampaignDraftInAppwrite(
+  input: CreateCampaignDraftInput
+): Promise<ServiceResult<CampaignDraftResult>> {
+  const empty = null as unknown as CampaignDraftResult;
+  const auth = await requireUserId<CampaignDraftResult>(empty);
+  if (!auth.ok) return auth.result;
+  const uid = auth.userId;
+  const perms = [
+    Permission.read(Role.any()),
+    Permission.update(Role.user(uid)),
+    Permission.delete(Role.user(uid)),
+  ];
+
+  let campaignDoc: Doc;
+  try {
+    campaignDoc = (await databases.createDocument(
+      DB,
+      COLLECTIONS.campaigns,
+      ID.unique(),
+      {
+        umkmId: uid,
+        title: input.title.trim(),
+        category: input.category,
+        type: input.type,
+        platforms: ["tiktok"],
+        description: input.description.trim(),
+        budget: input.budget,
+        rewardPer1000Views: input.rewardPer1000Views,
+        status: "draft",
+        claimLimit: input.claimLimit,
+        submissionDays: input.submissionDays ?? 7,
+        totalClaims: 0,
+        spentAmount: 0,
+        remainingBudget: 0,
+      },
+      perms
+    )) as unknown as Doc;
+  } catch (err) {
+    return failFromWriteError<CampaignDraftResult>(err, empty);
+  }
+
+  const warnings: string[] = [];
+  const campaignId = str(campaignDoc.$id);
+
+  if (input.brief) {
+    try {
+      await databases.createDocument(
+        DB,
+        COLLECTIONS.campaignBriefs,
+        ID.unique(),
+        {
+          campaignId,
+          objective: input.brief.objective ?? "",
+          contentAngle: input.brief.contentAngle,
+          cta: input.brief.cta,
+          briefDetail: input.brief.briefDetail,
+          doAndDont: input.brief.doAndDont ?? "",
+          generatedByAi: input.brief.generatedByAi ?? false,
+        },
+        perms
+      );
+    } catch {
+      warnings.push("Brief belum tersimpan — buka draft untuk melengkapi.");
+    }
+  }
+
+  if (input.asset) {
+    try {
+      await databases.createDocument(
+        DB,
+        COLLECTIONS.campaignAssets,
+        ID.unique(),
+        {
+          campaignId,
+          source: "external",
+          type: "link",
+          fileUrl: input.asset.fileUrl,
+          fileName: input.asset.fileName ?? "Folder Aset Eksternal",
+        },
+        perms
+      );
+    } catch {
+      warnings.push("Tautan aset belum tersimpan — buka draft untuk melengkapi.");
+    }
+  }
+
+  return ok<CampaignDraftResult>({
+    campaign: mapCampaign(campaignDoc),
+    complete: warnings.length === 0,
+    warnings,
+  });
 }

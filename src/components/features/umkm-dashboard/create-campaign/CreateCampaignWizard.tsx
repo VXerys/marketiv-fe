@@ -22,6 +22,11 @@ import { BriefQualityCard } from "./cards/BriefQualityCard";
 import { BudgetCalculatorCard } from "./cards/BudgetCalculatorCard";
 import { CampaignWizardState } from "./types";
 import { validateStepFields, isStepCompleted } from "./create-campaign.validation";
+import { TONE_OPTIONS, CTA_OPTIONS } from "./create-campaign.constants";
+import { composeBriefDetail, packDoAndDontJson } from "@/lib/validations/campaign.schema";
+import { createCampaignDraft } from "@/services/umkm/umkm-dashboard.service";
+import type { CampaignType } from "@/types/domain";
+import { toast } from "sonner";
 
 // Modals
 import { SaveDraftModal } from "./modals/SaveDraftModal";
@@ -38,6 +43,7 @@ export function CreateCampaignWizard() {
   // Form states
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
+  const [type, setType] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [brief, setBrief] = useState("");
@@ -66,6 +72,7 @@ export function CreateCampaignWizard() {
   const wizardState: CampaignWizardState = {
     title,
     category,
+    type,
     description,
     location,
     brief,
@@ -119,9 +126,56 @@ export function CreateCampaignWizard() {
     setIsDraftOpen(true);
   };
 
-  const handleConfirmDraft = () => {
+  const handleConfirmDraft = async () => {
+    // Kolom wajib campaigns (title/category/type/description) = langkah 1.
+    if (!isStepCompleted(1, wizardState)) {
+      setIsDraftOpen(false);
+      setCurrentStep(1);
+      validateStep(1);
+      toast.error("Lengkapi Informasi Produk (langkah 1) sebelum menyimpan draft.");
+      return;
+    }
+
     setIsDraftOpen(false);
-    router.push("/dashboard/umkm/campaign");
+    setIsSubmitting(true);
+
+    const tone = TONE_OPTIONS.find((o) => o.id === videoStyle);
+    const ctaOpt = CTA_OPTIONS.find((o) => o.id === callToAction);
+
+    const res = await createCampaignDraft({
+      title,
+      category,
+      type: type as CampaignType,
+      description,
+      budget: totalBudgetEscrow,
+      rewardPer1000Views: pricePerThousandViews,
+      claimLimit: creatorQuota,
+      brief: {
+        briefDetail: composeBriefDetail({ brief, requiredPoints, hashtags, location, assetNotes }),
+        contentAngle: tone ? `${tone.label} — ${tone.desc}` : videoStyle,
+        cta: ctaOpt ? ctaOpt.label : callToAction,
+        doAndDont: requiredPoints.trim() ? packDoAndDontJson(requiredPoints) : "",
+      },
+      asset: externalAssetUrl.trim() ? { fileUrl: externalAssetUrl.trim() } : undefined,
+    });
+
+    setIsSubmitting(false);
+
+    if (res.success && res.data) {
+      if (res.data.warnings.length > 0) {
+        res.data.warnings.forEach((w) => toast.warning(w));
+      } else {
+        toast.success("Draft campaign berhasil disimpan.");
+      }
+      router.push("/dashboard/umkm/campaign");
+      return;
+    }
+
+    toast.error(
+      res.code === "auth"
+        ? "Sesi berakhir, silakan login kembali."
+        : res.error ?? "Gagal menyimpan draft. Coba lagi."
+    );
   };
 
   const handleConfirmPayment = () => {
@@ -144,6 +198,7 @@ export function CreateCampaignWizard() {
     setCurrentStep(1);
     setTitle("");
     setCategory("");
+    setType("");
     setDescription("");
     setLocation("");
     setBrief("");
@@ -172,6 +227,8 @@ export function CreateCampaignWizard() {
             onChangeTitle={setTitle}
             category={category}
             onChangeCategory={setCategory}
+            type={type}
+            onChangeType={setType}
             description={description}
             onChangeDescription={setDescription}
             location={location}

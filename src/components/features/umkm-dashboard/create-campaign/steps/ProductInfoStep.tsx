@@ -6,6 +6,7 @@ import { SelectableOptionCard } from "../cards/SelectableOptionCard";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NICHE_OPTIONS } from "../create-campaign.constants";
+import { CAMPAIGN_TYPE_OPTIONS } from "@/lib/validations/campaign.schema";
 
 const NICHE_ICONS: Record<string, React.ReactNode> = {
   kuliner:    <UtensilsCrossed size={16} />,
@@ -21,6 +22,8 @@ interface ProductInfoStepProps {
   onChangeTitle: (val: string) => void;
   category: string;
   onChangeCategory: (val: string) => void;
+  type: string;
+  onChangeType: (val: string) => void;
   description: string;
   onChangeDescription: (val: string) => void;
   location: string;
@@ -33,6 +36,8 @@ export function ProductInfoStep({
   onChangeTitle,
   category,
   onChangeCategory,
+  type,
+  onChangeType,
   description,
   onChangeDescription,
   location,
@@ -87,6 +92,37 @@ export function ProductInfoStep({
           <p className="text-[.76rem] text-red-500 font-[600] flex items-center gap-1">
             <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
             {validationErrors.category}
+          </p>
+        )}
+      </div>
+
+      {/* Campaign type (UGC vs Clipping) */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <label className="text-[.84rem] font-[700] text-ink-800">
+            Tipe Campaign <span className="text-primary ml-0.5">*</span>
+          </label>
+          {type && (
+            <span className="text-[.72rem] font-[700] text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200/60">
+              Terpilih ✓
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {CAMPAIGN_TYPE_OPTIONS.map((opt) => (
+            <SelectableOptionCard
+              key={opt.id}
+              selected={type === opt.id}
+              onClick={() => onChangeType(opt.id)}
+              title={opt.label}
+              description={opt.desc}
+            />
+          ))}
+        </div>
+        {validationErrors.type && (
+          <p className="text-[.76rem] text-red-500 font-[600] flex items-center gap-1">
+            <span className="inline-block w-1 h-1 rounded-full bg-red-500" />
+            {validationErrors.type}
           </p>
         )}
       </div>

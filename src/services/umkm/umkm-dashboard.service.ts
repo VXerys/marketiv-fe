@@ -45,8 +45,13 @@ import {
   getFinanceSummaryFromAppwrite,
   getEscrowOverviewFromAppwrite,
   getFinanceOverviewFromAppwrite,
+  createCampaignDraftInAppwrite,
 } from "./umkm-appwrite.service";
-import type { UmkmFinanceOverview } from "./umkm-appwrite.service";
+import type {
+  UmkmFinanceOverview,
+  CreateCampaignDraftInput,
+  CampaignDraftResult,
+} from "./umkm-appwrite.service";
 
 export async function getUmkmProfile(): Promise<ServiceResult<UmkmProfile>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
@@ -299,4 +304,42 @@ export async function getEscrowOverview(): Promise<ServiceResult<EscrowOverview>
     };
   }
   return getEscrowOverviewFromAppwrite();
+}
+
+// ── writes (Sprint 3) ────────────────────────────────────────────────────────
+
+export type { CreateCampaignDraftInput, CampaignDraftResult };
+
+/**
+ * Buat campaign draft (campaigns + campaign_briefs + campaign_assets).
+ * Mock: echo input jadi Campaign dengan id `mock_campaign_*` — TIDAK memutasi
+ * mockCampaigns (mutasi module-level di dev server tidak konsisten). Id fabrikasi
+ * kini hanya hidup di cabang mock.
+ */
+export async function createCampaignDraft(
+  input: CreateCampaignDraftInput
+): Promise<ServiceResult<CampaignDraftResult>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(600);
+    const campaign: Campaign = {
+      id: `mock_campaign_${Date.now()}`,
+      umkmId: "mock_umkm",
+      title: input.title,
+      brief: input.brief?.briefDetail ?? "",
+      externalAssetUrl: input.asset?.fileUrl ?? "",
+      thumbnailUrl: "",
+      niche: input.category as Campaign["niche"],
+      status: "draft",
+      creatorQuota: input.claimLimit,
+      usedQuota: 0,
+      pricePerThousandViews: input.rewardPer1000Views,
+      totalBudgetEscrow: input.budget,
+      usedBudget: 0,
+      totalViews: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    return { success: true, data: { campaign, complete: true, warnings: [] } };
+  }
+  return createCampaignDraftInAppwrite(input);
 }
