@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatCurrency } from "@/lib/formatters";
+import { calculatePlatformFee, calculateTotalPayment } from "@/types/domain";
 import { Button } from "@/components/ui/button";
 import {
   ResponsiveModal,
@@ -27,8 +28,8 @@ export function PaymentSimulationModal({
 }: PaymentSimulationModalProps) {
   const [selectedMethod, setSelectedMethod] = useState<string>("va");
 
-  const platformFee = Math.round(totalBudgetEscrow * 0.15);
-  const totalPayment = totalBudgetEscrow + platformFee;
+  const platformFee = calculatePlatformFee(totalBudgetEscrow);
+  const totalPayment = calculateTotalPayment(totalBudgetEscrow);
 
   const paymentMethods = [
     { id: "va", name: "Virtual Account (Simulasi)", desc: "Transfer Bank Otomatis 24 Jam" },
@@ -59,7 +60,7 @@ export function PaymentSimulationModal({
             <span className="font-bold text-text-primary">{formatCurrency(totalBudgetEscrow)}</span>
           </div>
           <div className="flex justify-between items-center text-text-muted text-[11px]">
-            <span>Biaya Platform (15%)</span>
+            <span>Biaya Platform (2%)</span>
             <span className="font-bold text-text-primary">{formatCurrency(platformFee)}</span>
           </div>
           <div className="flex justify-between items-center text-text-primary text-[11px] pt-2 border-t border-dashed border-border-soft mt-1">

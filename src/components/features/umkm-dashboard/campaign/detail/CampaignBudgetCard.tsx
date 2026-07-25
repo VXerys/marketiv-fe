@@ -1,5 +1,6 @@
 import { Campaign } from "@/types/umkm-dashboard.types";
 import { formatCurrency } from "@/lib/formatters";
+import { calculatePlatformFee, calculateTotalPayment } from "@/types/domain";
 import { DashboardProgress } from "../../shared";
 
 interface CampaignBudgetCardProps {
@@ -8,9 +9,9 @@ interface CampaignBudgetCardProps {
 
 export function CampaignBudgetCard({ campaign }: CampaignBudgetCardProps) {
 
-  // Platform fee estimation (e.g. 15%)
-  const platformFee = Math.round(campaign.totalBudgetEscrow * 0.15);
-  const totalPayment = campaign.totalBudgetEscrow + platformFee;
+  // Platform fee kanon 2% (calculatePlatformFee) — buyer-side untuk campaign.
+  const platformFee = calculatePlatformFee(campaign.totalBudgetEscrow);
+  const totalPayment = calculateTotalPayment(campaign.totalBudgetEscrow);
 
   return (
     <div className="panel">
@@ -44,7 +45,7 @@ export function CampaignBudgetCard({ campaign }: CampaignBudgetCardProps) {
             <span className="font-bold text-text-primary">{formatCurrency(campaign.totalBudgetEscrow)}</span>
           </div>
           <div className="flex justify-between items-center text-text-secondary font-medium">
-            <span>Biaya Layanan Platform (15%)</span>
+            <span>Biaya Layanan Platform (2%)</span>
             <span className="font-bold text-text-primary">{formatCurrency(platformFee)}</span>
           </div>
           <div className="flex justify-between items-center text-text-secondary font-medium pt-2.5 border-t border-dashed border-border-soft">
