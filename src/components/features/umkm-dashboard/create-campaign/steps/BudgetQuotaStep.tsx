@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FormSectionCard } from "../cards/FormSectionCard";
 import { BudgetCalculatorCard } from "../cards/BudgetCalculatorCard";
 import { formatCurrency } from "@/lib/formatters";
+import { MINIMUM_CAMPAIGN_BUDGET } from "@/types/domain";
 import { PRICE_TIERS } from "../create-campaign.constants";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
@@ -186,7 +187,7 @@ export function BudgetQuotaStep({
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
           <div className="flex-1 py-3 flex items-center">
             <Slider
-              min={100000}
+              min={MINIMUM_CAMPAIGN_BUDGET}
               max={10000000}
               step={50000}
               value={[totalBudgetEscrow]}
@@ -198,7 +199,7 @@ export function BudgetQuotaStep({
             <Input
               id="total-budget"
               type="number"
-              min={100000}
+              min={MINIMUM_CAMPAIGN_BUDGET}
               placeholder="3200000"
               value={totalBudgetEscrow}
               onChange={(e) => onChangeTotalBudgetEscrow(Math.max(0, parseInt(e.target.value) || 0))}

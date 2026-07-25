@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { MINIMUM_CAMPAIGN_BUDGET } from "@/types/domain";
+import { currencyAmountIDR } from "./common";
 
 /**
  * Skema wizard campaign UMKM.
@@ -57,9 +59,8 @@ export const campaignStepSchemas: Record<1 | 2 | 3 | 4 | 5, z.ZodType> = {
       .number()
       .positive("Bayaran per 1.000 views harus lebih besar dari Rp 0."),
     creatorQuota: z.number().min(1, "Kuota rekrutmen kreator minimal 1 slot."),
-    totalBudgetEscrow: z
-      .number()
-      .min(100000, "Nominal anggaran campaign minimal Rp 100.000."),
+    // Kanon MINIMUM_CAMPAIGN_BUDGET (50.000) — pesan datang dari currencyAmountIDR.
+    totalBudgetEscrow: currencyAmountIDR(MINIMUM_CAMPAIGN_BUDGET),
   }),
   5: z.object({
     termsAgreed: z.literal(true, {
