@@ -14,7 +14,6 @@ export * from "./JobPoolView";
 export * from "./JobDetailView";
 export * from "./PekerjaanAktifView";
 export * from "./NegosiasiView";
-export * from "./ProfilView";
 export * from "./RateCardView";
 export * from "./KeuanganView";
 export * from "./ActiveWorkDetailView";

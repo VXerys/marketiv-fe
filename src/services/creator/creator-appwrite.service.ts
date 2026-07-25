@@ -13,6 +13,8 @@ import {
   CreatorProfile,
   CreatorMetric,
   CreatorJob,
+  CreatorJobMaterial,
+  CreatorPortfolioItem,
   CreatorActiveWork,
   CreatorSubmission,
   CreatorNegotiation,
@@ -68,6 +70,7 @@ const COLLECTIONS = {
   submissions: "campaign_submissions",
   rateCards: "rate_cards",
   rateCardPackages: "rate_card_packages",
+  creatorPortfolios: "creator_portfolios",
   umkmProfiles: "umkm_profiles",
   transactions: "transactions",
   notifications: "notifications",
@@ -168,6 +171,29 @@ async function loadUmkmProfiles(umkmIds: string[]): Promise<Map<string, Doc>> {
 
 // ── mappers ──────────────────────────────────────────────────────────────────
 
+/** `campaigns.platforms` adalah kolom array; nilai non-array diabaikan. */
+const strList = (v: unknown): string[] =>
+  Array.isArray(v) ? v.filter((i): i is string => typeof i === "string" && i.length > 0) : [];
+
+/** Nama tampilan materi: fileName, atau host URL bila UMKM tidak mengisinya. */
+function materialLabel(d: Doc): string {
+  const name = str(d.fileName);
+  if (name) return name;
+  const url = str(d.fileUrl);
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
+}
+
+const mapMaterial = (d: Doc): CreatorJobMaterial => ({
+  id: str(d.$id),
+  label: materialLabel(d),
+  url: str(d.fileUrl),
+  kind: str(d.type) === "link" ? "link" : "file",
+});
+
 const mapJob = (d: Doc, umkm?: Doc): CreatorJob => ({
   id: str(d.$id),
   title: str(d.title),
@@ -181,6 +207,7 @@ const mapJob = (d: Doc, umkm?: Doc): CreatorJob => ({
   status: str(d.status) as CampaignStatus,
   totalBudget: num(d.budget),
   createdAt: str(d.$createdAt),
+  platforms: strList(d.platforms),
 });
 
 const mapSubmission = (d: Doc): CreatorSubmission => ({
@@ -348,8 +375,10 @@ export async function getCreatorJobByIdFromAppwrite(id: string): Promise<Service
       ...mapJob(doc, umkmById.get(str(doc.umkmId))),
       contentInstruction: orUndefined(str(brief?.briefDetail)),
       ctaInstruction: orUndefined(str(brief?.cta)),
+      targetAudience: orUndefined(str(brief?.objective)),
       doAndDont: parseDoAndDont(brief?.doAndDont),
       externalAssetUrl: orUndefined(str(assets[0]?.fileUrl)),
+      materials: assets.map(mapMaterial),
     };
     return { success: true, data: job };
   } catch (err) {
@@ -420,13 +449,22 @@ async function buildActiveWorks(claims: Doc[]): Promise<CreatorActiveWork[]> {
   const campaignIds = Array.from(new Set(claims.map((c) => str(c.campaignId)).filter(Boolean)));
   const claimIds = claims.map((c) => str(c.$id));
 
-  const [campaigns, submissions] = await Promise.all([
+  const [campaigns, submissions, assets] = await Promise.all([
     listByIds(COLLECTIONS.campaigns, "$id", campaignIds),
     listByIds(COLLECTIONS.submissions, "claimId", claimIds),
+    listByIds(COLLECTIONS.campaignAssets, "campaignId", campaignIds),
   ]);
 
   const campaignById = new Map(campaigns.map((c) => [str(c.$id), c]));
   const submissionByClaimId = new Map(submissions.map((s) => [str(s.claimId), s]));
+  // Materi pertama per campaign — tombol "Buka Materi" hanya butuh satu tautan.
+  const assetUrlByCampaignId = new Map<string, string>();
+  for (const asset of assets) {
+    const campaignId = str(asset.campaignId);
+    if (campaignId && !assetUrlByCampaignId.has(campaignId)) {
+      assetUrlByCampaignId.set(campaignId, str(asset.fileUrl));
+    }
+  }
   const umkmById = await loadUmkmProfiles(campaigns.map((c) => str(c.umkmId)));
 
   return claims.map((claim) => {
@@ -457,6 +495,7 @@ async function buildActiveWorks(claims: Doc[]): Promise<CreatorActiveWork[]> {
       submittedAt: submission ? str(submission.$createdAt) : undefined,
       validatedAt:
         submission && str(submission.status) !== "pending" ? str(submission.$updatedAt) : undefined,
+      assetUrl: orUndefined(assetUrlByCampaignId.get(str(claim.campaignId)) ?? ""),
     };
   });
 }
@@ -483,6 +522,32 @@ export async function getCreatorSubmissionsFromAppwrite(): Promise<ServiceResult
  * View pemilik: rate card `draft` IKUT ditampilkan. Bedanya dengan
  * getCreatorRateCardsFromAppwrite di sisi UMKM yang hanya `published`.
  */
+export async function getCreatorPortfolioFromAppwrite(): Promise<
+  ServiceResult<CreatorPortfolioItem[]>
+> {
+  const auth = await requireUserId<CreatorPortfolioItem[]>([]);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.creatorPortfolios, [
+      Query.equal("creatorId", auth.userId),
+      Query.orderDesc("$createdAt"),
+      Query.limit(PAGE_LIMIT),
+    ]);
+    const docs = res.documents as unknown as Doc[];
+    // platform/niche/views sengaja tidak diisi — tidak ada kolomnya di skema.
+    const data: CreatorPortfolioItem[] = docs.map((d) => ({
+      id: str(d.$id),
+      title: str(d.title),
+      url: str(d.portfolioUrl),
+      description: str(d.description),
+      thumbnailUrl: orUndefined(str(d.thumbnailUrl)),
+    }));
+    return { success: true, data };
+  } catch (err) {
+    return failFromError<CreatorPortfolioItem[]>(err, []);
+  }
+}
+
 export async function getCreatorRateCardPackagesFromAppwrite(): Promise<
   ServiceResult<CreatorRateCardPackage[]>
 > {

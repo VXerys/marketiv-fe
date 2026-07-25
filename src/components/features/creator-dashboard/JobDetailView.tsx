@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowLeft,
-  FolderOpen,
   Users,
   Share2,
   Play,
@@ -18,9 +17,6 @@ import {
   ExternalLink,
   CheckCircle2,
   XCircle,
-  Clock,
-  Eye,
-  Banknote,
   FileText,
   Tag,
   X,
@@ -36,60 +32,20 @@ import {
 
 interface JobDetailViewProps {
   job: CreatorJob | null;
-  onRetry?: () => void;
 }
 
 const VIDEO_SUB_TABS = ["Semua", "Pending", "Approved", "Rejected", "Need Action", "Deleted"];
-const BRIEF_PILLS = ["Syarat", "Aturan", "Narasi", "Caption", "Tentang"] as const;
+// "Syarat akun" dihapus: minimum followers & niche yang diperbolehkan tidak punya
+// kolom apa pun di campaigns/campaign_briefs — sebelumnya diisi konstanta.
+const BRIEF_PILLS = ["Aturan", "Narasi", "Caption", "Tentang"] as const;
 type BriefPill = (typeof BRIEF_PILLS)[number];
 
-// Rich mock data for brief sections
-const MOCK_BRIEF = {
-  syarat: {
-    minFollowers: 10,
-    niches: ["Entertainment", "Lifestyle"],
-    minEngagementRate: null as number | null,
-    isPublicAccount: true,
-  },
-  aturan: {
-    platforms: ["Instagram"],
-    durationMin: 10,
-    durationMax: 120,
-    aspectRatios: ["9:16", "4:5"],
-    noWatermarkAllowed: true,
-    noDuetOrStitch: false,
-  },
-  materialLinks: [
-    {
-      type: "link",
-      label: "Jakarta Announcement - poster resmi ENHYPEN in Jakarta",
-      url: "https://instagram.com",
-      host: "instagram.com",
-    },
-    {
-      type: "link",
-      label: "Jakarta Announcement - poster resmi ENHYPEN in Jakarta",
-      url: "https://enhypeninjakarta.com",
-      host: "enhypeninjakarta.com",
-    },
-    {
-      type: "file",
-      label: "Informasi mengenai ENHYPEN.pdf",
-      url: "#",
-      host: "PDF",
-    },
-    {
-      type: "file",
-      label: "Rekomendasi Materi buat Konten.pdf",
-      url: "#",
-      host: "PDF",
-    },
-  ],
-  footageWajib:
-    "Poster/aset Jakarta Announcement resmi atau website muncul di clip",
-};
+/** Placeholder saat UMKM belum mengisi bagian brief tersebut. */
+function BriefEmpty({ children }: { children: React.ReactNode }) {
+  return <p className="text-sm text-neutral-400 font-medium italic">{children}</p>;
+}
 
-export function JobDetailView({ job: initialJob, onRetry }: JobDetailViewProps) {
+export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
   const [job, setJob] = useState<CreatorJob | null>(initialJob);
   const [activeTab, setActiveTab] = useState<"detail" | "video">("detail");
   const [isDescExpanded, setIsDescExpanded] = useState(false);
@@ -98,7 +54,7 @@ export function JobDetailView({ job: initialJob, onRetry }: JobDetailViewProps) 
   // Brief inline section
   const [isBriefOpen, setIsBriefOpen] = useState(false);
   const [activeBriefSection, setActiveBriefSection] = useState<"brief" | "materi">("brief");
-  const [activeBriefPill, setActiveBriefPill] = useState<BriefPill>("Syarat");
+  const [activeBriefPill, setActiveBriefPill] = useState<BriefPill>("Aturan");
   const briefRef = useRef<HTMLDivElement>(null);
 
   const [countdown, setCountdown] = useState({ h: 3, m: 16, s: 43 });
@@ -110,7 +66,6 @@ export function JobDetailView({ job: initialJob, onRetry }: JobDetailViewProps) 
     retention: false,
     views: false,
   });
-  const [isErrorSimulated, setIsErrorSimulated] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => {
@@ -142,20 +97,6 @@ export function JobDetailView({ job: initialJob, onRetry }: JobDetailViewProps) 
     setIsSuccessOpen(true);
   };
 
-  if (isErrorSimulated) {
-    return (
-      <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[80vh]">
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-8 max-w-md w-full flex items-center justify-between text-xs font-semibold text-red-800">
-          <span>Mode Uji Coba Error Aktif.</span>
-          <button onClick={() => setIsErrorSimulated(false)} className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all cursor-pointer font-bold">
-            Matikan
-          </button>
-        </div>
-        <DashboardStateCard kind="error" title="Terjadi Kesalahan" description="Simulator error diaktifkan." actionLabel="Coba Lagi" onAction={() => { setIsErrorSimulated(false); onRetry?.(); }} />
-      </div>
-    );
-  }
-
   if (!job) {
     return (
       <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[70vh]">
@@ -172,18 +113,10 @@ export function JobDetailView({ job: initialJob, onRetry }: JobDetailViewProps) 
   const descText = job.productDescription ?? "";
   const isLongDesc = descText.length > 220;
 
-  const doList = job.doAndDont?.do ?? [
-    "Gunakan footage resmi dari materi yang disediakan",
-    "Tampilkan poster atau website official di dalam clip",
-    "Buat konten yang terasa natural & relatable",
-    "Sebutkan venue JIS dan tanggal konser",
-  ];
-  const dontList = job.doAndDont?.dont ?? [
-    "Jangan pakai footage tidak resmi / bajakan",
-    "Hindari kesan 'jualan tiket' secara hard sell",
-    "Bikin kesan \"nggak kenal ENHYPEN\" (memicu sentimen negatif ENGENE)",
-    "Terasa seperti iklan",
-  ];
+  const doList = job.doAndDont?.do ?? [];
+  const dontList = job.doAndDont?.dont ?? [];
+  const platforms = job.platforms ?? [];
+  const materials = job.materials ?? [];
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -263,7 +196,7 @@ export function JobDetailView({ job: initialJob, onRetry }: JobDetailViewProps) 
                 <span className="w-1 h-1 rounded-full bg-white/25 shrink-0" />
                 <span className="flex items-center gap-1">
                   <Tag className="w-3 h-3 text-white/65" />
-                  {job.niche?.toUpperCase() ?? "ENTERTAINMENT"}
+                  {job.niche.toUpperCase()}
                 </span>
                 <span className="w-1 h-1 rounded-full bg-white/25 shrink-0" />
                 <span className="flex items-center gap-1">
@@ -459,36 +392,22 @@ export function JobDetailView({ job: initialJob, onRetry }: JobDetailViewProps) 
                         ))}
                       </div>
 
-                      {/* Syarat */}
-                      {activeBriefPill === "Syarat" && (
-                        <div className="space-y-4">
-                          <SectionBox title="Syarat akun" badge="2 wajib">
-                            <FieldBox label="Minimum Followers">
-                              <span className="text-sm font-bold text-neutral-900">{MOCK_BRIEF.syarat.minFollowers} Followers</span>
-                            </FieldBox>
-                            <FieldBox label="Niche akun yang diperbolehkan">
-                              <span className="text-sm font-bold text-neutral-900">{MOCK_BRIEF.syarat.niches.join(", ")}</span>
-                            </FieldBox>
-                          </SectionBox>
-                        </div>
-                      )}
-
                       {/* Aturan */}
                       {activeBriefPill === "Aturan" && (
                         <div className="space-y-4">
-                          <SectionBox title="Aturan konten" badge="4 wajib">
+                          <SectionBox title="Aturan konten" badge={`${platforms.length} platform`}>
                             <FieldBox label="Platform yang diperbolehkan">
-                              <div className="flex gap-2 flex-wrap">
-                                {MOCK_BRIEF.aturan.platforms.map((p) => (
-                                  <span key={p} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-neutral-50 border border-neutral-200/40 rounded-xl text-xs font-bold text-neutral-700">
-                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
-                                    {p}
-                                  </span>
-                                ))}
-                              </div>
-                            </FieldBox>
-                            <FieldBox label="Durasi video">
-                              <span className="text-sm font-bold text-neutral-900">{MOCK_BRIEF.aturan.durationMin} – {MOCK_BRIEF.aturan.durationMax} detik</span>
+                              {platforms.length > 0 ? (
+                                <div className="flex gap-2 flex-wrap">
+                                  {platforms.map((p) => (
+                                    <span key={p} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-neutral-50 border border-neutral-200/40 rounded-xl text-xs font-bold text-neutral-700 capitalize">
+                                      {p}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <BriefEmpty>Belum ditentukan UMKM.</BriefEmpty>
+                              )}
                             </FieldBox>
                           </SectionBox>
 
@@ -527,48 +446,35 @@ export function JobDetailView({ job: initialJob, onRetry }: JobDetailViewProps) 
                         </div>
                       )}
 
-                      {/* Narasi */}
+                      {/* Narasi — campaign_briefs.briefDetail */}
                       {activeBriefPill === "Narasi" && (
                         <div className="space-y-4">
-                          <SectionBox title="Narasi & pesan" badge="4 wajib">
-                            <FieldBox label="Narasi wajib yang harus sampai ke penonton">
-                              <div className="bg-neutral-50 border border-neutral-200/40 rounded-xl p-4 space-y-2">
-                                {[
-                                  `Narasi inti: "Sudah siap war tiket ENHYPEN?!"`,
-                                  "Curiosity — bangun antisipasi & rasa penasaran soal konsernya",
-                                  "Hype — tunjukin war tiketnya seru & rame; keramaian itu sendiri yang jadi konten",
-                                  "Ajak War — arahkan penonton buat ikut nyiapin & war bareng",
-                                  "Setiap konten minimal menyentuh salah satu objektif, dan selalu terasa obrolan asli bukan iklan",
-                                ].map((item, i) => (
-                                  <div key={i} className="flex items-start gap-2 text-xs text-neutral-700 font-medium leading-normal">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 mt-1.5 shrink-0" />
-                                    {item}
-                                  </div>
-                                ))}
-                              </div>
-                            </FieldBox>
-                            <FieldBox label="Kesan yang diinginkan">
-                              <span className="text-sm font-bold text-neutral-900">{job.targetAudience ?? "Lucu / entertaining, Casual / relatable, Inspiratif / emotional"}</span>
+                          <SectionBox title="Narasi & pesan" badge="Panduan">
+                            <FieldBox label="Instruksi konten dari UMKM">
+                              {job.contentInstruction ? (
+                                <div className="bg-neutral-50 border border-neutral-200/40 rounded-xl p-4 text-sm text-neutral-700 font-medium leading-relaxed whitespace-pre-line">
+                                  {job.contentInstruction}
+                                </div>
+                              ) : (
+                                <BriefEmpty>UMKM belum menuliskan instruksi konten.</BriefEmpty>
+                              )}
                             </FieldBox>
                           </SectionBox>
                         </div>
                       )}
 
-                      {/* Caption */}
+                      {/* Caption — campaign_briefs.cta */}
                       {activeBriefPill === "Caption" && (
                         <div className="space-y-4">
-                          <SectionBox title="Caption & hashtag" badge="2 panduan">
-                            <FieldBox label="Caption yang disarankan">
-                              <div className="bg-neutral-50 border border-neutral-200/40 rounded-xl p-4 text-sm text-neutral-700 font-medium leading-relaxed whitespace-pre-line">
-                                {job.ctaInstruction ?? `Siap war tiket ENHYPEN? 🎫\nJangan sampe ketinggalan — war dimulai [TANGGAL]!\nLink di bio buat dapetin info lengkapnya.`}
-                              </div>
-                            </FieldBox>
-                            <FieldBox label="Hashtag wajib">
-                              <div className="flex flex-wrap gap-2">
-                                {["#ENHYPENJakarta", "#BloodSaga", "#ENGENE", "#ENHYPENWorldTour"].map((tag) => (
-                                  <span key={tag} className="px-2.5 py-1 bg-violet-50 border border-violet-200/50 rounded-lg text-xs font-bold text-violet-700">{tag}</span>
-                                ))}
-                              </div>
+                          <SectionBox title="Caption & CTA" badge="Panduan">
+                            <FieldBox label="Call to action yang disarankan">
+                              {job.ctaInstruction ? (
+                                <div className="bg-neutral-50 border border-neutral-200/40 rounded-xl p-4 text-sm text-neutral-700 font-medium leading-relaxed whitespace-pre-line">
+                                  {job.ctaInstruction}
+                                </div>
+                              ) : (
+                                <BriefEmpty>UMKM belum menuliskan CTA.</BriefEmpty>
+                              )}
                             </FieldBox>
                           </SectionBox>
                         </div>
@@ -579,14 +485,22 @@ export function JobDetailView({ job: initialJob, onRetry }: JobDetailViewProps) 
                         <div className="space-y-4">
                           <SectionBox title="Tentang brand" badge="Informasi">
                             <FieldBox label="Deskripsi produk">
-                              <p className="text-sm text-neutral-700 font-medium leading-relaxed">
-                                {job.productDescription ?? "Campaign ini membangun hype presale konser ENHYPEN Jakarta lewat konten yang terasa seperti obrolan asli (bukan iklan). Kita nggak jualan tiket. Kita fokus bikin war tiket-nya rame dan viral."}
-                              </p>
+                              {job.productDescription ? (
+                                <p className="text-sm text-neutral-700 font-medium leading-relaxed">
+                                  {job.productDescription}
+                                </p>
+                              ) : (
+                                <BriefEmpty>Belum diisi UMKM.</BriefEmpty>
+                              )}
                             </FieldBox>
-                            <FieldBox label="Target audiens">
-                              <p className="text-sm text-neutral-700 font-medium leading-relaxed">
-                                {job.targetAudience ?? "ENGENE (fans ENHYPEN), pecinta K-pop, usia 15–30 tahun, aktif di Instagram Reels & TikTok"}
-                              </p>
+                            <FieldBox label="Objektif campaign">
+                              {job.targetAudience ? (
+                                <p className="text-sm text-neutral-700 font-medium leading-relaxed">
+                                  {job.targetAudience}
+                                </p>
+                              ) : (
+                                <BriefEmpty>Belum diisi UMKM.</BriefEmpty>
+                              )}
                             </FieldBox>
                           </SectionBox>
                         </div>
@@ -606,32 +520,28 @@ export function JobDetailView({ job: initialJob, onRetry }: JobDetailViewProps) 
                         <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wide">
                           Material links (logo, footage, foto produk, dll)
                         </p>
-                        {MOCK_BRIEF.materialLinks.map((link, i) => (
-                          <div key={i} className="flex items-center gap-3.5 border border-neutral-200/60 rounded-2xl p-4 hover:bg-neutral-50 transition-colors group">
-                            <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center shrink-0">
-                              {link.type === "link" ? <Globe className="w-4 h-4 text-neutral-500" /> : <FileText className="w-4 h-4 text-neutral-500" />}
+                        {materials.length > 0 ? (
+                          materials.map((material) => (
+                            <div key={material.id} className="flex items-center gap-3.5 border border-neutral-200/60 rounded-2xl p-4 hover:bg-neutral-50 transition-colors group">
+                              <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center shrink-0">
+                                {material.kind === "link" ? <Globe className="w-4 h-4 text-neutral-500" /> : <FileText className="w-4 h-4 text-neutral-500" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-bold text-neutral-800 truncate">{material.label}</div>
+                              </div>
+                              <a
+                                href={material.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-neutral-900 hover:bg-neutral-700 text-white text-xs font-bold shrink-0 transition-colors cursor-pointer"
+                              >
+                                {material.kind === "link" ? <><ExternalLink className="w-3 h-3" /> Buka</> : <><ChevronDown className="w-3 h-3 rotate-180" /> Unduh</>}
+                              </a>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-xs font-bold text-neutral-800 truncate">{link.label}</div>
-                              <div className="text-[10px] text-neutral-400">{link.host}</div>
-                            </div>
-                            <a
-                              href={link.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-neutral-900 hover:bg-neutral-700 text-white text-xs font-bold shrink-0 transition-colors cursor-pointer"
-                            >
-                              {link.type === "link" ? <><ExternalLink className="w-3 h-3" /> Buka</> : <><ChevronDown className="w-3 h-3 rotate-180" /> Unduh</>}
-                            </a>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="space-y-2">
-                        <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wide">Footage wajib</p>
-                        <div className="bg-neutral-50 border border-neutral-200/40 rounded-xl px-4 py-3 text-sm text-neutral-700 font-medium">
-                          {MOCK_BRIEF.footageWajib}
-                        </div>
+                          ))
+                        ) : (
+                          <BriefEmpty>UMKM belum melampirkan materi apa pun.</BriefEmpty>
+                        )}
                       </div>
                     </div>
                   )}

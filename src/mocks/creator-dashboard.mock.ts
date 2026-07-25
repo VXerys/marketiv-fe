@@ -107,7 +107,22 @@ export const mockCreatorJobs: CreatorJob[] = [
     targetAudience: "Wanita & Pria usia 18-35 tahun, peminat skincare alami/organik, orang dengan kulit sensitif/kering.",
     ctaInstruction: "Ajak audiens untuk mengklik link pembelian Herbal Glow di bio TikTok/Instagram Anda.",
     externalAssetUrl: "https://drive.google.com/drive/folders/herbalglow-aloe-assets",
-    thumbnailUrl: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=300&fit=crop"
+    thumbnailUrl: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=300&fit=crop",
+    platforms: ["tiktok", "instagram"],
+    materials: [
+      {
+        id: "asset_h1",
+        label: "Foto produk Soothing Gel Aloe Vera.zip",
+        url: "https://drive.google.com/drive/folders/herbalglow-aloe-assets",
+        kind: "file",
+      },
+      {
+        id: "asset_h2",
+        label: "herbalglow.id",
+        url: "https://herbalglow.id",
+        kind: "link",
+      },
+    ]
   },
   {
     id: "campaign_007",
@@ -140,7 +155,16 @@ export const mockCreatorJobs: CreatorJob[] = [
     targetAudience: "Wanita muslimah (hijabers) usia 15-40 tahun, pelajar, mahasiswa, dan ibu muda yang aktif sehari-hari.",
     ctaInstruction: "Ajak audiens untuk follow akun @anggun.apparel dan belanja koleksi daily terbaru mereka.",
     externalAssetUrl: "https://drive.google.com/drive/folders/anggunapparel-hijab-assets",
-    thumbnailUrl: MOCK_ASSETS.campaigns.hijabModern
+    thumbnailUrl: MOCK_ASSETS.campaigns.hijabModern,
+    platforms: ["instagram"],
+    materials: [
+      {
+        id: "asset_a1",
+        label: "Katalog koleksi daily.pdf",
+        url: "https://drive.google.com/drive/folders/anggunapparel-hijab-assets",
+        kind: "file",
+      },
+    ]
   },
   {
     id: "campaign_006",
@@ -172,7 +196,9 @@ export const mockCreatorJobs: CreatorJob[] = [
     targetAudience: "Wanita karir & mahasiswi usia 20-45 tahun, pecinta fashion lokal/batik, orang yang mencari outfit formal-kasual modern.",
     ctaInstruction: "Ajak audiens untuk memesan Batik Outer Cap di marketplace official Batik Cantik Solo.",
     externalAssetUrl: "https://drive.google.com/drive/folders/batiksolo-outer-assets",
-    thumbnailUrl: "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=400&h=300&fit=crop"
+    thumbnailUrl: "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=400&h=300&fit=crop",
+    platforms: ["tiktok"],
+    materials: []
   },
 ];
 

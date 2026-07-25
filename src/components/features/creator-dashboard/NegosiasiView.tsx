@@ -6,8 +6,6 @@ import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { CreatorNegotiation } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
-import { CreatorErrorState } from "./CreatorErrorState";
-import { CreatorCardSkeleton, CreatorMetricSkeleton } from "./CreatorSkeleton";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import {
@@ -175,9 +173,6 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
   const [filterOpen, setFilterOpen] = useState(false);
   const { toolbarRef, isSticky } = useStickyToolbar();
 
-  const [isLoadingSimulated] = useState(false);
-  const [isEmptySimulated] = useState(false);
-  const [isErrorSimulated, setIsErrorSimulated] = useState(false);
 
   const handleClearFilters = () => {
     setSearch("");
@@ -210,35 +205,9 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
 
   const hasActiveFilters = search !== "" || selectedStatus !== "all";
 
-  if (isErrorSimulated) {
-    return (
-      <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[80vh]">
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4.5 mb-8 max-w-md w-full flex items-center justify-between shadow-sm text-xs font-semibold text-red-800">
-          <span>Mode Uji Coba Error Aktif.</span>
-          <button
-            onClick={() => setIsErrorSimulated(false)}
-            className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all cursor-pointer font-bold"
-          >
-            Matikan Mode Error
-          </button>
-        </div>
-        <CreatorErrorState
-          errorMsg="Gagal memuat daftar negosiasi Rate Card. Silakan periksa jaringan Anda."
-          onRetry={() => setIsErrorSimulated(false)}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 relative">
-      {isLoadingSimulated ? (
-        <div>
-          <CreatorMetricSkeleton />
-          <div className="h-10 bg-white border border-neutral-200/50 rounded-xl animate-pulse w-full mb-6" />
-          <CreatorCardSkeleton count={4} />
-        </div>
-      ) : (
         <div>
           <CreatorPageHeader
             title="Negosiasi Rate Card"
@@ -366,7 +335,7 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
           </div>
 
           {/* Negotiation cards */}
-          {isEmptySimulated || filteredNegotiations.length === 0 ? (
+          {filteredNegotiations.length === 0 ? (
             <CreatorEmptyState
               title="Belum ada negosiasi Rate Card"
               description={
@@ -394,7 +363,6 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
             </div>
           )}
         </div>
-      )}
     </div>
   );
 }

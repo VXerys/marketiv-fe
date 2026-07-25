@@ -5,7 +5,6 @@ import Link from "next/link";
 import { CreatorNegotiation } from "@/types/creator-dashboard";
 import { toast } from "sonner";
 import { CreatorEmptyState } from "./CreatorEmptyState";
-import { CreatorErrorState } from "./CreatorErrorState";
 import { formatCurrency } from "@/lib/formatters";
 import { PLATFORM_FEE_RATE, calculatePlatformFee, calculateCreatorPayout } from "@/types/domain";
 import { getEscrowStatusLabel } from "@/lib/creator-status";
@@ -18,19 +17,16 @@ import {
   X,
   Lock,
   AlertTriangle,
-  ChevronRight,
   ShieldCheck,
   Sparkles,
   LinkIcon,
   Clock,
   RotateCcw,
   CheckCircle2,
-  Circle,
 } from "lucide-react";
 
 interface NegosiasiRoomViewProps {
   negotiation: CreatorNegotiation | null;
-  onRetry?: () => void;
 }
 
 type MessageSender = "umkm" | "creator" | "system";
@@ -93,11 +89,8 @@ function FieldInput({ className, ...props }: React.InputHTMLAttributes<HTMLInput
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: NegosiasiRoomViewProps) {
+export function NegosiasiRoomView({ negotiation: initialNeg }: NegosiasiRoomViewProps) {
   const [neg, setNeg] = useState<CreatorNegotiation | null>(initialNeg);
-  const [isLoadingSimulated] = useState(false);
-  const [isErrorSimulated, setIsErrorSimulated] = useState(false);
-  const [isEmptyChatSimulated] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -252,19 +245,6 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
     toast.success("Revisi ditandai selesai.");
   };
 
-  if (isErrorSimulated) {
-    return (
-      <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[80vh]">
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4.5 mb-8 max-w-md w-full flex items-center justify-between shadow-sm text-xs font-semibold text-red-800">
-          <span>Mode Uji Coba Error Aktif.</span>
-          <button onClick={() => setIsErrorSimulated(false)} className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all cursor-pointer font-bold">
-            Matikan Mode Error
-          </button>
-        </div>
-        <CreatorErrorState errorMsg="Simulator error diaktifkan pada halaman detail Room Negosiasi." onRetry={() => { setIsErrorSimulated(false); if (onRetry) onRetry(); }} />
-      </div>
-    );
-  }
 
   if (!neg) {
     return (
@@ -313,12 +293,6 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-5 sm:pb-5 lg:pb-5 relative h-[calc(100vh-84px)] flex flex-col min-h-0 overflow-hidden">
-      {isLoadingSimulated ? (
-        <div className="animate-pulse space-y-4 flex-1">
-          <div className="h-16 bg-white border border-neutral-200/50 rounded-[22px]" />
-          <div className="flex-1 bg-white border border-neutral-200/50 rounded-[22px] h-96" />
-        </div>
-      ) : (
         <div className="flex-1 flex flex-col min-h-0 max-w-7xl w-full mx-auto">
 
           {/* Back button */}
@@ -367,7 +341,7 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
 
               {/* Messages feed */}
               <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-[#fafafa] premium-scrollbar">
-                {isEmptyChatSimulated || chatMessages.length === 0 ? (
+                {chatMessages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center gap-3 py-12">
                     <div className="w-12 h-12 rounded-2xl bg-neutral-100 flex items-center justify-center">
                       <MessageSquareIcon className="w-6 h-6 text-neutral-300" />
@@ -769,7 +743,6 @@ export function NegosiasiRoomView({ negotiation: initialNeg, onRetry }: Negosias
 
           </div>
         </div>
-      )}
 
       {/* ── Modal: Buat Custom Offer ─────────────────────────────────────── */}
       {isOfferModalOpen && neg && (

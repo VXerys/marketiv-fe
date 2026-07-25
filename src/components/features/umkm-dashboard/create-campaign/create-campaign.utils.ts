@@ -1,3 +1,5 @@
+import { calculatePlatformFee, calculateTotalPayment } from "@/types/domain";
+
 export interface DerivedBudgetValues {
   platformFee: number;
   totalPayment: number;
@@ -11,8 +13,9 @@ export function getDerivedBudgetValues(
   totalBudgetEscrow: number,
   creatorQuota: number
 ): DerivedBudgetValues {
-  const platformFee = Math.round(totalBudgetEscrow * 0.02);
-  const totalPayment = totalBudgetEscrow + platformFee;
+  // Campaign top-up = buyer-side: UMKM membayar budget + fee.
+  const platformFee = calculatePlatformFee(totalBudgetEscrow);
+  const totalPayment = calculateTotalPayment(totalBudgetEscrow);
   
   const estimatedViews = pricePerThousandViews > 0 
     ? Math.round((totalBudgetEscrow / pricePerThousandViews) * 1000) 

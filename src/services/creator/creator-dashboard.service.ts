@@ -3,6 +3,7 @@ import { mockDelay } from "@/lib/mock-delay";
 import {
   ServiceResult,
   CreatorProfile,
+  CreatorPortfolioItem,
   CreatorMetric,
   CreatorJob,
   CreatorActiveWork,
@@ -14,6 +15,7 @@ import {
 } from "@/types/creator-dashboard";
 import {
   mockCreatorProfile,
+  mockCreatorPortfolioItems,
   mockCreatorMetrics,
   mockCreatorJobs,
   mockCreatorActiveWorks,
@@ -25,6 +27,7 @@ import {
 } from "@/mocks/creator-dashboard.mock";
 import {
   getCreatorProfileFromAppwrite,
+  getCreatorPortfolioFromAppwrite,
   getCreatorMetricsFromAppwrite,
   getCreatorJobsFromAppwrite,
   getCreatorJobByIdFromAppwrite,
@@ -44,6 +47,14 @@ export async function getCreatorProfile(): Promise<ServiceResult<CreatorProfile>
     return { success: true, data: mockCreatorProfile };
   }
   return getCreatorProfileFromAppwrite();
+}
+
+export async function getCreatorPortfolio(): Promise<ServiceResult<CreatorPortfolioItem[]>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return { success: true, data: mockCreatorPortfolioItems };
+  }
+  return getCreatorPortfolioFromAppwrite();
 }
 
 export async function getCreatorMetrics(): Promise<ServiceResult<CreatorMetric>> {

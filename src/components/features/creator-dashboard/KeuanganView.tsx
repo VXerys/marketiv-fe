@@ -17,7 +17,6 @@ import {
   CheckCircle2,
   Landmark,
   ReceiptText,
-  FlaskConical,
   SlidersHorizontal,
 } from "lucide-react";
 import { CreatorMetric, CreatorTransaction } from "@/types/creator-dashboard";
@@ -30,8 +29,6 @@ interface KeuanganViewProps {
   metrics: CreatorMetric;
   initialTransactions: CreatorTransaction[];
 }
-
-type SimulatedState = "normal" | "loading" | "empty" | "filter_empty" | "error";
 
 /* ---------------------------------- */
 /* Summary card — konsisten dengan CampaignSummaryCards / NegotiationSummaryCards */
@@ -71,28 +68,14 @@ function SummaryCard({ icon: Icon, label, value, note, iconBg, iconColor, iconBo
   );
 }
 
-/* Skeleton untuk summary card */
-function SummaryCardSkeleton() {
-  return (
-    <div className="p-3.5 sm:p-4.5 border border-neutral-200/80 rounded-2xl sm:rounded-[22px] bg-white animate-pulse">
-      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-[14px] bg-neutral-100 mb-3" />
-      <div className="h-3 w-24 bg-neutral-200 rounded mb-2.5" />
-      <div className="h-6 w-32 bg-neutral-200 rounded mb-2" />
-      <div className="h-3 w-28 bg-neutral-100 rounded" />
-    </div>
-  );
-}
-
 export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps) {
-  // QA Simulated State
-  const [simulatedState, setSimulatedState] = useState<SimulatedState>("normal");
-
+  // Fallback 0, bukan angka contoh: ini nominal uang yang dibaca kreator.
   const [walletMetrics, setWalletMetrics] = useState<CreatorMetric>({
     ...metrics,
-    totalEarnings: metrics.totalEarnings ?? 2300000,
-    thisMonthEarnings: metrics.thisMonthEarnings ?? 600000,
-    campaignEarnings: metrics.campaignEarnings ?? 1500000,
-    rateCardEarnings: metrics.rateCardEarnings ?? 800000,
+    totalEarnings: metrics.totalEarnings ?? 0,
+    thisMonthEarnings: metrics.thisMonthEarnings ?? 0,
+    campaignEarnings: metrics.campaignEarnings ?? 0,
+    rateCardEarnings: metrics.rateCardEarnings ?? 0,
   });
 
   const [transactions, setTransactions] = useState<CreatorTransaction[]>(initialTransactions);
@@ -136,8 +119,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
   const isAmountValid = numericAmount >= MIN_WITHDRAWAL && (numericAmount + ADMIN_FEE) <= walletMetrics.balance;
   const maxWithdrawable = Math.max(0, walletMetrics.balance - ADMIN_FEE);
 
-  const isWithdrawDisabled =
-    walletMetrics.balance < MIN_WITHDRAWAL || simulatedState === "loading" || simulatedState === "error";
+  const isWithdrawDisabled = walletMetrics.balance < MIN_WITHDRAWAL;
 
   const handleWithdrawSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,9 +189,6 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
 
   // Filter and sort transactions
   const processedTransactions = (() => {
-    // If empty state simulated
-    if (simulatedState === "empty") return [];
-
     let result = [...transactions];
 
     // Search query filter
@@ -233,8 +212,6 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
       result = result.filter((tx) => tx.status.toLowerCase() === filterStatus.toLowerCase());
     }
 
-    // If QA simulated filter empty state
-    if (simulatedState === "filter_empty") return [];
 
     // Sorting
     result.sort((a, b) => {
@@ -317,44 +294,8 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
           </div>
         </div>
 
-        {/* Error State Simulator View */}
-        {simulatedState === "error" ? (
-          <div className="bg-gradient-to-b from-white to-red-50/40 border border-red-200/60 rounded-[26px] p-8 sm:p-12 text-center max-w-lg mx-auto mt-8 shadow-3xs">
-            <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-200/50 grid place-items-center text-red-500 mx-auto mb-6">
-              <AlertTriangle size={30} />
-            </div>
-            <h3 className="font-display text-lg font-black text-neutral-900 mb-2 tracking-tight">
-              Gagal Memuat Data Keuangan
-            </h3>
-            <p className="text-sm text-neutral-500 font-semibold leading-relaxed mb-6 max-w-sm mx-auto">
-              Sistem gagal tersambung ke database pembayaran. Silakan periksa jaringan internet Anda atau muat ulang halaman.
-            </p>
-            <button
-              onClick={() => setSimulatedState("normal")}
-              className="inline-flex items-center gap-1.5 min-h-[42px] px-6 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:-translate-y-px cursor-pointer border border-red-700/10"
-            >
-              Coba Muat Ulang Data
-            </button>
-          </div>
-        ) : (
-          <>
             {/* ===== Metrics Grid: 2 cols mobile → 3 cols sm+ ===== */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-              {simulatedState === "loading" ? (
-                <>
-                  {/* Hero skeleton — full width on mobile */}
-                  <div className="col-span-2 sm:col-span-1 rounded-2xl sm:rounded-[22px] border border-neutral-200/80 bg-white p-5 sm:p-6 animate-pulse h-[168px]">
-                    <div className="h-10 w-10 rounded-[14px] bg-neutral-100 mb-4" />
-                    <div className="h-3 w-28 bg-neutral-200 rounded mb-3" />
-                    <div className="h-8 w-44 bg-neutral-200 rounded" />
-                  </div>
-                  <SummaryCardSkeleton />
-                  <SummaryCardSkeleton />
-                  <SummaryCardSkeleton />
-                  <SummaryCardSkeleton />
-                  <SummaryCardSkeleton />
-                </>
-              ) : (
                 <>
                   {/* Saldo Tersedia — hero card, full width on mobile */}
                   <div className="col-span-2 sm:col-span-1 relative overflow-hidden rounded-2xl sm:rounded-[22px] border border-orange-900/20 bg-gradient-to-br from-[#fb7a18] to-primary-600 p-5 sm:p-6 text-white shadow-[0_14px_34px_rgba(234,88,12,.22)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(234,88,12,.30)] group">
@@ -434,7 +375,6 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                     iconBorder="rgba(124,58,237,.18)"
                   />
                 </>
-              )}
             </div>
 
             {/* ===== Ledger Workspace ===== */}
@@ -448,11 +388,9 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                   <h3 className="font-display font-black text-neutral-900 text-[.95rem] tracking-tight">
                     Riwayat Transaksi Wallet
                   </h3>
-                  {simulatedState !== "loading" && (
-                    <span className="inline-flex items-center justify-center min-w-[22px] h-[20px] rounded-full bg-neutral-100 text-neutral-500 text-[10px] font-extrabold px-1.5">
-                      {processedTransactions.length}
-                    </span>
-                  )}
+                  <span className="inline-flex items-center justify-center min-w-[22px] h-[20px] rounded-full bg-neutral-100 text-neutral-500 text-[10px] font-extrabold px-1.5">
+                    {processedTransactions.length}
+                  </span>
                 </div>
 
                 {/* Toolbar filters */}
@@ -465,7 +403,6 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                       </span>
                       <input
                         type="text"
-                        disabled={simulatedState === "loading"}
                         placeholder="Cari ID, deskripsi, atau campaign..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -484,7 +421,6 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                     {/* Mobile filter toggle */}
                     <button
                       onClick={() => setFilterOpen((o) => !o)}
-                      disabled={simulatedState === "loading"}
                       className={`md:hidden shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer disabled:opacity-50 ${
                         filterOpen || isFilterActive
                           ? "bg-primary-50 text-primary-600 border-primary-200"
@@ -501,7 +437,6 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                   <div className={`items-center gap-2 flex-wrap ${filterOpen ? "flex" : "hidden md:flex"}`}>
                     <div className="relative">
                       <select
-                        disabled={simulatedState === "loading"}
                         value={filterType}
                         onChange={(e) => setFilterType(e.target.value)}
                         className="appearance-none bg-white border border-neutral-200 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-700 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all cursor-pointer shadow-3xs disabled:opacity-50"
@@ -516,7 +451,6 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
 
                     <div className="relative">
                       <select
-                        disabled={simulatedState === "loading"}
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value)}
                         className="appearance-none bg-white border border-neutral-200 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-700 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all cursor-pointer shadow-3xs disabled:opacity-50"
@@ -532,7 +466,6 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
 
                     <div className="relative">
                       <select
-                        disabled={simulatedState === "loading"}
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value)}
                         className="appearance-none bg-white border border-neutral-200 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-700 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all cursor-pointer shadow-3xs disabled:opacity-50"
@@ -558,38 +491,11 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
               </div>
 
               {/* Ledger Table */}
-              {simulatedState === "loading" ? (
-                <div className="overflow-x-auto w-full">
-                  <table className="w-full min-w-[768px] text-left border-collapse text-xs font-semibold text-neutral-600">
-                    <thead>
-                      <tr className="border-b border-neutral-200 text-[10px] font-extrabold uppercase tracking-wider text-neutral-400">
-                        <th className="pb-3 pr-4">ID Transaksi</th>
-                        <th className="pb-3 pr-4">Tanggal</th>
-                        <th className="pb-3 pr-4">Sumber</th>
-                        <th className="pb-3 pr-4">Deskripsi</th>
-                        <th className="pb-3 pr-4">Status</th>
-                        <th className="pb-3 text-right">Jumlah</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[1, 2, 3, 4, 5].map((i) => (
-                        <tr key={i} className="animate-pulse border-b border-neutral-100">
-                          <td className="py-4 pr-4"><div className="h-4.5 w-16 bg-neutral-200 rounded"></div></td>
-                          <td className="py-4 pr-4"><div className="h-4.5 w-24 bg-neutral-200 rounded"></div></td>
-                          <td className="py-4 pr-4"><div className="h-4.5 w-20 bg-neutral-200 rounded"></div></td>
-                          <td className="py-4 pr-4"><div className="h-4.5 w-44 bg-neutral-200 rounded"></div></td>
-                          <td className="py-4 pr-4"><div className="h-6 w-20 bg-neutral-200 rounded-full"></div></td>
-                          <td className="py-4 text-right"><div className="h-4.5 w-24 bg-neutral-200 rounded ml-auto"></div></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : processedTransactions.length === 0 ? (
+              {processedTransactions.length === 0 ? (
                 <CreatorEmptyState
-                  title={simulatedState === "filter_empty" || isFilterActive ? "Transaksi tidak ditemukan" : "Buku Besar Kosong"}
+                  title={isFilterActive ? "Transaksi tidak ditemukan" : "Buku Besar Kosong"}
                   description={
-                    simulatedState === "filter_empty" || isFilterActive
+                    isFilterActive
                       ? "Tidak ada catatan transaksi wallet yang memenuhi kriteria filter Anda."
                       : "Anda belum melakukan transaksi keuangan apapun di platform Marketiv."
                   }
@@ -681,8 +587,6 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                 </>
               )}
             </div>
-          </>
-        )}
 
         {/* Withdrawal Simulation Dual-Modal (Form -> Confirm -> Success) */}
         {isWithdrawOpen && (

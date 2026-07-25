@@ -26,7 +26,6 @@ import { toast } from "sonner";
 import { CreatorProfile, CreatorPortfolioItem, CreatorNiche } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
-import { mockCreatorPortfolioItems } from "@/mocks/creator-dashboard.mock";
 import { cn } from "@/lib/utils";
 
 // ─── Creator brand gradient ───────────────────────────────────────────────────
@@ -231,9 +230,10 @@ function GhostBtn({
 
 interface SettingsViewProps {
   initialProfile: CreatorProfile;
+  initialPortfolio: CreatorPortfolioItem[];
 }
 
-export function SettingsView({ initialProfile }: SettingsViewProps) {
+export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("profil");
 
   // ── Profile state ──
@@ -260,9 +260,7 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
   const [isProfileSuccessOpen, setIsProfileSuccessOpen] = useState(false);
 
   // ── Portfolio state ──
-  const [portfolioItems, setPortfolioItems] = useState<CreatorPortfolioItem[]>(
-    mockCreatorPortfolioItems
-  );
+  const [portfolioItems, setPortfolioItems] = useState<CreatorPortfolioItem[]>(initialPortfolio);
   const [isAddPortOpen, setIsAddPortOpen] = useState(false);
   const [isEditPortOpen, setIsEditPortOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -339,10 +337,10 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
   const openEditPortModal = (item: CreatorPortfolioItem) => {
     setActivePortItem(item);
     setPortTitle(item.title);
-    setPortPlatform(item.platform);
+    setPortPlatform(item.platform ?? "tiktok");
     setPortUrl(item.url);
-    setPortNiche(item.niche);
-    setPortViews(item.views);
+    setPortNiche(item.niche ?? "lainnya");
+    setPortViews(item.views ?? 0);
     setPortDesc(item.description);
     setIsEditPortOpen(true);
   };
@@ -758,9 +756,11 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
                         alt={item.title}
                         className="w-full h-full object-cover"
                       />
-                      <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-neutral-900/80 text-white text-[0.62rem] font-[900] uppercase tracking-wider">
-                        {item.platform}
-                      </span>
+                      {item.platform && (
+                        <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-neutral-900/80 text-white text-[0.62rem] font-[900] uppercase tracking-wider">
+                          {item.platform}
+                        </span>
+                      )}
                     </div>
                   )}
                   <div className="p-4 flex flex-col flex-1 gap-2">
@@ -768,17 +768,21 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
                       <h5 className="font-[800] text-neutral-900 text-[0.88rem] leading-snug line-clamp-1 flex-1">
                         {item.title}
                       </h5>
-                      <span className="shrink-0 inline-flex px-2 py-0.5 rounded-full text-white text-[0.62rem] font-[900] uppercase tracking-wider" style={{ background: CREATOR_GRADIENT }}>
-                        {item.niche}
-                      </span>
+                      {item.niche && (
+                        <span className="shrink-0 inline-flex px-2 py-0.5 rounded-full text-white text-[0.62rem] font-[900] uppercase tracking-wider" style={{ background: CREATOR_GRADIENT }}>
+                          {item.niche}
+                        </span>
+                      )}
                     </div>
                     <p className="text-[0.78rem] text-neutral-400 font-[500] leading-relaxed line-clamp-2 flex-1">
                       {item.description}
                     </p>
-                    <div className="flex items-center justify-between text-[0.72rem] font-[800] text-neutral-400 pt-2 border-t border-neutral-200/40 mt-auto">
-                      <span>VIEWS PENONTON</span>
-                      <span className="text-neutral-800">{item.views.toLocaleString("id-ID")} views</span>
-                    </div>
+                    {item.views !== undefined && (
+                      <div className="flex items-center justify-between text-[0.72rem] font-[800] text-neutral-400 pt-2 border-t border-neutral-200/40 mt-auto">
+                        <span>VIEWS PENONTON</span>
+                        <span className="text-neutral-800">{item.views.toLocaleString("id-ID")} views</span>
+                      </div>
+                    )}
                   </div>
                   <div className="p-3 border-t border-neutral-200/40 grid grid-cols-2 gap-2">
                     <button

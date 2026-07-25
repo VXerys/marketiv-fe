@@ -34,11 +34,6 @@ import {
   CreatorJob,
 } from "@/types/creator-dashboard";
 import {
-  CreatorMetricSkeleton,
-  CreatorCardSkeleton,
-  CreatorListSkeleton,
-} from "./CreatorSkeleton";
-import {
   DashboardBadge,
   DashboardModal,
   DashboardButton,
@@ -282,9 +277,6 @@ export function CreatorDashboardView({
   const [recJobs, setRecJobs]                 = useState<CreatorJob[]>(initialRecommendedJobs);
   const [currentMetrics, setCurrentMetrics]   = useState<CreatorMetric>(metrics);
 
-  const [isLoadingSimulated, setIsLoadingSimulated] = useState(false);
-  const [isEmptySimulated,   setIsEmptySimulated]   = useState(false);
-  const [isErrorSimulated,   setIsErrorSimulated]   = useState(false);
 
   const [isTarikDanaOpen,       setIsTarikDanaOpen]       = useState(false);
   const [isSubmitBuktiOpen,     setIsSubmitBuktiOpen]     = useState(false);
@@ -429,79 +421,11 @@ export function CreatorDashboardView({
     }
   };
 
-  // ── Error state ────────────────────────────────────────────────────────────
-  if (isErrorSimulated) {
-    return (
-      <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[80vh]">
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-8 max-w-md w-full flex items-center justify-between shadow-sm text-xs font-semibold text-red-800">
-          <span>Mode Uji Coba Error Aktif.</span>
-          <button
-            onClick={() => setIsErrorSimulated(false)}
-            className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all cursor-pointer font-bold"
-          >
-            Matikan
-          </button>
-        </div>
-        <DashboardStateCard
-          kind="error"
-          title="Terjadi Kesalahan"
-          description="Simulator error diaktifkan untuk memenuhi persyaratan Slicing DoD."
-          actionLabel="Coba Lagi"
-          onAction={() => { setIsErrorSimulated(false); showToast("Berhasil memulihkan dari state error!"); }}
-        />
-      </div>
-    );
-  }
-
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto relative bg-gradient-to-b from-[#eef2ff] via-[#f5f3ff]/30 to-white">
 
-      {isLoadingSimulated ? (
-
-        /* ── Shimmer skeleton ─────────────────────────────────────────────── */
-        <div className="max-w-[1400px] mx-auto">
-          <div className="h-28 bg-white border border-neutral-200/50 rounded-[28px] animate-pulse p-6 mb-8 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-16 w-16 bg-neutral-200 rounded-2xl shrink-0" />
-              <div className="space-y-2.5">
-                <div className="h-6 bg-neutral-200 rounded w-48" />
-                <div className="h-3 bg-neutral-200 rounded w-72" />
-                <div className="h-3 bg-neutral-200 rounded w-56" />
-              </div>
-            </div>
-            <div className="hidden md:flex gap-3">
-              <div className="h-10 bg-neutral-200 rounded-full w-32" />
-              <div className="h-10 bg-neutral-200 rounded-full w-28" />
-            </div>
-          </div>
-          <CreatorMetricSkeleton />
-          <div className="flex gap-3 mt-8 mb-10">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex-1 h-20 bg-neutral-200 rounded-[18px] animate-pulse" />
-            ))}
-          </div>
-          <div className="h-5 bg-neutral-200 rounded w-52 animate-pulse mb-5" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <CreatorCardSkeleton key={i} count={1} />
-            ))}
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8 space-y-6">
-              <div className="h-5 bg-neutral-200 rounded w-44 animate-pulse" />
-              <CreatorListSkeleton count={2} />
-            </div>
-            <div className="lg:col-span-4 space-y-6">
-              <div className="h-5 bg-neutral-200 rounded w-44 animate-pulse" />
-              <CreatorListSkeleton count={4} />
-            </div>
-          </div>
-        </div>
-
-      ) : (
-
-        /* ── Main content ─────────────────────────────────────────────────── */
+        {/* ── Main content ─────────────────────────────────────────────────── */}
         <div className="max-w-[1400px] mx-auto space-y-8">
 
           {/* 1 ── Hero Profile Card */}
@@ -718,7 +642,7 @@ export function CreatorDashboardView({
               </Link>
             </div>
 
-            {isEmptySimulated || recJobs.length === 0 ? (
+            {recJobs.length === 0 ? (
               <DashboardStateCard
                 kind="empty"
                 title="Tidak ada rekomendasi baru"
@@ -850,7 +774,6 @@ export function CreatorDashboardView({
 
           </div>
         </div>
-      )}
 
       {/* ── Tarik Dana Modal ──────────────────────────────────────────────── */}
       <DashboardModal

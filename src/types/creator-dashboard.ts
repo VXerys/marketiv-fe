@@ -62,15 +62,20 @@ export interface CreatorProfile {
   portfolioUrl?: string;
 }
 
+/**
+ * `creator_portfolios` hanya menyimpan creatorId, title, description,
+ * thumbnailUrl, dan portfolioUrl. `platform`, `niche`, dan `views` tidak punya
+ * kolom — biarkan opsional dan jangan dirender bila kosong.
+ */
 export interface CreatorPortfolioItem {
   id: string;
   title: string;
-  platform: "tiktok" | "instagram";
   url: string;
-  niche: CreatorNiche;
-  views: number;
-  thumbnailUrl?: string;
   description: string;
+  thumbnailUrl?: string;
+  platform?: "tiktok" | "instagram";
+  niche?: CreatorNiche;
+  views?: number;
 }
 
 export interface CreatorMetric {
@@ -87,6 +92,16 @@ export interface CreatorMetric {
   thisMonthEarnings?: number;
   campaignEarnings?: number;
   rateCardEarnings?: number;
+}
+
+/** Satu baris `campaign_assets` — materi opsional yang disediakan UMKM. */
+export interface CreatorJobMaterial {
+  id: string;
+  /** `campaign_assets.fileName`, jatuh ke host URL bila kosong. */
+  label: string;
+  url: string;
+  /** `campaign_assets.type` — menentukan aksi "Buka" (link) atau "Unduh" (file). */
+  kind: "link" | "file";
 }
 
 export interface CreatorJob {
@@ -114,6 +129,10 @@ export interface CreatorJob {
   ctaInstruction?: string;
   externalAssetUrl?: string;
   thumbnailUrl?: string;
+  /** `campaigns.platforms` — kolom array, bukan string tunggal. */
+  platforms?: string[];
+  /** Seluruh baris `campaign_assets` milik campaign ini. */
+  materials?: CreatorJobMaterial[];
 }
 
 export interface CreatorActiveWork {
@@ -140,6 +159,8 @@ export interface CreatorActiveWork {
   submittedAt?: string;
   validatedAt?: string;
   rejectedReason?: string;
+  /** Materi pendukung campaign — `campaign_assets.fileUrl` pertama. */
+  assetUrl?: string;
 }
 
 export interface CreatorSubmission {

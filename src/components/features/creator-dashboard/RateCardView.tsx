@@ -5,8 +5,6 @@ import { ClipboardList, BadgeDollarSign, ShoppingBag, Trophy } from "lucide-reac
 import { CreatorRateCardPackage } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
-import { CreatorErrorState } from "./CreatorErrorState";
-import { CreatorCardSkeleton, CreatorMetricSkeleton } from "./CreatorSkeleton";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -260,9 +258,11 @@ function packageGridClass(count: number): string {
 
 interface RateCardViewProps {
   initialPackages: CreatorRateCardPackage[];
+  /** Jumlah order Rate Card masuk — agregasi backend, bukan dihitung di klien. */
+  ordersCount: number;
 }
 
-export function RateCardView({ initialPackages }: RateCardViewProps) {
+export function RateCardView({ initialPackages, ordersCount }: RateCardViewProps) {
   const [packages, setPackages] = useState<CreatorRateCardPackage[]>(
     initialPackages.map((p) => ({
       ...p,
@@ -287,16 +287,12 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
   const [formError, setFormError] = useState<string | null>(null);
 
   // Dev simulation flags
-  const [isLoadingSimulated, setIsLoadingSimulated] = useState(false);
-  const [isEmptySimulated, setIsEmptySimulated] = useState(false);
-  const [isErrorSimulated, setIsErrorSimulated] = useState(false);
 
   // Derived
   const activeCount = packages.filter((p) => p.status === "published").length;
   const activePrices = packages.filter((p) => p.status === "published").map((p) => p.price);
   const startingPrice = activePrices.length > 0 ? Math.min(...activePrices) : 0;
-  const mockOrdersCount = 14;
-  const mostPopularPkg = packages.length > 0 ? packages[0].name : "Standard Single Post";
+  const mostPopularPkg = packages.length > 0 ? packages[0].name : "—";
   const isAtLimit = packages.length >= MAX_PACKAGES;
 
   const showToast = (msg: string) => toast.success(msg);
@@ -372,22 +368,8 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
   };
 
   // ── Error ──
-  if (isErrorSimulated) {
-    return (
-      <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[80vh]">
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-8 max-w-md w-full flex items-center justify-between shadow-sm text-xs font-semibold text-red-800">
-          <span>Mode Uji Coba Error Aktif.</span>
-          <button onClick={() => setIsErrorSimulated(false)} className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all cursor-pointer font-bold">Matikan</button>
-        </div>
-        <CreatorErrorState
-          errorMsg="Gagal menyinkronkan daftar paket Rate Card ke database."
-          onRetry={() => { setIsErrorSimulated(false); showToast("Sinkronisasi Rate Card berhasil dipulihkan!"); }}
-        />
-      </div>
-    );
-  }
 
-  const shownPackages = isEmptySimulated ? [] : packages;
+  const shownPackages = packages;
 
   // ── Shared input class ──
   const inputCls = "w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-semibold text-neutral-800 text-xs";
@@ -395,13 +377,6 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto relative">
 
-      {isLoadingSimulated ? (
-        <div>
-          <CreatorMetricSkeleton />
-          <div className="h-10 bg-white border border-neutral-200/50 rounded-xl animate-pulse w-full mb-6" />
-          <CreatorCardSkeleton count={3} />
-        </div>
-      ) : (
         <div>
 
           {/* ── Page header ── */}
@@ -451,7 +426,7 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
             <MetricInfoCard
               icon={ShoppingBag}
               label="Order Jasa Masuk"
-              value={mockOrdersCount.toString()}
+              value={ordersCount.toString()}
               note="Melalui Rate Card"
               colors={{ bg: "#f1fbf5", iconColor: "#16a34a", border: "#bbf7d0" }}
             />
@@ -496,7 +471,6 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
           )}
 
         </div>
-      )}
 
       {/* ════════════════ Modal: Create ════════════════ */}
       {isCreateOpen && (
