@@ -24,6 +24,14 @@ import { CreatorStatusBadge } from "./CreatorStatusBadge";
 import { CreatorEmptyState } from "./CreatorEmptyState";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import { MINIMUM_WITHDRAW } from "@/types/domain";
+import {
+  withdrawalRequestSchema,
+  PAYOUT_PROVIDERS,
+  type PayoutMethod,
+} from "@/lib/validations/withdrawal.schema";
+import { parseOrErrors } from "@/lib/validations/to-field-errors";
+import { requestWithdrawal } from "@/services/creator/creator-dashboard.service";
 
 interface KeuanganViewProps {
   metrics: CreatorMetric;
@@ -105,64 +113,101 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all");
+  const [requestKey, setRequestKey] = useState("");
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  const [isSubmittingWithdraw, setIsSubmittingWithdraw] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const [sortBy, setSortBy] = useState("latest"); // "latest" | "oldest" | "highest" | "lowest"
   const [filterOpen, setFilterOpen] = useState(false);
 
-  const ADMIN_FEE = 2500;
-  const MIN_WITHDRAWAL = 50000;
-
-  // Derived balance limit
+  // Tidak ada biaya admin: Function request-withdrawal mendebit tepat `amount`
+  // dan tidak menulis baris fee. ADMIN_FEE Rp2.500 sebelumnya karangan frontend.
   const numericAmount = Number(amount) || 0;
-  const isAmountTooLow = numericAmount > 0 && numericAmount < MIN_WITHDRAWAL;
-  const isAmountTooHigh = numericAmount > 0 && (numericAmount + ADMIN_FEE) > walletMetrics.balance;
-  const isAmountValid = numericAmount >= MIN_WITHDRAWAL && (numericAmount + ADMIN_FEE) <= walletMetrics.balance;
-  const maxWithdrawable = Math.max(0, walletMetrics.balance - ADMIN_FEE);
+  const isAmountTooLow = numericAmount > 0 && numericAmount < MINIMUM_WITHDRAW;
+  const isAmountTooHigh = numericAmount > 0 && numericAmount > walletMetrics.balance;
+  const isAmountValid =
+    numericAmount >= MINIMUM_WITHDRAW && numericAmount <= walletMetrics.balance;
+  const maxWithdrawable = Math.max(0, walletMetrics.balance);
 
-  const isWithdrawDisabled = walletMetrics.balance < MIN_WITHDRAWAL;
+  const isWithdrawDisabled = walletMetrics.balance < MINIMUM_WITHDRAW;
+
+  const selectedProvider = PAYOUT_PROVIDERS.find((p) => p.id === bankName);
+  const isEwallet = selectedProvider?.method === "ewallet";
 
   const handleWithdrawSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAmountValid) return;
-
-    // Proceed to confirmation step
+    // Kunci idempotensi dibuat SEKALI saat masuk langkah konfirmasi, sehingga
+    // retry setelah error jaringan tidak menarik saldo dua kali.
+    setRequestKey(crypto.randomUUID());
+    setWithdrawError(null);
     setWithdrawStep("confirm");
   };
 
-  const handleConfirmWithdrawal = () => {
+  const handleConfirmWithdrawal = async () => {
     const withdrawAmt = Number(amount);
-    const totalDebited = withdrawAmt + ADMIN_FEE;
-    const txId = `tx_wd_${Date.now().toString().slice(-6)}`;
+    const method: PayoutMethod = isEwallet ? "ewallet" : "bank";
 
-    // Process local balance updates
-    setWalletMetrics(prev => ({
+    // Pra-validasi Zod: feedback instan + satu-satunya sumber code "validation"
+    // yang andal di klien.
+    const parsed = parseOrErrors(withdrawalRequestSchema(walletMetrics.balance), {
+      amount: withdrawAmt,
+      payoutMethod: method,
+      providerName: selectedProvider?.label ?? bankName,
+      accountNumber,
+      accountName: accountHolder,
+    });
+    if (!parsed.ok) {
+      setWithdrawError(Object.values(parsed.errors)[0] ?? "Periksa kembali data penarikan.");
+      return;
+    }
+
+    setWithdrawError(null);
+    setIsSubmittingWithdraw(true);
+    const res = await requestWithdrawal({ ...parsed.data, requestKey });
+    setIsSubmittingWithdraw(false);
+
+    if (!res.success || !res.data) {
+      setWithdrawError(
+        res.code === "auth"
+          ? "Sesi berakhir, silakan login kembali."
+          : res.error ?? "Gagal memproses penarikan."
+      );
+      return;
+    }
+
+    const receipt = res.data;
+
+    // Withdrawal langsung `processed` (ADR-008) — hanya balance yang turun,
+    // pendingPayouts TIDAK bertambah karena ini bukan payout tertunda.
+    setWalletMetrics((prev) => ({
       ...prev,
-      balance: prev.balance - totalDebited,
-      pendingPayouts: prev.pendingPayouts + withdrawAmt,
+      balance: receipt.balanceAfter,
     }));
 
-    // Create new pending transaction
+    const providerLabel = selectedProvider?.label ?? bankName;
     const newTx: CreatorTransaction = {
-      id: txId,
+      id: receipt.transactionId ?? receipt.withdrawalId,
       type: "withdrawal",
       amount: withdrawAmt,
-      status: "pending",
-      description: `Penarikan saldo wallet ke ${bankName.toUpperCase()} (${accountNumber})`,
-      createdAt: new Date().toISOString(),
+      // Nilai yang benar-benar ditulis Function ke transactions.status.
+      status: "completed",
+      description: `Penarikan saldo wallet ke ${providerLabel} (${accountNumber})`,
+      createdAt: receipt.processedAt,
       source: "Withdrawal",
-      notes: "Sedang diproses oleh bank penyalur."
+      notes: `Dana diteruskan ke ${providerLabel} (${accountNumber}).`
     };
 
     setTransactions([newTx, ...transactions]);
 
     setLastWithdrawalDetails({
-      id: txId,
+      id: receipt.withdrawalId,
       bank: bankName,
       number: accountNumber,
       holder: accountHolder,
       amount: withdrawAmt,
-      fee: ADMIN_FEE,
-      total: totalDebited,
+      fee: 0,
+      total: withdrawAmt,
     });
 
     setWithdrawStep("success");
@@ -175,6 +220,8 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
     setAccountNumber("");
     setAccountHolder("");
     setLastWithdrawalDetails(null);
+    setWithdrawError(null);
+    setRequestKey("");
   };
 
   // Reset all filters
@@ -243,17 +290,8 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
     }
   };
 
-  const getBankLabel = (code: string) => {
-    const banks: Record<string, string> = {
-      mandiri: "Bank Mandiri",
-      bca: "Bank BCA",
-      bni: "Bank BNI",
-      bri: "Bank BRI",
-      gopay: "GoPay (E-Wallet)",
-      ovo: "OVO (E-Wallet)",
-    };
-    return banks[code] || code.toUpperCase();
-  };
+  const getBankLabel = (code: string) =>
+    PAYOUT_PROVIDERS.find((p) => p.id === code)?.label ?? code.toUpperCase();
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto relative">
@@ -324,7 +362,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                         {formatCurrency(walletMetrics.balance)}
                       </div>
                       <div className="text-[.72rem] text-white/70 font-semibold mt-2 leading-none">
-                        Min. penarikan {formatCurrency(MIN_WITHDRAWAL)} &bull; Biaya admin {formatCurrency(ADMIN_FEE)}
+                        Min. penarikan {formatCurrency(MINIMUM_WITHDRAW)} &bull; Tanpa biaya admin
                       </div>
                     </div>
                   </div>
@@ -631,12 +669,11 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                           onChange={(e) => setBankName(e.target.value)}
                           className="w-full appearance-none pl-4 pr-9 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all shadow-3xs"
                         >
-                          <option value="mandiri">Bank Mandiri</option>
-                          <option value="bca">Bank BCA</option>
-                          <option value="bni">Bank BNI</option>
-                          <option value="bri">Bank BRI</option>
-                          <option value="gopay">GoPay (E-Wallet)</option>
-                          <option value="ovo">OVO (E-Wallet)</option>
+                          {PAYOUT_PROVIDERS.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.label}
+                            </option>
+                          ))}
                         </select>
                         <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
                       </div>
@@ -645,13 +682,13 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                     {/* Account Number or HP */}
                     <div className="space-y-1.5">
                       <label className="block text-[10px] font-extrabold text-neutral-500 uppercase tracking-wider">
-                        {["gopay", "ovo"].includes(bankName) ? "Nomor HP E-Wallet" : "Nomor Rekening"}
+                        {isEwallet ? "Nomor HP E-Wallet" : "Nomor Rekening"}
                       </label>
                       <input
                         type="text"
                         required
                         inputMode="numeric"
-                        placeholder={["gopay", "ovo"].includes(bankName) ? "Contoh: 0812xxxxxxxx" : "Masukkan nomor rekening..."}
+                        placeholder={isEwallet ? "Contoh: 0812xxxxxxxx" : "Masukkan nomor rekening..."}
                         value={accountNumber}
                         onChange={(e) => setAccountNumber(e.target.value.replace(/[^0-9]/g, ""))}
                         className="w-full px-4 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-semibold text-neutral-800 placeholder:text-neutral-400 shadow-3xs"
@@ -698,11 +735,11 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                           <button
                             key={quick}
                             type="button"
-                            disabled={quick + ADMIN_FEE > walletMetrics.balance}
+                            disabled={quick > walletMetrics.balance}
                             onClick={() => setAmount(String(quick))}
                             className={cn(
                               "px-2.5 py-1 rounded-full border text-[10px] font-extrabold transition-all cursor-pointer",
-                              quick + ADMIN_FEE > walletMetrics.balance
+                              quick > walletMetrics.balance
                                 ? "bg-neutral-50 border-neutral-200/60 text-neutral-300 cursor-not-allowed"
                                 : Number(amount) === quick
                                   ? "bg-primary-50 border-primary-500/30 text-primary-600 shadow-3xs"
@@ -714,11 +751,11 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                         ))}
                         <button
                           type="button"
-                          disabled={maxWithdrawable < MIN_WITHDRAWAL}
+                          disabled={maxWithdrawable < MINIMUM_WITHDRAW}
                           onClick={() => setAmount(String(maxWithdrawable))}
                           className={cn(
                             "px-2.5 py-1 rounded-full border text-[10px] font-extrabold transition-all cursor-pointer",
-                            maxWithdrawable < MIN_WITHDRAWAL
+                            maxWithdrawable < MINIMUM_WITHDRAW
                               ? "bg-neutral-50 border-neutral-200/60 text-neutral-300 cursor-not-allowed"
                               : Number(amount) === maxWithdrawable
                                 ? "bg-primary-50 border-primary-500/30 text-primary-600 shadow-3xs"
@@ -733,18 +770,18 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                       {isAmountTooLow && (
                         <span className="flex items-center gap-1.5 text-[10px] text-red-600 font-bold mt-1">
                           <AlertTriangle size={12} className="shrink-0" />
-                          Batas minimum penarikan adalah {formatCurrency(MIN_WITHDRAWAL)}
+                          Batas minimum penarikan adalah {formatCurrency(MINIMUM_WITHDRAW)}
                         </span>
                       )}
                       {isAmountTooHigh && (
                         <span className="flex items-center gap-1.5 text-[10px] text-red-600 font-bold mt-1">
                           <AlertTriangle size={12} className="shrink-0" />
-                          Saldo tidak mencukupi (termasuk biaya admin {formatCurrency(ADMIN_FEE)})
+                          Nominal melebihi saldo yang tersedia
                         </span>
                       )}
                       {!isAmountTooLow && !isAmountTooHigh && (
                         <span className="block text-[10px] text-neutral-400 font-semibold mt-1">
-                          Batas minimum penarikan {formatCurrency(MIN_WITHDRAWAL)}. Biaya admin {formatCurrency(ADMIN_FEE)} per transaksi.
+                          Batas minimum penarikan {formatCurrency(MINIMUM_WITHDRAW)}. Tidak ada biaya admin.
                         </span>
                       )}
                     </div>
@@ -756,14 +793,10 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                           <span>Nominal Penarikan</span>
                           <span className="text-neutral-800 font-bold">{formatCurrency(numericAmount)}</span>
                         </div>
-                        <div className="flex justify-between items-center text-xs text-neutral-500 font-semibold">
-                          <span>Biaya Admin Transaksi</span>
-                          <span className="text-neutral-800 font-bold">{formatCurrency(ADMIN_FEE)}</span>
-                        </div>
                         <div className="border-t border-dashed border-neutral-200 my-1.5"></div>
                         <div className="flex justify-between items-center text-xs font-black text-neutral-900">
                           <span>Total Pengurangan Saldo</span>
-                          <span className="font-display text-sm text-primary tracking-tight">{formatCurrency(numericAmount + ADMIN_FEE)}</span>
+                          <span className="font-display text-sm text-primary tracking-tight">{formatCurrency(numericAmount)}</span>
                         </div>
                       </div>
                     )}
@@ -829,14 +862,10 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                       <span className="font-semibold text-neutral-400">Nominal Penarikan</span>
                       <span className="font-bold text-neutral-800">{formatCurrency(numericAmount)}</span>
                     </div>
-                    <div className="flex justify-between items-center gap-4">
-                      <span className="font-semibold text-neutral-400">Biaya Administrasi</span>
-                      <span className="font-bold text-neutral-800">{formatCurrency(ADMIN_FEE)}</span>
-                    </div>
                     <div className="border-t border-dashed border-neutral-200 my-2"></div>
                     <div className="flex justify-between items-center gap-4 text-neutral-950 font-black">
                       <span>Total Potong Saldo</span>
-                      <span className="font-display text-sm text-primary tracking-tight">{formatCurrency(numericAmount + ADMIN_FEE)}</span>
+                      <span className="font-display text-sm text-primary tracking-tight">{formatCurrency(numericAmount)}</span>
                     </div>
                   </div>
 
@@ -845,18 +874,26 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                     <span>Kesalahan pengisian data rekening sepenuhnya menjadi tanggung jawab kreator. Dana tidak dapat ditarik kembali jika sudah diproses bank.</span>
                   </div>
 
+                  {withdrawError && (
+                    <div className="mb-4 rounded-xl border border-red-300 bg-red-50 px-3.5 py-2.5 text-[11px] font-bold text-red-700">
+                      {withdrawError}
+                    </div>
+                  )}
+
                   <div className="flex gap-3">
                     <button
                       onClick={() => setWithdrawStep("form")}
-                      className="flex-1 min-h-[44px] border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                      disabled={isSubmittingWithdraw}
+                      className="flex-1 min-h-[44px] border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Kembali
                     </button>
                     <button
                       onClick={handleConfirmWithdrawal}
-                      className="flex-1 min-h-[44px] border border-orange-900/20 bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-[0_10px_24px_rgba(234,88,12,.22)] hover:shadow-[0_14px_30px_rgba(234,88,12,.30)] hover:-translate-y-px cursor-pointer"
+                      disabled={isSubmittingWithdraw}
+                      className="flex-1 min-h-[44px] border border-orange-900/20 bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-[0_10px_24px_rgba(234,88,12,.22)] hover:shadow-[0_14px_30px_rgba(234,88,12,.30)] hover:-translate-y-px cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
                     >
-                      Konfirmasi &amp; Tarik
+                      {isSubmittingWithdraw ? "Memproses…" : "Konfirmasi & Tarik"}
                     </button>
                   </div>
                 </>
@@ -897,9 +934,11 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                     <div className="border-t border-dashed border-neutral-200 my-1"></div>
                     <div className="flex justify-between items-center gap-4">
                       <span className="font-semibold text-neutral-400">Status Transaksi</span>
-                      <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/60 uppercase tracking-wider">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                        Processing
+                      {/* ADR-008: withdrawal langsung processed, tanpa review admin —
+                          UI tidak boleh menyiratkan queue yang tidak ada. */}
+                      <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60 uppercase tracking-wider">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                        Selesai
                       </span>
                     </div>
                   </div>

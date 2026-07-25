@@ -1,21 +1,12 @@
+import type { CampaignWizardInput } from "@/lib/validations/campaign.schema";
+
 export type StepStatus = "idle" | "active" | "completed" | "invalid";
 
-export interface CampaignWizardState {
-  title: string;
-  category: string;
-  description: string;
-  location: string;
-  brief: string;
-  videoStyle: string;
-  requiredPoints: string;
-  callToAction: string;
-  hashtags: string;
-  externalAssetUrl: string;
-  assetNotes: string;
-  pricePerThousandViews: number;
-  totalBudgetEscrow: number;
-  creatorQuota: number;
-  termsAgreed: boolean;
-}
+/**
+ * State wizard = skema Zod sebagai sumber tunggal daftar field
+ * (src/lib/validations/campaign.schema). Nama & file dipertahankan supaya
+ * import 5 step tidak berubah.
+ */
+export type CampaignWizardState = CampaignWizardInput;
 
 export type ValidationError = Record<string, string>;

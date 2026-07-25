@@ -39,7 +39,27 @@ import {
   getCreatorRateCardPackagesFromAppwrite,
   getCreatorTransactionsFromAppwrite,
   getCreatorActivitiesFromAppwrite,
+  createCreatorRateCardPackageInAppwrite,
+  updateCreatorRateCardPackageInAppwrite,
+  setCreatorRateCardPackageStatusInAppwrite,
+  deleteCreatorRateCardPackageInAppwrite,
+  updateCreatorProfileInAppwrite,
+  uploadCreatorAvatarInAppwrite,
+  upsertCreatorSocialAccountInAppwrite,
+  createCreatorPortfolioInAppwrite,
+  updateCreatorPortfolioInAppwrite,
+  deleteCreatorPortfolioInAppwrite,
+  uploadCreatorPortfolioThumbnailInAppwrite,
+  requestWithdrawalInAppwrite,
 } from "./creator-appwrite.service";
+import type {
+  RateCardPackageWriteInput,
+  CreatorProfileWriteInput,
+  CreatorPortfolioWriteInput,
+  WithdrawRequestInput,
+  WithdrawalReceipt,
+} from "./creator-appwrite.service";
+import type { RateCardStatus } from "@/types/domain";
 
 export async function getCreatorProfile(): Promise<ServiceResult<CreatorProfile>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
@@ -155,4 +175,203 @@ export async function getCreatorActivities(): Promise<ServiceResult<CreatorActiv
     return { success: true, data: mockCreatorActivities };
   }
   return getCreatorActivitiesFromAppwrite();
+}
+
+// ── rate card CRUD (Sprint 3) ─────────────────────────────────────────────────
+
+export type { RateCardPackageWriteInput };
+
+function mockRcEcho(
+  input: RateCardPackageWriteInput,
+  ids?: { id: string; rateCardId: string }
+): CreatorRateCardPackage {
+  return {
+    id: ids?.id ?? `mock_pkg_${Date.now()}`,
+    rateCardId: ids?.rateCardId ?? `mock_rc_${Date.now()}`,
+    name: input.name,
+    description: input.description,
+    price: input.price,
+    deliverable: input.output,
+    estimatedDays: input.deliveryDays,
+    status: input.published ? "published" : "draft",
+    revisionCount: input.revisionLimit,
+  };
+}
+
+export async function createRateCardPackage(
+  input: RateCardPackageWriteInput
+): Promise<ServiceResult<CreatorRateCardPackage>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return { success: true, data: mockRcEcho(input) };
+  }
+  return createCreatorRateCardPackageInAppwrite(input);
+}
+
+export async function updateRateCardPackage(
+  pkg: { id: string; rateCardId: string },
+  input: RateCardPackageWriteInput
+): Promise<ServiceResult<CreatorRateCardPackage>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return { success: true, data: mockRcEcho(input, pkg) };
+  }
+  return updateCreatorRateCardPackageInAppwrite(pkg, input);
+}
+
+export async function setRateCardPackageStatus(
+  pkg: { id: string; rateCardId: string; base: CreatorRateCardPackage },
+  status: RateCardStatus
+): Promise<ServiceResult<CreatorRateCardPackage>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    return { success: true, data: { ...pkg.base, status } };
+  }
+  return setCreatorRateCardPackageStatusInAppwrite({ id: pkg.id, rateCardId: pkg.rateCardId }, status);
+}
+
+export async function deleteRateCardPackage(pkg: {
+  id: string;
+  rateCardId: string;
+}): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    return { success: true, data: null };
+  }
+  return deleteCreatorRateCardPackageInAppwrite(pkg);
+}
+
+// ── profil / sosial / portofolio kreator (Sprint 3) ──────────────────────────
+
+export type { CreatorProfileWriteInput, CreatorPortfolioWriteInput };
+
+export async function updateCreatorProfile(
+  input: CreatorProfileWriteInput
+): Promise<ServiceResult<CreatorProfile>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return {
+      success: true,
+      data: {
+        ...mockCreatorProfile,
+        name: (input.displayName as string) ?? mockCreatorProfile.name,
+        bio: (input.bio as string) ?? mockCreatorProfile.bio,
+        location: (input.city as string) ?? mockCreatorProfile.location,
+        niche: (input.niche as CreatorProfile["niche"]) ?? mockCreatorProfile.niche,
+        avatarUrl: (input.avatarUrl as string) ?? mockCreatorProfile.avatarUrl,
+      },
+    };
+  }
+  return updateCreatorProfileInAppwrite(input);
+}
+
+export async function uploadCreatorAvatar(file: File): Promise<ServiceResult<string>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(700);
+    return {
+      success: true,
+      data: `https://placehold.co/160x160?text=${encodeURIComponent(file.name.slice(0, 8))}`,
+    };
+  }
+  return uploadCreatorAvatarInAppwrite(file);
+}
+
+export async function upsertCreatorSocialAccount(input: {
+  platform: "tiktok" | "instagram";
+  username: string;
+}): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    return { success: true, data: null };
+  }
+  return upsertCreatorSocialAccountInAppwrite(input);
+}
+
+export async function createCreatorPortfolio(
+  input: CreatorPortfolioWriteInput
+): Promise<ServiceResult<CreatorPortfolioItem>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return {
+      success: true,
+      data: {
+        id: `mock_port_${Date.now()}`,
+        title: input.title,
+        url: input.portfolioUrl,
+        description: input.description ?? "",
+        thumbnailUrl: input.thumbnailUrl || undefined,
+      },
+    };
+  }
+  return createCreatorPortfolioInAppwrite(input);
+}
+
+export async function updateCreatorPortfolio(
+  id: string,
+  input: CreatorPortfolioWriteInput
+): Promise<ServiceResult<CreatorPortfolioItem>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return {
+      success: true,
+      data: {
+        id,
+        title: input.title,
+        url: input.portfolioUrl,
+        description: input.description ?? "",
+        thumbnailUrl: input.thumbnailUrl || undefined,
+      },
+    };
+  }
+  return updateCreatorPortfolioInAppwrite(id, input);
+}
+
+export async function deleteCreatorPortfolio(id: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    return { success: true, data: null };
+  }
+  return deleteCreatorPortfolioInAppwrite(id);
+}
+
+export async function uploadCreatorPortfolioThumbnail(
+  file: File
+): Promise<ServiceResult<string>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(700);
+    return {
+      success: true,
+      data: `https://placehold.co/320x180?text=${encodeURIComponent(file.name.slice(0, 10))}`,
+    };
+  }
+  return uploadCreatorPortfolioThumbnailInAppwrite(file);
+}
+
+// ── penarikan saldo (Sprint 3) ───────────────────────────────────────────────
+
+export type { WithdrawRequestInput, WithdrawalReceipt };
+
+/**
+ * Pra-validasi Zod dilakukan di pemanggil (KeuanganView) SEBELUM sampai sini —
+ * feedback instan, satu eksekusi Function lebih sedikit, dan satu-satunya sumber
+ * `code: "validation"` yang andal di klien.
+ */
+export async function requestWithdrawal(
+  input: WithdrawRequestInput
+): Promise<ServiceResult<WithdrawalReceipt>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(900);
+    return {
+      success: true,
+      data: {
+        withdrawalId: `mock_wd_${Date.now()}`,
+        amount: input.amount,
+        status: "processed",
+        processedAt: new Date().toISOString(),
+        balanceAfter: 0,
+        transactionId: `mock_tx_${Date.now()}`,
+      },
+    };
+  }
+  return requestWithdrawalInAppwrite(input);
 }

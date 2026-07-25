@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { formatCurrency } from "@/lib/formatters";
+import { calculatePlatformFee, calculateTotalPayment } from "@/types/domain";
 import { Button } from "@/components/ui/button";
 import {
   ResponsiveModal,
@@ -27,12 +28,13 @@ export function PaymentSimulationModal({
 }: PaymentSimulationModalProps) {
   const [selectedMethod, setSelectedMethod] = useState<string>("va");
 
-  const platformFee = Math.round(totalBudgetEscrow * 0.15);
-  const totalPayment = totalBudgetEscrow + platformFee;
+  const platformFee = calculatePlatformFee(totalBudgetEscrow);
+  const totalPayment = calculateTotalPayment(totalBudgetEscrow);
 
+  // Metode sebenarnya dipilih di popup Midtrans Snap; daftar ini hanya preview.
   const paymentMethods = [
-    { id: "va", name: "Virtual Account (Simulasi)", desc: "Transfer Bank Otomatis 24 Jam" },
-    { id: "wallet", name: "Saldo Dompet Marketiv", desc: "Bayar instan potong saldo langsung" },
+    { id: "va", name: "Virtual Account", desc: "Transfer Bank Otomatis 24 Jam" },
+    { id: "wallet", name: "E-Wallet / QRIS", desc: "GoPay, OVO, Dana, ShopeePay" },
   ];
 
   return (
@@ -45,10 +47,10 @@ export function PaymentSimulationModal({
             </svg>
           </div>
           <ResponsiveModalTitle className="text-sm sm:text-base font-extrabold text-text-primary uppercase tracking-wider text-center">
-            Simulasi Pembayaran
+            Pembayaran Escrow
           </ResponsiveModalTitle>
           <ResponsiveModalDescription className="text-[11px] text-text-muted leading-relaxed text-center mt-2">
-            Pilih metode pembayaran simulasi di bawah untuk mendepositkan dana escrow Anda.
+            Campaign disimpan sebagai draft lalu Anda diarahkan ke pembayaran Midtrans untuk mendepositkan dana escrow.
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
@@ -59,7 +61,7 @@ export function PaymentSimulationModal({
             <span className="font-bold text-text-primary">{formatCurrency(totalBudgetEscrow)}</span>
           </div>
           <div className="flex justify-between items-center text-text-muted text-[11px]">
-            <span>Biaya Platform (15%)</span>
+            <span>Biaya Platform (2%)</span>
             <span className="font-bold text-text-primary">{formatCurrency(platformFee)}</span>
           </div>
           <div className="flex justify-between items-center text-text-primary text-[11px] pt-2 border-t border-dashed border-border-soft mt-1">
@@ -120,7 +122,7 @@ export function PaymentSimulationModal({
             onClick={onConfirm}
             className="flex-1 h-10 text-xs bg-primary text-white hover:bg-primary/90"
           >
-            Konfirmasi Bayar
+            Lanjut ke Pembayaran
           </Button>
         </ResponsiveModalFooter>
       </ResponsiveModalContent>

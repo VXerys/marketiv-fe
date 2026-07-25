@@ -30,7 +30,7 @@ export function CampaignCreatedModal({ isOpen, onConfirm, onReset }: CampaignCre
             Campaign Berhasil Disiapkan!
           </ResponsiveModalTitle>
           <ResponsiveModalDescription className="text-xs text-text-muted leading-relaxed text-center mt-2">
-            Kampanye Anda berhasil dibuat secara simulasi dan dana escrow telah diamankan. Setelah integrasi backend selesai, data akan langsung tersimpan permanen.
+            Campaign Anda tersimpan dan pembayaran escrow diterima. Campaign akan tayang otomatis setelah dana escrow terkonfirmasi sistem.
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 

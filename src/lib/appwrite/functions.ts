@@ -16,6 +16,7 @@ export const functions = new Functions(client);
 
 /** ID Function harus sama persis dengan `$id` di 00_BACKEND/appwrite.config.json. */
 export const FUNCTION_IDS = {
+  // ── Baca (DTO agregasi) ──────────────────────────────────────────────────
   umkmDashboardSummary: "get-umkm-dashboard-summary",
   umkmFinanceSummary: "get-umkm-finance-summary",
   umkmProfile: "get-umkm-profile",
@@ -23,6 +24,11 @@ export const FUNCTION_IDS = {
   creatorProfile: "get-creator-profile",
   creatorDashboardSummary: "get-creator-dashboard-summary",
   creatorNegotiations: "get-creator-negotiations",
+  // ── Tulis / aksi (Sprint 3) ──────────────────────────────────────────────
+  aiBrief: "ai-brief",
+  createPayment: "create-payment",
+  requestWithdrawal: "request-withdrawal",
+  validateAndUpload: "validate-and-upload",
 } as const;
 
 export type FunctionId = (typeof FUNCTION_IDS)[keyof typeof FUNCTION_IDS];
@@ -44,7 +50,9 @@ const statusToCode = (statusCode: number): ServiceErrorCode => {
   if (statusCode === 401) return "auth";
   if (statusCode === 403) return "forbidden";
   if (statusCode === 404) return "not_found";
-  if (statusCode === 400 || statusCode === 422) return "validation";
+  // 409 = konflik yang bisa diperbaiki user (amount mismatch create-payment,
+  // kuota penuh validate-and-upload, permintaan withdrawal duplikat).
+  if (statusCode === 400 || statusCode === 409 || statusCode === 422) return "validation";
   if (statusCode >= 500) return "server";
   return "unknown";
 };

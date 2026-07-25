@@ -3429,6 +3429,22 @@
       "path": "functions/create-payment"
     },
     {
+      "$id": "request-withdrawal",
+      "name": "Request Withdrawal",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 30,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/request-withdrawal"
+    },
+    {
       "$id": "midtrans-webhook",
       "name": "Midtrans Webhook",
       "runtime": "node-22",

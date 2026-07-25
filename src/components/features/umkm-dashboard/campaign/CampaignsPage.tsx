@@ -20,6 +20,8 @@ import {
   getDashboardSummary,
   getCampaignSubmissions,
   getUmkmProfile,
+  updateCampaignStatus,
+  duplicateCampaign,
 } from "@/services/umkm/umkm-dashboard.service";
 import {
   Campaign,
@@ -143,39 +145,39 @@ export function CampaignsPage() {
   };
 
   // Modal actions
-  const handleCancelConfirm = (reason: string) => {
+  const handleCancelConfirm = async () => {
     if (!activeCancelCampaign) return;
-    // Simulate campaign cancellation locally
-    setCampaigns(
-      campaigns.map((c) =>
-        c.id === activeCancelCampaign.id
-          ? { ...c, status: "paused" as const }
-          : c
-      )
-    );
-    showToast(`Campaign "${activeCancelCampaign.title}" berhasil dibatalkan. Alasan: ${reason}`);
+    const target = activeCancelCampaign;
+    const res = await updateCampaignStatus(target.id, "paused");
+    if (res.success && res.data) {
+      setCampaigns((prev) => prev.map((c) => (c.id === target.id ? res.data! : c)));
+      showToast(`Campaign "${target.title}" berhasil dijeda.`);
+    } else {
+      toast.error(res.error ?? "Gagal menjeda campaign.");
+    }
   };
 
-  const handleDuplicateConfirm = (newTitle: string) => {
+  const handleDuplicateConfirm = async (
+    newTitle: string,
+    options: { copyBrief: boolean; copyBudget: boolean; copyAssets: boolean }
+  ) => {
     if (!activeDuplicateCampaign) return;
-    // Simulate dupliacte campaign creation
-    const newCamp: Campaign = {
-      ...activeDuplicateCampaign,
-      id: `campaign_new_${Date.now()}`,
-      title: newTitle,
-      status: "draft" as const,
-      usedQuota: 0,
-      usedBudget: 0,
-      totalViews: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setCampaigns([newCamp, ...campaigns]);
-    setSubmissionCounts({
-      ...submissionCounts,
-      [newCamp.id]: { pending: 0, valid: 0, dispute: 0 },
-    });
-    showToast(`Campaign baru "${newTitle}" berhasil dibuat sebagai Draft.`);
+    const res = await duplicateCampaign(activeDuplicateCampaign.id, newTitle, options);
+    if (res.success && res.data) {
+      const newCamp = res.data.campaign;
+      setCampaigns((prev) => [newCamp, ...prev]);
+      setSubmissionCounts((prev) => ({
+        ...prev,
+        [newCamp.id]: { pending: 0, valid: 0, dispute: 0 },
+      }));
+      if (res.data.warnings.length > 0) {
+        res.data.warnings.forEach((w) => toast.warning(w));
+      } else {
+        showToast(`Campaign baru "${newTitle}" berhasil dibuat sebagai Draft.`);
+      }
+    } else {
+      toast.error(res.error ?? "Gagal menduplikasi campaign.");
+    }
   };
 
   const businessName = profile?.businessName || "Dapur Sehat Sukabumi";

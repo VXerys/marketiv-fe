@@ -1,4 +1,4 @@
-import { Query } from "appwrite";
+import { Query, ID, Permission, Role } from "appwrite";
 import { databases } from "@/lib/appwrite/databases";
 import { appwriteConfig } from "@/lib/appwrite/config";
 import {
@@ -6,11 +6,23 @@ import {
   FunctionExecutionError,
   FUNCTION_IDS,
 } from "@/lib/appwrite/functions";
-import { getSession } from "@/services/auth/session.service";
+import { uploadPublicFile, FileRuleError } from "@/lib/appwrite/storage";
+import { type CampaignType, MINIMUM_CAMPAIGN_BUDGET } from "@/types/domain";
+import {
+  type Doc,
+  str,
+  num,
+  ok,
+  fail,
+  failValidation,
+  failFromError,
+  failFromWriteError,
+  requireUserId,
+} from "@/services/shared/service-result";
 import {
   ServiceResult,
-  ServiceErrorCode,
   UmkmProfile,
+  UmkmSettingsProfile,
   UmkmDashboardSummary,
   Campaign,
   CampaignSubmission,
@@ -56,6 +68,9 @@ const DB = appwriteConfig.databaseId;
 
 const COLLECTIONS = {
   campaigns: "campaigns",
+  campaignBriefs: "campaign_briefs",
+  campaignAssets: "campaign_assets",
+  umkmProfiles: "umkm_profiles",
   submissions: "campaign_submissions",
   rateCards: "rate_cards",
   rateCardPackages: "rate_card_packages",
@@ -63,51 +78,6 @@ const COLLECTIONS = {
   messages: "messages",
   payments: "payments",
 } as const;
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-
-type Doc = Record<string, unknown>;
-
-const str = (v: unknown): string => (typeof v === "string" ? v : "");
-const num = (v: unknown): number => (typeof v === "number" ? v : 0);
-
-const mapErrorCode = (err: unknown): ServiceErrorCode => {
-  // Function DTO sudah memetakan sendiri HTTP status → ServiceErrorCode.
-  if (err instanceof FunctionExecutionError) return err.code;
-
-  const code = (err as { code?: number })?.code;
-  if (code === 401) return "auth";
-  if (code === 403) return "forbidden";
-  if (code === 404) return "not_found";
-  if (typeof code === "number" && code >= 500) return "server";
-  return "unknown";
-};
-
-const failFromError = <T>(err: unknown, empty: T): ServiceResult<T> => ({
-  success: false,
-  data: empty,
-  error: "Gagal memuat data. Coba lagi.",
-  code: mapErrorCode(err),
-});
-
-/** Ambil userId sesi aktif, atau ServiceResult error yang siap dikembalikan. */
-async function requireUserId<T>(
-  empty: T
-): Promise<{ ok: true; userId: string } | { ok: false; result: ServiceResult<T> }> {
-  const session = await getSession();
-  if (!session.success || !session.data) {
-    return {
-      ok: false,
-      result: {
-        success: false,
-        data: empty,
-        error: session.error ?? "Sesi tidak ditemukan. Silakan login.",
-        code: session.code ?? "auth",
-      },
-    };
-  }
-  return { ok: true, userId: session.data.userId };
-}
 
 // ── mappers ──────────────────────────────────────────────────────────────────
 
@@ -508,5 +478,441 @@ export async function getTransactionByIdFromAppwrite(id: string): Promise<Servic
     return { success: true, data: mapTransaction(doc as unknown as Doc) };
   } catch (err) {
     return failFromError<Transaction>(err, null as unknown as Transaction);
+  }
+}
+
+// ── writes (Sprint 3) ────────────────────────────────────────────────────────
+
+export type CreateCampaignDraftInput = {
+  title: string;
+  category: string;
+  type: CampaignType;
+  description: string;
+  budget: number;
+  rewardPer1000Views: number;
+  claimLimit: number;
+  submissionDays?: number;
+  /** Brief sudah dikomposisi klien (composeBriefDetail/packDoAndDontJson). */
+  brief?: {
+    briefDetail: string;
+    contentAngle: string;
+    cta: string;
+    objective?: string;
+    doAndDont?: string;
+    generatedByAi?: boolean;
+  };
+  asset?: { fileUrl: string; fileName?: string };
+};
+
+export type CampaignDraftResult = {
+  campaign: Campaign;
+  /** false bila brief/asset gagal ditulis — campaign-nya tetap ada & bisa diedit. */
+  complete: boolean;
+  warnings: string[];
+};
+
+/**
+ * Tulis campaign draft (status "draft") + campaign_briefs + campaign_assets.
+ * TANPA transaction — SDK 25 mendukungnya tapi belum teruji di server ini.
+ * Kebijakan gagal: campaign row adalah sumber keberhasilan; brief/asset yang
+ * gagal hanya menambah warning, campaign tidak di-rollback (draft tetap ada).
+ * Permission baris read(any)/update+delete(owner) — grant delete adalah satu-
+ * satunya cara baris ini nanti bisa dihapus (tak ada collection delete("users")).
+ */
+export async function createCampaignDraftInAppwrite(
+  input: CreateCampaignDraftInput
+): Promise<ServiceResult<CampaignDraftResult>> {
+  const empty = null as unknown as CampaignDraftResult;
+  const auth = await requireUserId<CampaignDraftResult>(empty);
+  if (!auth.ok) return auth.result;
+  const uid = auth.userId;
+  const perms = [
+    Permission.read(Role.any()),
+    Permission.update(Role.user(uid)),
+    Permission.delete(Role.user(uid)),
+  ];
+
+  let campaignDoc: Doc;
+  try {
+    campaignDoc = (await databases.createDocument(
+      DB,
+      COLLECTIONS.campaigns,
+      ID.unique(),
+      {
+        umkmId: uid,
+        title: input.title.trim(),
+        category: input.category,
+        type: input.type,
+        platforms: ["tiktok"],
+        description: input.description.trim(),
+        budget: input.budget,
+        rewardPer1000Views: input.rewardPer1000Views,
+        status: "draft",
+        claimLimit: input.claimLimit,
+        submissionDays: input.submissionDays ?? 7,
+        totalClaims: 0,
+        spentAmount: 0,
+        remainingBudget: 0,
+      },
+      perms
+    )) as unknown as Doc;
+  } catch (err) {
+    return failFromWriteError<CampaignDraftResult>(err, empty);
+  }
+
+  const warnings: string[] = [];
+  const campaignId = str(campaignDoc.$id);
+
+  if (input.brief) {
+    try {
+      await databases.createDocument(
+        DB,
+        COLLECTIONS.campaignBriefs,
+        ID.unique(),
+        {
+          campaignId,
+          objective: input.brief.objective ?? "",
+          contentAngle: input.brief.contentAngle,
+          cta: input.brief.cta,
+          briefDetail: input.brief.briefDetail,
+          doAndDont: input.brief.doAndDont ?? "",
+          generatedByAi: input.brief.generatedByAi ?? false,
+        },
+        perms
+      );
+    } catch {
+      warnings.push("Brief belum tersimpan — buka draft untuk melengkapi.");
+    }
+  }
+
+  if (input.asset) {
+    try {
+      await databases.createDocument(
+        DB,
+        COLLECTIONS.campaignAssets,
+        ID.unique(),
+        {
+          campaignId,
+          source: "external",
+          type: "link",
+          fileUrl: input.asset.fileUrl,
+          fileName: input.asset.fileName ?? "Folder Aset Eksternal",
+        },
+        perms
+      );
+    } catch {
+      warnings.push("Tautan aset belum tersimpan — buka draft untuk melengkapi.");
+    }
+  }
+
+  return ok<CampaignDraftResult>({
+    campaign: mapCampaign(campaignDoc),
+    complete: warnings.length === 0,
+    warnings,
+  });
+}
+
+/**
+ * Ubah status campaign (jeda/aktifkan). Baca ownership-filtered dulu sebagai
+ * defence in depth — collection update("users") terlalu longgar (temuan handoff).
+ */
+export async function updateCampaignStatusInAppwrite(
+  campaignId: string,
+  next: "paused" | "active"
+): Promise<ServiceResult<Campaign>> {
+  const empty = null as unknown as Campaign;
+  const auth = await requireUserId<Campaign>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", campaignId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Campaign tidak ditemukan.", "not_found", empty);
+
+    const current = str(doc.status);
+    if (next === "paused" && current !== "active") {
+      return failValidation("Hanya campaign aktif yang bisa dijeda.", empty);
+    }
+    if (next === "active" && current !== "paused") {
+      return failValidation("Hanya campaign terjeda yang bisa diaktifkan kembali.", empty);
+    }
+
+    const updated = await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
+      status: next,
+    });
+    return ok(mapCampaign(updated as unknown as Doc));
+  } catch (err) {
+    return failFromWriteError<Campaign>(err, empty);
+  }
+}
+
+export type DuplicateCampaignOptions = {
+  copyBrief: boolean;
+  copyBudget: boolean;
+  copyAssets: boolean;
+};
+
+/**
+ * Duplikasi campaign lewat createCampaignDraftInAppwrite (satu jalur create).
+ * Baca sumber ownership-filtered + brief/asset opsional sesuai options.
+ */
+export async function duplicateCampaignInAppwrite(
+  sourceId: string,
+  newTitle: string,
+  options: DuplicateCampaignOptions
+): Promise<ServiceResult<CampaignDraftResult>> {
+  const empty = null as unknown as CampaignDraftResult;
+  const auth = await requireUserId<CampaignDraftResult>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const srcRes = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", sourceId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const src = srcRes.documents[0] as unknown as Doc | undefined;
+    if (!src) return fail("Campaign sumber tidak ditemukan.", "not_found", empty);
+
+    let brief: CreateCampaignDraftInput["brief"];
+    if (options.copyBrief) {
+      const bRes = await databases.listDocuments(DB, COLLECTIONS.campaignBriefs, [
+        Query.equal("campaignId", sourceId),
+        Query.limit(1),
+      ]);
+      const b = bRes.documents[0] as unknown as Doc | undefined;
+      if (b) {
+        brief = {
+          briefDetail: str(b.briefDetail),
+          contentAngle: str(b.contentAngle),
+          cta: str(b.cta),
+          objective: str(b.objective),
+          doAndDont: str(b.doAndDont),
+          generatedByAi: Boolean(b.generatedByAi),
+        };
+      }
+    }
+
+    let asset: CreateCampaignDraftInput["asset"];
+    if (options.copyAssets) {
+      const aRes = await databases.listDocuments(DB, COLLECTIONS.campaignAssets, [
+        Query.equal("campaignId", sourceId),
+        Query.limit(1),
+      ]);
+      const a = aRes.documents[0] as unknown as Doc | undefined;
+      if (a) asset = { fileUrl: str(a.fileUrl), fileName: str(a.fileName) || undefined };
+    }
+
+    return createCampaignDraftInAppwrite({
+      title: newTitle,
+      category: str(src.category),
+      type: (str(src.type) as CampaignType) || "ugc",
+      description: str(src.description),
+      budget: options.copyBudget ? num(src.budget) : MINIMUM_CAMPAIGN_BUDGET,
+      rewardPer1000Views: num(src.rewardPer1000Views),
+      claimLimit: num(src.claimLimit),
+      submissionDays: num(src.submissionDays) || 7,
+      brief,
+      asset,
+    });
+  } catch (err) {
+    return failFromWriteError<CampaignDraftResult>(err, empty);
+  }
+}
+
+// ── profil UMKM / pengaturan (Sprint 3) ──────────────────────────────────────
+
+const mapUmkmSettingsProfile = (d: Doc): UmkmSettingsProfile => ({
+  docId: str(d.$id),
+  userId: str(d.userId),
+  businessName: str(d.businessName),
+  category: str(d.category),
+  description: str(d.description),
+  city: str(d.city),
+  address: str(d.address),
+  tiktok: str(d.tiktok),
+  logoUrl: str(d.logoUrl),
+  isProfileCompleted: Boolean(d.isProfileCompleted),
+});
+
+/**
+ * Baca baris umkm_profiles langsung (bukan lewat Function DTO): halaman
+ * Pengaturan butuh 9 kolom, sedangkan get-umkm-profile mengembalikan 7 kolom
+ * lain. `umkm_profiles` read("any") jadi query klien sah.
+ */
+export async function getUmkmSettingsProfileFromAppwrite(): Promise<
+  ServiceResult<UmkmSettingsProfile>
+> {
+  const empty = null as unknown as UmkmSettingsProfile;
+  const auth = await requireUserId<UmkmSettingsProfile>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.umkmProfiles, [
+      Query.equal("userId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Profil UMKM tidak ditemukan.", "not_found", empty);
+    return ok(mapUmkmSettingsProfile(doc));
+  } catch (err) {
+    return failFromError<UmkmSettingsProfile>(err, empty);
+  }
+}
+
+/** Kolom yang boleh ditulis klien — identik allow-list user.service.ts:269. */
+const UMKM_PROFILE_WRITABLE = [
+  "businessName",
+  "category",
+  "description",
+  "city",
+  "address",
+  "tiktok",
+  "logoUrl",
+  "isProfileCompleted",
+] as const;
+
+export type UmkmProfileWriteInput = Partial<
+  Record<(typeof UMKM_PROFILE_WRITABLE)[number], string | boolean>
+>;
+
+export async function updateUmkmProfileInAppwrite(
+  input: UmkmProfileWriteInput
+): Promise<ServiceResult<UmkmSettingsProfile>> {
+  const empty = null as unknown as UmkmSettingsProfile;
+  const auth = await requireUserId<UmkmSettingsProfile>(empty);
+  if (!auth.ok) return auth.result;
+
+  const payload: Record<string, string | boolean> = {};
+  for (const key of UMKM_PROFILE_WRITABLE) {
+    const value = input[key];
+    if (value !== undefined) payload[key] = value;
+  }
+  if (Object.keys(payload).length === 0) {
+    return failValidation("Tidak ada perubahan untuk disimpan.", empty);
+  }
+
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.umkmProfiles, [
+      Query.equal("userId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Profil UMKM tidak ditemukan.", "not_found", empty);
+
+    const updated = await databases.updateDocument(
+      DB,
+      COLLECTIONS.umkmProfiles,
+      str(doc.$id),
+      payload
+    );
+    return ok(mapUmkmSettingsProfile(updated as unknown as Doc));
+  } catch (err) {
+    return failFromWriteError<UmkmSettingsProfile>(err, empty);
+  }
+}
+
+/** Unggah logo ke bucket `logos` (client-writable) dan kembalikan URL-nya. */
+export async function uploadUmkmLogoInAppwrite(file: File): Promise<ServiceResult<string>> {
+  const auth = await requireUserId<string>("");
+  if (!auth.ok) return auth.result;
+  try {
+    const uploaded = await uploadPublicFile("logos", file, auth.userId);
+    return ok(uploaded.url);
+  } catch (err) {
+    if (err instanceof FileRuleError) return failValidation(err.message, "");
+    return failFromWriteError<string>(err, "");
+  }
+}
+
+// ── AI brief (Sprint 3) ──────────────────────────────────────────────────────
+
+export type AiBriefInput = {
+  description: string;
+  type: CampaignType;
+  productName?: string;
+  targetMarket?: string;
+  goal?: string;
+  materials?: string[];
+};
+
+export type AiBrief = {
+  objective: string;
+  contentAngle: string;
+  cta: string;
+  briefDetail: string;
+  doAndDont: { do: string[]; dont: string[] };
+};
+
+/**
+ * Panggil Function `ai-brief`.
+ *
+ * Dua penghilangan sengaja dari body:
+ * - TANPA `campaignId`: campaign belum ada di langkah 2, dan bila dikirim
+ *   ai-brief menulis baris campaign_briefs sendiri yang bersaing dengan tulisan
+ *   createCampaignDraft dan gagal senyap di batas kolom doAndDont (400 char).
+ * - TANPA `userId`: ai-brief menerima userId dari klien (spoofable). Dikirim
+ *   kosong: baris audit ai_requests terdegradasi, bukan dipalsukan. Handoff
+ *   meminta backend membaca header x-appwrite-user-id seperti 10 Function lain.
+ */
+export async function generateCampaignBriefFromAppwrite(
+  input: AiBriefInput
+): Promise<ServiceResult<AiBrief>> {
+  const empty = null as unknown as AiBrief;
+  const auth = await requireUserId<AiBrief>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await executeFunction<{ success: boolean; brief?: AiBrief; error?: string }>(
+      FUNCTION_IDS.aiBrief,
+      {
+        description: input.description,
+        type: input.type,
+        productName: input.productName || "Not specified",
+        targetMarket: input.targetMarket || "General",
+        goal: input.goal || "Brand awareness",
+        materials: input.materials ?? [],
+      }
+    );
+    if (!res.success || !res.brief) {
+      return fail(res.error ?? "Gagal menghasilkan brief AI. Coba lagi.", "server", empty);
+    }
+    return ok(res.brief);
+  } catch (err) {
+    return failFromWriteError<AiBrief>(err, empty);
+  }
+}
+
+// ── pembayaran campaign (Sprint 3 / 6b) ──────────────────────────────────────
+
+export type PaymentIntent = {
+  paymentId: string;
+  gateway: "midtrans";
+  snapToken?: string;
+  redirectUrl?: string;
+  status: "pending";
+};
+
+/**
+ * Buat payment untuk top-up escrow campaign lewat Function `create-payment`.
+ * `amount` = budget DASAR; Function yang menurunkan fee 2% dan total_amount.
+ * `payments` read-only dari klien, jadi jalur ini wajib lewat Function.
+ */
+export async function createCampaignPaymentInAppwrite(input: {
+  campaignId: string;
+  budget: number;
+}): Promise<ServiceResult<PaymentIntent>> {
+  const empty = null as unknown as PaymentIntent;
+  const auth = await requireUserId<PaymentIntent>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await executeFunction<PaymentIntent>(FUNCTION_IDS.createPayment, {
+      purpose: "campaign",
+      amount: input.budget,
+      campaignId: input.campaignId,
+    });
+    return ok(res);
+  } catch (err) {
+    return failFromWriteError<PaymentIntent>(err, empty);
   }
 }

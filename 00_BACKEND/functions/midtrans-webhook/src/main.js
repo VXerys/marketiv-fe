@@ -30,7 +30,9 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Payment not found" }, 404);
     }
 
-    if (!isAmountEqual(payment.amount, notification.gross_amount)) {
+    // Midtrans menagih total_amount (budget + fee platform), bukan amount dasar.
+    // `?? payment.amount` menjaga baris lama yang belum punya total_amount.
+    if (!isAmountEqual(payment.total_amount ?? payment.amount, notification.gross_amount)) {
       error(`Amount mismatch for payment ${payment.$id}`);
       return json(res, { error: "Amount mismatch" }, 409);
     }

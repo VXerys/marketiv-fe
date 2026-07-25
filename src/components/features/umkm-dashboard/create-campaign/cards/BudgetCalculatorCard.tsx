@@ -1,4 +1,5 @@
 import { formatCurrency, formatCompactNumber } from "@/lib/formatters";
+import { calculatePlatformFee, calculateTotalPayment } from "@/types/domain";
 import { DashboardBadge } from "@/components/features/umkm-dashboard/shared/DashboardBadge";
 import { DashboardProgress } from "@/components/features/umkm-dashboard/shared/DashboardProgress";
 
@@ -13,9 +14,9 @@ export function BudgetCalculatorCard({
   totalBudgetEscrow,
   creatorQuota,
 }: BudgetCalculatorCardProps) {
-  const platformFee = Math.round(totalBudgetEscrow * 0.15);
-  const totalPayment = totalBudgetEscrow + platformFee;
-  
+  const platformFee = calculatePlatformFee(totalBudgetEscrow);
+  const totalPayment = calculateTotalPayment(totalBudgetEscrow);
+
   const estimatedViews = pricePerThousandViews > 0 
     ? Math.round((totalBudgetEscrow / pricePerThousandViews) * 1000) 
     : 0;
@@ -75,7 +76,7 @@ export function BudgetCalculatorCard({
           <span className="font-bold text-text-primary">{formatCurrency(totalBudgetEscrow)}</span>
         </div>
         <div className="flex items-center justify-between gap-4 text-text-muted text-[11px]">
-          <span>Biaya Platform (15%)</span>
+          <span>Biaya Platform (2%)</span>
           <span className="font-bold text-text-primary">{formatCurrency(platformFee)}</span>
         </div>
         <div className="flex items-center justify-between gap-4 text-text-muted text-[11px] pt-1.5 border-t border-dashed border-border-soft/60">
