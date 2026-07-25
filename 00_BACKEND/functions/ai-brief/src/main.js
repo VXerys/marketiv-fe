@@ -89,7 +89,7 @@ Return a JSON object with this exact structure (no markdown, no code fences, raw
       const client = new Client()
         .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT || process.env.APPWRITE_ENDPOINT)
         .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-        .setKey(process.env.APPWRITE_FUNCTION_API_KEY);
+        .setKey(req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY);
 
       const databases = new Databases(client);
 

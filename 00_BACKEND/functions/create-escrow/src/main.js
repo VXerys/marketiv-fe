@@ -2,7 +2,7 @@ import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
 
 export default async ({ req, res, log, error }) => {
   try {
-    const env = getEnv();
+    const env = getEnv(req);
     const payment = parseBody(req);
     if (!payment?.$id) return json(res, { error: "Missing payment payload" }, 400);
     if (payment.status !== "paid") return json(res, { status: "ignored", reason: "payment is not paid" });
@@ -45,11 +45,11 @@ export default async ({ req, res, log, error }) => {
   }
 };
 
-function getEnv() {
+function getEnv(req) {
   const env = {
     appwriteEndpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT || process.env.APPWRITE_ENDPOINT,
     appwriteProjectId: process.env.APPWRITE_FUNCTION_PROJECT_ID || process.env.APPWRITE_PROJECT_ID,
-    appwriteApiKey: process.env.APPWRITE_FUNCTION_API_KEY,
+    appwriteApiKey: req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY,
     databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
     paymentsCollectionId: process.env.PAYMENTS_COLLECTION_ID || process.env.NEXT_PUBLIC_PAYMENT_COLLECTION || "payments",
     walletsCollectionId: process.env.WALLETS_COLLECTION_ID || process.env.NEXT_PUBLIC_WALLET_COLLECTION || "wallets",
