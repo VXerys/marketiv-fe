@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   User,
   ImageIcon,
@@ -27,6 +27,17 @@ import { CreatorProfile, CreatorPortfolioItem, CreatorNiche } from "@/types/crea
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
 import { cn } from "@/lib/utils";
+import {
+  creatorProfileUpdateSchema,
+  extractSocialUsername,
+} from "@/lib/validations/profile.schema";
+import { parseOrErrors } from "@/lib/validations/to-field-errors";
+import { getSession } from "@/services/auth/session.service";
+import {
+  updateCreatorProfile,
+  uploadCreatorAvatar,
+  upsertCreatorSocialAccount,
+} from "@/services/creator/creator-dashboard.service";
 
 // ─── Creator brand gradient ───────────────────────────────────────────────────
 const CREATOR_GRADIENT = "linear-gradient(135deg, #2563eb, #7c3aed)";
@@ -114,17 +125,24 @@ function StatRow({
 function ToggleSwitch({
   checked,
   onChange,
+  disabled,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-disabled={disabled}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="relative shrink-0 w-12 h-[28px] rounded-full transition-all duration-250 cursor-pointer focus-visible:outline-[4px] focus-visible:outline focus-visible:outline-blue-500/20 focus-visible:outline-offset-2"
+      className={cn(
+        "relative shrink-0 w-12 h-[28px] rounded-full transition-all duration-250 focus-visible:outline-[4px] focus-visible:outline focus-visible:outline-blue-500/20 focus-visible:outline-offset-2",
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+      )}
       style={{
         background: checked ? CREATOR_GRADIENT : "#e2e8f0",
         boxShadow: checked ? "0 4px 14px rgba(37,99,235,.3)" : "inset 0 1px 3px rgba(0,0,0,.08)",
@@ -145,11 +163,13 @@ function NotifToggleRow({
   description,
   checked,
   onChange,
+  disabled,
 }: {
   label: string;
   description: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-4 py-4 border-b border-neutral-100/70 last:border-0">
@@ -159,7 +179,7 @@ function NotifToggleRow({
           {description}
         </p>
       </div>
-      <ToggleSwitch checked={checked} onChange={onChange} />
+      <ToggleSwitch checked={checked} onChange={onChange} disabled={disabled} />
     </div>
   );
 }
@@ -171,20 +191,25 @@ function CreatorBtn({
   onClick,
   type = "button",
   className,
+  disabled,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   type?: "button" | "submit";
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type={type}
       onClick={onClick}
+      disabled={disabled}
+      aria-disabled={disabled}
       className={cn(
         "flex items-center justify-center gap-2 px-6 py-2.5 rounded-full",
-        "text-white font-[700] text-[0.84rem] cursor-pointer",
-        "transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0",
+        "text-white font-[700] text-[0.84rem]",
+        "transition-all duration-200 active:translate-y-0",
+        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:-translate-y-0.5",
         "focus-visible:outline-[4px] focus-visible:outline focus-visible:outline-blue-500/20 focus-visible:outline-offset-2",
         className
       )}
@@ -202,20 +227,25 @@ function GhostBtn({
   onClick,
   type = "button",
   className,
+  disabled,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   type?: "button" | "submit";
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type={type}
       onClick={onClick}
+      disabled={disabled}
+      aria-disabled={disabled}
       className={cn(
         "flex items-center justify-center gap-2 px-6 py-2.5 rounded-full",
         "border border-neutral-200 text-neutral-600 hover:bg-neutral-50",
-        "font-[700] text-[0.84rem] cursor-pointer transition-all duration-200",
+        "font-[700] text-[0.84rem] transition-all duration-200",
+        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
         className
       )}
     >
@@ -237,16 +267,9 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
   const [activeTab, setActiveTab] = useState<SettingsTab>("profil");
 
   // ── Profile state ──
-  const [profile, setProfile] = useState<CreatorProfile>({
-    ...initialProfile,
-    bannerUrl:
-      initialProfile.bannerUrl ||
-      "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=300&fit=crop",
-    averageViews: initialProfile.averageViews || 48500,
-    responseTime: initialProfile.responseTime || "2 jam",
-    completionRate: initialProfile.completionRate || 98,
-    portfolioUrl: initialProfile.portfolioUrl || "https://nadiavisuals.myportfolio.com",
-  });
+  // Tanpa fallback fabrikasi: bannerUrl/averageViews/responseTime/completionRate/
+  // portfolioUrl tidak punya kolom sumber, jadi biarkan kosong dan render "—".
+  const [profile, setProfile] = useState<CreatorProfile>(initialProfile);
 
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState(profile.name);
@@ -254,10 +277,12 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
   const [location, setLocation] = useState(profile.location);
   const [tiktokUrl, setTiktokUrl] = useState(profile.tiktokUrl || "");
   const [instagramUrl, setInstagramUrl] = useState(profile.instagramUrl || "");
-  const [portfolioUrl, setPortfolioUrl] = useState(profile.portfolioUrl || "");
   const [selectedNiche, setSelectedNiche] = useState<CreatorNiche>(profile.niche);
   const [formError, setFormError] = useState<string | null>(null);
   const [isProfileSuccessOpen, setIsProfileSuccessOpen] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [accountEmail, setAccountEmail] = useState("");
 
   // ── Portfolio state ──
   const [portfolioItems, setPortfolioItems] = useState<CreatorPortfolioItem[]>(initialPortfolio);
@@ -282,30 +307,94 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
 
   const showToast = (msg: string) => toast.success(msg);
 
+  // Email dikelola collection `users` (read-only dari klien) — ambil dari sesi.
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const res = await getSession();
+      if (active && res.success && res.data) setAccountEmail(res.data.email);
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   // ── Profile handlers ──
-  const handleProfileSubmit = (e: React.FormEvent) => {
+  const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (tiktokUrl && !tiktokUrl.includes("tiktok.com")) {
-      setFormError("Tautan TikTok wajib mengandung 'tiktok.com'");
-      return;
-    }
-    if (instagramUrl && !instagramUrl.includes("instagram.com")) {
-      setFormError("Tautan Instagram wajib mengandung 'instagram.com'");
-      return;
-    }
-    setFormError(null);
-    setProfile((prev) => ({
-      ...prev,
-      name: displayName.trim(),
+    const parsed = parseOrErrors(creatorProfileUpdateSchema, {
+      displayName: displayName.trim(),
       bio: bio.trim(),
-      location: location.trim(),
-      tiktokUrl: tiktokUrl.trim() || undefined,
-      instagramUrl: instagramUrl.trim() || undefined,
-      portfolioUrl: portfolioUrl.trim() || undefined,
+      city: location.trim(),
       niche: selectedNiche,
-    }));
-    setIsEditing(false);
-    setIsProfileSuccessOpen(true);
+    });
+    if (!parsed.ok) {
+      setFormError(Object.values(parsed.errors)[0] ?? "Periksa kembali isian profil.");
+      return;
+    }
+    if (tiktokUrl && !extractSocialUsername(tiktokUrl)) {
+      setFormError("Tautan/username TikTok tidak valid.");
+      return;
+    }
+    if (instagramUrl && !extractSocialUsername(instagramUrl)) {
+      setFormError("Tautan/username Instagram tidak valid.");
+      return;
+    }
+
+    setFormError(null);
+    setIsSavingProfile(true);
+    const res = await updateCreatorProfile(parsed.data);
+
+    // Akun sosial ada di collection terpisah (creator_social_accounts).
+    const socialWrites: Promise<unknown>[] = [];
+    if (tiktokUrl.trim()) {
+      socialWrites.push(
+        upsertCreatorSocialAccount({ platform: "tiktok", username: extractSocialUsername(tiktokUrl) })
+      );
+    }
+    if (instagramUrl.trim()) {
+      socialWrites.push(
+        upsertCreatorSocialAccount({
+          platform: "instagram",
+          username: extractSocialUsername(instagramUrl),
+        })
+      );
+    }
+    await Promise.all(socialWrites);
+    setIsSavingProfile(false);
+
+    if (res.success && res.data) {
+      setProfile(res.data);
+      setIsEditing(false);
+      setIsProfileSuccessOpen(true);
+      return;
+    }
+    setFormError(
+      res.code === "auth"
+        ? "Sesi berakhir, silakan login kembali."
+        : res.error ?? "Gagal menyimpan profil."
+    );
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setIsUploadingAvatar(true);
+    const uploaded = await uploadCreatorAvatar(file);
+    if (!uploaded.success || !uploaded.data) {
+      setIsUploadingAvatar(false);
+      toast.error(uploaded.error ?? "Gagal mengunggah foto profil.");
+      return;
+    }
+    const saved = await updateCreatorProfile({ avatarUrl: uploaded.data });
+    setIsUploadingAvatar(false);
+    if (saved.success && saved.data) {
+      setProfile(saved.data);
+      showToast("Foto profil berhasil diperbarui.");
+    } else {
+      toast.error(saved.error ?? "Foto terunggah tapi gagal disimpan.");
+    }
   };
 
   // ── Portfolio handlers ──
@@ -396,25 +485,10 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
 
       {/* ── Identity showcase card ── */}
       <SettingsCard>
-        {/* Banner — taller */}
-        <div className="relative w-full h-48 sm:h-52 group/banner">
-          {profile.bannerUrl ? (
-            <img
-              src={profile.bannerUrl}
-              alt="Banner"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full" style={{ background: CREATOR_GRADIENT }} />
-          )}
-          <label className="absolute inset-0 bg-neutral-950/40 opacity-0 group-hover/banner:opacity-100 transition-opacity flex items-center justify-center text-[0.72rem] font-[900] text-white uppercase tracking-wider cursor-pointer gap-1.5">
-            <ImageIcon size={13} /> Ganti Banner
-            <input
-              type="file"
-              className="hidden"
-              onChange={() => showToast("Banner berhasil diunggah (Simulasi).")}
-            />
-          </label>
+        {/* Banner — tidak ada kolom `creator_profiles.bannerUrl` maupun bucket
+            banner, jadi tanpa upload. Kolomnya diminta di handoff Sprint 3. */}
+        <div className="relative w-full h-48 sm:h-52">
+          <div className="w-full h-full" style={{ background: CREATOR_GRADIENT }} />
           {/* Gradient fade at bottom for avatar overlap */}
           <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/30 to-transparent pointer-events-none" />
         </div>
@@ -428,12 +502,21 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               alt={profile.name}
               className="w-full h-full object-cover"
             />
-            <label className="absolute inset-0 bg-neutral-950/55 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-[0.65rem] font-[900] text-white uppercase tracking-wider cursor-pointer">
-              Ganti
+            <label
+              className={cn(
+                "absolute inset-0 bg-neutral-950/55 transition-opacity flex items-center justify-center text-[0.65rem] font-[900] text-white uppercase tracking-wider",
+                isUploadingAvatar
+                  ? "opacity-100 cursor-wait"
+                  : "opacity-0 group-hover/avatar:opacity-100 cursor-pointer"
+              )}
+            >
+              {isUploadingAvatar ? "Mengunggah…" : "Ganti"}
               <input
                 type="file"
+                accept="image/jpeg,image/png,image/webp"
                 className="hidden"
-                onChange={() => showToast("Foto profil berhasil diunggah (Simulasi).")}
+                disabled={isUploadingAvatar}
+                onChange={handleAvatarChange}
               />
             </label>
             {/* Online indicator */}
@@ -448,7 +531,6 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
                 setLocation(profile.location);
                 setTiktokUrl(profile.tiktokUrl || "");
                 setInstagramUrl(profile.instagramUrl || "");
-                setPortfolioUrl(profile.portfolioUrl || "");
                 setSelectedNiche(profile.niche);
                 setIsEditing(true);
               }}
@@ -512,16 +594,6 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
                     Instagram <ExternalLink size={10} />
                   </a>
                 )}
-                {profile.portfolioUrl && (
-                  <a
-                    href={profile.portfolioUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-100 text-blue-700 text-[0.75rem] font-[700] hover:bg-blue-100 transition-colors"
-                  >
-                    Portfolio <ExternalLink size={10} />
-                  </a>
-                )}
               </div>
             </div>
           )}
@@ -571,7 +643,18 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
                 Kategori Niche Utama
               </label>
               <div className="flex flex-wrap gap-2">
-                {(["kecantikan", "kuliner", "fashion", "pariwisata", "lainnya"] as CreatorNiche[]).map(
+                {/* Harus lengkap sesuai enum creator_profiles.niche — `edukasi`
+                    sebelumnya hilang dari daftar ini. */}
+                {(
+                  [
+                    "kecantikan",
+                    "kuliner",
+                    "fashion",
+                    "pariwisata",
+                    "edukasi",
+                    "lainnya",
+                  ] as CreatorNiche[]
+                ).map(
                   (n) => (
                     <button
                       key={n}
@@ -609,14 +692,16 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-neutral-100 pt-4">
+            {/* Akun sosial disimpan di collection `creator_social_accounts`
+                (bukan kolom URL di profil) — handle diekstrak dari tautan. */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-neutral-100 pt-4">
               <div className="space-y-1.5">
                 <label className="block text-[0.68rem] font-[900] text-neutral-400 uppercase tracking-wider">
-                  Link TikTok
+                  Link / Username TikTok
                 </label>
                 <input
-                  type="url"
-                  placeholder="https://tiktok.com/@..."
+                  type="text"
+                  placeholder="https://tiktok.com/@handle"
                   value={tiktokUrl}
                   onChange={(e) => setTiktokUrl(e.target.value)}
                   className={inputCls}
@@ -624,25 +709,13 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               </div>
               <div className="space-y-1.5">
                 <label className="block text-[0.68rem] font-[900] text-neutral-400 uppercase tracking-wider">
-                  Link Instagram
+                  Link / Username Instagram
                 </label>
                 <input
-                  type="url"
-                  placeholder="https://instagram.com/..."
+                  type="text"
+                  placeholder="https://instagram.com/handle"
                   value={instagramUrl}
                   onChange={(e) => setInstagramUrl(e.target.value)}
-                  className={inputCls}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-400 uppercase tracking-wider">
-                  Link Web Portofolio
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://myportfolio.com"
-                  value={portfolioUrl}
-                  onChange={(e) => setPortfolioUrl(e.target.value)}
                   className={inputCls}
                 />
               </div>
@@ -651,6 +724,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
             <div className="flex gap-3 pt-2">
               <GhostBtn
                 type="button"
+                disabled={isSavingProfile}
                 onClick={() => {
                   setIsEditing(false);
                   setFormError(null);
@@ -659,8 +733,8 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               >
                 Batal
               </GhostBtn>
-              <CreatorBtn type="submit" className="flex-1">
-                Simpan Profil
+              <CreatorBtn type="submit" disabled={isSavingProfile} className="flex-1">
+                {isSavingProfile ? "Menyimpan…" : "Simpan Profil"}
               </CreatorBtn>
             </div>
           </form>
@@ -676,9 +750,15 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
             value={`${profile.completedJobs} Kontrak`}
             icon={<Briefcase size={13} />}
           />
+          {/* averageViews/responseTime/completionRate belum punya kolom sumber —
+              render "—", jangan mengarang angka performa milik kreator sendiri. */}
           <StatRow
             label="Rata-rata Views per Konten"
-            value={`${(profile.averageViews ?? 48500).toLocaleString("id-ID")} views`}
+            value={
+              profile.averageViews !== undefined
+                ? `${profile.averageViews.toLocaleString("id-ID")} views`
+                : "—"
+            }
             icon={<Eye size={13} />}
           />
           <StatRow
@@ -688,12 +768,12 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
           />
           <StatRow
             label="Estimasi Waktu Respon"
-            value={`⚡ ~${profile.responseTime ?? "2 jam"}`}
+            value={profile.responseTime ? `⚡ ~${profile.responseTime}` : "—"}
             icon={<Zap size={13} />}
           />
           <StatRow
             label="Tingkat Penyelesaian Job"
-            value={`${profile.completionRate ?? 98}%`}
+            value={profile.completionRate !== undefined ? `${profile.completionRate}%` : "—"}
             icon={<CheckCircle2 size={13} />}
           />
           <StatRow
@@ -815,24 +895,30 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
     <div className="flex flex-col gap-5 w-full">
       <SettingsCard>
         <CardSectionHeader title="Notifikasi Kampanye & Pekerjaan" />
+        <p className="px-6 pt-4 text-[0.72rem] font-[700] text-neutral-400">
+          Segera tersedia — preferensi belum bisa disimpan (belum ada tempat penyimpanannya).
+        </p>
         <div className="px-6 py-1">
           <NotifToggleRow
             label="Campaign Baru Sesuai Niche"
             description="Terima notifikasi saat ada campaign baru yang cocok dengan kategori konten Anda."
             checked={notifCampaign}
             onChange={setNotifCampaign}
+            disabled
           />
           <NotifToggleRow
             label="Pengingat Deadline Pekerjaan"
             description="Ingatkan saya H-2 sebelum tenggat waktu pengiriman konten."
             checked={notifDeadline}
             onChange={setNotifDeadline}
+            disabled
           />
           <NotifToggleRow
             label="Update Status Order Rate Card"
             description="Notifikasi saat UMKM melakukan order, konfirmasi, atau revisi pada paket Anda."
             checked={notifOrder}
             onChange={setNotifOrder}
+            disabled
           />
         </div>
       </SettingsCard>
@@ -845,24 +931,27 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
             description="Notifikasi instan saat pembayaran masuk ke wallet atau pencairan berhasil diproses."
             checked={notifPayment}
             onChange={setNotifPayment}
+            disabled
           />
           <NotifToggleRow
             label="Pesan Baru dari Brand atau Admin"
             description="Notifikasi saat ada pesan baru di negosiasi atau pengumuman dari Marketiv."
             checked={notifMessage}
             onChange={setNotifMessage}
+            disabled
           />
           <NotifToggleRow
             label="Newsletter & Tips Kreator"
             description="Email bulanan berisi tips monetisasi, update fitur, dan insight dari Marketiv."
             checked={notifNewsletter}
             onChange={setNotifNewsletter}
+            disabled
           />
         </div>
       </SettingsCard>
 
       <div className="flex justify-end">
-        <CreatorBtn onClick={() => showToast("Preferensi notifikasi berhasil disimpan!")}>
+        <CreatorBtn disabled onClick={() => {}}>
           Simpan Preferensi
         </CreatorBtn>
       </div>
@@ -896,7 +985,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               <div className="flex items-center gap-2.5 w-full px-4 py-2.5 bg-neutral-50/80 border border-neutral-200/60 rounded-[14px]">
                 <Mail size={14} className="text-neutral-300 shrink-0" />
                 <span className="text-[0.88rem] font-[600] text-neutral-600 truncate">
-                  kreator@example.com
+                  {accountEmail || "—"}
                 </span>
               </div>
               <p className="text-[0.68rem] font-[600] text-neutral-300">Dikelola via sistem autentikasi</p>

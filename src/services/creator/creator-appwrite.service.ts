@@ -1,6 +1,7 @@
 import { Query, ID, Permission, Role } from "appwrite";
 import { databases } from "@/lib/appwrite/databases";
 import { appwriteConfig } from "@/lib/appwrite/config";
+import { uploadPublicFile, FileRuleError } from "@/lib/appwrite/storage";
 import {
   executeFunction,
   FunctionExecutionError,
@@ -79,6 +80,8 @@ const COLLECTIONS = {
   submissions: "campaign_submissions",
   rateCards: "rate_cards",
   rateCardPackages: "rate_card_packages",
+  creatorProfiles: "creator_profiles",
+  creatorSocialAccounts: "creator_social_accounts",
   creatorPortfolios: "creator_portfolios",
   umkmProfiles: "umkm_profiles",
   transactions: "transactions",
@@ -829,5 +832,227 @@ export async function deleteCreatorRateCardPackageInAppwrite(pkg: {
       );
     }
     return failFromWriteError<null>(err, null);
+  }
+}
+
+// ── profil kreator (Sprint 3) ────────────────────────────────────────────────
+
+/**
+ * Kolom `creator_profiles` yang boleh ditulis klien.
+ * Menambah `niche` dibanding allow-list user.service.ts:270 — kolomnya ada dan
+ * UI mengeditnya (temuan handoff Sprint 3).
+ */
+const CREATOR_PROFILE_WRITABLE = [
+  "displayName",
+  "bio",
+  "city",
+  "avatarUrl",
+  "niche",
+  "isProfileCompleted",
+] as const;
+
+export type CreatorProfileWriteInput = Partial<
+  Record<(typeof CREATOR_PROFILE_WRITABLE)[number], string | boolean>
+>;
+
+/** Cari dokumen creator_profiles milik user aktif. */
+async function findOwnCreatorProfileDoc(userId: string): Promise<Doc | undefined> {
+  const res = await databases.listDocuments(DB, COLLECTIONS.creatorProfiles, [
+    Query.equal("userId", userId),
+    Query.limit(1),
+  ]);
+  return res.documents[0] as unknown as Doc | undefined;
+}
+
+/**
+ * Update profil kreator lalu baca ulang DTO gabungan lewat Function agar UI
+ * mendapat bentuk CreatorProfile yang sama seperti saat load.
+ */
+export async function updateCreatorProfileInAppwrite(
+  input: CreatorProfileWriteInput
+): Promise<ServiceResult<CreatorProfile>> {
+  const empty = null as unknown as CreatorProfile;
+  const auth = await requireUserId<CreatorProfile>(empty);
+  if (!auth.ok) return auth.result;
+
+  const payload: Record<string, string | boolean> = {};
+  for (const key of CREATOR_PROFILE_WRITABLE) {
+    const value = input[key];
+    if (value !== undefined) payload[key] = value;
+  }
+  if (Object.keys(payload).length === 0) {
+    return failValidation("Tidak ada perubahan untuk disimpan.", empty);
+  }
+
+  try {
+    const doc = await findOwnCreatorProfileDoc(auth.userId);
+    if (!doc) return fail("Profil kreator tidak ditemukan.", "not_found", empty);
+
+    await databases.updateDocument(DB, COLLECTIONS.creatorProfiles, str(doc.$id), payload);
+    return getCreatorProfileFromAppwrite();
+  } catch (err) {
+    return failFromWriteError<CreatorProfile>(err, empty);
+  }
+}
+
+/** Unggah avatar ke bucket `avatars` (client-writable) dan kembalikan URL-nya. */
+export async function uploadCreatorAvatarInAppwrite(file: File): Promise<ServiceResult<string>> {
+  const auth = await requireUserId<string>("");
+  if (!auth.ok) return auth.result;
+  try {
+    const uploaded = await uploadPublicFile("avatars", file, auth.userId);
+    return ok(uploaded.url);
+  } catch (err) {
+    if (err instanceof FileRuleError) return failValidation(err.message, "");
+    return failFromWriteError<string>(err, "");
+  }
+}
+
+// ── akun sosial kreator (Sprint 3) ───────────────────────────────────────────
+
+/**
+ * Upsert akun sosial. `creatorId` ditulis = userId (BUKAN $id dokumen profil):
+ * get-creator-profile query Query.equal("creatorId", userId), sedangkan
+ * user.service.ts:306 menulis $id profil sehingga barisnya tak pernah terbaca.
+ * Kami standardisasi ke userId — backend harus pilih satu & backfill (handoff).
+ * Tak ada unique index, jadi list dulu supaya tidak duplikat.
+ */
+export async function upsertCreatorSocialAccountInAppwrite(input: {
+  platform: "tiktok" | "instagram";
+  username: string;
+}): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  const uid = auth.userId;
+  try {
+    const existing = await databases.listDocuments(DB, COLLECTIONS.creatorSocialAccounts, [
+      Query.equal("creatorId", uid),
+      Query.equal("platform", input.platform),
+      Query.limit(1),
+    ]);
+    const doc = existing.documents[0] as unknown as Doc | undefined;
+    if (doc) {
+      await databases.updateDocument(DB, COLLECTIONS.creatorSocialAccounts, str(doc.$id), {
+        username: input.username,
+      });
+    } else {
+      await databases.createDocument(
+        DB,
+        COLLECTIONS.creatorSocialAccounts,
+        ID.unique(),
+        { creatorId: uid, platform: input.platform, username: input.username },
+        [
+          Permission.read(Role.any()),
+          Permission.update(Role.user(uid)),
+          Permission.delete(Role.user(uid)),
+        ]
+      );
+    }
+    return ok(null);
+  } catch (err) {
+    return failFromWriteError<null>(err, null);
+  }
+}
+
+// ── portofolio kreator (Sprint 3) ────────────────────────────────────────────
+
+export type CreatorPortfolioWriteInput = {
+  title: string;
+  portfolioUrl: string;
+  description?: string;
+  thumbnailUrl?: string;
+};
+
+/** Sama seperti mapper baca di getCreatorPortfolioFromAppwrite (view-model `url`). */
+const mapPortfolioDoc = (d: Doc): CreatorPortfolioItem => ({
+  id: str(d.$id),
+  title: str(d.title),
+  url: str(d.portfolioUrl),
+  description: str(d.description),
+  thumbnailUrl: orUndefined(str(d.thumbnailUrl)),
+});
+
+export async function createCreatorPortfolioInAppwrite(
+  input: CreatorPortfolioWriteInput
+): Promise<ServiceResult<CreatorPortfolioItem>> {
+  const empty = null as unknown as CreatorPortfolioItem;
+  const auth = await requireUserId<CreatorPortfolioItem>(empty);
+  if (!auth.ok) return auth.result;
+  const uid = auth.userId;
+  try {
+    const doc = await databases.createDocument(
+      DB,
+      COLLECTIONS.creatorPortfolios,
+      ID.unique(),
+      {
+        creatorId: uid,
+        title: input.title.trim(),
+        description: input.description?.trim() ?? "",
+        thumbnailUrl: input.thumbnailUrl ?? "",
+        portfolioUrl: input.portfolioUrl.trim(),
+      },
+      [
+        Permission.read(Role.any()),
+        Permission.update(Role.user(uid)),
+        Permission.delete(Role.user(uid)),
+      ]
+    );
+    return ok(mapPortfolioDoc(doc as unknown as Doc));
+  } catch (err) {
+    return failFromWriteError<CreatorPortfolioItem>(err, empty);
+  }
+}
+
+export async function updateCreatorPortfolioInAppwrite(
+  id: string,
+  input: CreatorPortfolioWriteInput
+): Promise<ServiceResult<CreatorPortfolioItem>> {
+  const empty = null as unknown as CreatorPortfolioItem;
+  const auth = await requireUserId<CreatorPortfolioItem>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const doc = await databases.updateDocument(DB, COLLECTIONS.creatorPortfolios, id, {
+      title: input.title.trim(),
+      description: input.description?.trim() ?? "",
+      thumbnailUrl: input.thumbnailUrl ?? "",
+      portfolioUrl: input.portfolioUrl.trim(),
+    });
+    return ok(mapPortfolioDoc(doc as unknown as Doc));
+  } catch (err) {
+    return failFromWriteError<CreatorPortfolioItem>(err, empty);
+  }
+}
+
+export async function deleteCreatorPortfolioInAppwrite(id: string): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    await databases.deleteDocument(DB, COLLECTIONS.creatorPortfolios, id);
+    return ok(null);
+  } catch (err) {
+    const code = (err as { code?: number })?.code;
+    if (code === 401 || code === 403) {
+      return fail(
+        "Item ini tidak bisa dihapus dari aplikasi karena dibuat sebelum fitur ini aktif; hubungi support.",
+        "forbidden",
+        null
+      );
+    }
+    return failFromWriteError<null>(err, null);
+  }
+}
+
+/** Unggah thumbnail portofolio ke bucket `portfolios` (50 MB). */
+export async function uploadCreatorPortfolioThumbnailInAppwrite(
+  file: File
+): Promise<ServiceResult<string>> {
+  const auth = await requireUserId<string>("");
+  if (!auth.ok) return auth.result;
+  try {
+    const uploaded = await uploadPublicFile("portfolios", file, auth.userId);
+    return ok(uploaded.url);
+  } catch (err) {
+    if (err instanceof FileRuleError) return failValidation(err.message, "");
+    return failFromWriteError<string>(err, "");
   }
 }
