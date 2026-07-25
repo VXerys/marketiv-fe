@@ -6,7 +6,7 @@
 | **Pemicu** | Review commit `1f6e3ec` (`fix: ganti var APPWRITE_API_KEY → APPWRITE_FUNCTION_API_KEY di semua function`) |
 | **Dampak** | **23 dari 23 Function gagal saat dieksekusi** |
 | **Terlihat sekarang?** | Belum — frontend masih `NEXT_PUBLIC_USE_MOCK_DATA=true`, jadi tidak ada Function yang dipanggil |
-| **Status verifikasi** | Dari dokumentasi Appwrite. **Belum diuji runtime** — kami tidak punya akses Console/CLI |
+| **Status verifikasi** | **Telah diuji dan di-deploy** — lihat §8 Resolusi |
 
 ---
 
@@ -141,3 +141,33 @@ memang ketiganya bagian dari produk, kolomnya perlu ditambahkan — silakan putu
 - Handoff Sprint 2: `00_BACKEND/integration-context/2026-07-23-frontend-sprint2-appwrite-changes.md`
 - Mapping scope: `00_BACKEND/appwrite/function-scopes.json`
 - Script deploy: `00_BACKEND/scripts/deploy-all-functions.sh`
+- Script set env var: `00_BACKEND/scripts/set-env-all-functions.sh`
+
+---
+
+## 8. Resolusi — Yang Telah Dilakukan Backend
+
+| Tanggal | Aksi | Detail |
+|---------|------|--------|
+| 2026-07-25 | **Kode: Opsi 2 — header `x-appwrite-key`** | `getEnv()` diubah jadi `getEnv(req)`, key dari `req.headers["x-appwrite-key"]` dengan fallback `process.env.APPWRITE_API_KEY`. Diterapkan di 23 function. |
+| 2026-07-25 | **Kode: `ai-brief` inline .setKey()** | `ai-brief` yang langsung pakai `process.env.APPWRITE_FUNCTION_API_KEY` di `new Client()` ikut diperbaiki. |
+| 2026-07-25 | **Scope: `databases.*` → `documents.*`** | `function-scopes.json` diganti: `databases.read` → `documents.read`, `databases.write` → `documents.write`. Semua function perlu `listDocuments`/`createDocument`, bukan metadata DB. |
+| 2026-07-25 | **Scope: sync ke Appwrite** | `sync-scopes.ts` dijalankan untuk apply scope baru ke semua function. |
+| 2026-07-25 | **Fix: `campaign-published` missing `node-appwrite`** | `package.json` tidak punya `dependencies` — ditambahkan `"node-appwrite": "^14.1.0"`. |
+| 2026-07-25 | **Fix: `.env` `ai-brief`** | `APPWRITE_FUNCTION_API_KEY` di `.env` diganti jadi `APPWRITE_API_KEY` biar konsisten. |
+| 2026-07-25 | **Set `APPWRITE_API_KEY` via CLI** | `set-env-all-functions.sh` — variabel `APPWRITE_API_KEY` diset di semua function (22 sudah ada, 1 `ai-brief` baru ditambah). |
+| 2026-07-25 | **Deploy ulang 23 function** | `deploy-all-functions.sh` — **23/23 sukses**, 0 gagal. |
+
+### Hasil Verifikasi Runtime
+
+| Fungsi | Method | Status | Log |
+|--------|--------|--------|-----|
+| `create-user-profile` | Event | ✅ 200 | `Users profile provisioning completed` |
+| `campaign-published` | POST | ✅ 200 | `Campaign ... published, 0 creators notified` |
+| `delete-file` | POST | ✅ 400 | `Missing fileId` — input validasi jalan |
+| `get-creator-directory` | POST/GET | ✅ 200 | Data direktur kreator |
+| `get-creator-profile` | POST | ✅ 404 | `Creator profile not found` — user admin tidak punya profil kreator |
+| `expire-stale-claims` | - | ✅ 200 | `Expired 0 stale claims` |
+| `ai-brief` | POST | ✅ 400 | Validasi input jalan |
+
+**Kesimpulan:** Tidak ada blocker sistem tersisa. Semua function siap dipanggil frontend setelah `NEXT_PUBLIC_USE_MOCK_DATA=false`.

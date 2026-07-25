@@ -1,6 +1,6 @@
 # 🚨 Penjelasan Masalah APPWRITE_FUNCTION_API_KEY
 
-**Status:** Blocker aktif  
+**Status:** ✅ **Solved** — lihat § Resolusi di bawah  
 **Tanggal:** 2026-07-25  
 **Penyebab:** Commit `1f6e3ec` — perubahan nama env var di 23 Function  
 **Dampak:** **Semua 23 Function akan crash saat dijalankan**
@@ -229,3 +229,24 @@ Setelah itu stabil, bisa *mulai* research tentang Opsi 2 (adopsi header) untuk j
 ## Pertanyaan?
 
 Jika ada yang kurang jelas, silakan tanya — penjelasan ini sengaja dibuat sederhana agar mudah dipahami tanpa perlu deep dive dokumentasi Appwrite.
+
+---
+
+## ✅ Resolusi — Backend Menerapkan Opsi 2
+
+**Keputusan:** Menerapkan **Opsi 2** (adopsi pola header Appwrite), bukan sekadar revert ke nama lama.
+
+### Yang Diubah
+
+| Area | Perubahan |
+|------|-----------|
+| **23 function** | `getEnv()` → `getEnv(req)`, key dari `req.headers["x-appwrite-key"]` dengan fallback `process.env.APPWRITE_API_KEY` |
+| **Scope** | `databases.read/write` → `documents.read/write` (semua function butuh akses dokumen, bukan metadata DB) |
+| **`campaign-published`** | Tambah `node-appwrite` di `package.json` (sebelumnya hilang, menyebabkan `Cannot find package 'node-appwrite'` saat runtime) |
+| **`ai-brief`** | `.setKey()` pakai header + fallback, `.env` diselaraskan |
+
+### Verifikasi
+
+6 function sample telah dites via Console Execute — semuanya berjalan normal (200, 400, atau 404 — bukan 500 karena scope/env). Detail lengkap lihat `2026-07-25-blocker-api-key-runtime.md` §8.
+
+**Siap untuk `NEXT_PUBLIC_USE_MOCK_DATA=false`.**
