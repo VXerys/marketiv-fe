@@ -17,6 +17,7 @@ import {
   getCampaignById,
   getCampaignSubmissions,
   getUmkmProfile,
+  updateCampaignStatus,
 } from "@/services/umkm/umkm-dashboard.service";
 import {
   Campaign,
@@ -134,13 +135,16 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
     showToast(`Ulasan oleh "${activeReviewSubmission.creatorName}" berhasil ${statusLabel}. Catatan: ${notes || "-"}`);
   };
 
-  const handleCancelConfirm = () => {
+  const handleCancelConfirm = async () => {
     if (!campaign) return;
-    setCampaign({
-      ...campaign,
-      status: "paused",
-    });
-    showToast(`Campaign "${campaign.title}" berhasil dijeda.`);
+    const target = campaign;
+    const res = await updateCampaignStatus(target.id, "paused");
+    if (res.success && res.data) {
+      setCampaign(res.data);
+      showToast(`Campaign "${target.title}" berhasil dijeda.`);
+    } else {
+      toast.error(res.error ?? "Gagal menjeda campaign.");
+    }
   };
 
   if (loading) {

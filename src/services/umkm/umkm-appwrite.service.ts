@@ -6,12 +6,14 @@ import {
   FunctionExecutionError,
   FUNCTION_IDS,
 } from "@/lib/appwrite/functions";
-import type { CampaignType } from "@/types/domain";
+import { type CampaignType, MINIMUM_CAMPAIGN_BUDGET } from "@/types/domain";
 import {
   type Doc,
   str,
   num,
   ok,
+  fail,
+  failValidation,
   failFromError,
   failFromWriteError,
   requireUserId,
@@ -605,4 +607,114 @@ export async function createCampaignDraftInAppwrite(
     complete: warnings.length === 0,
     warnings,
   });
+}
+
+/**
+ * Ubah status campaign (jeda/aktifkan). Baca ownership-filtered dulu sebagai
+ * defence in depth — collection update("users") terlalu longgar (temuan handoff).
+ */
+export async function updateCampaignStatusInAppwrite(
+  campaignId: string,
+  next: "paused" | "active"
+): Promise<ServiceResult<Campaign>> {
+  const empty = null as unknown as Campaign;
+  const auth = await requireUserId<Campaign>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", campaignId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Campaign tidak ditemukan.", "not_found", empty);
+
+    const current = str(doc.status);
+    if (next === "paused" && current !== "active") {
+      return failValidation("Hanya campaign aktif yang bisa dijeda.", empty);
+    }
+    if (next === "active" && current !== "paused") {
+      return failValidation("Hanya campaign terjeda yang bisa diaktifkan kembali.", empty);
+    }
+
+    const updated = await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
+      status: next,
+    });
+    return ok(mapCampaign(updated as unknown as Doc));
+  } catch (err) {
+    return failFromWriteError<Campaign>(err, empty);
+  }
+}
+
+export type DuplicateCampaignOptions = {
+  copyBrief: boolean;
+  copyBudget: boolean;
+  copyAssets: boolean;
+};
+
+/**
+ * Duplikasi campaign lewat createCampaignDraftInAppwrite (satu jalur create).
+ * Baca sumber ownership-filtered + brief/asset opsional sesuai options.
+ */
+export async function duplicateCampaignInAppwrite(
+  sourceId: string,
+  newTitle: string,
+  options: DuplicateCampaignOptions
+): Promise<ServiceResult<CampaignDraftResult>> {
+  const empty = null as unknown as CampaignDraftResult;
+  const auth = await requireUserId<CampaignDraftResult>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const srcRes = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", sourceId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const src = srcRes.documents[0] as unknown as Doc | undefined;
+    if (!src) return fail("Campaign sumber tidak ditemukan.", "not_found", empty);
+
+    let brief: CreateCampaignDraftInput["brief"];
+    if (options.copyBrief) {
+      const bRes = await databases.listDocuments(DB, COLLECTIONS.campaignBriefs, [
+        Query.equal("campaignId", sourceId),
+        Query.limit(1),
+      ]);
+      const b = bRes.documents[0] as unknown as Doc | undefined;
+      if (b) {
+        brief = {
+          briefDetail: str(b.briefDetail),
+          contentAngle: str(b.contentAngle),
+          cta: str(b.cta),
+          objective: str(b.objective),
+          doAndDont: str(b.doAndDont),
+          generatedByAi: Boolean(b.generatedByAi),
+        };
+      }
+    }
+
+    let asset: CreateCampaignDraftInput["asset"];
+    if (options.copyAssets) {
+      const aRes = await databases.listDocuments(DB, COLLECTIONS.campaignAssets, [
+        Query.equal("campaignId", sourceId),
+        Query.limit(1),
+      ]);
+      const a = aRes.documents[0] as unknown as Doc | undefined;
+      if (a) asset = { fileUrl: str(a.fileUrl), fileName: str(a.fileName) || undefined };
+    }
+
+    return createCampaignDraftInAppwrite({
+      title: newTitle,
+      category: str(src.category),
+      type: (str(src.type) as CampaignType) || "ugc",
+      description: str(src.description),
+      budget: options.copyBudget ? num(src.budget) : MINIMUM_CAMPAIGN_BUDGET,
+      rewardPer1000Views: num(src.rewardPer1000Views),
+      claimLimit: num(src.claimLimit),
+      submissionDays: num(src.submissionDays) || 7,
+      brief,
+      asset,
+    });
+  } catch (err) {
+    return failFromWriteError<CampaignDraftResult>(err, empty);
+  }
 }

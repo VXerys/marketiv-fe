@@ -15,21 +15,27 @@ interface CancelCampaignModalProps {
   isOpen: boolean;
   onClose: () => void;
   campaignTitle: string;
-  onConfirm: (reason: string) => void;
+  onConfirm: () => void;
 }
 
+/**
+ * "Jeda Campaign" — bukan pembatalan+refund. CampaignStatus tidak punya nilai
+ * "cancelled" dan tak ada Function refund escrow; status hanya berpindah ke
+ * "paused". Pembatalan sejati + refund diusulkan ke backend sebagai konsep
+ * terpisah (lihat handoff Sprint 3). Reason dihapus — campaigns tak punya
+ * kolomnya, field yang membuang input diam-diam lebih buruk daripada tak ada.
+ */
 export function CancelCampaignModal({
   isOpen,
   onClose,
   campaignTitle,
   onConfirm,
 }: CancelCampaignModalProps) {
-  const [reason, setReason] = useState("");
   const [isConfirmed, setIsConfirmed] = useState(false);
 
   const handleConfirm = () => {
     if (!isConfirmed) return;
-    onConfirm(reason);
+    onConfirm();
     onClose();
   };
 
@@ -37,32 +43,21 @@ export function CancelCampaignModal({
     <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <ResponsiveModalContent className="max-w-md w-full p-6">
         <ResponsiveModalHeader>
-          {/* Warning Icon */}
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger mb-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-warning-soft text-warning mb-4">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <ResponsiveModalTitle className="text-lg font-bold text-text-primary">
-            Batalkan Campaign?
+            Jeda Campaign?
           </ResponsiveModalTitle>
           <ResponsiveModalDescription className="text-sm text-text-secondary leading-relaxed">
-            Apakah Anda yakin ingin membatalkan campaign <span className="font-semibold text-text-primary">&quot;{campaignTitle}&quot;</span>? Sisa budget di escrow akan dikembalikan setelah dikurangi biaya platform yang sudah berjalan. Aksi ini tidak dapat dibatalkan.
+            Campaign <span className="font-semibold text-text-primary">&quot;{campaignTitle}&quot;</span> akan dijeda: kreator tidak bisa mengajukan klaim baru, tetapi dana escrow tetap tersimpan aman. Anda bisa mengaktifkannya kembali kapan saja.
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
-        {/* Textarea Reason */}
-        <div className="mb-4 mt-4">
-          <label htmlFor="cancel-reason" className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
-            Alasan Pembatalan (Opsional)
-          </label>
-          <textarea
-            id="cancel-reason"
-            className="w-full min-h-[80px] px-3.5 py-2.5 bg-neutral-50 text-sm text-text-primary border border-border-strong rounded-xl focus:outline-none focus:border-primary transition-colors resize-none"
-            placeholder="Tulis alasan mengapa Anda membatalkan campaign ini..."
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-          />
+        <div className="mt-4 mb-5 rounded-xl border border-border-soft bg-neutral-50 p-3.5 text-[11px] text-text-muted leading-relaxed">
+          Pembatalan permanen beserta pengembalian dana (refund) escrow belum tersedia dan sedang disiapkan bersama tim. Untuk saat ini campaign hanya bisa dijeda.
         </div>
 
         {/* Confirmation Checkbox */}
@@ -74,7 +69,7 @@ export function CancelCampaignModal({
             onChange={(e) => setIsConfirmed(e.target.checked)}
           />
           <span className="text-xs text-text-secondary leading-normal">
-            Saya mengerti konsekuensi pembatalan ini dan setuju dengan syarat pengembalian dana Marketiv.
+            Saya mengerti campaign akan dijeda dan dana escrow tetap tersimpan.
           </span>
         </label>
 
@@ -83,8 +78,8 @@ export function CancelCampaignModal({
           <DashboardButton variant="secondary" size="md" onClick={onClose} className="text-xs">
             Kembali
           </DashboardButton>
-          <DashboardButton variant="danger" size="md" disabled={!isConfirmed} onClick={handleConfirm} className="text-xs">
-            Batalkan Campaign
+          <DashboardButton variant="primary" size="md" disabled={!isConfirmed} onClick={handleConfirm} className="text-xs">
+            Jeda Campaign
           </DashboardButton>
         </ResponsiveModalFooter>
       </ResponsiveModalContent>

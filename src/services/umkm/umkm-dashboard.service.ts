@@ -1,5 +1,6 @@
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
 import { mockDelay } from "@/lib/mock-delay";
+import { MINIMUM_CAMPAIGN_BUDGET } from "@/types/domain";
 import {
   ServiceResult,
   UmkmProfile,
@@ -46,11 +47,14 @@ import {
   getEscrowOverviewFromAppwrite,
   getFinanceOverviewFromAppwrite,
   createCampaignDraftInAppwrite,
+  updateCampaignStatusInAppwrite,
+  duplicateCampaignInAppwrite,
 } from "./umkm-appwrite.service";
 import type {
   UmkmFinanceOverview,
   CreateCampaignDraftInput,
   CampaignDraftResult,
+  DuplicateCampaignOptions,
 } from "./umkm-appwrite.service";
 
 export async function getUmkmProfile(): Promise<ServiceResult<UmkmProfile>> {
@@ -342,4 +346,55 @@ export async function createCampaignDraft(
     return { success: true, data: { campaign, complete: true, warnings: [] } };
   }
   return createCampaignDraftInAppwrite(input);
+}
+
+export type { DuplicateCampaignOptions };
+
+/** Jeda / aktifkan kembali campaign. Mock meniru validasi status yang sama. */
+export async function updateCampaignStatus(
+  campaignId: string,
+  next: "paused" | "active"
+): Promise<ServiceResult<Campaign>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    const c = mockCampaigns.find((x) => x.id === campaignId);
+    if (!c) return { success: false, data: null, error: "Campaign tidak ditemukan.", code: "not_found" };
+    if (next === "paused" && c.status !== "active") {
+      return { success: false, data: null, error: "Hanya campaign aktif yang bisa dijeda.", code: "validation" };
+    }
+    if (next === "active" && c.status !== "paused") {
+      return { success: false, data: null, error: "Hanya campaign terjeda yang bisa diaktifkan kembali.", code: "validation" };
+    }
+    return { success: true, data: { ...c, status: next } };
+  }
+  return updateCampaignStatusInAppwrite(campaignId, next);
+}
+
+/** Duplikasi campaign jadi draft baru. Mock echo dari mockCampaigns. */
+export async function duplicateCampaign(
+  sourceId: string,
+  newTitle: string,
+  options: DuplicateCampaignOptions
+): Promise<ServiceResult<CampaignDraftResult>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(600);
+    const src = mockCampaigns.find((x) => x.id === sourceId);
+    if (!src) return { success: false, data: null, error: "Campaign sumber tidak ditemukan.", code: "not_found" };
+    const campaign: Campaign = {
+      ...src,
+      id: `mock_campaign_${Date.now()}`,
+      title: newTitle,
+      status: "draft",
+      totalBudgetEscrow: options.copyBudget ? src.totalBudgetEscrow : MINIMUM_CAMPAIGN_BUDGET,
+      usedQuota: 0,
+      usedBudget: 0,
+      totalViews: 0,
+      externalAssetUrl: options.copyAssets ? src.externalAssetUrl : "",
+      brief: options.copyBrief ? src.brief : "",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    return { success: true, data: { campaign, complete: true, warnings: [] } };
+  }
+  return duplicateCampaignInAppwrite(sourceId, newTitle, options);
 }
