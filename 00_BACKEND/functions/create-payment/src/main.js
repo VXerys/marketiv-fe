@@ -2,6 +2,16 @@ import { Client, Databases, ID, Permission, Role } from "node-appwrite";
 
 const PURPOSES = new Set(["order", "topup", "campaign"]);
 
+/**
+ * Kanon fee platform 2% — sejajar src/types/domain.ts (PLATFORM_FEE_RATE) dan
+ * 00_BACKEND/src/services/wallet.service.ts. Math.floor sama seperti
+ * calculatePlatformFee di frontend.
+ *
+ * Fee bersifat buyer-side HANYA untuk campaign: topup tanpa fee, dan fee order
+ * rate card bersifat seller-side (dipotong saat release, calculateCreatorPayout).
+ */
+const PLATFORM_FEE_RATE = 0.02;
+
 export default async ({ req, res, log, error }) => {
   try {
     if (req.method && req.method !== "POST") {
@@ -31,7 +41,17 @@ export default async ({ req, res, log, error }) => {
       if (orderAmount !== amount) return json(res, { error: "Payment amount does not match order amount" }, 409);
     }
 
-    const gatewayReference = createGatewayReference(payload.purpose, payload.orderId);
+    const gatewayReference = createGatewayReference(
+      payload.purpose,
+      payload.orderId || payload.campaignId
+    );
+
+    // `payments.total_amount` WAJIB (required, tanpa default) — sebelumnya tidak
+    // pernah ditulis, sehingga createDocument selalu 400 untuk SEMUA purpose.
+    const feeAmount =
+      payload.purpose === "campaign" ? Math.floor(amount * PLATFORM_FEE_RATE) : 0;
+    const totalAmount = amount + feeAmount;
+
     const payment = await databases.createDocument(
       env.databaseId,
       env.paymentsCollectionId,
@@ -39,7 +59,10 @@ export default async ({ req, res, log, error }) => {
       {
         user_id: userId,
         order_id: payload.orderId || null,
+        campaign_id: payload.campaignId || null,
         amount,
+        total_amount: totalAmount,
+        fee_amount: feeAmount,
         purpose: payload.purpose,
         gateway: "midtrans",
         gateway_reference: gatewayReference,
@@ -54,8 +77,15 @@ export default async ({ req, res, log, error }) => {
     try {
       const midtrans = await createMidtransTransaction(env, {
         gatewayReference,
-        amount,
-        itemName: order?.title || (payload.purpose === "topup" ? "Marketiv Wallet Top Up" : "Marketiv Order Payment"),
+        // Gateway menagih budget + fee, sama dengan yang ditampilkan UI.
+        amount: totalAmount,
+        itemName:
+          order?.title ||
+          (payload.purpose === "topup"
+            ? "Marketiv Wallet Top Up"
+            : payload.purpose === "campaign"
+              ? "Marketiv Campaign Escrow"
+              : "Marketiv Order Payment"),
         userId
       });
 
@@ -120,12 +150,19 @@ function validatePayload(payload) {
   if (!Number.isInteger(Number(payload.amount)) || Number(payload.amount) <= 0) return "Invalid payment amount";
   if (payload.purpose === "order" && !payload.orderId) return "orderId is required for order payment";
   if (payload.purpose === "topup" && payload.orderId) return "Top up must not include orderId";
+  // campaign_id satu-satunya cara mengaitkan payment ke campaign; idx_campaign_id
+  // ada justru untuk lookup itu.
+  if (payload.purpose === "campaign" && !payload.campaignId) return "campaignId is required for campaign payment";
+  if (payload.purpose !== "campaign" && payload.campaignId) return "campaignId is only valid for campaign payment";
   return null;
 }
 
-function createGatewayReference(purpose, orderId) {
+function createGatewayReference(purpose, refId) {
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-  return purpose === "order" ? `order-${orderId}-${suffix}` : `topup-${suffix}`;
+  if (purpose === "order") return `order-${refId}-${suffix}`;
+  // Campaign dulu memakai prefix `topup-` sehingga log webhook menyesatkan.
+  if (purpose === "campaign") return `campaign-${refId}-${suffix}`;
+  return `topup-${suffix}`;
 }
 
 async function createMidtransTransaction(env, params) {
