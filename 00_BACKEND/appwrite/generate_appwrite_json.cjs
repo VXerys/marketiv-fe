@@ -483,7 +483,12 @@ const collections = [
     {
         $id: "wallets",
         name: "Wallets",
-        $permissions: ["read(\"users\")"],
+        // Sengaja KOSONG (commit c222063): collection-level read("users") membuat
+        // setiap user login bisa membaca saldo user mana pun — permission Appwrite
+        // adalah union, bukan intersection. Akses hanya lewat permission baris
+        // yang dipasang create-user-wallet/create-escrow/release-escrow.
+        // JANGAN kembalikan read("users") di sini.
+        $permissions: [],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -528,7 +533,11 @@ const collections = [
     {
         $id: "transactions",
         name: "Transactions",
-        $permissions: ["read(\"users\")"],
+        // Sengaja KOSONG (commit c222063) — alasan sama seperti `wallets`:
+        // read("users") level collection membocorkan seluruh riwayat transaksi
+        // semua user. Akses hanya lewat permission baris per-dokumen.
+        // JANGAN kembalikan read("users") di sini.
+        $permissions: [],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -898,6 +907,20 @@ const functions = [
         entrypoint: "src/main.js",
         commands: "npm install",
         path: "../functions/create-payment"
+    },
+    {
+        $id: "request-withdrawal",
+        name: "Request Withdrawal",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 30,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/request-withdrawal"
     },
     {
         $id: "midtrans-webhook",

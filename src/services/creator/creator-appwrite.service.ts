@@ -1056,3 +1056,43 @@ export async function uploadCreatorPortfolioThumbnailInAppwrite(
     return failFromWriteError<string>(err, "");
   }
 }
+
+// ── penarikan saldo (Sprint 3) ───────────────────────────────────────────────
+
+export type WithdrawRequestInput = {
+  amount: number;
+  payoutMethod: "bank" | "ewallet";
+  providerName: string;
+  accountNumber: string;
+  accountName: string;
+  /** Kunci idempotensi; Function memakainya sebagai document id deterministik. */
+  requestKey: string;
+};
+
+export type WithdrawalReceipt = {
+  withdrawalId: string;
+  amount: number;
+  status: "processed";
+  processedAt: string;
+  balanceAfter: number;
+  transactionId: string | null;
+};
+
+/**
+ * Ajukan penarikan lewat Function `request-withdrawal`.
+ * WAJIB lewat Function: `wallets` & `transactions` punya $permissions kosong,
+ * jadi klien tak bisa mendebit saldo sendiri.
+ */
+export async function requestWithdrawalInAppwrite(
+  input: WithdrawRequestInput
+): Promise<ServiceResult<WithdrawalReceipt>> {
+  const empty = null as unknown as WithdrawalReceipt;
+  const auth = await requireUserId<WithdrawalReceipt>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await executeFunction<WithdrawalReceipt>(FUNCTION_IDS.requestWithdrawal, input);
+    return ok(res);
+  } catch (err) {
+    return failFromWriteError<WithdrawalReceipt>(err, empty);
+  }
+}

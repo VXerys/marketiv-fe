@@ -2,7 +2,7 @@
 set -euo pipefail
 
 FUNCTIONS_DIR="$(cd "$(dirname "$0")/../functions" && pwd)"
-TOTAL=23
+TOTAL=24
 CURRENT=0
 FAILED=()
 
@@ -53,6 +53,7 @@ deploy_one "create-payment"
 deploy_one "midtrans-webhook"
 deploy_one "create-escrow"
 deploy_one "release-escrow"
+deploy_one "request-withdrawal"
 deploy_one "send-chat-notification"
 deploy_one "get-umkm-dashboard-summary"
 deploy_one "get-umkm-finance-summary"

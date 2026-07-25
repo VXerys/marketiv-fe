@@ -50,11 +50,14 @@ import {
   updateCreatorPortfolioInAppwrite,
   deleteCreatorPortfolioInAppwrite,
   uploadCreatorPortfolioThumbnailInAppwrite,
+  requestWithdrawalInAppwrite,
 } from "./creator-appwrite.service";
 import type {
   RateCardPackageWriteInput,
   CreatorProfileWriteInput,
   CreatorPortfolioWriteInput,
+  WithdrawRequestInput,
+  WithdrawalReceipt,
 } from "./creator-appwrite.service";
 import type { RateCardStatus } from "@/types/domain";
 
@@ -342,4 +345,33 @@ export async function uploadCreatorPortfolioThumbnail(
     };
   }
   return uploadCreatorPortfolioThumbnailInAppwrite(file);
+}
+
+// ── penarikan saldo (Sprint 3) ───────────────────────────────────────────────
+
+export type { WithdrawRequestInput, WithdrawalReceipt };
+
+/**
+ * Pra-validasi Zod dilakukan di pemanggil (KeuanganView) SEBELUM sampai sini —
+ * feedback instan, satu eksekusi Function lebih sedikit, dan satu-satunya sumber
+ * `code: "validation"` yang andal di klien.
+ */
+export async function requestWithdrawal(
+  input: WithdrawRequestInput
+): Promise<ServiceResult<WithdrawalReceipt>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(900);
+    return {
+      success: true,
+      data: {
+        withdrawalId: `mock_wd_${Date.now()}`,
+        amount: input.amount,
+        status: "processed",
+        processedAt: new Date().toISOString(),
+        balanceAfter: 0,
+        transactionId: `mock_tx_${Date.now()}`,
+      },
+    };
+  }
+  return requestWithdrawalInAppwrite(input);
 }

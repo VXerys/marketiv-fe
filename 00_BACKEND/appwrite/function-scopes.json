@@ -20,6 +20,7 @@
   "get-umkm-profile": ["databases.read", "users.read"],
   "midtrans-webhook": ["databases.read", "databases.write"],
   "release-escrow": ["databases.read", "databases.write"],
+  "request-withdrawal": ["databases.read", "databases.write"],
   "send-chat-notification": ["databases.read", "databases.write", "messages.write"],
   "validate-and-upload": ["databases.read", "databases.write", "files.read", "files.write"]
 }
