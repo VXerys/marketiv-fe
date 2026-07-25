@@ -29,6 +29,7 @@ import { CreatorEmptyState } from "./CreatorEmptyState";
 import { cn } from "@/lib/utils";
 import {
   creatorProfileUpdateSchema,
+  creatorPortfolioSchema,
   extractSocialUsername,
 } from "@/lib/validations/profile.schema";
 import { parseOrErrors } from "@/lib/validations/to-field-errors";
@@ -37,6 +38,10 @@ import {
   updateCreatorProfile,
   uploadCreatorAvatar,
   upsertCreatorSocialAccount,
+  createCreatorPortfolio,
+  updateCreatorPortfolio,
+  deleteCreatorPortfolio,
+  uploadCreatorPortfolioThumbnail,
 } from "@/services/creator/creator-dashboard.service";
 
 // ─── Creator brand gradient ───────────────────────────────────────────────────
@@ -291,11 +296,12 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [activePortItem, setActivePortItem] = useState<CreatorPortfolioItem | null>(null);
   const [portTitle, setPortTitle] = useState("");
-  const [portPlatform, setPortPlatform] = useState<"tiktok" | "instagram">("tiktok");
   const [portUrl, setPortUrl] = useState("");
-  const [portNiche, setPortNiche] = useState<CreatorNiche>("kecantikan");
-  const [portViews, setPortViews] = useState(50000);
   const [portDesc, setPortDesc] = useState("");
+  const [portThumbnailUrl, setPortThumbnailUrl] = useState("");
+  const [portError, setPortError] = useState<string | null>(null);
+  const [isSavingPort, setIsSavingPort] = useState(false);
+  const [isUploadingThumb, setIsUploadingThumb] = useState(false);
 
   // ── Notification toggles ──
   const [notifCampaign, setNotifCampaign] = useState(true);
@@ -398,76 +404,115 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
   };
 
   // ── Portfolio handlers ──
-  const handleAddPortfolio = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!portTitle.trim() || !portUrl.trim()) return;
-    const newItem: CreatorPortfolioItem = {
-      id: `port_new_${Date.now()}`,
-      title: portTitle.trim(),
-      platform: portPlatform,
-      url: portUrl.trim(),
-      niche: portNiche,
-      views: Number(portViews),
-      thumbnailUrl:
-        portPlatform === "tiktok"
-          ? "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&h=300&fit=crop"
-          : "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=300&fit=crop",
-      description: portDesc.trim(),
-    };
-    setPortfolioItems((prev) => [...prev, newItem]);
-    setIsAddPortOpen(false);
+  // Kolom `creator_portfolios` hanya: creatorId, title, description,
+  // thumbnailUrl, portfolioUrl. platform/niche/views tidak ada kolomnya dan
+  // sudah dihapus dari form (diminta lagi di handoff Sprint 3).
+
+  const resetPortForm = () => {
     setPortTitle("");
     setPortUrl("");
     setPortDesc("");
-    setPortViews(50000);
-    showToast("Portofolio baru berhasil ditambahkan!");
+    setPortThumbnailUrl("");
+    setPortError(null);
+  };
+
+  const buildPortInput = () => ({
+    title: portTitle.trim(),
+    portfolioUrl: portUrl.trim(),
+    description: portDesc.trim(),
+    thumbnailUrl: portThumbnailUrl || undefined,
+  });
+
+  const handleThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setIsUploadingThumb(true);
+    const res = await uploadCreatorPortfolioThumbnail(file);
+    setIsUploadingThumb(false);
+    if (res.success && res.data) {
+      setPortThumbnailUrl(res.data);
+    } else {
+      setPortError(res.error ?? "Gagal mengunggah thumbnail.");
+    }
+  };
+
+  const handleAddPortfolio = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = parseOrErrors(creatorPortfolioSchema, buildPortInput());
+    if (!parsed.ok) {
+      setPortError(Object.values(parsed.errors)[0] ?? "Periksa kembali isian portofolio.");
+      return;
+    }
+    setPortError(null);
+    setIsSavingPort(true);
+    const res = await createCreatorPortfolio(parsed.data);
+    setIsSavingPort(false);
+    if (res.success && res.data) {
+      setPortfolioItems((prev) => [...prev, res.data!]);
+      setIsAddPortOpen(false);
+      resetPortForm();
+      showToast("Portofolio baru berhasil ditambahkan!");
+    } else {
+      setPortError(res.error ?? "Gagal menambahkan portofolio.");
+    }
   };
 
   const openEditPortModal = (item: CreatorPortfolioItem) => {
     setActivePortItem(item);
     setPortTitle(item.title);
-    setPortPlatform(item.platform ?? "tiktok");
     setPortUrl(item.url);
-    setPortNiche(item.niche ?? "lainnya");
-    setPortViews(item.views ?? 0);
     setPortDesc(item.description);
+    setPortThumbnailUrl(item.thumbnailUrl ?? "");
+    setPortError(null);
     setIsEditPortOpen(true);
   };
 
-  const handleEditPortfolio = (e: React.FormEvent) => {
+  const handleEditPortfolio = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activePortItem || !portTitle.trim() || !portUrl.trim()) return;
-    setPortfolioItems((prev) =>
-      prev.map((item) =>
-        item.id === activePortItem.id
-          ? {
-              ...item,
-              title: portTitle.trim(),
-              platform: portPlatform,
-              url: portUrl.trim(),
-              niche: portNiche,
-              views: Number(portViews),
-              description: portDesc.trim(),
-            }
-          : item
-      )
-    );
-    setIsEditPortOpen(false);
-    setActivePortItem(null);
-    showToast("Portofolio berhasil diperbarui!");
+    if (!activePortItem) return;
+    const parsed = parseOrErrors(creatorPortfolioSchema, buildPortInput());
+    if (!parsed.ok) {
+      setPortError(Object.values(parsed.errors)[0] ?? "Periksa kembali isian portofolio.");
+      return;
+    }
+    setPortError(null);
+    setIsSavingPort(true);
+    const res = await updateCreatorPortfolio(activePortItem.id, parsed.data);
+    setIsSavingPort(false);
+    if (res.success && res.data) {
+      setPortfolioItems((prev) =>
+        prev.map((item) => (item.id === activePortItem.id ? res.data! : item))
+      );
+      setIsEditPortOpen(false);
+      setActivePortItem(null);
+      resetPortForm();
+      showToast("Portofolio berhasil diperbarui!");
+    } else {
+      setPortError(res.error ?? "Gagal memperbarui portofolio.");
+    }
   };
 
   const openDeleteConfirm = (item: CreatorPortfolioItem) => {
     setActivePortItem(item);
+    setPortError(null);
     setIsDeleteConfirmOpen(true);
   };
 
-  const executeDeletePortfolio = () => {
+  const executeDeletePortfolio = async () => {
     if (!activePortItem) return;
-    setPortfolioItems((prev) => prev.filter((item) => item.id !== activePortItem.id));
-    setIsDeleteConfirmOpen(false);
-    setActivePortItem(null);
-    showToast("Item portofolio berhasil dihapus.");
+    setIsSavingPort(true);
+    const res = await deleteCreatorPortfolio(activePortItem.id);
+    setIsSavingPort(false);
+    if (res.success) {
+      setPortfolioItems((prev) => prev.filter((item) => item.id !== activePortItem.id));
+      setIsDeleteConfirmOpen(false);
+      setActivePortItem(null);
+      showToast("Item portofolio berhasil dihapus.");
+    } else {
+      // Baris pra-Sprint 3 tak punya row-perm delete — sampaikan apa adanya.
+      setPortError(res.error ?? "Gagal menghapus item portofolio.");
+    }
   };
 
   // ── Input class ──
@@ -803,10 +848,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
           action={
             <button
               onClick={() => {
-                setPortTitle("");
-                setPortUrl("");
-                setPortDesc("");
-                setPortViews(50000);
+                resetPortForm();
                 setIsAddPortOpen(true);
               }}
               className="flex items-center gap-1.5 px-4 py-2 rounded-[12px] text-[0.78rem] font-[800] text-white transition-all cursor-pointer hover:-translate-y-0.5"
@@ -1271,6 +1313,11 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               </svg>
             </button>
           </div>
+          {portError && (
+            <div className="bg-red-50 border border-red-200 p-3.5 rounded-[14px] text-red-800 text-[0.82rem] font-[700] mb-4">
+              ⚠️ {portError}
+            </div>
+          )}
           <form onSubmit={handleAddPortfolio} className="space-y-4 text-[0.85rem]">
             <div className="space-y-1.5">
               <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
@@ -1285,63 +1332,36 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
                 className={inputModalCls}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Platform
-                </label>
-                <select
-                  value={portPlatform}
-                  onChange={(e) => setPortPlatform(e.target.value as "tiktok" | "instagram")}
-                  className={cn(inputModalCls, "cursor-pointer")}
-                >
-                  <option value="tiktok">TikTok</option>
-                  <option value="instagram">Instagram</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Kategori Niche
-                </label>
-                <select
-                  value={portNiche}
-                  onChange={(e) => setPortNiche(e.target.value as CreatorNiche)}
-                  className={cn(inputModalCls, "cursor-pointer")}
-                >
-                  <option value="kecantikan">Kecantikan</option>
-                  <option value="kuliner">Kuliner</option>
-                  <option value="fashion">Fashion</option>
-                  <option value="pariwisata">Pariwisata</option>
-                  <option value="lainnya">Lainnya</option>
-                </select>
-              </div>
+            <div className="space-y-1.5">
+              <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
+                Tautan URL Postingan
+              </label>
+              <input
+                type="url"
+                required
+                placeholder="https://tiktok.com/@..."
+                value={portUrl}
+                onChange={(e) => setPortUrl(e.target.value)}
+                className={inputModalCls}
+              />
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2 space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Tautan URL Postingan
-                </label>
-                <input
-                  type="url"
-                  required
-                  placeholder="https://tiktok.com/@..."
-                  value={portUrl}
-                  onChange={(e) => setPortUrl(e.target.value)}
-                  className={inputModalCls}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Jumlah Views
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={portViews}
-                  onChange={(e) => setPortViews(Number(e.target.value))}
-                  className={inputModalCls}
-                />
-              </div>
+            <div className="space-y-1.5">
+              <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
+                Thumbnail (Opsional)
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={isUploadingThumb}
+                onChange={handleThumbnailChange}
+                className="block w-full text-[0.78rem] font-[600] text-neutral-600 file:mr-3 file:rounded-full file:border-0 file:bg-neutral-100 file:px-4 file:py-2 file:text-[0.75rem] file:font-[700] file:text-neutral-700 hover:file:bg-neutral-200 disabled:opacity-60"
+              />
+              {isUploadingThumb && (
+                <p className="text-[0.7rem] font-[700] text-neutral-400">Mengunggah thumbnail…</p>
+              )}
+              {portThumbnailUrl && !isUploadingThumb && (
+                <p className="text-[0.7rem] font-[700] text-emerald-600">Thumbnail siap disimpan.</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
@@ -1357,11 +1377,19 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               />
             </div>
             <div className="pt-4 flex gap-3">
-              <GhostBtn type="button" onClick={() => setIsAddPortOpen(false)} className="flex-1">
+              <GhostBtn
+                type="button"
+                disabled={isSavingPort}
+                onClick={() => {
+                  setIsAddPortOpen(false);
+                  resetPortForm();
+                }}
+                className="flex-1"
+              >
                 Batal
               </GhostBtn>
-              <CreatorBtn type="submit" className="flex-1">
-                Tambahkan
+              <CreatorBtn type="submit" disabled={isSavingPort || isUploadingThumb} className="flex-1">
+                {isSavingPort ? "Menyimpan…" : "Tambahkan"}
               </CreatorBtn>
             </div>
           </form>
@@ -1392,6 +1420,11 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               </svg>
             </button>
           </div>
+          {portError && (
+            <div className="bg-red-50 border border-red-200 p-3.5 rounded-[14px] text-red-800 text-[0.82rem] font-[700] mb-4">
+              ⚠️ {portError}
+            </div>
+          )}
           <form onSubmit={handleEditPortfolio} className="space-y-4 text-[0.85rem]">
             <div className="space-y-1.5">
               <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
@@ -1405,62 +1438,35 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
                 className={inputModalCls}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Platform
-                </label>
-                <select
-                  value={portPlatform}
-                  onChange={(e) => setPortPlatform(e.target.value as "tiktok" | "instagram")}
-                  className={cn(inputModalCls, "cursor-pointer")}
-                >
-                  <option value="tiktok">TikTok</option>
-                  <option value="instagram">Instagram</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Kategori Niche
-                </label>
-                <select
-                  value={portNiche}
-                  onChange={(e) => setPortNiche(e.target.value as CreatorNiche)}
-                  className={cn(inputModalCls, "cursor-pointer")}
-                >
-                  <option value="kecantikan">Kecantikan</option>
-                  <option value="kuliner">Kuliner</option>
-                  <option value="fashion">Fashion</option>
-                  <option value="pariwisata">Pariwisata</option>
-                  <option value="lainnya">Lainnya</option>
-                </select>
-              </div>
+            <div className="space-y-1.5">
+              <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
+                Tautan URL Postingan
+              </label>
+              <input
+                type="url"
+                required
+                value={portUrl}
+                onChange={(e) => setPortUrl(e.target.value)}
+                className={inputModalCls}
+              />
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2 space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Tautan URL Postingan
-                </label>
-                <input
-                  type="url"
-                  required
-                  value={portUrl}
-                  onChange={(e) => setPortUrl(e.target.value)}
-                  className={inputModalCls}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Jumlah Views
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={portViews}
-                  onChange={(e) => setPortViews(Number(e.target.value))}
-                  className={inputModalCls}
-                />
-              </div>
+            <div className="space-y-1.5">
+              <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
+                Thumbnail (Opsional)
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={isUploadingThumb}
+                onChange={handleThumbnailChange}
+                className="block w-full text-[0.78rem] font-[600] text-neutral-600 file:mr-3 file:rounded-full file:border-0 file:bg-neutral-100 file:px-4 file:py-2 file:text-[0.75rem] file:font-[700] file:text-neutral-700 hover:file:bg-neutral-200 disabled:opacity-60"
+              />
+              {isUploadingThumb && (
+                <p className="text-[0.7rem] font-[700] text-neutral-400">Mengunggah thumbnail…</p>
+              )}
+              {portThumbnailUrl && !isUploadingThumb && (
+                <p className="text-[0.7rem] font-[700] text-emerald-600">Thumbnail siap disimpan.</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
@@ -1477,16 +1483,18 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
             <div className="pt-4 flex gap-3">
               <GhostBtn
                 type="button"
+                disabled={isSavingPort}
                 onClick={() => {
                   setIsEditPortOpen(false);
                   setActivePortItem(null);
+                  resetPortForm();
                 }}
                 className="flex-1"
               >
                 Batal
               </GhostBtn>
-              <CreatorBtn type="submit" className="flex-1">
-                Simpan Perubahan
+              <CreatorBtn type="submit" disabled={isSavingPort || isUploadingThumb} className="flex-1">
+                {isSavingPort ? "Menyimpan…" : "Simpan Perubahan"}
               </CreatorBtn>
             </div>
           </form>
@@ -1506,24 +1514,34 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
             </span>{" "}
             secara permanen. Tindakan ini tidak dapat dibatalkan.
           </p>
+          {portError && (
+            <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-[14px] text-amber-800 text-[0.78rem] font-[600] leading-relaxed mb-5">
+              {portError}
+            </div>
+          )}
           <div className="flex gap-3">
             <GhostBtn
               type="button"
+              disabled={isSavingPort}
               onClick={() => {
                 setIsDeleteConfirmOpen(false);
                 setActivePortItem(null);
+                setPortError(null);
               }}
               className="flex-1"
             >
-              Batal
+              {portError ? "Tutup" : "Batal"}
             </GhostBtn>
-            <button
-              type="button"
-              onClick={executeDeletePortfolio}
-              className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-[700] text-[0.82rem] rounded-full transition-all shadow-md cursor-pointer"
-            >
-              Ya, Hapus
-            </button>
+            {!portError && (
+              <button
+                type="button"
+                disabled={isSavingPort}
+                onClick={executeDeletePortfolio}
+                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-[700] text-[0.82rem] rounded-full transition-all shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isSavingPort ? "Menghapus…" : "Ya, Hapus"}
+              </button>
+            )}
           </div>
         </ModalFrame>
       )}
