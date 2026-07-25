@@ -6,6 +6,7 @@ import {
   FunctionExecutionError,
   FUNCTION_IDS,
 } from "@/lib/appwrite/functions";
+import { uploadPublicFile, FileRuleError } from "@/lib/appwrite/storage";
 import { type CampaignType, MINIMUM_CAMPAIGN_BUDGET } from "@/types/domain";
 import {
   type Doc,
@@ -21,6 +22,7 @@ import {
 import {
   ServiceResult,
   UmkmProfile,
+  UmkmSettingsProfile,
   UmkmDashboardSummary,
   Campaign,
   CampaignSubmission,
@@ -68,6 +70,7 @@ const COLLECTIONS = {
   campaigns: "campaigns",
   campaignBriefs: "campaign_briefs",
   campaignAssets: "campaign_assets",
+  umkmProfiles: "umkm_profiles",
   submissions: "campaign_submissions",
   rateCards: "rate_cards",
   rateCardPackages: "rate_card_packages",
@@ -716,5 +719,109 @@ export async function duplicateCampaignInAppwrite(
     });
   } catch (err) {
     return failFromWriteError<CampaignDraftResult>(err, empty);
+  }
+}
+
+// ── profil UMKM / pengaturan (Sprint 3) ──────────────────────────────────────
+
+const mapUmkmSettingsProfile = (d: Doc): UmkmSettingsProfile => ({
+  docId: str(d.$id),
+  userId: str(d.userId),
+  businessName: str(d.businessName),
+  category: str(d.category),
+  description: str(d.description),
+  city: str(d.city),
+  address: str(d.address),
+  tiktok: str(d.tiktok),
+  logoUrl: str(d.logoUrl),
+  isProfileCompleted: Boolean(d.isProfileCompleted),
+});
+
+/**
+ * Baca baris umkm_profiles langsung (bukan lewat Function DTO): halaman
+ * Pengaturan butuh 9 kolom, sedangkan get-umkm-profile mengembalikan 7 kolom
+ * lain. `umkm_profiles` read("any") jadi query klien sah.
+ */
+export async function getUmkmSettingsProfileFromAppwrite(): Promise<
+  ServiceResult<UmkmSettingsProfile>
+> {
+  const empty = null as unknown as UmkmSettingsProfile;
+  const auth = await requireUserId<UmkmSettingsProfile>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.umkmProfiles, [
+      Query.equal("userId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Profil UMKM tidak ditemukan.", "not_found", empty);
+    return ok(mapUmkmSettingsProfile(doc));
+  } catch (err) {
+    return failFromError<UmkmSettingsProfile>(err, empty);
+  }
+}
+
+/** Kolom yang boleh ditulis klien — identik allow-list user.service.ts:269. */
+const UMKM_PROFILE_WRITABLE = [
+  "businessName",
+  "category",
+  "description",
+  "city",
+  "address",
+  "tiktok",
+  "logoUrl",
+  "isProfileCompleted",
+] as const;
+
+export type UmkmProfileWriteInput = Partial<
+  Record<(typeof UMKM_PROFILE_WRITABLE)[number], string | boolean>
+>;
+
+export async function updateUmkmProfileInAppwrite(
+  input: UmkmProfileWriteInput
+): Promise<ServiceResult<UmkmSettingsProfile>> {
+  const empty = null as unknown as UmkmSettingsProfile;
+  const auth = await requireUserId<UmkmSettingsProfile>(empty);
+  if (!auth.ok) return auth.result;
+
+  const payload: Record<string, string | boolean> = {};
+  for (const key of UMKM_PROFILE_WRITABLE) {
+    const value = input[key];
+    if (value !== undefined) payload[key] = value;
+  }
+  if (Object.keys(payload).length === 0) {
+    return failValidation("Tidak ada perubahan untuk disimpan.", empty);
+  }
+
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.umkmProfiles, [
+      Query.equal("userId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Profil UMKM tidak ditemukan.", "not_found", empty);
+
+    const updated = await databases.updateDocument(
+      DB,
+      COLLECTIONS.umkmProfiles,
+      str(doc.$id),
+      payload
+    );
+    return ok(mapUmkmSettingsProfile(updated as unknown as Doc));
+  } catch (err) {
+    return failFromWriteError<UmkmSettingsProfile>(err, empty);
+  }
+}
+
+/** Unggah logo ke bucket `logos` (client-writable) dan kembalikan URL-nya. */
+export async function uploadUmkmLogoInAppwrite(file: File): Promise<ServiceResult<string>> {
+  const auth = await requireUserId<string>("");
+  if (!auth.ok) return auth.result;
+  try {
+    const uploaded = await uploadPublicFile("logos", file, auth.userId);
+    return ok(uploaded.url);
+  } catch (err) {
+    if (err instanceof FileRuleError) return failValidation(err.message, "");
+    return failFromWriteError<string>(err, "");
   }
 }

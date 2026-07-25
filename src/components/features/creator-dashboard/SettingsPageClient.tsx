@@ -19,13 +19,13 @@ export function SettingsPageClient() {
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [portfolio, setPortfolio] = useState<CreatorPortfolioItem[]>([]);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  /** Ambil data; setState hanya di posisi setelah await. */
+  const fetchData = useCallback(async (isActive: () => boolean) => {
     const [res, portfolioRes] = await Promise.all([
       getCreatorProfile(),
       getCreatorPortfolio(),
     ]);
+    if (!isActive()) return;
     if (!res.success || !res.data) {
       setError(res.error ?? "Gagal memuat profil.");
       setLoading(false);
@@ -37,12 +37,26 @@ export function SettingsPageClient() {
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    let active = true;
+    void (async () => {
+      await fetchData(() => active);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [fetchData]);
+
+  /** Retry dari tombol (event handler — bukan effect body). */
+  const handleRetry = () => {
+    setLoading(true);
+    setError(null);
+    void fetchData(() => true);
+  };
+
 
   if (loading) return <CreatorPageSkeleton showMetrics={false} variant="detail" />;
   if (error || !profile) {
-    return <CreatorErrorState errorMsg={error ?? "Gagal memuat profil."} onRetry={loadData} />;
+    return <CreatorErrorState errorMsg={error ?? "Gagal memuat profil."} onRetry={handleRetry} />;
   }
 
   return <SettingsView initialProfile={profile} initialPortfolio={portfolio} />;

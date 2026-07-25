@@ -47,6 +47,24 @@ export interface UmkmProfile {
   isVerified: boolean;
 }
 
+/**
+ * Baris `umkm_profiles` mentah untuk halaman Pengaturan — DTO get-umkm-profile
+ * tidak mengembalikan category/description/address/tiktok yang form butuh.
+ * `docId` = $id dokumen, dibutuhkan updateDocument.
+ */
+export interface UmkmSettingsProfile {
+  docId: string;
+  userId: string;
+  businessName: string;
+  category: string;
+  description: string;
+  city: string;
+  address: string;
+  tiktok: string;
+  logoUrl: string;
+  isProfileCompleted: boolean;
+}
+
 export interface Campaign {
   id: string;
   umkmId: string;

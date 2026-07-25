@@ -1,14 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { getUmkmProfile } from "@/services/umkm/umkm-dashboard.service";
+import {
+  getUmkmSettingsProfile,
+  updateUmkmProfile,
+  uploadUmkmLogo,
+} from "@/services/umkm/umkm-dashboard.service";
+import { getSession } from "@/services/auth/session.service";
+import { umkmProfileUpdateSchema } from "@/lib/validations/profile.schema";
+import { parseOrErrors } from "@/lib/validations/to-field-errors";
+import { NICHE_OPTIONS } from "@/components/features/umkm-dashboard/create-campaign/create-campaign.constants";
 import {
   Store,
   MapPin,
   Bell,
   Check,
-  Globe,
   Building,
   Phone,
   Mail,
@@ -16,15 +23,7 @@ import {
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { UmkmPageWrapper } from "@/components/features/umkm-dashboard/shared/UmkmPageWrapper";
 
-// Custom inline SVG icons for social channels to avoid dependency package issues
-const InstagramIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-  </svg>
-);
-
+// Custom inline SVG icon to avoid dependency package issues
 const TikTokIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
     <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.01 1.62 4.18.99 1.17 2.37 1.96 3.86 2.23v3.74c-1.42-.02-2.82-.41-4.04-1.15-.36-.21-.7-.47-1.01-.76v7.37c-.07 1.52-.64 3.01-1.66 4.14-1.02 1.13-2.45 1.83-3.98 1.99-1.53.16-3.11-.21-4.37-1.07A5.996 5.996 0 0 1 3.93 16.2c-.36-1.5-.16-3.11.58-4.47.74-1.36 1.99-2.38 3.48-2.83V12.7c-.52.12-1 .4-1.37.8-.37.4-.59.93-.62 1.48-.03.55.12 1.1.43 1.56.31.46.77.78 1.29.92.52.14 1.07.08 1.55-.16.48-.24.86-.66 1.06-1.17.16-.41.22-.85.22-1.29V0h2.01z" />
@@ -46,11 +45,23 @@ const INITIAL_NOTIFICATIONS: NotificationSetting[] = [
   { id: "promo", label: "Promosi & update platform", desc: "Info fitur baru dari Marketiv", enabled: false },
 ];
 
-function Toggle({ enabled, onClick }: { enabled: boolean; onClick: () => void }) {
+function Toggle({
+  enabled,
+  onClick,
+  disabled,
+}: {
+  enabled: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
   return (
     <button
       onClick={onClick}
-      className={`w-11 h-6 rounded-full relative cursor-pointer transition-all duration-200 shadow-3xs outline-none border-none ${
+      disabled={disabled}
+      aria-disabled={disabled}
+      className={`w-11 h-6 rounded-full relative transition-all duration-200 shadow-3xs outline-none border-none ${
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+      } ${
         enabled ? "bg-gradient-to-r from-orange-500 to-orange-600 shadow-orange-500/20" : "bg-neutral-200"
       }`}
     >
@@ -64,54 +75,116 @@ function Toggle({ enabled, onClick }: { enabled: boolean; onClick: () => void })
 }
 
 export function PengaturanClient() {
-  const [notifications, setNotifications] = useState<NotificationSetting[]>(INITIAL_NOTIFICATIONS);
+  // Preferensi notifikasi belum punya target tulis (tak ada collection
+  // notification_preferences) — toggle dinonaktifkan, lihat handoff Sprint 3.
+  const notifications: NotificationSetting[] = INITIAL_NOTIFICATIONS;
 
-  // Flat state mapping 1:1 to Appwrite database schema (umkm_profiles & users collections)
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  /** Hanya kolom yang benar-benar ada di `umkm_profiles`. */
   const [profile, setProfile] = useState({
     businessName: "",
-    category: "Kuliner — Makanan Sehat",
-    description: "Penyedia makanan sehat premium khas Sukabumi, dengan cita rasa autentik dan bahan pilihan segar.",
-    city: "Sukabumi",
-    address: "Jl. Merdeka No. 45",
-    phone: "+62 812-3456-7890",
-    email: "dapursehat.sukabumi@gmail.com",
-    instagram: "dapursehat.sukabumi",
-    tiktok: "dapursehat.sukabumi",
-    website: "www.dapursehatsukabumi.com",
+    category: "",
+    description: "",
+    city: "",
+    address: "",
+    tiktok: "",
     logoUrl: "",
   });
 
-  const handleToggle = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, enabled: !n.enabled } : n))
-    );
-  };
+  /** Dikelola collection `users` (read-only dari klien) — prefil dari sesi. */
+  const [account, setAccount] = useState({ email: "", phone: "" });
 
   const handleInputChange = (field: keyof typeof profile, value: string) => {
     setProfile((prev) => ({ ...prev, [field]: value }));
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
   };
 
-  const handleSaveChanges = () => {
-    toast.success("Pengaturan berhasil disimpan!");
-  };
+  /** Ambil data; setState hanya di posisi setelah await. */
+  const fetchData = useCallback(async (isActive: () => boolean) => {
+    const [res, sessionRes] = await Promise.all([getUmkmSettingsProfile(), getSession()]);
+    if (!isActive()) return;
+    if (res.success && res.data) {
+      setProfile({
+        businessName: res.data.businessName,
+        category: res.data.category,
+        description: res.data.description,
+        city: res.data.city,
+        address: res.data.address,
+        tiktok: res.data.tiktok,
+        logoUrl: res.data.logoUrl,
+      });
+    } else {
+      setLoadError(res.error ?? "Gagal memuat profil.");
+    }
+    if (sessionRes.success && sessionRes.data) {
+      setAccount({ email: sessionRes.data.email, phone: "" });
+    }
+    setLoading(false);
+  }, []);
 
-  const handleDeactivate = () => {
-    toast.error("Akun berhasil dinonaktifkan sementara.");
-  };
-
-  // Baca dipindah dari Server Component ke klien (s3-ssr-session). Commit
-  // s3-umkm-settings mengganti ini dengan getUmkmSettingsProfile penuh.
   useEffect(() => {
     let active = true;
-    getUmkmProfile().then((res) => {
-      if (active && res.success && res.data) {
-        setProfile((prev) => ({ ...prev, businessName: res.data!.businessName }));
-      }
-    });
+    void (async () => {
+      await fetchData(() => active);
+    })();
     return () => {
       active = false;
     };
-  }, []);
+  }, [fetchData]);
+
+  const handleSaveChanges = async () => {
+    const parsed = parseOrErrors(umkmProfileUpdateSchema, profile);
+    if (!parsed.ok) {
+      setFieldErrors(parsed.errors);
+      toast.error("Periksa kembali isian yang ditandai.");
+      return;
+    }
+    setFieldErrors({});
+    setIsSaving(true);
+    const res = await updateUmkmProfile({ ...parsed.data, logoUrl: profile.logoUrl });
+    setIsSaving(false);
+    if (res.success) {
+      toast.success("Pengaturan berhasil disimpan!");
+    } else {
+      toast.error(
+        res.code === "auth"
+          ? "Sesi berakhir, silakan login kembali."
+          : res.error ?? "Gagal menyimpan pengaturan."
+      );
+    }
+  };
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setIsUploading(true);
+    const res = await uploadUmkmLogo(file);
+    setIsUploading(false);
+    if (res.success && res.data) {
+      setProfile((prev) => ({ ...prev, logoUrl: res.data! }));
+      toast.success("Logo terunggah. Klik Simpan Perubahan untuk menerapkan.");
+    } else {
+      toast.error(res.error ?? "Gagal mengunggah logo.");
+    }
+  };
+
+  const inputCls =
+    "w-full px-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm font-semibold text-ink-900 outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-3xs";
+  const readOnlyCls =
+    "w-full px-4 py-2.5 bg-neutral-100 border border-neutral-200 rounded-xl text-sm font-semibold text-ink-500 outline-none cursor-not-allowed shadow-3xs";
+  const errCls = "text-[0.7rem] font-bold text-red-600";
 
   return (
     <UmkmDashboardChrome businessName={profile.businessName}>
@@ -132,10 +205,19 @@ export function PengaturanClient() {
           
           {/* Logo & Status Ribbon */}
           <div className="flex items-center gap-5 pb-6 border-b border-neutral-200/60 flex-wrap sm:flex-nowrap">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-300 to-orange-500 flex-shrink-0 shadow-sm border border-orange-400/10" />
+            {profile.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.logoUrl}
+                alt="Logo bisnis"
+                className="w-16 h-16 rounded-2xl object-cover flex-shrink-0 shadow-sm border border-neutral-200"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-300 to-orange-500 flex-shrink-0 shadow-sm border border-orange-400/10" />
+            )}
             <div className="space-y-1.5 min-w-0 flex-1">
               <h3 className="text-[1.1rem] font-bold text-ink-900 truncate leading-none">
-                {profile.businessName}
+                {profile.businessName || "—"}
               </h3>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="inline-flex items-center gap-1 min-h-[24px] px-2.5 rounded-full bg-emerald-50 border border-emerald-200/50 text-emerald-700 text-[0.7rem] font-extrabold">
@@ -146,13 +228,27 @@ export function PengaturanClient() {
                 </span>
               </div>
             </div>
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/svg+xml"
+              onChange={handleLogoChange}
+              className="hidden"
+            />
             <button
-              onClick={() => toast.info("Unggah foto baru sedang diproses.")}
-              className="ml-auto px-4 py-2 bg-white hover:bg-neutral-50 text-ink-700 hover:text-ink-900 border border-neutral-200 text-xs font-bold rounded-xl shadow-3xs transition-all active:scale-[0.98] cursor-pointer whitespace-nowrap"
+              onClick={() => logoInputRef.current?.click()}
+              disabled={isUploading}
+              className="ml-auto px-4 py-2 bg-white hover:bg-neutral-50 text-ink-700 hover:text-ink-900 border border-neutral-200 text-xs font-bold rounded-xl shadow-3xs transition-all active:scale-[0.98] cursor-pointer whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Edit Foto
+              {isUploading ? "Mengunggah…" : "Edit Foto"}
             </button>
           </div>
+
+          {loadError && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs font-bold text-red-700">
+              {loadError}
+            </div>
+          )}
 
           {/* Section 1: Profil Bisnis (umkm_profiles attributes) */}
           <div className="space-y-5">
@@ -173,19 +269,29 @@ export function PengaturanClient() {
                   type="text"
                   value={profile.businessName}
                   onChange={(e) => handleInputChange("businessName", e.target.value)}
-                  className="w-full px-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm font-semibold text-ink-900 outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-3xs"
+                  disabled={loading}
+                  className={inputCls}
                 />
+                {fieldErrors.businessName && <span className={errCls}>{fieldErrors.businessName}</span>}
               </div>
 
-              {/* Kategori */}
+              {/* Kategori — select agar nilainya match campaigns.category & idx_category */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[0.74rem] font-[800] text-ink-600">Kategori</label>
-                <input
-                  type="text"
+                <select
                   value={profile.category}
                   onChange={(e) => handleInputChange("category", e.target.value)}
-                  className="w-full px-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm font-semibold text-ink-900 outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-3xs"
-                />
+                  disabled={loading}
+                  className={`${inputCls} cursor-pointer`}
+                >
+                  <option value="">Pilih kategori…</option>
+                  {NICHE_OPTIONS.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.label} — {opt.desc}
+                    </option>
+                  ))}
+                </select>
+                {fieldErrors.category && <span className={errCls}>{fieldErrors.category}</span>}
               </div>
 
               {/* Deskripsi (Full Width) */}
@@ -195,8 +301,10 @@ export function PengaturanClient() {
                   value={profile.description}
                   onChange={(e) => handleInputChange("description", e.target.value)}
                   rows={3}
+                  disabled={loading}
                   className="w-full px-4 py-3 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm font-semibold text-ink-900 outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-3xs resize-vertical"
                 />
+                {fieldErrors.description && <span className={errCls}>{fieldErrors.description}</span>}
               </div>
             </div>
           </div>
@@ -213,30 +321,26 @@ export function PengaturanClient() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {/* WhatsApp */}
+              {/* WhatsApp — kolom `users.phone`, tidak client-writable */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[0.74rem] font-[800] text-ink-600 flex items-center gap-1.5">
                   <Phone size={12} className="text-ink-400" /> Nomor WhatsApp
                 </label>
-                <input
-                  type="text"
-                  value={profile.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
-                  className="w-full px-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm font-semibold text-ink-900 outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-3xs"
-                />
+                <input type="text" value={account.phone} readOnly className={readOnlyCls} />
+                <span className="text-[0.68rem] font-bold text-ink-400">
+                  Dikelola akun — hubungi support untuk mengubah.
+                </span>
               </div>
 
-              {/* Email */}
+              {/* Email — kolom `users.email`, tidak client-writable */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[0.74rem] font-[800] text-ink-600 flex items-center gap-1.5">
                   <Mail size={12} className="text-ink-400" /> Email Bisnis
                 </label>
-                <input
-                  type="email"
-                  value={profile.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  className="w-full px-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm font-semibold text-ink-900 outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-3xs"
-                />
+                <input type="email" value={account.email} readOnly className={readOnlyCls} />
+                <span className="text-[0.68rem] font-bold text-ink-400">
+                  Dikelola akun — hubungi support untuk mengubah.
+                </span>
               </div>
 
               {/* Kota */}
@@ -248,8 +352,10 @@ export function PengaturanClient() {
                   type="text"
                   value={profile.city}
                   onChange={(e) => handleInputChange("city", e.target.value)}
-                  className="w-full px-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm font-semibold text-ink-900 outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-3xs"
+                  disabled={loading}
+                  className={inputCls}
                 />
+                {fieldErrors.city && <span className={errCls}>{fieldErrors.city}</span>}
               </div>
 
               {/* Alamat */}
@@ -261,25 +367,14 @@ export function PengaturanClient() {
                   type="text"
                   value={profile.address}
                   onChange={(e) => handleInputChange("address", e.target.value)}
-                  className="w-full px-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm font-semibold text-ink-900 outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-3xs"
+                  disabled={loading}
+                  className={inputCls}
                 />
+                {fieldErrors.address && <span className={errCls}>{fieldErrors.address}</span>}
               </div>
 
-              {/* Instagram */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[0.74rem] font-[800] text-ink-600 flex items-center gap-1.5">
-                  <InstagramIcon className="w-3.5 h-3.5 text-ink-400" /> Instagram Username
-                </label>
-                <input
-                  type="text"
-                  value={profile.instagram}
-                  onChange={(e) => handleInputChange("instagram", e.target.value)}
-                  className="w-full px-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm font-semibold text-ink-900 outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-3xs"
-                />
-              </div>
-
-              {/* TikTok */}
-              <div className="flex flex-col gap-1.5">
+              {/* TikTok — satu-satunya kanal sosial yang punya kolom di umkm_profiles */}
+              <div className="flex flex-col gap-1.5 md:col-span-2">
                 <label className="text-[0.74rem] font-[800] text-ink-600 flex items-center gap-1.5">
                   <TikTokIcon className="w-3.5 h-3.5 text-ink-400" /> TikTok Username
                 </label>
@@ -287,21 +382,10 @@ export function PengaturanClient() {
                   type="text"
                   value={profile.tiktok}
                   onChange={(e) => handleInputChange("tiktok", e.target.value)}
-                  className="w-full px-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm font-semibold text-ink-900 outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-3xs"
+                  disabled={loading}
+                  className={inputCls}
                 />
-              </div>
-
-              {/* Website (Full Width) */}
-              <div className="flex flex-col gap-1.5 md:col-span-2">
-                <label className="text-[0.74rem] font-[800] text-ink-600 flex items-center gap-1.5">
-                  <Globe size={12} className="text-ink-400" /> Website
-                </label>
-                <input
-                  type="text"
-                  value={profile.website}
-                  onChange={(e) => handleInputChange("website", e.target.value)}
-                  className="w-full px-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm font-semibold text-ink-900 outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-3xs"
-                />
+                {fieldErrors.tiktok && <span className={errCls}>{fieldErrors.tiktok}</span>}
               </div>
             </div>
           </div>
@@ -310,9 +394,10 @@ export function PengaturanClient() {
           <div className="pt-2">
             <button
               onClick={handleSaveChanges}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-sm rounded-xl shadow-md shadow-orange-500/10 hover:shadow-lg hover:shadow-orange-500/15 active:scale-[0.98] transition-all cursor-pointer border-none outline-none"
+              disabled={isSaving || loading}
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-sm rounded-xl shadow-md shadow-orange-500/10 hover:shadow-lg hover:shadow-orange-500/15 active:scale-[0.98] transition-all cursor-pointer border-none outline-none disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Simpan Perubahan
+              {isSaving ? "Menyimpan…" : "Simpan Perubahan"}
             </button>
           </div>
         </div>
@@ -326,6 +411,9 @@ export function PengaturanClient() {
             <h4 className="text-[0.92rem] font-extrabold text-ink-900 font-display">
               Preferensi Notifikasi
             </h4>
+            <span className="ml-auto inline-flex items-center min-h-[24px] px-2.5 rounded-full bg-neutral-100 border border-neutral-200 text-ink-500 text-[0.68rem] font-extrabold">
+              Segera tersedia
+            </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -342,7 +430,7 @@ export function PengaturanClient() {
                     {n.desc}
                   </span>
                 </div>
-                <Toggle enabled={n.enabled} onClick={() => handleToggle(n.id)} />
+                <Toggle enabled={n.enabled} onClick={() => {}} disabled />
               </div>
             ))}
           </div>
@@ -359,12 +447,13 @@ export function PengaturanClient() {
                 Nonaktifkan Akun
               </strong>
               <span className="text-[0.7rem] font-bold text-ink-400">
-                Semua campaign aktif Anda akan dihentikan sementara.
+                Hubungi support untuk menonaktifkan akun — `users.status` tidak bisa diubah dari aplikasi.
               </span>
             </div>
             <button
-              onClick={handleDeactivate}
-              className="px-5 py-2.5 bg-white hover:bg-red-50 text-red-600 border border-red-200 hover:border-red-300 text-xs font-bold rounded-xl shadow-3xs active:scale-[0.98] transition-all cursor-pointer"
+              disabled
+              aria-disabled
+              className="px-5 py-2.5 bg-white text-red-400 border border-red-200 text-xs font-bold rounded-xl shadow-3xs cursor-not-allowed opacity-60"
             >
               Nonaktifkan
             </button>

@@ -14,6 +14,7 @@ import {
   Transaction,
   UmkmFinanceSummary,
   EscrowOverview,
+  UmkmSettingsProfile,
 } from "@/types/umkm-dashboard.types";
 import {
   mockUmkmProfile,
@@ -25,6 +26,7 @@ import {
   mockChatMessages,
   mockTransactions,
   mockUmkmOverview,
+  mockUmkmSettingsProfile,
   getCalculatedDashboardSummary,
 } from "@/mocks/umkm";
 import type { UmkmOverviewData } from "@/mocks/umkm/overview.mock";
@@ -49,12 +51,16 @@ import {
   createCampaignDraftInAppwrite,
   updateCampaignStatusInAppwrite,
   duplicateCampaignInAppwrite,
+  getUmkmSettingsProfileFromAppwrite,
+  updateUmkmProfileInAppwrite,
+  uploadUmkmLogoInAppwrite,
 } from "./umkm-appwrite.service";
 import type {
   UmkmFinanceOverview,
   CreateCampaignDraftInput,
   CampaignDraftResult,
   DuplicateCampaignOptions,
+  UmkmProfileWriteInput,
 } from "./umkm-appwrite.service";
 
 export async function getUmkmProfile(): Promise<ServiceResult<UmkmProfile>> {
@@ -397,4 +403,37 @@ export async function duplicateCampaign(
     return { success: true, data: { campaign, complete: true, warnings: [] } };
   }
   return duplicateCampaignInAppwrite(sourceId, newTitle, options);
+}
+
+// ── profil UMKM / pengaturan (Sprint 3) ──────────────────────────────────────
+
+export type { UmkmProfileWriteInput };
+
+export async function getUmkmSettingsProfile(): Promise<ServiceResult<UmkmSettingsProfile>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return { success: true, data: mockUmkmSettingsProfile };
+  }
+  return getUmkmSettingsProfileFromAppwrite();
+}
+
+export async function updateUmkmProfile(
+  input: UmkmProfileWriteInput
+): Promise<ServiceResult<UmkmSettingsProfile>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return {
+      success: true,
+      data: { ...mockUmkmSettingsProfile, ...(input as Partial<UmkmSettingsProfile>) },
+    };
+  }
+  return updateUmkmProfileInAppwrite(input);
+}
+
+export async function uploadUmkmLogo(file: File): Promise<ServiceResult<string>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(700);
+    return { success: true, data: `https://placehold.co/128x128?text=${encodeURIComponent(file.name.slice(0, 8))}` };
+  }
+  return uploadUmkmLogoInAppwrite(file);
 }

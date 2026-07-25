@@ -21,13 +21,13 @@ export function RateCardPageClient() {
   const [packages, setPackages] = useState<CreatorRateCardPackage[]>([]);
   const [ordersCount, setOrdersCount] = useState(0);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  /** Ambil data; setState hanya di posisi setelah await. */
+  const fetchData = useCallback(async (isActive: () => boolean) => {
     const [packagesRes, metricsRes] = await Promise.all([
       getCreatorRateCardPackages(),
       getCreatorMetrics(),
     ]);
+    if (!isActive()) return;
     if (!packagesRes.success || !packagesRes.data) {
       setError(packagesRes.error ?? "Gagal memuat rate card.");
       setLoading(false);
@@ -39,11 +39,24 @@ export function RateCardPageClient() {
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    let active = true;
+    void (async () => {
+      await fetchData(() => active);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [fetchData]);
+
+  /** Retry dari tombol (event handler — bukan effect body). */
+  const handleRetry = () => {
+    setLoading(true);
+    setError(null);
+    void fetchData(() => true);
+  };
 
   if (loading) return <CreatorPageSkeleton showMetrics variant="grid" />;
-  if (error) return <CreatorErrorState errorMsg={error} onRetry={loadData} />;
+  if (error) return <CreatorErrorState errorMsg={error} onRetry={handleRetry} />;
 
   return <RateCardView initialPackages={packages} ordersCount={ordersCount} />;
 }

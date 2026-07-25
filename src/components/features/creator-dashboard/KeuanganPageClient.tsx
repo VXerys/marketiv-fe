@@ -19,13 +19,13 @@ export function KeuanganPageClient() {
   const [metrics, setMetrics] = useState<CreatorMetric | null>(null);
   const [transactions, setTransactions] = useState<CreatorTransaction[]>([]);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  /** Ambil data; setState hanya di posisi setelah await. */
+  const fetchData = useCallback(async (isActive: () => boolean) => {
     const [metricsRes, txRes] = await Promise.all([
       getCreatorMetrics(),
       getCreatorTransactions(),
     ]);
+    if (!isActive()) return;
     if (!metricsRes.success || !metricsRes.data || !txRes.success || !txRes.data) {
       setError(metricsRes.error ?? txRes.error ?? "Gagal memuat data keuangan.");
       setLoading(false);
@@ -37,12 +37,26 @@ export function KeuanganPageClient() {
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    let active = true;
+    void (async () => {
+      await fetchData(() => active);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [fetchData]);
+
+  /** Retry dari tombol (event handler — bukan effect body). */
+  const handleRetry = () => {
+    setLoading(true);
+    setError(null);
+    void fetchData(() => true);
+  };
+
 
   if (loading) return <CreatorPageSkeleton showMetrics variant="list" />;
   if (error || !metrics) {
-    return <CreatorErrorState errorMsg={error ?? "Gagal memuat data keuangan."} onRetry={loadData} />;
+    return <CreatorErrorState errorMsg={error ?? "Gagal memuat data keuangan."} onRetry={handleRetry} />;
   }
 
   return <KeuanganView metrics={metrics} initialTransactions={transactions} />;
