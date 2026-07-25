@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { getUmkmProfile } from "@/services/umkm/umkm-dashboard.service";
 import {
   Store,
   MapPin,
@@ -62,16 +63,12 @@ function Toggle({ enabled, onClick }: { enabled: boolean; onClick: () => void })
   );
 }
 
-interface PengaturanClientProps {
-  businessName: string;
-}
-
-export function PengaturanClient({ businessName: initialBusinessName }: PengaturanClientProps) {
+export function PengaturanClient() {
   const [notifications, setNotifications] = useState<NotificationSetting[]>(INITIAL_NOTIFICATIONS);
-  
+
   // Flat state mapping 1:1 to Appwrite database schema (umkm_profiles & users collections)
   const [profile, setProfile] = useState({
-    businessName: initialBusinessName,
+    businessName: "",
     category: "Kuliner — Makanan Sehat",
     description: "Penyedia makanan sehat premium khas Sukabumi, dengan cita rasa autentik dan bahan pilihan segar.",
     city: "Sukabumi",
@@ -101,6 +98,20 @@ export function PengaturanClient({ businessName: initialBusinessName }: Pengatur
   const handleDeactivate = () => {
     toast.error("Akun berhasil dinonaktifkan sementara.");
   };
+
+  // Baca dipindah dari Server Component ke klien (s3-ssr-session). Commit
+  // s3-umkm-settings mengganti ini dengan getUmkmSettingsProfile penuh.
+  useEffect(() => {
+    let active = true;
+    getUmkmProfile().then((res) => {
+      if (active && res.success && res.data) {
+        setProfile((prev) => ({ ...prev, businessName: res.data!.businessName }));
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <UmkmDashboardChrome businessName={profile.businessName}>
