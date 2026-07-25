@@ -6,10 +6,15 @@ import {
   FunctionExecutionError,
   FUNCTION_IDS,
 } from "@/lib/appwrite/functions";
-import { getSession } from "@/services/auth/session.service";
+import {
+  type Doc,
+  str,
+  num,
+  failFromError,
+  requireUserId,
+} from "@/services/shared/service-result";
 import {
   ServiceResult,
-  ServiceErrorCode,
   CreatorProfile,
   CreatorMetric,
   CreatorJob,
@@ -90,49 +95,7 @@ const NICHES = new Set<CreatorNiche>([
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-type Doc = Record<string, unknown>;
-
-const str = (v: unknown): string => (typeof v === "string" ? v : "");
-const num = (v: unknown): number => (typeof v === "number" ? v : 0);
 const orUndefined = (v: string): string | undefined => v || undefined;
-
-const mapErrorCode = (err: unknown): ServiceErrorCode => {
-  // Function DTO sudah memetakan sendiri HTTP status → ServiceErrorCode.
-  if (err instanceof FunctionExecutionError) return err.code;
-
-  const code = (err as { code?: number })?.code;
-  if (code === 401) return "auth";
-  if (code === 403) return "forbidden";
-  if (code === 404) return "not_found";
-  if (typeof code === "number" && code >= 500) return "server";
-  return "unknown";
-};
-
-const failFromError = <T>(err: unknown, empty: T): ServiceResult<T> => ({
-  success: false,
-  data: empty,
-  error: "Gagal memuat data. Coba lagi.",
-  code: mapErrorCode(err),
-});
-
-/** Ambil userId sesi aktif, atau ServiceResult error yang siap dikembalikan. */
-async function requireUserId<T>(
-  empty: T
-): Promise<{ ok: true; userId: string } | { ok: false; result: ServiceResult<T> }> {
-  const session = await getSession();
-  if (!session.success || !session.data) {
-    return {
-      ok: false,
-      result: {
-        success: false,
-        data: empty,
-        error: session.error ?? "Sesi tidak ditemukan. Silakan login.",
-        code: session.code ?? "auth",
-      },
-    };
-  }
-  return { ok: true, userId: session.data.userId };
-}
 
 const normalizeNiche = (v: unknown): CreatorNiche => {
   const niche = str(v).toLowerCase() as CreatorNiche;
