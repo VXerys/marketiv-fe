@@ -31,18 +31,11 @@ export type CampaignPlatform = "tiktok";
 /**
  * campaign_claims.status
  *
- * `unclaimed` ditambahkan backend (claim.service.ts:unclaimCampaign) tapi BELUM
- * masuk docs/02_Modules/Campaigns/50_Database.md:90 — lihat temuan T-2 di
- * integration-context/2026-07-26-review-frontend-atas-delete-layer.md.
- * Kolomnya `string` biasa di Appwrite (bukan enum), jadi nilai ini aman ditulis.
+ * Tidak ada nilai `unclaimed`: backend memilih hard delete untuk pembatalan
+ * claim (T-1, resolusi 2026-07-26), jadi claim yang dibatalkan hilang dari
+ * koleksi alih-alih berpindah status.
  */
-export type ClaimStatus =
-  | "claimed"
-  | "submitted"
-  | "approved"
-  | "rejected"
-  | "expired"
-  | "unclaimed";
+export type ClaimStatus = "claimed" | "submitted" | "approved" | "rejected" | "expired";
 
 /** campaign_submissions.status */
 export type SubmissionStatus = "pending" | "approved" | "rejected";

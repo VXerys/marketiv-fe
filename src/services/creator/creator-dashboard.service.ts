@@ -380,11 +380,8 @@ export async function requestWithdrawal(
 // ── batalkan claim (Sprint 3.5) ──────────────────────────────────────────────
 
 /**
- * Batalkan pekerjaan yang belum dikirim. Slot campaign kembali terbuka.
- *
- * ⚠️ Pembatalan bersifat PERMANEN untuk kreator ini — backend menolak claim
- * ulang atas campaign yang sama. Lihat catatan di unclaimCampaignInAppwrite;
- * jawaban backend atas T-1 akan menentukan apakah batasan ini tetap.
+ * Batalkan pekerjaan yang belum dikirim — baris claim dihapus, slot campaign
+ * kembali terbuka, dan kreator boleh mengambilnya lagi nanti (resolusi T-1).
  */
 export async function unclaimCampaign(claimId: string): Promise<ServiceResult<null>> {
   if (DATA_SOURCE_CONFIG.useMockData) {

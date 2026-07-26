@@ -1100,21 +1100,23 @@ export async function requestWithdrawalInAppwrite(
 // ── batalkan claim (Sprint 3.5) ──────────────────────────────────────────────
 
 /**
- * Batalkan claim campaign yang belum disubmit.
+ * Batalkan claim campaign yang belum disubmit — HARD DELETE.
  *
- * Mirror 00_BACKEND/src/services/claim.service.ts:unclaimCampaign — status
- * `claimed` → `unclaimed`, lalu `campaigns.totalClaims` dikurangi supaya slot
- * kembali terbuka untuk kreator lain.
+ * Mirror 00_BACKEND/src/services/claim.service.ts:unclaimCampaign setelah
+ * resolusi T-1 (2026-07-26): backend memilih menghapus barisnya, bukan
+ * memindahkan status ke `unclaimed`. Itu satu-satunya cara kreator bisa
+ * mengambil campaign yang sama lagi, karena cek duplikat di `claimCampaign`
+ * menolak berdasarkan keberadaan baris tanpa memfilter status.
  *
- * ⚠️ SATU ARAH. `claimCampaign` backend (claim.service.ts:126) menolak claim
- * baru berdasarkan keberadaan baris TANPA memfilter status, sehingga kreator
- * yang membatalkan tidak akan pernah bisa mengambil campaign ini lagi. Teks
- * konfirmasi di UI menyatakan itu terang-terangan. Sudah ditanyakan ke backend
- * sebagai T-1 (integration-context/2026-07-26-review-frontend-atas-delete-layer.md);
- * begitu mereka memilih hard-delete atau memfilter status, longgarkan teksnya.
+ * ⚠️ Butuh `Permission.delete(Role.user(creatorId))` pada baris claim.
+ * `campaign_claims` TIDAK punya `delete("users")` di level collection, dan
+ * jalur create backend (claim.service.ts:147) baru memasang read+update.
+ * Jalur create milik frontend (Sprint 4 `s4-ppv-claim`) WAJIB memasang
+ * Permission.delete — kalau tidak, fungsi ini selalu balas 401/403.
+ * Sudah dilaporkan ke backend untuk baris lama & jalur create mereka.
  *
- * `totalClaims` sengaja dikurangi setelah status tersimpan, dan kegagalannya
- * tidak membatalkan pembatalan: slot yang telat kembali bisa direkonsiliasi,
+ * `totalClaims` dikurangi setelah baris terhapus, dan kegagalannya tidak
+ * membatalkan operasi: slot yang telat kembali bisa direkonsiliasi,
  * sedangkan claim yang menggantung tidak.
  */
 export async function unclaimCampaignInAppwrite(claimId: string): Promise<ServiceResult<null>> {
@@ -1136,12 +1138,23 @@ export async function unclaimCampaignInAppwrite(claimId: string): Promise<Servic
       );
     }
 
-    await databases.updateDocument(DB, COLLECTIONS.claims, claimId, {
-      status: "unclaimed",
-    });
+    const campaignId = str(claim.campaignId);
 
     try {
-      const campaignId = str(claim.campaignId);
+      await databases.deleteDocument(DB, COLLECTIONS.claims, claimId);
+    } catch (err) {
+      const code = (err as { code?: number })?.code;
+      if (code === 401 || code === 403) {
+        return fail(
+          "Pekerjaan ini tidak bisa dibatalkan dari aplikasi karena diklaim sebelum fitur pembatalan aktif; hubungi support.",
+          "forbidden",
+          null
+        );
+      }
+      throw err;
+    }
+
+    try {
       const campaign = (await databases.getDocument(
         DB,
         COLLECTIONS.campaigns,

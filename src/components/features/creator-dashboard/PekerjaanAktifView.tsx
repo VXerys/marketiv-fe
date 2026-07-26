@@ -353,9 +353,9 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
   };
 
   /**
-   * Batalkan claim. Baris dibuang dari daftar karena statusnya jadi `unclaimed`
-   * — bukan lagi "pekerjaan aktif". Lempar ulang saat gagal supaya
-   * ConfirmDialog tetap terbuka dengan pesan errornya.
+   * Batalkan claim. Baris claim dihapus di backend, jadi ikut dibuang dari
+   * daftar. Lempar ulang saat gagal supaya ConfirmDialog tetap terbuka
+   * dengan pesan errornya.
    */
   const handleUnclaimConfirm = async () => {
     if (!unclaimTarget) return;
@@ -610,8 +610,7 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
                 akan dilepas dan slotnya kembali terbuka untuk kreator lain.
               </>
             }
-            note="Kamu tidak bisa mengambil campaign ini lagi setelah dibatalkan. Pastikan memang tidak akan mengerjakannya."
-            acknowledgement="Saya mengerti campaign ini tidak bisa saya klaim ulang."
+            note="Kamu masih bisa mengambil campaign ini lagi selama slotnya belum penuh. Progres dan catatan pada pekerjaan ini tidak disimpan."
             confirmLabel="Batalkan Pekerjaan"
             tone="warning"
             onConfirm={handleUnclaimConfirm}
