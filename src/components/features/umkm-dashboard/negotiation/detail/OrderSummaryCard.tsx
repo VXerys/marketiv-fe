@@ -5,9 +5,14 @@ import { formatCurrency } from "@/lib/formatters";
 
 interface OrderSummaryCardProps {
   order: NegotiationOrder;
+  onCancelOrder?: () => void;
 }
 
-export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
+export function OrderSummaryCard({ order, onCancelOrder }: OrderSummaryCardProps) {
+  // Sejalan dengan guard service: begitu dana masuk escrow, pembatalan harus
+  // lewat pengembalian dana — bukan lagi urusan tombol ini.
+  const canCancel = order.status === "pending_payment";
+
   const deadlineDate = (isoString: string) => {
     try {
       const date = new Date(isoString);
@@ -65,6 +70,17 @@ export function OrderSummaryCard({ order }: OrderSummaryCardProps) {
           <span className="block text-[9px] font-bold text-text-muted uppercase tracking-wider">Lingkup Deliverable</span>
           <p className="text-[10px] text-text-secondary leading-relaxed font-semibold">{order.scope}</p>
         </div>
+
+        {canCancel && onCancelOrder && (
+          <div className="border-t border-dashed border-border-soft pt-3">
+            <button
+              onClick={onCancelOrder}
+              className="w-full text-center py-2 rounded-xl border border-danger/20 text-[10px] font-extrabold text-danger hover:bg-danger-soft/30 transition-colors cursor-pointer"
+            >
+              Batalkan Pesanan
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

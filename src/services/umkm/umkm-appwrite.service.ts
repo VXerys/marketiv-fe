@@ -75,6 +75,7 @@ const COLLECTIONS = {
   rateCards: "rate_cards",
   rateCardPackages: "rate_card_packages",
   orders: "orders",
+  offers: "offers",
   messages: "messages",
   payments: "payments",
 } as const;
@@ -914,5 +915,199 @@ export async function createCampaignPaymentInAppwrite(input: {
     return ok(res);
   } catch (err) {
     return failFromWriteError<PaymentIntent>(err, empty);
+  }
+}
+
+// ── hapus & batalkan (Sprint 3.5) ────────────────────────────────────────────
+//
+// Dua kelas yang SENGAJA dibedakan — jangan disatukan:
+// - HAPUS    : baris benar-benar hilang. Hanya untuk data yang belum mengikat
+//              pihak lain (draft campaign, offer pending, aset draft).
+// - BATALKAN : baris tetap ada, statusnya berubah. Untuk apa pun yang sudah
+//              menyentuh uang atau punya konsekuensi lanjutan (order, payment).
+//
+// Mirror dari 00_BACKEND/src/services/{campaign,offer,order,payment}.service.ts.
+// Frontend TIDAK mengimpor file itu — `00_BACKEND` dikecualikan dari tsconfig
+// dan paket npm-nya terpisah. Lihat §3 di integration-context/
+// 2026-07-26-review-frontend-atas-delete-layer.md.
+
+/** 401/403 saat menghapus = baris dibuat tanpa Permission.delete, bukan salah user. */
+const failDelete = (err: unknown, subject: string): ServiceResult<null> => {
+  const code = (err as { code?: number })?.code;
+  if (code === 401 || code === 403) {
+    return fail(
+      `${subject} ini tidak bisa dihapus dari aplikasi karena dibuat sebelum fitur hapus aktif; hubungi support.`,
+      "forbidden",
+      null
+    );
+  }
+  return failFromWriteError<null>(err, null);
+};
+
+/**
+ * Hapus campaign berstatus `draft` beserta brief & asetnya.
+ *
+ * Anak dihapus lebih dulu supaya tidak ada baris yatim bila penghapusan induk
+ * gagal — urutan sebaliknya akan meninggalkan brief/aset yang tak terjangkau
+ * (keduanya hanya bisa ditemukan lewat `campaignId`).
+ * Kegagalan menghapus anak TIDAK membatalkan operasi: induk yang tersisa jauh
+ * lebih mengganggu pengguna daripada satu baris brief yatim.
+ */
+export async function deleteCampaignDraftInAppwrite(
+  campaignId: string
+): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", campaignId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Campaign tidak ditemukan.", "not_found", null);
+
+    if (str(doc.status) !== "draft") {
+      return failValidation(
+        "Hanya campaign draft yang bisa dihapus. Campaign yang sudah tayang cukup dijeda.",
+        null
+      );
+    }
+
+    for (const collection of [COLLECTIONS.campaignBriefs, COLLECTIONS.campaignAssets]) {
+      try {
+        const children = await databases.listDocuments(DB, collection, [
+          Query.equal("campaignId", campaignId),
+          Query.limit(100),
+        ]);
+        for (const child of children.documents) {
+          await databases.deleteDocument(DB, collection, child.$id);
+        }
+      } catch {
+        // Baris anak yatim lebih ringan daripada gagal menghapus induk.
+      }
+    }
+
+    await databases.deleteDocument(DB, COLLECTIONS.campaigns, campaignId);
+    return ok(null);
+  } catch (err) {
+    return failDelete(err, "Campaign");
+  }
+}
+
+/**
+ * Hapus satu aset campaign. Hanya selama induknya masih `draft` — setelah tayang
+ * kreator sudah bisa melihat asetnya, jadi menghapusnya mengubah brief berjalan.
+ */
+export async function removeCampaignAssetInAppwrite(
+  assetId: string
+): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    const asset = (await databases.getDocument(
+      DB,
+      COLLECTIONS.campaignAssets,
+      assetId
+    )) as unknown as Doc;
+
+    const parent = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", str(asset.campaignId)),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const campaign = parent.documents[0] as unknown as Doc | undefined;
+    if (!campaign) return fail("Aset tidak ditemukan.", "not_found", null);
+
+    if (str(campaign.status) !== "draft") {
+      return failValidation(
+        "Aset hanya bisa dihapus selama campaign masih draft.",
+        null
+      );
+    }
+
+    await databases.deleteDocument(DB, COLLECTIONS.campaignAssets, assetId);
+    return ok(null);
+  } catch (err) {
+    return failDelete(err, "Aset");
+  }
+}
+
+/**
+ * Hapus custom offer yang masih `pending`. Setelah `accepted` sudah ada order
+ * yang terbentuk darinya, dan `rejected` adalah jejak negosiasi yang berguna.
+ */
+export async function deleteOfferInAppwrite(offerId: string): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.offers, [
+      Query.equal("$id", offerId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Penawaran tidak ditemukan.", "not_found", null);
+
+    if (str(doc.status) !== "pending") {
+      return failValidation(
+        "Hanya penawaran yang belum direspons yang bisa dihapus.",
+        null
+      );
+    }
+
+    await databases.deleteDocument(DB, COLLECTIONS.offers, offerId);
+    return ok(null);
+  } catch (err) {
+    return failDelete(err, "Penawaran");
+  }
+}
+
+/**
+ * Batalkan order yang belum dibayar. BUKAN hapus — barisnya tetap ada dengan
+ * status `cancelled` supaya riwayat pesanan tetap utuh.
+ */
+export async function cancelOrderInAppwrite(orderId: string): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.orders, [
+      Query.equal("$id", orderId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Pesanan tidak ditemukan.", "not_found", null);
+
+    if (str(doc.status) !== "pending_payment") {
+      return failValidation(
+        "Hanya pesanan yang belum dibayar yang bisa dibatalkan. Dana yang sudah masuk escrow harus lewat pengembalian dana.",
+        null
+      );
+    }
+
+    await databases.updateDocument(DB, COLLECTIONS.orders, orderId, {
+      status: "cancelled",
+    });
+    return ok(null);
+  } catch (err) {
+    return failFromWriteError<null>(err, null);
+  }
+}
+
+/**
+ * Batalkan payment yang belum dibayar lewat Function `cancel-payment`.
+ * `payments` hanya punya `read("users")` — tidak ada jalur update dari browser,
+ * jadi ini satu-satunya fitur di sprint ini yang wajib lewat Function.
+ * Function menegakkan ownership + status `pending` sendiri.
+ */
+export async function cancelPaymentInAppwrite(paymentId: string): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    await executeFunction(FUNCTION_IDS.cancelPayment, { paymentId });
+    return ok(null);
+  } catch (err) {
+    return failFromWriteError<null>(err, null);
   }
 }

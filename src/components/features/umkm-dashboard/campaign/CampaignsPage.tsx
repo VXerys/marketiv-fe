@@ -22,6 +22,7 @@ import {
   getUmkmProfile,
   updateCampaignStatus,
   duplicateCampaign,
+  deleteCampaignDraft,
 } from "@/services/umkm/umkm-dashboard.service";
 import {
   Campaign,
@@ -33,6 +34,7 @@ import {
 import { CancelCampaignModal } from "./modals/CancelCampaignModal";
 import { DuplicateCampaignModal } from "./modals/DuplicateCampaignModal";
 import { ExportReportModal } from "./modals/ExportReportModal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 import { toast } from "sonner";
 
@@ -58,6 +60,7 @@ export function CampaignsPage() {
 
   // Modal states
   const [activeCancelCampaign, setActiveCancelCampaign] = useState<Campaign | null>(null);
+  const [activeDeleteCampaign, setActiveDeleteCampaign] = useState<Campaign | null>(null);
   const [activeDuplicateCampaign, setActiveDuplicateCampaign] = useState<Campaign | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
@@ -157,6 +160,29 @@ export function CampaignsPage() {
     }
   };
 
+  /**
+   * Hapus draft. Baris dibuang dari state lokal, bukan loadData() penuh —
+   * memuat ulang seluruh halaman berikut hitungan submission tiap campaign
+   * (satu request per campaign) hanya untuk menghilangkan satu kartu itu boros.
+   * Lempar ulang saat gagal supaya ConfirmDialog tetap terbuka.
+   */
+  const handleDeleteConfirm = async () => {
+    if (!activeDeleteCampaign) return;
+    const target = activeDeleteCampaign;
+    const res = await deleteCampaignDraft(target.id);
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal menghapus draft.");
+      throw new Error(res.error ?? "Gagal menghapus draft.");
+    }
+    setCampaigns((prev) => prev.filter((c) => c.id !== target.id));
+    setSubmissionCounts((prev) => {
+      const next = { ...prev };
+      delete next[target.id];
+      return next;
+    });
+    showToast(`Draft "${target.title}" berhasil dihapus.`);
+  };
+
   const handleDuplicateConfirm = async (
     newTitle: string,
     options: { copyBrief: boolean; copyBudget: boolean; copyAssets: boolean }
@@ -242,6 +268,7 @@ export function CampaignsPage() {
             submissionCounts={submissionCounts}
             onDuplicate={setActiveDuplicateCampaign}
             onCancel={setActiveCancelCampaign}
+            onDelete={setActiveDeleteCampaign}
             onExport={() => setIsExportModalOpen(true)}
             onEdit={(camp) => showToast(`Melanjutkan edit Draft: ${camp.title}`)}
           />
@@ -258,6 +285,7 @@ export function CampaignsPage() {
                   disputeCount={counts.dispute}
                   onDuplicate={() => setActiveDuplicateCampaign(camp)}
                   onCancel={() => setActiveCancelCampaign(camp)}
+                  onDelete={() => setActiveDeleteCampaign(camp)}
                   onExport={() => setIsExportModalOpen(true)}
                   onEdit={() => showToast(`Melanjutkan edit Draft: ${camp.title}`)}
                 />
@@ -273,6 +301,27 @@ export function CampaignsPage() {
             onClose={() => setActiveCancelCampaign(null)}
             campaignTitle={activeCancelCampaign.title}
             onConfirm={handleCancelConfirm}
+          />
+        )}
+
+        {activeDeleteCampaign && (
+          <ConfirmDialog
+            open={!!activeDeleteCampaign}
+            onClose={() => setActiveDeleteCampaign(null)}
+            title="Hapus Draft Campaign?"
+            description={
+              <>
+                Draft{" "}
+                <span className="font-semibold text-text-primary">
+                  &quot;{activeDeleteCampaign.title}&quot;
+                </span>{" "}
+                akan dihapus permanen beserta brief dan aset yang menempel padanya.
+              </>
+            }
+            note="Draft belum pernah tayang, jadi tidak ada klaim kreator atau dana escrow yang terpengaruh. Campaign yang sudah tayang tidak bisa dihapus — gunakan Jeda Campaign."
+            acknowledgement="Saya mengerti draft ini tidak bisa dikembalikan."
+            confirmLabel="Hapus Draft"
+            onConfirm={handleDeleteConfirm}
           />
         )}
 

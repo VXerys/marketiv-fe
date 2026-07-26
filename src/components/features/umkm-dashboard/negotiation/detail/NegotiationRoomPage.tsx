@@ -3,7 +3,13 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { getNegotiationById, getMessagesByOrderId } from "@/services/umkm/umkm-dashboard.service";
+import {
+  getNegotiationById,
+  getMessagesByOrderId,
+  cancelOrder,
+} from "@/services/umkm/umkm-dashboard.service";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 import { NegotiationOrder, ChatMessage } from "@/types/umkm-dashboard.types";
 import { formatCurrency } from "@/lib/formatters";
 import { CollabPostWarningBanner } from "./CollabPostWarningBanner";
@@ -44,6 +50,23 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [isCancelOrderOpen, setIsCancelOrderOpen] = useState(false);
+
+  /**
+   * Batalkan pesanan yang belum dibayar. Status di-set lokal, bukan reload —
+   * baris tetap ada (soft cancel), jadi cukup memperbarui satu field.
+   * Lempar ulang saat gagal supaya ConfirmDialog tetap terbuka.
+   */
+  const handleCancelOrder = async () => {
+    if (!order) return;
+    const res = await cancelOrder(order.id);
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal membatalkan pesanan.");
+      throw new Error(res.error ?? "Gagal membatalkan pesanan.");
+    }
+    setOrder({ ...order, status: "cancelled" });
+    toast.success("Pesanan dibatalkan.");
+  };
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -354,7 +377,7 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
         <div
           className="flex flex-col gap-3 overflow-y-auto scrollbar-thin min-h-0"
         >
-          <OrderSummaryCard order={order} />
+          <OrderSummaryCard order={order} onCancelOrder={() => setIsCancelOrderOpen(true)} />
           <EscrowStatusCard orderStatus={order.status} />
           <CreatorMiniProfileCard order={order} />
           <DealChecklistCard orderStatus={order.status} />
@@ -399,6 +422,27 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
           isOpen={isSuccessModalOpen}
           onClose={() => setIsSuccessModalOpen(false)}
           onConfirm={() => setIsSuccessModalOpen(false)}
+        />
+      )}
+
+      {isCancelOrderOpen && (
+        <ConfirmDialog
+          open={isCancelOrderOpen}
+          onClose={() => setIsCancelOrderOpen(false)}
+          title="Batalkan Pesanan Ini?"
+          description={
+            <>
+              Pesanan{" "}
+              <span className="font-semibold text-text-primary">
+                &quot;{order.projectTitle}&quot;
+              </span>{" "}
+              dengan {order.creatorName} akan ditandai dibatalkan.
+            </>
+          }
+          note="Pesanan belum dibayar, jadi tidak ada dana yang tertahan. Riwayatnya tetap tersimpan — pesanan tidak dihapus. Untuk bekerja sama lagi, kirim penawaran baru."
+          confirmLabel="Batalkan Pesanan"
+          tone="warning"
+          onConfirm={handleCancelOrder}
         />
       )}
     </div>

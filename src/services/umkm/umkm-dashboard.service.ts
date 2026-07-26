@@ -56,6 +56,11 @@ import {
   uploadUmkmLogoInAppwrite,
   generateCampaignBriefFromAppwrite,
   createCampaignPaymentInAppwrite,
+  deleteCampaignDraftInAppwrite,
+  removeCampaignAssetInAppwrite,
+  deleteOfferInAppwrite,
+  cancelOrderInAppwrite,
+  cancelPaymentInAppwrite,
 } from "./umkm-appwrite.service";
 import type {
   UmkmFinanceOverview,
@@ -510,4 +515,77 @@ export async function createCampaignPayment(input: {
     };
   }
   return createCampaignPaymentInAppwrite(input);
+}
+
+// ── hapus & batalkan (Sprint 3.5) ────────────────────────────────────────────
+//
+// Mock menegakkan guard status yang SAMA dengan jalur Appwrite, bukan sekadar
+// mengembalikan sukses. Kalau mock selalu berhasil, UI tidak akan pernah
+// menampilkan pesan penolakan sampai mock dimatikan — persis pola "toast palsu"
+// yang dibersihkan di Sprint 3.
+
+/** Hapus campaign draft beserta brief & asetnya. Hanya status `draft`. */
+export async function deleteCampaignDraft(campaignId: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    const c = mockCampaigns.find((x) => x.id === campaignId);
+    if (!c) return { success: false, data: null, error: "Campaign tidak ditemukan.", code: "not_found" };
+    if (c.status !== "draft") {
+      return {
+        success: false,
+        data: null,
+        error: "Hanya campaign draft yang bisa dihapus. Campaign yang sudah tayang cukup dijeda.",
+        code: "validation",
+      };
+    }
+    return { success: true, data: null };
+  }
+  return deleteCampaignDraftInAppwrite(campaignId);
+}
+
+/** Hapus satu aset campaign. Hanya selama induknya masih `draft`. */
+export async function removeCampaignAsset(assetId: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    return { success: true, data: null };
+  }
+  return removeCampaignAssetInAppwrite(assetId);
+}
+
+/** Hapus custom offer yang masih `pending`. */
+export async function deleteOffer(offerId: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    return { success: true, data: null };
+  }
+  return deleteOfferInAppwrite(offerId);
+}
+
+/** Batalkan pesanan yang belum dibayar — status jadi `cancelled`, baris tetap ada. */
+export async function cancelOrder(orderId: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    const n = mockNegotiations.find((x) => x.id === orderId);
+    if (!n) return { success: false, data: null, error: "Pesanan tidak ditemukan.", code: "not_found" };
+    if (n.status !== "pending_payment") {
+      return {
+        success: false,
+        data: null,
+        error:
+          "Hanya pesanan yang belum dibayar yang bisa dibatalkan. Dana yang sudah masuk escrow harus lewat pengembalian dana.",
+        code: "validation",
+      };
+    }
+    return { success: true, data: null };
+  }
+  return cancelOrderInAppwrite(orderId);
+}
+
+/** Batalkan payment `pending` lewat Function `cancel-payment`. */
+export async function cancelPayment(paymentId: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return { success: true, data: null };
+  }
+  return cancelPaymentInAppwrite(paymentId);
 }

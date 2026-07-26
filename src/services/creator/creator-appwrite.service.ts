@@ -1096,3 +1096,69 @@ export async function requestWithdrawalInAppwrite(
     return failFromWriteError<WithdrawalReceipt>(err, empty);
   }
 }
+
+// ── batalkan claim (Sprint 3.5) ──────────────────────────────────────────────
+
+/**
+ * Batalkan claim campaign yang belum disubmit.
+ *
+ * Mirror 00_BACKEND/src/services/claim.service.ts:unclaimCampaign — status
+ * `claimed` → `unclaimed`, lalu `campaigns.totalClaims` dikurangi supaya slot
+ * kembali terbuka untuk kreator lain.
+ *
+ * ⚠️ SATU ARAH. `claimCampaign` backend (claim.service.ts:126) menolak claim
+ * baru berdasarkan keberadaan baris TANPA memfilter status, sehingga kreator
+ * yang membatalkan tidak akan pernah bisa mengambil campaign ini lagi. Teks
+ * konfirmasi di UI menyatakan itu terang-terangan. Sudah ditanyakan ke backend
+ * sebagai T-1 (integration-context/2026-07-26-review-frontend-atas-delete-layer.md);
+ * begitu mereka memilih hard-delete atau memfilter status, longgarkan teksnya.
+ *
+ * `totalClaims` sengaja dikurangi setelah status tersimpan, dan kegagalannya
+ * tidak membatalkan pembatalan: slot yang telat kembali bisa direkonsiliasi,
+ * sedangkan claim yang menggantung tidak.
+ */
+export async function unclaimCampaignInAppwrite(claimId: string): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.claims, [
+      Query.equal("$id", claimId),
+      Query.equal("creatorId", auth.userId),
+      Query.limit(1),
+    ]);
+    const claim = res.documents[0] as unknown as Doc | undefined;
+    if (!claim) return fail("Pekerjaan tidak ditemukan.", "not_found", null);
+
+    if (str(claim.status) !== "claimed") {
+      return failValidation(
+        "Hanya pekerjaan yang belum dikirim yang bisa dibatalkan.",
+        null
+      );
+    }
+
+    await databases.updateDocument(DB, COLLECTIONS.claims, claimId, {
+      status: "unclaimed",
+    });
+
+    try {
+      const campaignId = str(claim.campaignId);
+      const campaign = (await databases.getDocument(
+        DB,
+        COLLECTIONS.campaigns,
+        campaignId
+      )) as unknown as Doc;
+      const total = num(campaign.totalClaims);
+      if (total > 0) {
+        await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
+          totalClaims: total - 1,
+        });
+      }
+    } catch {
+      // Slot yang telat kembali bisa direkonsiliasi; claim menggantung tidak.
+    }
+
+    return ok(null);
+  } catch (err) {
+    return failFromWriteError<null>(err, null);
+  }
+}

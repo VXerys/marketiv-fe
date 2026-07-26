@@ -16,6 +16,7 @@ interface CampaignCardProps {
   disputeCount?: number;
   onDuplicate: () => void;
   onCancel: () => void;
+  onDelete: () => void;
   onExport: () => void;
   onEdit: () => void;
 }
@@ -62,6 +63,7 @@ export function CampaignCard({
   disputeCount = 0,
   onDuplicate,
   onCancel,
+  onDelete,
   onExport,
   onEdit,
 }: CampaignCardProps) {
@@ -76,6 +78,8 @@ export function CampaignCard({
 
   const isCancelDisabled = campaign.status === "completed";
   const isEditVisible    = campaign.status === "draft";
+  // Hapus permanen hanya untuk draft — sekali tayang campaign cuma bisa dijeda.
+  const isDeleteVisible  = campaign.status === "draft";
 
   const actionItems = [
     { label: "Lihat Detail",       onClick: () => router.push(`/dashboard/umkm/campaign/${campaign.id}`) },
@@ -83,6 +87,7 @@ export function CampaignCard({
     { label: "Duplikasi Campaign", onClick: onDuplicate },
     { label: "Unduh Laporan",      onClick: onExport    },
     ...(!isCancelDisabled ? [{ label: "Batalkan Campaign", onClick: onCancel, danger: true }] : []),
+    ...(isDeleteVisible ? [{ label: "Hapus Draft", onClick: onDelete, danger: true }] : []),
   ];
 
   const statusDotClass = STATUS_DOT_COLOR[campaign.status] ?? STATUS_DOT_COLOR.active;

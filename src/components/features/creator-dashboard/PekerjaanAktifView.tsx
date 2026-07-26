@@ -10,6 +10,9 @@ import { DashboardStateCard } from "@/components/features/dashboard/shared";
 import { formatCurrency } from "@/lib/formatters";
 import { getClaimStatusLabel, getFraudStatusLabel, getSubmissionStatusLabel } from "@/lib/creator-status";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { unclaimCampaign } from "@/services/creator/creator-dashboard.service";
+import { toast } from "sonner";
 import {
   CheckCircle2,
   AlertTriangle,
@@ -106,10 +109,12 @@ function ActiveJobCard({
   work,
   getSubStatusLabel,
   getDaysRemaining,
+  onUnclaim,
 }: {
   work: CreatorActiveWork;
   getSubStatusLabel: (w: CreatorActiveWork) => string;
   getDaysRemaining: (d: string) => { text: string; days: number };
+  onUnclaim: () => void;
 }) {
   const subStatus    = getSubStatusLabel(work);
   const hasSubmitted = !!work.contentUrl;
@@ -118,6 +123,8 @@ function ActiveJobCard({
   const isFraud   = work.submissionStatus === "rejected" || work.status === "rejected" || work.fraudStatus === "rejected";
   const isValid   = work.submissionStatus === "approved" || work.status === "approved";
   const isPending = work.submissionStatus === "pending";
+  // Sejalan dengan guard service: hanya claim `claimed` yang belum kirim bukti.
+  const canUnclaim = work.status === "claimed" && !hasSubmitted;
 
   // Earnings data
   // Views hasil audit backend; 0 sebelum tervalidasi. Estimasi hanya ditampilkan
@@ -304,6 +311,20 @@ function ActiveJobCard({
             </div>
           )}
         </div>
+
+        {/*
+          Batalkan hanya selama belum ada bukti terkirim. Sengaja beremphasis
+          rendah (teks, bukan tombol penuh) — aksi merusak yang jarang dipakai
+          tidak boleh menyaingi "Submit Bukti" secara visual.
+        */}
+        {canUnclaim && (
+          <button
+            onClick={onUnclaim}
+            className="text-[10px] font-bold text-neutral-400 hover:text-red-600 transition-colors self-center underline underline-offset-2 cursor-pointer"
+          >
+            Batalkan pekerjaan ini
+          </button>
+        )}
       </div>
     </div>
   );
@@ -312,7 +333,8 @@ function ActiveJobCard({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
-  const [works] = useState<CreatorActiveWork[]>(initialWorks);
+  const [works, setWorks] = useState<CreatorActiveWork[]>(initialWorks);
+  const [unclaimTarget, setUnclaimTarget] = useState<CreatorActiveWork | null>(null);
   const { toolbarRef, isSticky } = useStickyToolbar();
 
   const [search, setSearch] = useState("");
@@ -328,6 +350,23 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
     setSelectedStatus("all");
     setSelectedDeadline("all");
     setSortBy("nearest-deadline");
+  };
+
+  /**
+   * Batalkan claim. Baris dibuang dari daftar karena statusnya jadi `unclaimed`
+   * — bukan lagi "pekerjaan aktif". Lempar ulang saat gagal supaya
+   * ConfirmDialog tetap terbuka dengan pesan errornya.
+   */
+  const handleUnclaimConfirm = async () => {
+    if (!unclaimTarget) return;
+    const target = unclaimTarget;
+    const res = await unclaimCampaign(target.id);
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal membatalkan pekerjaan.");
+      throw new Error(res.error ?? "Gagal membatalkan pekerjaan.");
+    }
+    setWorks((prev) => prev.filter((w) => w.id !== target.id));
+    toast.success(`Pekerjaan "${target.title}" dibatalkan. Slot campaign kembali terbuka.`);
   };
 
   const getSubStatusLabel = (work: CreatorActiveWork): string => {
@@ -550,11 +589,34 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
                   work={work}
                   getSubStatusLabel={getSubStatusLabel}
                   getDaysRemaining={getDaysRemaining}
+                  onUnclaim={() => setUnclaimTarget(work)}
                 />
               ))}
             </div>
           )}
         </div>
+
+        {unclaimTarget && (
+          <ConfirmDialog
+            open={!!unclaimTarget}
+            onClose={() => setUnclaimTarget(null)}
+            title="Batalkan Pekerjaan Ini?"
+            description={
+              <>
+                Klaim kamu atas{" "}
+                <span className="font-semibold text-text-primary">
+                  &quot;{unclaimTarget.title}&quot;
+                </span>{" "}
+                akan dilepas dan slotnya kembali terbuka untuk kreator lain.
+              </>
+            }
+            note="Kamu tidak bisa mengambil campaign ini lagi setelah dibatalkan. Pastikan memang tidak akan mengerjakannya."
+            acknowledgement="Saya mengerti campaign ini tidak bisa saya klaim ulang."
+            confirmLabel="Batalkan Pekerjaan"
+            tone="warning"
+            onConfirm={handleUnclaimConfirm}
+          />
+        )}
     </div>
   );
 }

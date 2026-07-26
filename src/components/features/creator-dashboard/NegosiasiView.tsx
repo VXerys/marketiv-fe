@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { CreatorNegotiation } from "@/types/creator-dashboard";
@@ -17,7 +17,15 @@ import {
   Hourglass,
   Clock3,
   SlidersHorizontal,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
+import {
+  getMyConversations,
+  setConversationArchived,
+  type ConversationFlag,
+} from "@/services/shared/conversation.service";
+import { toast } from "sonner";
 
 interface NegosiasiViewProps {
   initialNegotiations: CreatorNegotiation[];
@@ -74,7 +82,15 @@ const STATUS_STYLES: Record<string, { dot: string; text: string; bg: string; bor
   cancelled:       { dot: "bg-neutral-400", text: "text-neutral-600", bg: "bg-neutral-50", border: "border-neutral-200/50", label: "Dibatalkan" },
 };
 
-function NegotiationCard({ neg }: { neg: CreatorNegotiation }) {
+function NegotiationCard({
+  neg,
+  isArchived,
+  onToggleArchive,
+}: {
+  neg: CreatorNegotiation;
+  isArchived: boolean;
+  onToggleArchive: () => void;
+}) {
   const s = STATUS_STYLES[neg.status] ?? STATUS_STYLES.pending_payment;
   const dateStr = new Date(neg.lastMessageAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
   const hasUrgent = neg.unreadCount > 0;
@@ -147,17 +163,27 @@ function NegotiationCard({ neg }: { neg: CreatorNegotiation }) {
       </div>
 
       {/* CTA */}
-      <Link
-        href={`/dashboard/kreator/negosiasi/${neg.id}`}
-        className="self-end sm:self-center flex items-center gap-1.5 px-4 py-2.5 rounded-[12px] text-[11px] font-extrabold text-white shrink-0 transition-all hover:-translate-y-0.5 active:translate-y-0"
-        style={{
-          background: "linear-gradient(135deg,#7c3aed,#4f46e5)",
-          boxShadow: "0 4px 14px rgba(124,58,237,.25)",
-        }}
-      >
-        <MessageSquare className="w-3.5 h-3.5" />
-        Buka Room
-      </Link>
+      <div className="self-end sm:self-center flex items-center gap-2 shrink-0">
+        <button
+          onClick={onToggleArchive}
+          title={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
+          aria-label={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
+          className="flex items-center justify-center h-9 w-9 rounded-[12px] border border-neutral-200 text-neutral-400 hover:text-[#7c3aed] hover:border-violet-200 transition-colors cursor-pointer"
+        >
+          {isArchived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+        </button>
+        <Link
+          href={`/dashboard/kreator/negosiasi/${neg.id}`}
+          className="flex items-center gap-1.5 px-4 py-2.5 rounded-[12px] text-[11px] font-extrabold text-white transition-all hover:-translate-y-0.5 active:translate-y-0"
+          style={{
+            background: "linear-gradient(135deg,#7c3aed,#4f46e5)",
+            boxShadow: "0 4px 14px rgba(124,58,237,.25)",
+          }}
+        >
+          <MessageSquare className="w-3.5 h-3.5" />
+          Buka Room
+        </Link>
+      </div>
     </div>
   );
 }
@@ -166,6 +192,8 @@ function NegotiationCard({ neg }: { neg: CreatorNegotiation }) {
 
 export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
   const [negotiations] = useState<CreatorNegotiation[]>(initialNegotiations);
+  const [conversations, setConversations] = useState<ConversationFlag[]>([]);
+  const [showArchived, setShowArchived] = useState(false);
 
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -173,6 +201,46 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
   const [filterOpen, setFilterOpen] = useState(false);
   const { toolbarRef, isSticky } = useStickyToolbar();
 
+  /**
+   * Status arsip tidak ikut di DTO `get-creator-negotiations` (Function-nya
+   * belum memfilter `is_archived` sama sekali), jadi dibaca terpisah dan
+   * dijodohkan di klien. Gagal memuat = semua percakapan dianggap belum
+   * diarsipkan; daftar tetap tampil utuh.
+   */
+  useEffect(() => {
+    let active = true;
+    getMyConversations().then((res) => {
+      if (active && res.success && res.data) setConversations(res.data);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  /**
+   * Cukup di-key umkmId: getMyConversations hanya mengembalikan percakapan
+   * sesi ini, dan `umkm_id + creator_id` unik — jadi untuk satu kreator,
+   * satu UMKM = satu percakapan.
+   */
+  const conversationByUmkm = new Map(conversations.map((c) => [c.umkmId, c]));
+
+  const handleToggleArchive = async (neg: CreatorNegotiation) => {
+    const conv = conversationByUmkm.get(neg.umkmId);
+    if (!conv) {
+      toast.error("Percakapan untuk negosiasi ini belum tersedia.");
+      return;
+    }
+    const next = !conv.isArchived;
+    const res = await setConversationArchived(conv.id, next);
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal mengubah status arsip.");
+      return;
+    }
+    setConversations((prev) =>
+      prev.map((c) => (c.id === conv.id ? { ...c, isArchived: next } : c))
+    );
+    toast.success(next ? "Percakapan diarsipkan." : "Percakapan dikembalikan ke inbox.");
+  };
 
   const handleClearFilters = () => {
     setSearch("");
@@ -199,11 +267,18 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
         (selectedStatus === "escrow" && ["escrow","in_progress","revision","approved"].includes(n.status)) ||
         (selectedStatus === "selesai" && n.status === "completed");
 
-      return matchesSearch && matchesStatus;
+      // Tanpa baris percakapan, anggap belum diarsipkan — baris tetap terlihat.
+      const isArchived = conversationByUmkm.get(n.umkmId)?.isArchived ?? false;
+
+      return matchesSearch && matchesStatus && isArchived === showArchived;
     })
     .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
 
   const hasActiveFilters = search !== "" || selectedStatus !== "all";
+
+  const archivedCount = negotiations.filter(
+    (n) => conversationByUmkm.get(n.umkmId)?.isArchived ?? false
+  ).length;
 
 
   return (
@@ -334,12 +409,40 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
           </div>
           </div>
 
+          {/* Tab Inbox / Arsip */}
+          <div className="flex items-center gap-2 mb-4">
+            <button
+              onClick={() => setShowArchived(false)}
+              className={cn(
+                "px-3.5 py-1.5 rounded-full text-[11px] font-extrabold transition-colors cursor-pointer border",
+                showArchived
+                  ? "border-neutral-200/60 text-neutral-500 hover:bg-neutral-50"
+                  : "border-transparent bg-[#7c3aed] text-white"
+              )}
+            >
+              Inbox
+            </button>
+            <button
+              onClick={() => setShowArchived(true)}
+              className={cn(
+                "px-3.5 py-1.5 rounded-full text-[11px] font-extrabold transition-colors cursor-pointer border",
+                showArchived
+                  ? "border-transparent bg-[#7c3aed] text-white"
+                  : "border-neutral-200/60 text-neutral-500 hover:bg-neutral-50"
+              )}
+            >
+              Arsip{archivedCount > 0 ? ` (${archivedCount})` : ""}
+            </button>
+          </div>
+
           {/* Negotiation cards */}
           {filteredNegotiations.length === 0 ? (
             <CreatorEmptyState
-              title="Belum ada negosiasi Rate Card"
+              title={showArchived ? "Tidak ada percakapan diarsipkan" : "Belum ada negosiasi Rate Card"}
               description={
-                hasActiveFilters
+                showArchived
+                  ? "Percakapan yang kamu arsipkan akan muncul di sini."
+                  : hasActiveFilters
                   ? "Tidak ada negosiasi yang cocok dengan filter pencarian Anda."
                   : "Kamu belum menerima chat negosiasi dari UMKM untuk penawaran paket Rate Card."
               }
@@ -358,7 +461,12 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
           ) : (
             <div className="flex flex-col gap-3 animate-in fade-in duration-300">
               {filteredNegotiations.map((neg) => (
-                <NegotiationCard key={neg.id} neg={neg} />
+                <NegotiationCard
+                  key={neg.id}
+                  neg={neg}
+                  isArchived={conversationByUmkm.get(neg.umkmId)?.isArchived ?? false}
+                  onToggleArchive={() => handleToggleArchive(neg)}
+                />
               ))}
             </div>
           )}

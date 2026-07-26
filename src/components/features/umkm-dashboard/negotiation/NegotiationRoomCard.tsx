@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { MessageSquare, Clock, AlertCircle } from "lucide-react";
+import { MessageSquare, Clock, AlertCircle, Archive, ArchiveRestore } from "lucide-react";
 import { formatCurrency } from "@/lib/formatters";
 import { NegotiationOrder } from "@/types/umkm-dashboard.types";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,8 @@ import { getStatusDetails, formatTime, deadlineTime } from "./negotiation.utils"
 
 interface NegotiationRoomCardProps {
   order: NegotiationOrder;
+  isArchived?: boolean;
+  onToggleArchive?: () => void;
 }
 
 const STATUS_STYLE: Record<
@@ -74,7 +76,11 @@ const STATUS_STYLE: Record<
   },
 };
 
-export function NegotiationRoomCard({ order }: NegotiationRoomCardProps) {
+export function NegotiationRoomCard({
+  order,
+  isArchived = false,
+  onToggleArchive,
+}: NegotiationRoomCardProps) {
   const statusDetail = getStatusDetails(order.status);
   const style = STATUS_STYLE[order.status] ?? STATUS_STYLE.cancelled;
 
@@ -166,13 +172,25 @@ export function NegotiationRoomCard({ order }: NegotiationRoomCardProps) {
         </div>
 
         {/* CTA button */}
-        <Link
-          href={`/dashboard/umkm/negosiasi/${order.id}`}
-          className="inline-flex items-center gap-1.5 min-h-[36px] px-4 rounded-xl bg-ink-950 text-white text-[.82rem] font-[800] transition-all duration-150 hover:bg-primary hover:shadow-[0_8px_20px_rgba(234,88,12,.22)] hover:-translate-y-px active:scale-[0.98] active:translate-y-0 cursor-pointer select-none no-underline"
-        >
-          <MessageSquare size={14} className="shrink-0" />
-          Buka Room Chat
-        </Link>
+        <div className="flex items-center gap-2">
+          {onToggleArchive && (
+            <button
+              onClick={onToggleArchive}
+              title={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
+              aria-label={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
+              className="inline-flex items-center justify-center h-9 w-9 rounded-xl border border-neutral-200 text-ink-400 hover:text-primary hover:border-neutral-300 transition-colors cursor-pointer"
+            >
+              {isArchived ? <ArchiveRestore size={15} /> : <Archive size={15} />}
+            </button>
+          )}
+          <Link
+            href={`/dashboard/umkm/negosiasi/${order.id}`}
+            className="inline-flex items-center gap-1.5 min-h-[36px] px-4 rounded-xl bg-ink-950 text-white text-[.82rem] font-[800] transition-all duration-150 hover:bg-primary hover:shadow-[0_8px_20px_rgba(234,88,12,.22)] hover:-translate-y-px active:scale-[0.98] active:translate-y-0 cursor-pointer select-none no-underline"
+          >
+            <MessageSquare size={14} className="shrink-0" />
+            Buka Room Chat
+          </Link>
+        </div>
       </div>
     </div>
   );

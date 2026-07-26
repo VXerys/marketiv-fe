@@ -51,6 +51,7 @@ import {
   deleteCreatorPortfolioInAppwrite,
   uploadCreatorPortfolioThumbnailInAppwrite,
   requestWithdrawalInAppwrite,
+  unclaimCampaignInAppwrite,
 } from "./creator-appwrite.service";
 import type {
   RateCardPackageWriteInput,
@@ -374,4 +375,33 @@ export async function requestWithdrawal(
     };
   }
   return requestWithdrawalInAppwrite(input);
+}
+
+// ── batalkan claim (Sprint 3.5) ──────────────────────────────────────────────
+
+/**
+ * Batalkan pekerjaan yang belum dikirim. Slot campaign kembali terbuka.
+ *
+ * ⚠️ Pembatalan bersifat PERMANEN untuk kreator ini — backend menolak claim
+ * ulang atas campaign yang sama. Lihat catatan di unclaimCampaignInAppwrite;
+ * jawaban backend atas T-1 akan menentukan apakah batasan ini tetap.
+ */
+export async function unclaimCampaign(claimId: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    const work = mockCreatorActiveWorks.find((w) => w.id === claimId);
+    if (!work) {
+      return { success: false, data: null, error: "Pekerjaan tidak ditemukan.", code: "not_found" };
+    }
+    if (work.status !== "claimed") {
+      return {
+        success: false,
+        data: null,
+        error: "Hanya pekerjaan yang belum dikirim yang bisa dibatalkan.",
+        code: "validation",
+      };
+    }
+    return { success: true, data: null };
+  }
+  return unclaimCampaignInAppwrite(claimId);
 }
