@@ -17,6 +17,7 @@ interface CampaignCardProps {
   onDuplicate: () => void;
   onCancel: () => void;
   onDelete: () => void;
+  onPublish: () => void;
   onExport: () => void;
   onEdit: () => void;
 }
@@ -64,6 +65,7 @@ export function CampaignCard({
   onDuplicate,
   onCancel,
   onDelete,
+  onPublish,
   onExport,
   onEdit,
 }: CampaignCardProps) {
@@ -83,6 +85,9 @@ export function CampaignCard({
 
   const actionItems = [
     { label: "Lihat Detail",       onClick: () => router.push(`/dashboard/umkm/campaign/${campaign.id}`) },
+    // Jalan keluar bila webhook Midtrans telat: dana sudah masuk tapi wizard
+    // sudah menyerah menunggu. Service tetap menolak bila dananya belum ada.
+    ...(isDeleteVisible ? [{ label: "Terbitkan Campaign", onClick: onPublish }] : []),
     ...(isEditVisible ? [{ label: "Edit Draft", onClick: onEdit }] : []),
     { label: "Duplikasi Campaign", onClick: onDuplicate },
     { label: "Unduh Laporan",      onClick: onExport    },

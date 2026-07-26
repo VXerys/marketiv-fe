@@ -74,6 +74,7 @@ const COLLECTIONS = {
   submissions: "campaign_submissions",
   rateCards: "rate_cards",
   rateCardPackages: "rate_card_packages",
+  claims: "campaign_claims",
   orders: "orders",
   offers: "offers",
   messages: "messages",
@@ -915,6 +916,139 @@ export async function createCampaignPaymentInAppwrite(input: {
     return ok(res);
   } catch (err) {
     return failFromWriteError<PaymentIntent>(err, empty);
+  }
+}
+
+// ── Alur A: terbitkan campaign & review submission (Sprint 4) ────────────────
+//
+// Keduanya lewat SDK tulis dokumen, BUKAN executeFunction. `campaign-published`
+// dan `calculate-campaign-reward` dipicu event database (lihat `events` di
+// 00_BACKEND/appwrite.config.json), jadi menyala sendiri setelah tulisan di
+// bawah masuk. Efeknya asinkron — pemanggil tidak boleh menganggap hasilnya
+// langsung terlihat.
+
+/**
+ * Terbitkan campaign draft → `active`.
+ *
+ * Mirror 00_BACKEND/src/services/campaign.service.ts:210-240. Guard
+ * `remainingBudget > 0` adalah alasan alur ini terblokir sepanjang Sprint 3:
+ * kolomnya baru terisi setelah `create-escrow` memproses pembayaran campaign.
+ * Karena webhook Midtrans bisa telat beberapa detik, pemanggil harus siap
+ * mendapat "belum di-top-up" walau pengguna baru saja membayar.
+ */
+export async function publishCampaignInAppwrite(
+  campaignId: string
+): Promise<ServiceResult<Campaign>> {
+  const empty = null as unknown as Campaign;
+  const auth = await requireUserId<Campaign>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", campaignId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Campaign tidak ditemukan.", "not_found", empty);
+
+    if (str(doc.status) !== "draft") {
+      return failValidation("Hanya campaign draft yang bisa diterbitkan.", empty);
+    }
+
+    if (num(doc.remainingBudget) <= 0) {
+      return failValidation(
+        "Dana campaign belum masuk. Tunggu beberapa saat setelah pembayaran, lalu coba lagi.",
+        empty
+      );
+    }
+
+    const updated = await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
+      status: "active",
+      publishedAt: new Date().toISOString(),
+    });
+    return ok(mapCampaign(updated as unknown as Doc));
+  } catch (err) {
+    return failFromWriteError<Campaign>(err, empty);
+  }
+}
+
+export type ReviewSubmissionInput = {
+  submissionId: string;
+  status: Extract<SubmissionStatus, "approved" | "rejected">;
+  /**
+   * Jumlah views yang diverifikasi UMKM.
+   *
+   * WAJIB ikut ditulis saat approve. `calculate-campaign-reward:38` menghitung
+   * reward dari `campaign_submissions.views`, dan TIDAK ADA satu pun Function
+   * backend yang pernah mengisi kolom itu — kalau dibiarkan 0, reward selalu 0
+   * dan kreator tidak pernah dibayar. Sudah diangkat ke backend sebagai B-1.
+   */
+  views: number;
+};
+
+/**
+ * Setujui / tolak submission kreator.
+ *
+ * `views` ditulis BERSAMAAN dengan `status` dalam satu updateDocument, bukan
+ * dua panggilan terpisah: `calculate-campaign-reward` menyala pada update dan
+ * langsung membaca `doc.views`. Kalau views ditulis belakangan, Function sudah
+ * terlanjur menghitung reward dari angka lama.
+ */
+export async function reviewSubmissionInAppwrite(
+  input: ReviewSubmissionInput
+): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    const subDoc = (await databases.getDocument(
+      DB,
+      COLLECTIONS.submissions,
+      input.submissionId
+    )) as unknown as Doc;
+
+    if (str(subDoc.status) !== "pending") {
+      return failValidation(
+        "Submission ini sudah pernah direview.",
+        null
+      );
+    }
+
+    // Kepemilikan lewat campaign induk — `campaign_submissions` tidak menyimpan
+    // umkmId, dan collection update("users") terlalu longgar untuk dipercaya.
+    const parent = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", str(subDoc.campaignId)),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    if (!parent.documents[0]) {
+      return fail("Submission tidak ditemukan.", "not_found", null);
+    }
+
+    if (input.status === "approved" && (!Number.isInteger(input.views) || input.views < 0)) {
+      return failValidation("Jumlah views tidak valid.", null);
+    }
+
+    await databases.updateDocument(DB, COLLECTIONS.submissions, input.submissionId, {
+      status: input.status,
+      views: input.status === "approved" ? input.views : num(subDoc.views),
+    });
+
+    // Status claim mengikuti hasil review supaya layar kreator tidak terus
+    // menampilkan "menunggu review" setelah keputusan keluar.
+    const claimId = str(subDoc.claimId);
+    if (claimId) {
+      try {
+        await databases.updateDocument(DB, COLLECTIONS.claims, claimId, {
+          status: input.status,
+        });
+      } catch {
+        // Submission adalah sumber kebenaran review; claim menyusul.
+      }
+    }
+
+    return ok(null);
+  } catch (err) {
+    return failFromWriteError<null>(err, null);
   }
 }
 

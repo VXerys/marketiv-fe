@@ -18,6 +18,7 @@ import {
   getCampaignSubmissions,
   getUmkmProfile,
   updateCampaignStatus,
+  reviewSubmission,
 } from "@/services/umkm/umkm-dashboard.service";
 import {
   Campaign,
@@ -93,46 +94,54 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
     loadData();
   }, [loadData]);
 
-  // Handle audit status updates locally
-  const handleReviewConfirm = (status: SubmissionStatus, notes: string) => {
+  /**
+   * Setujui / tolak submission.
+   *
+   * Reward TIDAK dihitung di sini. Sebelumnya nilainya dikarang di klien —
+   * termasuk fallback `|| 15000` views yang membuat angka rupiah muncul dari
+   * ketiadaan. Yang menghitung adalah `calculate-campaign-reward`, yang menyala
+   * pada update `campaign_submissions` dan menulis `spentAmount` /
+   * `remainingBudget` campaign sendiri.
+   *
+   * Karena Function itu berjalan asinkron, angka campaign dibaca ulang dari
+   * server alih-alih ditebak lokal — dengan jeda singkat supaya Function sempat
+   * selesai. Kalau belum sempat, angkanya menyusul di refresh berikutnya.
+   */
+  const handleReviewConfirm = async (status: SubmissionStatus, views: number) => {
     if (!activeReviewSubmission || !campaign) return;
+    if (status === "pending") return;
 
-    // Estimate released funds locally if approved (e.g. rate per 1000 views)
-    let releasedFund = 0;
-    if (status === "approved") {
-      releasedFund = Math.round(
-        (activeReviewSubmission.actualViews || 15000) *
-          (campaign.pricePerThousandViews / 1000)
-      );
-    }
-
-    // Update submissions list locally
-    const updatedSubmissions = submissions.map((sub) =>
-      sub.id === activeReviewSubmission.id
-        ? {
-            ...sub,
-            validationStatus: status,
-            releasedFund,
-            validatedAt: new Date().toISOString(),
-          }
-        : sub
-    );
-    setSubmissions(updatedSubmissions);
-
-    // Recompute total views & budget used for the campaign
-    const totalViews = updatedSubmissions.reduce((sum, s) => sum + s.actualViews, 0);
-    const usedBudget = updatedSubmissions
-      .filter((s) => s.validationStatus === "approved")
-      .reduce((sum, s) => sum + s.releasedFund, 0);
-
-    setCampaign({
-      ...campaign,
-      totalViews,
-      usedBudget,
+    const target = activeReviewSubmission;
+    const res = await reviewSubmission({
+      submissionId: target.id,
+      status,
+      views,
     });
 
-    const statusLabel = status === "approved" ? "Disetujui" : "Ditolak";
-    showToast(`Ulasan oleh "${activeReviewSubmission.creatorName}" berhasil ${statusLabel}. Catatan: ${notes || "-"}`);
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal menyimpan hasil review.");
+      throw new Error(res.error ?? "Gagal menyimpan hasil review.");
+    }
+
+    setSubmissions((prev) =>
+      prev.map((sub) =>
+        sub.id === target.id
+          ? {
+              ...sub,
+              validationStatus: status,
+              actualViews: status === "approved" ? views : sub.actualViews,
+            }
+          : sub
+      )
+    );
+
+    const statusLabel = status === "approved" ? "disetujui" : "ditolak";
+    showToast(`Submission dari "${target.creatorName}" berhasil ${statusLabel}.`);
+
+    // Beri ruang untuk calculate-campaign-reward sebelum membaca angka baru.
+    setTimeout(() => {
+      loadData();
+    }, 2500);
   };
 
   const handleCancelConfirm = async () => {

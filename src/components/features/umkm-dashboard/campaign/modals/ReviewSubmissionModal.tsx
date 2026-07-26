@@ -18,7 +18,7 @@ interface ReviewSubmissionModalProps {
   isOpen: boolean;
   onClose: () => void;
   submission: CampaignSubmission;
-  onConfirm: (status: SubmissionStatus, notes: string) => void;
+  onConfirm: (status: SubmissionStatus, views: number) => void | Promise<void>;
 }
 
 export function ReviewSubmissionModal({
@@ -28,11 +28,27 @@ export function ReviewSubmissionModal({
   onConfirm,
 }: ReviewSubmissionModalProps) {
   const [selectedStatus, setSelectedStatus] = useState<SubmissionStatus>(submission.validationStatus);
-  const [notes, setNotes] = useState("");
+  const [viewsInput, setViewsInput] = useState(
+    submission.actualViews > 0 ? String(submission.actualViews) : ""
+  );
+  const [busy, setBusy] = useState(false);
 
-  const handleConfirm = () => {
-    onConfirm(selectedStatus, notes);
-    onClose();
+  const views = Number(viewsInput.replace(/\D/g, ""));
+  const viewsValid = Number.isInteger(views) && views > 0;
+  // Views hanya relevan saat menyetujui — penolakan tidak menghasilkan reward.
+  const canConfirm = selectedStatus === "rejected" || (selectedStatus === "approved" && viewsValid);
+
+  const handleConfirm = async () => {
+    if (!canConfirm || busy) return;
+    setBusy(true);
+    try {
+      await onConfirm(selectedStatus, selectedStatus === "approved" ? views : 0);
+      onClose();
+    } catch {
+      // Pemanggil yang menampilkan pesannya; modal tetap terbuka.
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -143,27 +159,67 @@ export function ReviewSubmissionModal({
           </div>
         </div>
 
-        {/* Notes Textarea */}
+        {/*
+          Jumlah views diverifikasi manusia. `calculate-campaign-reward`
+          menghitung reward dari `campaign_submissions.views`, dan tidak ada
+          Function backend yang pernah mengisi kolom itu — kalau dibiarkan 0,
+          reward selalu 0 dan kreator tidak pernah dibayar (temuan B-1).
+        */}
+        {selectedStatus === "approved" && (
+          <div className="mb-6">
+            <label htmlFor="review-views" className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
+              Jumlah Views Terverifikasi
+            </label>
+            <input
+              id="review-views"
+              inputMode="numeric"
+              className="w-full px-3.5 py-2.5 bg-neutral-50 text-sm text-text-primary border border-border-strong rounded-xl focus:outline-none focus:border-primary transition-colors"
+              placeholder="Contoh: 15000"
+              value={viewsInput}
+              onChange={(e) => setViewsInput(e.target.value)}
+              disabled={busy}
+            />
+            <p className="mt-1.5 text-[11px] text-text-muted leading-relaxed">
+              Buka tautan kontennya, lalu masukkan jumlah views yang Anda lihat. Angka ini yang
+              dipakai menghitung reward kreator, jadi pastikan sesuai.
+            </p>
+            {!viewsValid && viewsInput.trim() !== "" && (
+              <p className="mt-1 text-[11px] font-semibold text-danger">
+                Masukkan angka views lebih dari 0.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/*
+          Catatan validator dinonaktifkan: `campaign_submissions` tidak punya
+          kolom untuk menyimpannya (B-2). Field yang membuang input pengguna
+          diam-diam lebih buruk daripada tidak ada field sama sekali.
+        */}
         <div className="mb-6">
-          <label htmlFor="review-notes" className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
-            Catatan Validator (Opsional)
+          <label className="block text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wider">
+            Catatan Validator
           </label>
           <textarea
-            id="review-notes"
-            className="w-full min-h-[70px] px-3.5 py-2.5 bg-neutral-50 text-sm text-text-primary border border-border-strong rounded-xl focus:outline-none focus:border-primary transition-colors resize-none"
-            placeholder="Tambahkan catatan pendukung mengenai status validasi konten..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            disabled
+            className="w-full min-h-[60px] px-3.5 py-2.5 bg-neutral-100 text-sm text-text-muted border border-border-soft rounded-xl resize-none cursor-not-allowed"
+            placeholder="Segera tersedia — catatan review belum punya tempat penyimpanan."
           />
         </div>
 
         {/* Buttons */}
         <ResponsiveModalFooter className="flex items-center justify-end gap-3">
-          <DashboardButton variant="secondary" size="md" onClick={onClose} className="text-xs">
+          <DashboardButton variant="secondary" size="md" onClick={onClose} disabled={busy} className="text-xs">
             Kembali
           </DashboardButton>
-          <DashboardButton variant="primary" size="md" onClick={handleConfirm} className="text-xs">
-            Simpan Validasi
+          <DashboardButton
+            variant="primary"
+            size="md"
+            onClick={handleConfirm}
+            disabled={!canConfirm || busy}
+            className="text-xs"
+          >
+            {busy ? "Menyimpan…" : "Simpan Validasi"}
           </DashboardButton>
         </ResponsiveModalFooter>
       </ResponsiveModalContent>

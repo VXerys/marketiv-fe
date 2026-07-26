@@ -21,6 +21,7 @@ interface CampaignTableProps {
   onDuplicate: (campaign: Campaign) => void;
   onCancel: (campaign: Campaign) => void;
   onDelete: (campaign: Campaign) => void;
+  onPublish: (campaign: Campaign) => void;
   onExport: (campaign: Campaign) => void;
   onEdit: (campaign: Campaign) => void;
 }
@@ -31,6 +32,7 @@ export function CampaignTable({
   onDuplicate,
   onCancel,
   onDelete,
+  onPublish,
   onExport,
   onEdit,
 }: CampaignTableProps) {
@@ -47,6 +49,16 @@ export function CampaignTable({
         label: "Lihat Detail",
         onClick: () => router.push(detailUrl),
       },
+      // Jalan keluar bila webhook Midtrans telat — service tetap menolak bila
+      // dananya belum masuk.
+      ...(isDeleteVisible
+        ? [
+            {
+              label: "Terbitkan Campaign",
+              onClick: () => onPublish(campaign),
+            },
+          ]
+        : []),
       ...(isEditVisible
         ? [
             {

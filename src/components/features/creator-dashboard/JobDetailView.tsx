@@ -24,6 +24,8 @@ import {
 import { CreatorJob } from "@/types/creator-dashboard";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
+import { claimCampaign } from "@/services/creator/creator-dashboard.service";
+import { toast } from "sonner";
 import {
   DashboardModal,
   DashboardButton,
@@ -59,6 +61,7 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
 
   const [countdown, setCountdown] = useState({ h: 3, m: 16, s: 43 });
   const [isClaimOpen, setIsClaimOpen] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [isRulesChecked, setIsRulesChecked] = useState({
     brief: false,
@@ -90,8 +93,23 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
     }, 50);
   };
 
-  const handleClaimSubmit = () => {
-    if (!job) return;
+  /**
+   * Klaim campaign. Kuota lokal baru dinaikkan SETELAH server menerima —
+   * sebelumnya dinaikkan optimistis, sehingga kuota terlihat berkurang walau
+   * klaimnya ditolak (kuota penuh / sudah pernah klaim / profil belum lengkap).
+   */
+  const handleClaimSubmit = async () => {
+    if (!job || isClaiming) return;
+    setIsClaiming(true);
+    const res = await claimCampaign(job.id);
+    setIsClaiming(false);
+
+    if (!res.success) {
+      setIsClaimOpen(false);
+      toast.error(res.error ?? "Gagal mengambil pekerjaan ini.");
+      return;
+    }
+
     setJob((prev) => (prev ? { ...prev, usedQuota: prev.usedQuota + 1 } : null));
     setIsClaimOpen(false);
     setIsSuccessOpen(true);
@@ -591,12 +609,12 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
         onClose={() => setIsClaimOpen(false)}
         footer={
           <div className="flex gap-3 w-full">
-            <DashboardButton type="button" variant="outline" onClick={() => setIsClaimOpen(false)} fullWidthOnMobile>Batal</DashboardButton>
-            <button type="button" onClick={handleClaimSubmit} disabled={!allChecked}
+            <DashboardButton type="button" variant="outline" onClick={() => setIsClaimOpen(false)} disabled={isClaiming} fullWidthOnMobile>Batal</DashboardButton>
+            <button type="button" onClick={handleClaimSubmit} disabled={!allChecked || isClaiming}
               className={cn("flex-1 sm:flex-none py-2.5 px-5 font-bold text-xs rounded-full border transition-all cursor-pointer",
-                !allChecked ? "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed" : "text-white border-transparent hover:-translate-y-0.5 active:translate-y-0")}
-              style={allChecked ? { background: "linear-gradient(135deg, #7c3aed, #4f46e5)", boxShadow: "0 4px 14px rgba(124,58,237,.30)" } : undefined}>
-              Klaim Sekarang
+                !allChecked || isClaiming ? "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed" : "text-white border-transparent hover:-translate-y-0.5 active:translate-y-0")}
+              style={allChecked && !isClaiming ? { background: "linear-gradient(135deg, #7c3aed, #4f46e5)", boxShadow: "0 4px 14px rgba(124,58,237,.30)" } : undefined}>
+              {isClaiming ? "Memproses…" : "Klaim Sekarang"}
             </button>
           </div>
         }

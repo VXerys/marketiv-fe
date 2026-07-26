@@ -28,6 +28,7 @@ import {
   createCampaignDraft,
   generateCampaignBrief,
   createCampaignPayment,
+  publishCampaign,
 } from "@/services/umkm/umkm-dashboard.service";
 import { loadSnap } from "@/lib/midtrans/snap";
 import type { CampaignType } from "@/types/domain";
@@ -246,9 +247,44 @@ export function CreateCampaignWizard() {
   };
 
   /**
-   * Bayar: pastikan draft ada → create-payment → Snap.
-   * Publish ke `active` BUKAN di sini — itu Sprint 4 lewat webhook Midtrans
-   * (create-escrow), bukan aksi klien.
+   * Terbitkan campaign setelah pembayaran, dengan menunggu dana benar-benar
+   * masuk.
+   *
+   * Dananya tidak muncul di `campaigns.remainingBudget` saat Snap menutup —
+   * yang mengisinya adalah `create-escrow`, yang baru menyala setelah Midtrans
+   * memanggil `midtrans-webhook`. Itu perjalanan server-ke-server yang bisa
+   * makan beberapa detik. Karena itu di-poll, bukan diterbitkan langsung.
+   *
+   * Kalau poll habis, campaign SENGAJA dibiarkan sebagai draft dan pengguna
+   * diberi tahu apa adanya — menandai campaign `active` tanpa dana adalah
+   * kebohongan yang akan tampak sebagai kuota kreator yang tidak bisa dibayar.
+   * Tombol "Terbitkan" di daftar campaign menjadi jalan keluarnya.
+   */
+  const publishAfterPayment = async (campaignId: string) => {
+    const ATTEMPTS = 5;
+    const GAP_MS = 2000;
+
+    for (let i = 0; i < ATTEMPTS; i++) {
+      await new Promise((r) => setTimeout(r, GAP_MS));
+
+      const res = await publishCampaign(campaignId);
+      if (res.success) {
+        toast.success("Campaign berhasil diterbitkan dan kini tayang di Job Pool.");
+        return true;
+      }
+      // "validation" = dana belum masuk; error lain tidak akan membaik dengan
+      // menunggu, jadi berhenti mencoba.
+      if (res.code !== "validation") break;
+    }
+
+    toast.info(
+      "Pembayaran diterima, tapi dana belum tercatat di campaign. Campaign tersimpan sebagai draft — terbitkan dari daftar campaign setelah beberapa saat."
+    );
+    return false;
+  };
+
+  /**
+   * Bayar: pastikan draft ada → create-payment → Snap → tunggu dana → terbitkan.
    */
   const handleConfirmPayment = async () => {
     setIsPaymentOpen(false);
@@ -279,7 +315,10 @@ export function CreateCampaignWizard() {
         const snap = await loadSnap();
         setIsSubmitting(false);
         snap.pay(intent.snapToken, {
-          onSuccess: () => setIsCreatedOpen(true),
+          onSuccess: () => {
+            setIsCreatedOpen(true);
+            void publishAfterPayment(campaignId);
+          },
           onPending: () => {
             toast.info("Pembayaran menunggu konfirmasi. Campaign tetap tersimpan sebagai draft.");
             router.push("/dashboard/umkm/campaign");

@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { CreatorActiveWork } from "@/types/creator-dashboard";
 import { getClaimStatusLabel, getFraudStatusLabel, getSubmissionStatusLabel } from "@/lib/creator-status";
+import { submitProof } from "@/services/creator/creator-dashboard.service";
+import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { DashboardModal, DashboardButton, DashboardStateCard } from "@/components/features/dashboard/shared";
@@ -94,26 +96,48 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
     setIsConfirmOpen(true);
   };
 
-  const executeSubmit = () => {
+  /**
+   * Kirim bukti tayang.
+   *
+   * `fraudStatus` sengaja TIDAK diisi. Sebelumnya di-set `"safe"` begitu kirim,
+   * yang berarti kreator melihat lencana "aman" sebelum ada pemeriksaan apa pun.
+   * `ai-fraud-precheck` dipicu event `campaign_submissions.*.create` dan menulis
+   * balik skornya beberapa saat kemudian — sampai itu tiba, tidak ada lencana
+   * fraud yang ditampilkan (renderer melewatinya saat `fraudStatus` kosong).
+   */
+  const executeSubmit = async () => {
+    if (!work) return;
     setIsConfirmOpen(false);
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setWork((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          contentUrl: contentUrl.trim(),
-          platform,
-          status: "submitted" as const,
-          submissionStatus: "pending" as const,
-          fraudStatus: "safe" as const,
-          submittedAt: new Date().toISOString(),
-          notes: notes.trim(),
-        };
-      });
-      setIsSuccessOpen(true);
-    }, 1000);
+
+    const res = await submitProof({
+      claimId: work.id,
+      campaignId: work.campaignId,
+      postUrl: contentUrl.trim(),
+      caption: notes.trim() || undefined,
+    });
+
+    setIsSubmitting(false);
+
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal mengirim bukti tayang.");
+      return;
+    }
+
+    setWork((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        contentUrl: contentUrl.trim(),
+        platform,
+        status: "submitted" as const,
+        submissionStatus: "pending" as const,
+        fraudStatus: undefined,
+        submittedAt: new Date().toISOString(),
+        notes: notes.trim(),
+      };
+    });
+    setIsSuccessOpen(true);
   };
 
   if (!work) {

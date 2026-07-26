@@ -61,6 +61,8 @@ import {
   deleteOfferInAppwrite,
   cancelOrderInAppwrite,
   cancelPaymentInAppwrite,
+  publishCampaignInAppwrite,
+  reviewSubmissionInAppwrite,
 } from "./umkm-appwrite.service";
 import type {
   UmkmFinanceOverview,
@@ -71,6 +73,7 @@ import type {
   CampaignDraftResult,
   DuplicateCampaignOptions,
   UmkmProfileWriteInput,
+  ReviewSubmissionInput,
 } from "./umkm-appwrite.service";
 
 export async function getUmkmProfile(): Promise<ServiceResult<UmkmProfile>> {
@@ -515,6 +518,65 @@ export async function createCampaignPayment(input: {
     };
   }
   return createCampaignPaymentInAppwrite(input);
+}
+
+// ── Alur A: terbitkan & review (Sprint 4) ────────────────────────────────────
+
+export type { ReviewSubmissionInput };
+
+/**
+ * Terbitkan campaign draft. Mock menegakkan guard yang sama, termasuk
+ * `remainingBudget` — supaya pesan "dana belum masuk" bisa diuji tanpa Appwrite.
+ */
+export async function publishCampaign(campaignId: string): Promise<ServiceResult<Campaign>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(600);
+    const c = mockCampaigns.find((x) => x.id === campaignId);
+    if (!c) return { success: false, data: null, error: "Campaign tidak ditemukan.", code: "not_found" };
+    if (c.status !== "draft") {
+      return {
+        success: false,
+        data: null,
+        error: "Hanya campaign draft yang bisa diterbitkan.",
+        code: "validation",
+      };
+    }
+    // Mock tidak punya remainingBudget terpisah; totalBudgetEscrow berperan sama.
+    if (c.totalBudgetEscrow <= 0) {
+      return {
+        success: false,
+        data: null,
+        error: "Dana campaign belum masuk. Tunggu beberapa saat setelah pembayaran, lalu coba lagi.",
+        code: "validation",
+      };
+    }
+    return { success: true, data: { ...c, status: "active" } };
+  }
+  return publishCampaignInAppwrite(campaignId);
+}
+
+/** Setujui / tolak submission. `views` wajib saat approve — lihat B-1. */
+export async function reviewSubmission(
+  input: ReviewSubmissionInput
+): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(700);
+    const s = mockSubmissions.find((x) => x.id === input.submissionId);
+    if (!s) return { success: false, data: null, error: "Submission tidak ditemukan.", code: "not_found" };
+    if (s.validationStatus !== "pending") {
+      return {
+        success: false,
+        data: null,
+        error: "Submission ini sudah pernah direview.",
+        code: "validation",
+      };
+    }
+    if (input.status === "approved" && (!Number.isInteger(input.views) || input.views < 0)) {
+      return { success: false, data: null, error: "Jumlah views tidak valid.", code: "validation" };
+    }
+    return { success: true, data: null };
+  }
+  return reviewSubmissionInAppwrite(input);
 }
 
 // ── hapus & batalkan (Sprint 3.5) ────────────────────────────────────────────

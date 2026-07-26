@@ -23,6 +23,7 @@ import {
   updateCampaignStatus,
   duplicateCampaign,
   deleteCampaignDraft,
+  publishCampaign,
 } from "@/services/umkm/umkm-dashboard.service";
 import {
   Campaign,
@@ -183,6 +184,21 @@ export function CampaignsPage() {
     showToast(`Draft "${target.title}" berhasil dihapus.`);
   };
 
+  /**
+   * Terbitkan draft yang dananya sudah masuk. Tidak pakai modal konfirmasi:
+   * aksinya tidak merusak, dan service menolak sendiri bila `remainingBudget`
+   * masih 0 — pesan penolakannya yang menjelaskan kenapa.
+   */
+  const handlePublish = async (target: Campaign) => {
+    const res = await publishCampaign(target.id);
+    if (!res.success || !res.data) {
+      toast.error(res.error ?? "Gagal menerbitkan campaign.");
+      return;
+    }
+    setCampaigns((prev) => prev.map((c) => (c.id === target.id ? res.data! : c)));
+    showToast(`Campaign "${target.title}" kini tayang di Job Pool.`);
+  };
+
   const handleDuplicateConfirm = async (
     newTitle: string,
     options: { copyBrief: boolean; copyBudget: boolean; copyAssets: boolean }
@@ -269,6 +285,7 @@ export function CampaignsPage() {
             onDuplicate={setActiveDuplicateCampaign}
             onCancel={setActiveCancelCampaign}
             onDelete={setActiveDeleteCampaign}
+            onPublish={handlePublish}
             onExport={() => setIsExportModalOpen(true)}
             onEdit={(camp) => showToast(`Melanjutkan edit Draft: ${camp.title}`)}
           />
@@ -286,6 +303,7 @@ export function CampaignsPage() {
                   onDuplicate={() => setActiveDuplicateCampaign(camp)}
                   onCancel={() => setActiveCancelCampaign(camp)}
                   onDelete={() => setActiveDeleteCampaign(camp)}
+                  onPublish={() => handlePublish(camp)}
                   onExport={() => setIsExportModalOpen(true)}
                   onEdit={() => showToast(`Melanjutkan edit Draft: ${camp.title}`)}
                 />

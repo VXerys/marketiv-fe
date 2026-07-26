@@ -1097,6 +1097,219 @@ export async function requestWithdrawalInAppwrite(
   }
 }
 
+// ── Alur A: klaim campaign & kirim bukti (Sprint 4) ──────────────────────────
+//
+// Keduanya lewat SDK tulis dokumen, BUKAN executeFunction. `campaign-claimed`
+// dan `ai-fraud-precheck` dipicu event database (lihat `events` di
+// 00_BACKEND/appwrite.config.json) dan menyala sendiri setelah tulisan masuk.
+//
+// ⚠️ `campaign-claimed` TIDAK menambah `totalClaims` — ia hanya mengoreksi bila
+// counter sudah melewati `claimLimit`, lalu membuat notifikasi. Penambahan
+// counter adalah tanggung jawab pemanggil (sama seperti claim.service.ts:154).
+// Kalau langkah itu dilewat, `claimLimit` tidak akan pernah menahan siapa pun.
+
+/**
+ * Klaim campaign aktif.
+ *
+ * Mirror 00_BACKEND/src/services/claim.service.ts:83-160 dengan dua
+ * penyimpangan yang disengaja:
+ *
+ * 1. **`isProfileCompleted` dibaca dari `creator_profiles`, bukan `users`.**
+ *    Backend membacanya dari `users` (claim.service.ts:91) padahal koleksi itu
+ *    hanya punya kolom userId/role/status/email/phone/createdAt — `users` tidak
+ *    pernah punya `isProfileCompleted`. Kolomnya ada di `creator_profiles`.
+ *    Sudah dilaporkan ke backend.
+ * 2. **Baris claim dibuat dengan `Permission.delete`.** `campaign_claims` tidak
+ *    punya `delete("users")` di level collection, dan jalur create backend baru
+ *    memasang read+update — tanpa ini `unclaimCampaignInAppwrite` selalu
+ *    401/403 (temuan V-1).
+ */
+export async function claimCampaignInAppwrite(
+  campaignId: string
+): Promise<ServiceResult<string>> {
+  const auth = await requireUserId<string>("");
+  if (!auth.ok) return auth.result;
+  try {
+    const campaign = (await databases.getDocument(
+      DB,
+      COLLECTIONS.campaigns,
+      campaignId
+    )) as unknown as Doc;
+
+    if (str(campaign.status) !== "active") {
+      return failValidation("Campaign ini sudah tidak aktif.", "");
+    }
+
+    const profileRes = await databases.listDocuments(DB, COLLECTIONS.creatorProfiles, [
+      Query.equal("userId", auth.userId),
+      Query.limit(1),
+    ]);
+    const profile = profileRes.documents[0] as unknown as Doc | undefined;
+    if (!profile || !profile.isProfileCompleted) {
+      return failValidation(
+        "Lengkapi profil kreator dulu sebelum mengambil pekerjaan.",
+        ""
+      );
+    }
+
+    // Bersihkan claim basi lebih dulu supaya slot yang sudah kedaluwarsa tidak
+    // ikut menghitung terhadap claimLimit.
+    const submissionDays = num(campaign.submissionDays) || 7;
+    const expiredSince = new Date(
+      Date.now() - submissionDays * 24 * 60 * 60 * 1000
+    ).toISOString();
+
+    let totalClaims = num(campaign.totalClaims);
+    try {
+      const stale = await databases.listDocuments(DB, COLLECTIONS.claims, [
+        Query.equal("campaignId", campaignId),
+        Query.equal("status", "claimed"),
+        Query.lessThan("claimedAt", expiredSince),
+        Query.limit(100),
+      ]);
+      for (const doc of stale.documents) {
+        await databases.updateDocument(DB, COLLECTIONS.claims, doc.$id, {
+          status: "expired",
+        });
+        totalClaims = Math.max(0, totalClaims - 1);
+      }
+      if (stale.documents.length > 0) {
+        await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
+          totalClaims,
+        });
+      }
+    } catch {
+      // Gagal membersihkan hanya membuat kuota terlihat lebih penuh dari
+      // seharusnya — jauh lebih aman daripada membatalkan klaim.
+    }
+
+    if (totalClaims >= num(campaign.claimLimit)) {
+      return failValidation("Kuota kreator untuk campaign ini sudah penuh.", "");
+    }
+
+    // ⚠️ Cek duplikat sengaja TIDAK memfilter status — cermin persis
+    // claim.service.ts:126. Konsekuensinya: kreator yang claim-nya sempat
+    // `expired` (oleh cron expire-stale-claims atau pembersihan di atas) tidak
+    // bisa mengambil campaign ini lagi, padahal slotnya sudah dikembalikan
+    // untuk kreator lain. Kami tidak melonggarkannya sepihak karena aturan
+    // bisnis harus sama di kedua sisi; sudah ditanyakan ke backend.
+    const existing = await databases.listDocuments(DB, COLLECTIONS.claims, [
+      Query.equal("campaignId", campaignId),
+      Query.equal("creatorId", auth.userId),
+      Query.limit(1),
+    ]);
+    if (existing.documents.length > 0) {
+      const previous = existing.documents[0] as unknown as Doc;
+      return failValidation(
+        str(previous.status) === "expired"
+          ? "Batas waktu pengerjaan campaign ini sudah lewat dan tidak bisa diambil lagi."
+          : "Kamu sudah pernah mengambil campaign ini.",
+        ""
+      );
+    }
+
+    const claim = await databases.createDocument(
+      DB,
+      COLLECTIONS.claims,
+      ID.unique(),
+      {
+        campaignId,
+        creatorId: auth.userId,
+        status: "claimed",
+        claimedAt: new Date().toISOString(),
+      },
+      [
+        Permission.read(Role.user(auth.userId)),
+        Permission.update(Role.user(auth.userId)),
+        Permission.delete(Role.user(auth.userId)),
+      ]
+    );
+
+    // Counter denormalisasi — lihat catatan di atas, Function tidak melakukannya.
+    try {
+      await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
+        totalClaims: totalClaims + 1,
+      });
+    } catch {
+      // Claim sudah sah; counter yang tertinggal bisa direkonsiliasi, dan
+      // `campaign-claimed` akan mengoreksi bila sampai melewati batas.
+    }
+
+    return ok(claim.$id);
+  } catch (err) {
+    return failFromWriteError<string>(err, "");
+  }
+}
+
+export type SubmitProofInput = {
+  claimId: string;
+  campaignId: string;
+  postUrl: string;
+  caption?: string;
+};
+
+/**
+ * Kirim bukti konten untuk claim yang sedang dikerjakan.
+ *
+ * `views` sengaja ditulis 0: tidak ada Function backend yang mengaudit views,
+ * dan angka yang diisi sendiri oleh kreator akan langsung jadi dasar reward.
+ * UMKM yang mengisinya saat menyetujui submission (lihat B-1 di handoff).
+ *
+ * `ai-fraud-precheck` menyala pada create dan menulis balik `fraudScore` /
+ * `fraudStatus` beberapa saat kemudian — UI harus menampilkan "sedang
+ * diperiksa", bukan menganggap aman.
+ */
+export async function submitProofInAppwrite(
+  input: SubmitProofInput
+): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.claims, [
+      Query.equal("$id", input.claimId),
+      Query.equal("creatorId", auth.userId),
+      Query.limit(1),
+    ]);
+    const claim = res.documents[0] as unknown as Doc | undefined;
+    if (!claim) return fail("Pekerjaan tidak ditemukan.", "not_found", null);
+
+    if (str(claim.status) !== "claimed") {
+      return failValidation(
+        "Bukti untuk pekerjaan ini sudah pernah dikirim.",
+        null
+      );
+    }
+
+    await databases.createDocument(
+      DB,
+      COLLECTIONS.submissions,
+      ID.unique(),
+      {
+        claimId: input.claimId,
+        campaignId: input.campaignId,
+        creatorId: auth.userId,
+        platform: "tiktok",
+        postUrl: input.postUrl,
+        caption: input.caption ?? "",
+        views: 0,
+        status: "pending",
+      },
+      [
+        Permission.read(Role.user(auth.userId)),
+        Permission.update(Role.user(auth.userId)),
+      ]
+    );
+
+    await databases.updateDocument(DB, COLLECTIONS.claims, input.claimId, {
+      status: "submitted",
+    });
+
+    return ok(null);
+  } catch (err) {
+    return failFromWriteError<null>(err, null);
+  }
+}
+
 // ── batalkan claim (Sprint 3.5) ──────────────────────────────────────────────
 
 /**

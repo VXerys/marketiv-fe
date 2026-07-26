@@ -52,6 +52,8 @@ import {
   uploadCreatorPortfolioThumbnailInAppwrite,
   requestWithdrawalInAppwrite,
   unclaimCampaignInAppwrite,
+  claimCampaignInAppwrite,
+  submitProofInAppwrite,
 } from "./creator-appwrite.service";
 import type {
   RateCardPackageWriteInput,
@@ -59,6 +61,7 @@ import type {
   CreatorPortfolioWriteInput,
   WithdrawRequestInput,
   WithdrawalReceipt,
+  SubmitProofInput,
 } from "./creator-appwrite.service";
 import type { RateCardStatus } from "@/types/domain";
 
@@ -375,6 +378,69 @@ export async function requestWithdrawal(
     };
   }
   return requestWithdrawalInAppwrite(input);
+}
+
+// ── Alur A: klaim & kirim bukti (Sprint 4) ───────────────────────────────────
+
+export type { SubmitProofInput };
+
+/**
+ * Klaim campaign dari Job Pool. Mengembalikan claimId supaya pemanggil bisa
+ * langsung mengarahkan ke halaman pekerjaan aktif.
+ *
+ * Mock menegakkan guard kuota & duplikat yang sama — dua penolakan yang paling
+ * mungkin ditemui pengguna nyata, jadi harus bisa diuji tanpa Appwrite.
+ */
+export async function claimCampaign(campaignId: string): Promise<ServiceResult<string>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(800);
+    const job = mockCreatorJobs.find((j) => j.id === campaignId);
+    if (!job) {
+      return { success: false, data: "", error: "Campaign tidak ditemukan.", code: "not_found" };
+    }
+    if (job.usedQuota >= job.quota) {
+      return {
+        success: false,
+        data: "",
+        error: "Kuota kreator untuk campaign ini sudah penuh.",
+        code: "validation",
+      };
+    }
+    if (mockCreatorActiveWorks.some((w) => w.campaignId === campaignId)) {
+      return {
+        success: false,
+        data: "",
+        error: "Kamu sudah pernah mengambil campaign ini.",
+        code: "validation",
+      };
+    }
+    return { success: true, data: `mock_claim_${Date.now()}` };
+  }
+  return claimCampaignInAppwrite(campaignId);
+}
+
+/**
+ * Kirim bukti konten. `fraudScore`/`fraudStatus` TIDAK langsung tersedia —
+ * `ai-fraud-precheck` berjalan asinkron setelah submission dibuat.
+ */
+export async function submitProof(input: SubmitProofInput): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(900);
+    const work = mockCreatorActiveWorks.find((w) => w.id === input.claimId);
+    if (!work) {
+      return { success: false, data: null, error: "Pekerjaan tidak ditemukan.", code: "not_found" };
+    }
+    if (work.status !== "claimed") {
+      return {
+        success: false,
+        data: null,
+        error: "Bukti untuk pekerjaan ini sudah pernah dikirim.",
+        code: "validation",
+      };
+    }
+    return { success: true, data: null };
+  }
+  return submitProofInAppwrite(input);
 }
 
 // ── batalkan claim (Sprint 3.5) ──────────────────────────────────────────────
