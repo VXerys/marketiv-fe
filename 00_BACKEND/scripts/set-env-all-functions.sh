@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # set-env-all-functions.sh
-# Set environment variable APPWRITE_API_KEY di semua 23 function.
+# Set environment variable APPWRITE_API_KEY di semua function.
 #
 # Prasyarat:
 #   - appwrite CLI terinstall dan login
@@ -33,6 +33,7 @@ FUNCTIONS=(
   calculate-campaign-reward
   create-order
   create-payment
+  cancel-payment
   midtrans-webhook
   create-escrow
   release-escrow

@@ -27,6 +27,7 @@ export const FUNCTION_IDS = {
   // ── Tulis / aksi (Sprint 3) ──────────────────────────────────────────────
   aiBrief: "ai-brief",
   createPayment: "create-payment",
+  cancelPayment: "cancel-payment",
   requestWithdrawal: "request-withdrawal",
   validateAndUpload: "validate-and-upload",
 } as const;

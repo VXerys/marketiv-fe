@@ -24,6 +24,7 @@ NEXT_PUBLIC_TRANSACTION_COLLECTION=
 NEXT_PUBLIC_ESCROW_COLLECTION=
 NEXT_PUBLIC_WITHDRAWAL_COLLECTION=
 NEXT_PUBLIC_CREATE_PAYMENT_FUNCTION_ID=
+NEXT_PUBLIC_CANCEL_PAYMENT_FUNCTION_ID=
 NEXT_PUBLIC_STORAGE_BUCKET=
 NEXT_PUBLIC_AI_FUNCTION_ID=
 NEXT_PUBLIC_MIDTRANS_CLIENT_KEY=
@@ -44,7 +45,7 @@ NEXT_PUBLIC_MIDTRANS_CLIENT_KEY=
 
 ## Deploy Appwrite Functions
 
-- Functions: `create-user-profile`, `create-user-wallet`, `validate-and-upload`, `delete-file`, `campaign-published`, `ai-brief`, `ai-fraud-precheck`, `create-order`, `calculate-campaign-reward`, `campaign-claimed`, `expire-stale-claims`, `create-payment`, `midtrans-webhook`, `create-escrow`, `release-escrow`, `send-chat-notification`.
+- Functions: `create-user-profile`, `create-user-wallet`, `validate-and-upload`, `delete-file`, `campaign-published`, `ai-brief`, `ai-fraud-precheck`, `create-order`, `calculate-campaign-reward`, `campaign-claimed`, `expire-stale-claims`, `create-payment`, `cancel-payment`, `midtrans-webhook`, `create-escrow`, `release-escrow`, `request-withdrawal`, `send-chat-notification`.
 - Set API Key server (scope di [`50_Security_Guidelines.md`](50_Security_Guidelines.md)), secret Gemini, dan Midtrans server key sebagai function environment variables — tidak pernah di frontend.
 - Env Midtrans untuk function: `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_ENV` (`sandbox`/`production`).
 - Env Appwrite untuk function webhook: `APPWRITE_API_KEY`, `APPWRITE_DATABASE_ID`, `PAYMENTS_COLLECTION_ID`.

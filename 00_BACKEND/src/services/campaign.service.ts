@@ -268,3 +268,24 @@ export const getCampaignById = async (campaignId: string): Promise<Campaign> => 
     throw mapError(err, 'Gagal memuat campaign.');
   }
 };
+
+export const deleteCampaign = async (campaignId: string): Promise<void> => {
+  if (!campaignId) throw new CampaignServiceError('validation', 'Campaign ID wajib diisi.');
+
+  try {
+    const user = await account.get();
+    const document = await databases.getDocument(DATABASE_ID, COLLECTIONS.campaigns, campaignId);
+
+    if (document.umkmId !== user.$id) {
+      throw new CampaignServiceError('forbidden', 'Kamu bukan pemilik campaign ini.');
+    }
+
+    if (document.status !== 'draft') {
+      throw new CampaignServiceError('validation', 'Hanya campaign draft yang bisa dihapus.');
+    }
+
+    await databases.deleteDocument(DATABASE_ID, COLLECTIONS.campaigns, campaignId);
+  } catch (err) {
+    throw mapError(err, 'Gagal menghapus campaign.');
+  }
+};

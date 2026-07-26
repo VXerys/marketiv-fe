@@ -67,7 +67,7 @@ Contoh: `auth.service.ts`, `user.service.ts`, `creator.service.ts`, `campaign.se
 
 ## Appwrite Functions (`functions/`)
 
-`create-user-profile`, `validate-and-upload`, `delete-file`, `create-user-wallet`, `campaign-published`, `ai-brief`, `ai-fraud-precheck`, `create-order`, `calculate-campaign-reward`, `campaign-claimed`, `expire-stale-claims`, `create-payment`, `midtrans-webhook`, `create-escrow`, `release-escrow`, `send-chat-notification`. Penamaan: `kebab-case`.
+`create-user-profile`, `validate-and-upload`, `delete-file`, `create-user-wallet`, `campaign-published`, `ai-brief`, `ai-fraud-precheck`, `create-order`, `calculate-campaign-reward`, `campaign-claimed`, `expire-stale-claims`, `create-payment`, `cancel-payment`, `midtrans-webhook`, `create-escrow`, `release-escrow`, `request-withdrawal`, `send-chat-notification`. Penamaan: `kebab-case`.
 
 Kode Appwrite Function wajib berada di `functions/<function-id>/`. Setiap function memiliki source dan dependency sendiri di folder tersebut. Entrypoint default adalah `functions/<function-id>/src/main.js`, dan file dependency function diletakkan di `functions/<function-id>/package.json`.
 
@@ -103,6 +103,7 @@ NEXT_PUBLIC_TRANSACTION_COLLECTION=
 NEXT_PUBLIC_ESCROW_COLLECTION=
 NEXT_PUBLIC_WITHDRAWAL_COLLECTION=
 NEXT_PUBLIC_CREATE_PAYMENT_FUNCTION_ID=
+NEXT_PUBLIC_CANCEL_PAYMENT_FUNCTION_ID=
 NEXT_PUBLIC_STORAGE_BUCKET=
 NEXT_PUBLIC_AI_FUNCTION_ID=
 NEXT_PUBLIC_MIDTRANS_CLIENT_KEY=

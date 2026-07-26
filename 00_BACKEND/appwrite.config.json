@@ -1120,6 +1120,13 @@
           "size": 2000,
           "default": null,
           "encrypt": false
+        },
+        {
+          "key": "createdAt",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
         }
       ],
       "indexes": [
@@ -1766,6 +1773,13 @@
           "required": false,
           "array": false,
           "default": null
+        },
+        {
+          "key": "is_archived",
+          "type": "boolean",
+          "required": false,
+          "array": false,
+          "default": false
         }
       ],
       "indexes": [
@@ -3619,6 +3633,22 @@
       "entrypoint": "src/main.js",
       "commands": "npm install",
       "path": "functions/get-creator-negotiations"
+    },
+    {
+      "$id": "cancel-payment",
+      "name": "Cancel Payment",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/cancel-payment"
     }
   ]
 }

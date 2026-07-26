@@ -211,3 +211,29 @@ export const getPayments = async (options: GetPaymentsOptions = {}): Promise<Pay
 export const getPendingPayments = async (): Promise<Payment[]> => getPayments({ status: 'pending' });
 
 export const getPaidPayments = async (): Promise<Payment[]> => getPayments({ status: 'paid' });
+
+export const cancelPayment = async (paymentId: string): Promise<void> => {
+  if (!paymentId) {
+    throw new PaymentServiceError('validation', 'Payment ID wajib diisi.');
+  }
+
+  try {
+    const execution = await functions.createExecution(
+      FUNCTIONS.cancelPayment,
+      JSON.stringify({ paymentId }),
+      false
+    );
+
+    if (execution.status === 'failed') {
+      throw new PaymentServiceError('server', 'Gagal membatalkan pembayaran. Coba lagi.');
+    }
+
+    const result = JSON.parse(execution.responseBody);
+
+    if (!result.ok) {
+      throw new PaymentServiceError('server', result.error || 'Gagal membatalkan pembayaran.');
+    }
+  } catch (err) {
+    throw mapError(err, 'Gagal membatalkan pembayaran. Coba lagi.');
+  }
+};

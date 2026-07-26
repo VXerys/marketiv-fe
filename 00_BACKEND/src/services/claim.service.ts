@@ -1,7 +1,7 @@
 import { ID, Permission, Query, Role } from 'appwrite';
 import { COLLECTIONS, DATABASE_ID, databases } from '../lib/appwrite';
 
-export type ClaimStatus = 'claimed' | 'submitted' | 'approved' | 'rejected' | 'expired';
+export type ClaimStatus = 'claimed' | 'submitted' | 'approved' | 'rejected' | 'expired' | 'unclaimed';
 
 export type Claim = {
   id: string;
@@ -161,5 +161,40 @@ export const claimCampaign = async (campaignId: string): Promise<Claim> => {
     return mapClaim(claimDoc);
   } catch (err) {
     throw mapError(err, 'Gagal claim campaign.');
+  }
+};
+
+export const unclaimCampaign = async (claimId: string): Promise<void> => {
+  if (!claimId) throw new ClaimServiceError('validation', 'Claim ID wajib diisi.');
+
+  const { account } = await import('../lib/appwrite');
+
+  try {
+    const user = await account.get();
+    const claimDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.claims, claimId);
+    const claim = claimDoc as Record<string, any>;
+
+    if (claim.creatorId !== user.$id) {
+      throw new ClaimServiceError('forbidden', 'Hanya kreator pemilik claim yang dapat membatalkan.');
+    }
+
+    if (claim.status !== 'claimed') {
+      throw new ClaimServiceError('validation', `Hanya claim dengan status claimed yang dapat dibatalkan (saat ini: ${claim.status}).`);
+    }
+
+    await databases.updateDocument(DATABASE_ID, COLLECTIONS.claims, claimId, {
+      status: 'unclaimed',
+    });
+
+    // Kurangi totalClaims denormalisasi
+    const campaignDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.campaigns, claim.campaignId);
+    const currentTotal = (campaignDoc as Record<string, any>).totalClaims ?? 0;
+    if (currentTotal > 0) {
+      await databases.updateDocument(DATABASE_ID, COLLECTIONS.campaigns, claim.campaignId, {
+        totalClaims: currentTotal - 1,
+      });
+    }
+  } catch (err) {
+    throw mapError(err, 'Gagal membatalkan claim.');
   }
 };

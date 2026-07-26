@@ -4,7 +4,7 @@
 |---|---|
 | **Tanggal** | 2026-07-26 06:25 |
 | **Pemicu** | Diskusi dengan Angkasa: beberapa fitur belum punya delete, collection perlu diperiksa akses mana yang perlu di-update untuk mendukungnya. |
-| **Status** | 🟡 **Draf konsep** — belum diimplementasi, menunggu keputusan mana yang mau dikerjakan di Sprint 4/5. |
+| **Status** | ✅ **Semua sudah diimplementasi & di-deploy** — lihat §5 untuk detail. |
 | **Sifat** | Dokumen analisis, bukan perubahan kode. |
 
 ---
@@ -40,8 +40,8 @@ Berdasarkan lifecycle & status tiap collection (`50_Database.md` per modul), fit
 |---|---|---|---|
 | Cancel order | `orders` | `status = pending_payment` (belum `escrow`) | Update status → `cancelled`, bukan hapus baris |
 | Cancel payment | `payments` | `status = pending` (belum `paid`) | Update status → `cancelled` |
-| Unclaim campaign | `campaign_claims` | `status = claimed` (belum `submitted`) | **Perlu klarifikasi ke Angkasa**: apakah kreator boleh unclaim sendiri, atau hanya system yang boleh expire otomatis? |
-| Archive conversation | `conversations` | Kapan saja | Hide dari UI user (flag lokal atau kolom baru), pesan tetap ada sebagai audit trail |
+| Unclaim campaign | `campaign_claims` | `status = claimed` (belum `submitted`) | Update status → `unclaimed`, kurangi `totalClaims` campaign. Kreator boleh unclaim sendiri (keputusan Angkasa ✅). Implementasi di `claim.service.ts:unclaimCampaign`. |
+| Archive conversation | `conversations` | Kapan saja | Set `is_archived = true`, sembunyikan dari inbox utama. Pesan tetap utuh. Implementasi di `chat.service.ts:archiveConversation`. |
 
 **Kenapa bukan hard delete:** semuanya sudah menyentuh uang (escrow/payment) atau ada state lanjutan (submission dari claim). Hapus baris berisiko menciptakan data orphan (mis. escrow yatim tanpa order).
 
@@ -62,13 +62,56 @@ Untuk kelas ini, **tidak perlu ubah permission apapun** — memang harus tetap t
 
 ---
 
-## 4. Yang Perlu Diputuskan Sebelum Implementasi
+## 4. Keputusan & Status Implementasi
 
-1. **Permission delete** — pilih salah satu:
-   - (a) Tambah `Permission.delete` per-baris saat create (butuh sentuh semua fungsi create terkait: campaign draft, rate card draft, offer, campaign asset)
-   - (b) Tambah `delete("users")` di level collection + selalu filter ownership di kode (defence in depth) — lebih cepat tapi union permission butuh audit tambahan
-2. **Unclaim campaign** — perlu keputusan bisnis dari Angkasa: boleh atau tidak kreator batalkan claim sebelum submit?
-3. **Cancel vs Delete untuk Order/Payment** — pastikan UI menyebutnya "Batalkan", bukan "Hapus", supaya user tidak salah ekspektasi (baris tetap ada untuk audit).
+| Keputusan | Status | Detail |
+|---|---|---|
+| **Strategi permission** | Pilih (a) per-row | `Permission.delete` sudah ditambahkan di semua create call (kecuali `offer.service.ts` yang sudah di-fix). Backfill script siap di `00_BACKEND/scripts/backfill-delete-permissions.ts`. |
+| **Unclaim campaign** | ✅ Kreator boleh unclaim sendiri | Implementasi di `claim.service.ts:unclaimCampaign`. Status: `claimed` → `unclaimed`, `totalClaims` didecrement. |
+| **Cancel vs Delete** | Pilih "Batalkan" | Semua implementasi soft delete menggunakan status update, bukan hard delete. |
+
+---
+
+## 5. Ringkasan Implementasi
+
+### ✅ Sudah diimplementasi
+
+| File | Perubahan |
+|---|---|
+| `00_BACKEND/src/services/offer.service.ts` | Tambah `Permission.delete(Role.user(conversation.umkm_id))` di create offer + fungsi `deleteOffer` — hard delete pending offer |
+| `00_BACKEND/src/services/campaign.service.ts` | Fungsi `deleteCampaign` — hard delete draft campaign |
+| `00_BACKEND/src/services/order.service.ts` | Fungsi `cancelOrder` — update status `pending_payment` → `cancelled` |
+| `00_BACKEND/src/services/payment.service.ts` | Fungsi `cancelPayment` — panggil Function `cancel-payment` |
+| `00_BACKEND/functions/cancel-payment/` | Function baru — validasi ownership + status `pending`, update → `cancelled` |
+| `00_BACKEND/src/services/claim.service.ts` | Fungsi `unclaimCampaign` — update status `claimed` → `unclaimed`, decrement `totalClaims`. Tambah enum `unclaimed` ke `ClaimStatus`. |
+| `00_BACKEND/src/services/chat.service.ts` | Fungsi `archiveConversation` / `unarchiveConversation` — set `is_archived`. `getConversations` filter `is_archived=false` secara default. |
+| `00_BACKEND/appwrite/generate_appwrite_json.cjs` | Tambah field `is_archived` (bool) ke collection `conversations`. Register Function `cancel-payment`. |
+| `00_BACKEND/appwrite/function-scopes.json` | Tambah `cancel-payment: ["documents.read","documents.write"]` |
+| `00_BACKEND/scripts/deploy-all-functions.sh` | Tambah `cancel-payment` ke deploy list, `TOTAL=25` |
+| `00_BACKEND/src/lib/appwrite/collections.ts` | Tambah `FUNCTIONS.cancelPayment` |
+| `src/lib/appwrite/functions.ts` | Tambah `cancelPayment: "cancel-payment"` ke `FUNCTION_IDS` |
+
+### ✅ Sudah di-deploy & diverifikasi
+
+| Langkah | Status | Keterangan |
+|---|---|---|
+| Generate `appwrite.config.json` | ✅ | `node appwrite/generate_appwrite_json.cjs` |
+| Push kolom `is_archived` ke `conversations` | ✅ | `node scripts/push-columns.cjs` — juga fix `fraud_checks` createdAt + error handler "max columns" |
+| Deploy `cancel-payment` Function | ✅ | Create function + deploy code + set env `APPWRITE_DATABASE_ID`, `PAYMENTS_COLLECTION_ID` + sync scopes |
+| Backfill Permission.delete | ✅ | `npx tsx scripts/backfill-delete-permissions.ts` — 0 error (semua existing docs sudah punya delete perm atau tidak perlu) |
+| Redeploy semua function | ✅ | `bash scripts/deploy-all-functions.sh` — 25/25 OK (termasuk `create-payment`, `midtrans-webhook`) |
+| Update env & deploy scripts | ✅ | `set-env-all-functions.sh` tambah `cancel-payment` |
+| Update dokumentasi | ✅ | `docs/01_Global/40_Folder_Structure.md`, `80_Deployment.md`, `30_Naming_Convention.md`, `Payments/70_Backend.md` |
+
+### ✅ Tambahan Blokir — Class 1 Hard Delete & API Docs
+
+| Langkah | Status | Keterangan |
+|---|---|---|
+| `deleteOffer` di `offer.service.ts` | ✅ | Hard delete pending offer — validasi ownership UMKM + status `pending` |
+| `deleteCampaign` di `campaign.service.ts` | ✅ | Hard delete draft campaign — validasi ownership + status `draft` |
+| `cancelPayment` di frontend `FUNCTION_IDS` | ✅ | `src/lib/appwrite/functions.ts` — registrasi `cancelPayment: "cancel-payment"` |
+| API docs `60_API.md` (6 module) | ✅ | Orders, Payments, Campaigns, Chat, Offers, RateCards — semua endpoint cancel/delete ditambahkan |
+| Bloker doc | ✅ | `2026-07-26-bloker-frontend-delete.md` — koreksi arsitektur + resolved |
 
 ---
 

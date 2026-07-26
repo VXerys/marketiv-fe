@@ -63,9 +63,17 @@ Payment dibuat lewat Appwrite Function agar Midtrans secret key tidak pernah kel
 
 #### `getPayments()` — [Client SDK]
 
-- **Input**: `{ status? }`.
+- **Input**: `{ status? }`
 - **Proses**: ambil daftar payment milik user, bisa difilter status.
 - **Akses**: Owner read · Admin.
+
+#### `cancelPayment()` — [Appwrite Function callable]
+
+- **Input**: `{ paymentId }`
+- **Validasi**: Payment harus milik user yang login, status harus `pending` (belum `paid`/`expired`/`failed`/`cancelled`).
+- **Proses**: panggil Function `cancel-payment` → update `status: pending → cancelled`.
+- **Output**: `{ ok: true }`
+- **Akses**: Authenticated user (owner payment).
 
 ---
 

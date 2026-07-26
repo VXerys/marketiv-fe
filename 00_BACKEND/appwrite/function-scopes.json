@@ -22,5 +22,6 @@
   "release-escrow": ["documents.read", "documents.write"],
   "request-withdrawal": ["documents.read", "documents.write"],
   "send-chat-notification": ["documents.read", "documents.write", "messages.write"],
+  "cancel-payment": ["documents.read", "documents.write"],
   "validate-and-upload": ["documents.read", "documents.write", "files.read", "files.write"]
 }

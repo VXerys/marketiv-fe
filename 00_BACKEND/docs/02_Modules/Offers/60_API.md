@@ -24,6 +24,17 @@ Fungsi-fungsi berikut dipanggil langsung dari frontend Next.js via **Appwrite Cl
 - **Proses**: set `status = rejected`.
 - **Akses**: Content Creator (peserta percakapan).
 
+### `deleteOffer()` — [Client SDK]
+
+- **Input**: `{ offerId }`
+- **Validasi**: Offer harus milik UMKM yang login, status harus `pending` (belum `accepted`/`rejected`).
+- **Proses**: hapus dokumen `offers` permanent.
+- **Akses**: UMKM (owner offer).
+
+- **Input**: `{ offerId }`
+- **Proses**: set `status = rejected`.
+- **Akses**: Content Creator (peserta percakapan).
+
 ---
 
 ## Appwrite Functions (Server-side)

@@ -4,6 +4,15 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 
 ## Appwrite Functions
 
+### cancel-payment
+
+- **Trigger**: callable dari frontend saat user membatalkan payment yang masih `pending`.
+- **Pola**: service `payment.service.ts:cancelPayment(paymentId)` → Function `cancel-payment`.
+- **Aksi**: validasi kepemilikan + status `pending`, update status → `cancelled`.
+- **Syarat**: payment `status = pending` (belum `paid`/`failed`/`expired`/`cancelled`).
+- **Env wajib**: `APPWRITE_API_KEY`, `APPWRITE_DATABASE_ID`, `PAYMENTS_COLLECTION_ID`.
+- **Catatan**: Tidak memanggil Midtrans — hanya update status internal. Jika ingin void transaksi Midtrans, perlu integrasi tambahan.
+
 ### create-payment
 
 - **Trigger**: callable dari frontend saat UMKM checkout order atau top up.

@@ -22,6 +22,13 @@ Dimiliki Creator.
 - **Proses**: ubah rate card / paket; set `status = published` untuk publish.
 - **Akses**: Creator (owner).
 
+#### `deleteRateCard()` — [Client SDK]
+
+- **Input**: `{ rateCardId }`
+- **Validasi**: Rate card harus milik kreator yang login, status `draft`.
+- **Proses**: hapus dokumen `rate_cards` + paket terkait.
+- **Akses**: Creator (owner).
+
 #### `getRateCards()` — [Client SDK]
 
 - **Input**: `{ creatorId }`

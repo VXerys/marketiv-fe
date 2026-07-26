@@ -76,11 +76,25 @@ Dimiliki UMKM. Inti alur PPV.
 - **Proses**: hapus dokumen `campaign_assets`.
 - **Akses**: UMKM (owner campaign).
 
+#### `deleteCampaign()` — [Client SDK]
+
+- **Input**: `{ campaignId }`
+- **Validasi**: Campaign harus milik UMKM yang login, status harus `draft` (belum publish).
+- **Proses**: hapus dokumen `campaigns` dan semua asset terkait.
+- **Akses**: UMKM (owner campaign).
+
 ---
 
 ### Claim Service
 
 Dimiliki Creator.
+
+#### `unclaimCampaign()` — [Client SDK]
+
+- **Input**: `{ claimId }`
+- **Validasi**: Claim harus milik kreator yang login, status harus `claimed` (belum `submitted`).
+- **Proses**: update `status: claimed → unclaimed`, decrement `totalClaims` campaign induk.
+- **Akses**: Creator (owner claim).
 
 #### `claimCampaign()` — [Client SDK]
 

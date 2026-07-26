@@ -147,6 +147,7 @@ export const createOffer = async (input: CreateOfferInput): Promise<Offer> => {
         Permission.read(Role.user(conversation.umkm_id)),
         Permission.read(Role.user(conversation.creator_id)),
         Permission.update(Role.user(conversation.creator_id)),
+        Permission.delete(Role.user(conversation.umkm_id)),
       ]
     );
 
@@ -201,5 +202,25 @@ export const rejectOffer = async (offerId: string): Promise<Offer> => {
     return mapOffer(updated);
   } catch (err) {
     throw mapError(err, 'Gagal menolak offer.');
+  }
+};
+
+export const deleteOffer = async (offerId: string): Promise<void> => {
+  if (!offerId) throw new OfferServiceError('validation', 'Offer ID wajib diisi.');
+
+  try {
+    const user = await account.get();
+    const existing = await getOfferOrThrow(offerId);
+
+    if (existing.umkmId !== user.$id) {
+      throw new OfferServiceError('forbidden', 'Hanya UMKM pemilik offer yang dapat menghapus.');
+    }
+    if (existing.status !== 'pending') {
+      throw new OfferServiceError('validation', 'Hanya offer pending yang bisa dihapus.');
+    }
+
+    await databases.deleteDocument(DATABASE_ID, COLLECTIONS.offers, offerId);
+  } catch (err) {
+    throw mapError(err, 'Gagal menghapus offer.');
   }
 };

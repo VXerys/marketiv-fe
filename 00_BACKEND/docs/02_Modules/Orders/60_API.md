@@ -28,6 +28,13 @@ Fungsi-fungsi berikut dipanggil langsung dari frontend Next.js via **Appwrite Cl
 - **Akses**: UMKM (buyer).
 - **Link**: escrow release via function `release-escrow` (lihat `90_Events.md` & `../Payments/`).
 
+### `cancelOrder()` — [Client SDK]
+
+- **Input**: `{ orderId }`
+- **Validasi**: Order harus milik UMKM yang login, status harus `pending_payment` (belum masuk escrow).
+- **Proses**: update `status: pending_payment → cancelled`.
+- **Akses**: UMKM (owner).
+
 ### `requestRevision()` — [Client SDK]
 
 - **Input**: `{ orderId, message }`

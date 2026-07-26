@@ -10,6 +10,7 @@ export type Conversation = {
   offerId?: string;
   lastMessage?: string;
   lastMessageAt?: string;
+  isArchived?: boolean;
   createdAt?: string;
 };
 
@@ -55,6 +56,7 @@ const mapConversation = (document: Record<string, any>): Conversation => ({
   offerId: document.offer_id || undefined,
   lastMessage: document.last_message || undefined,
   lastMessageAt: document.last_message_at || undefined,
+  isArchived: document.is_archived ?? false,
   createdAt: document.$createdAt,
 });
 
@@ -197,16 +199,23 @@ export const markConversationAsRead = async (conversationId: string): Promise<vo
 /**
  * Inbox percakapan milik user yang sedang login (UMKM maupun kreator).
  * Collection `conversations` memakai snake_case attribute.
+ * @param includeArchived true untuk tampilkan semua (termasuk arsip), false (default) untuk filter aktif.
  */
-export const getConversations = async (limit = 50): Promise<Conversation[]> => {
+export const getConversations = async (limit = 50, includeArchived = false): Promise<Conversation[]> => {
   try {
     const user = await account.get();
 
-    const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.conversations, [
+    const queries = [
       Query.or([Query.equal('umkm_id', user.$id), Query.equal('creator_id', user.$id)]),
       Query.orderDesc('last_message_at'),
       Query.limit(limit),
-    ]);
+    ];
+
+    if (!includeArchived) {
+      queries.splice(1, 0, Query.equal('is_archived', false));
+    }
+
+    const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.conversations, queries);
 
     return response.documents.map(mapConversation);
   } catch (err) {
@@ -242,5 +251,41 @@ export const getMessages = async (conversationId: string, limit = 50): Promise<C
     return response.documents.map(mapMessage).reverse();
   } catch (err) {
     throw mapError(err, 'Gagal memuat pesan.');
+  }
+};
+
+/** Arsipkan percakapan — sembunyikan dari inbox utama, pesan tetap ada. */
+export const archiveConversation = async (conversationId: string): Promise<void> => {
+  requireText(conversationId, 'Conversation ID wajib diisi.');
+
+  try {
+    const user = await account.get();
+    const document = await databases.getDocument(DATABASE_ID, COLLECTIONS.conversations, conversationId);
+    const conversation = mapConversation(document);
+    ensureParticipant(conversation, user.$id);
+
+    await databases.updateDocument(DATABASE_ID, COLLECTIONS.conversations, conversationId, {
+      is_archived: true,
+    });
+  } catch (err) {
+    throw mapError(err, 'Gagal mengarsipkan percakapan.');
+  }
+};
+
+/** Kembalikan percakapan dari arsip ke inbox utama. */
+export const unarchiveConversation = async (conversationId: string): Promise<void> => {
+  requireText(conversationId, 'Conversation ID wajib diisi.');
+
+  try {
+    const user = await account.get();
+    const document = await databases.getDocument(DATABASE_ID, COLLECTIONS.conversations, conversationId);
+    const conversation = mapConversation(document);
+    ensureParticipant(conversation, user.$id);
+
+    await databases.updateDocument(DATABASE_ID, COLLECTIONS.conversations, conversationId, {
+      is_archived: false,
+    });
+  } catch (err) {
+    throw mapError(err, 'Gagal mengembalikan percakapan dari arsip.');
   }
 };

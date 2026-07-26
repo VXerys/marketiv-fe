@@ -18,6 +18,18 @@ Fungsi-fungsi berikut dipanggil langsung dari frontend Next.js via **Appwrite Cl
 - **Proses**: validasi participant, tipe pesan; buat dokumen `messages`; update `last_message` & `last_message_at` pada conversation induk.
 - **Akses**: Participant.
 
+### `archiveConversation()` — [Client SDK]
+
+- **Input**: `{ conversationId }`
+- **Proses**: set `is_archived = true`, sembunyikan dari inbox default. Pesan tetap utuh.
+- **Akses**: Participant (UMKM / Creator).
+
+### `unarchiveConversation()` — [Client SDK]
+
+- **Input**: `{ conversationId }`
+- **Proses**: set `is_archived = false`, kembalikan ke inbox utama.
+- **Akses**: Participant (UMKM / Creator).
+
 ### `markConversationAsRead()` — [Client SDK]
 
 - **Input**: `{ conversationId }`

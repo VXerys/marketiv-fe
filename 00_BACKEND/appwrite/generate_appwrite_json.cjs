@@ -241,7 +241,8 @@ const collections = [
             createStringAttr("submissionId", true),
             createIntAttr("score", true),
             createStringAttr("result", true, 50),
-            createStringAttr("reason", false, 2000)
+            createStringAttr("reason", false, 2000),
+            createDatetimeAttr("createdAt", false)
         ],
         indexes: [
             createIndex("idx_submissionId", "key", ["submissionId"]),
@@ -365,7 +366,8 @@ const collections = [
             createStringAttr("creator_id", true),
             createStringAttr("offer_id", false, 255),
             createStringAttr("last_message", false, 1000),
-            createDatetimeAttr("last_message_at", false)
+            createDatetimeAttr("last_message_at", false),
+            createBoolAttr("is_archived", false, false)
         ],
         indexes: [
             createIndex("idx_umkm_id", "key", ["umkm_id"]),
@@ -1081,6 +1083,20 @@ const functions = [
         entrypoint: "src/main.js",
         commands: "npm install",
         path: "../functions/get-creator-negotiations"
+    },
+    {
+        $id: "cancel-payment",
+        name: "Cancel Payment",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/cancel-payment"
     },
 
 ];

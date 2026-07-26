@@ -334,3 +334,26 @@ export const requestRevision = async (input: RequestRevisionInput): Promise<Revi
     throw mapError(err, 'Gagal meminta revisi.');
   }
 };
+
+export const cancelOrder = async (orderId: string): Promise<void> => {
+  if (!orderId) throw new OrderServiceError('validation', 'Order ID wajib diisi.');
+
+  try {
+    const user = await account.get();
+    const order = await databases.getDocument(DATABASE_ID, COLLECTIONS.orders, orderId);
+
+    if (order.umkmId !== user.$id) {
+      throw new OrderServiceError('forbidden', 'Hanya UMKM pemilik order yang dapat membatalkan.');
+    }
+
+    if (order.status !== 'pending_payment') {
+      throw new OrderServiceError('validation', 'Hanya order dengan status pending_payment yang dapat dibatalkan.');
+    }
+
+    await databases.updateDocument(DATABASE_ID, COLLECTIONS.orders, orderId, {
+      status: 'cancelled',
+    });
+  } catch (err) {
+    throw mapError(err, 'Gagal membatalkan order.');
+  }
+};

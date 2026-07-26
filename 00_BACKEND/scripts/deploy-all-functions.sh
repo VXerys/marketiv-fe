@@ -2,7 +2,7 @@
 set -euo pipefail
 
 FUNCTIONS_DIR="$(cd "$(dirname "$0")/../functions" && pwd)"
-TOTAL=24
+TOTAL=25
 CURRENT=0
 FAILED=()
 
@@ -62,6 +62,7 @@ deploy_one "get-creator-directory"
 deploy_one "get-creator-profile"
 deploy_one "get-creator-dashboard-summary"
 deploy_one "get-creator-negotiations"
+deploy_one "cancel-payment"
 
 echo "============================================"
 echo "  Summary: $((TOTAL - ${#FAILED[@]}))/$TOTAL OK"

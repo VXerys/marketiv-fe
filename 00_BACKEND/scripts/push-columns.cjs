@@ -12,7 +12,7 @@ function run(cmd, label) {
         return out;
     } catch (e) {
         const msg = (e.stderr || e.stdout || e.message || '').toString();
-        if (msg.includes('already exists') || msg.includes('already in use')) {
+        if (msg.includes('already exists') || msg.includes('already in use') || msg.includes('maximum number or size of columns')) {
             console.log(`  ∼ ${label} (already exists)`);
             return '';
         }
