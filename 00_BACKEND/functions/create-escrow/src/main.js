@@ -55,7 +55,8 @@ function getEnv(req) {
     walletsCollectionId: process.env.WALLETS_COLLECTION_ID || process.env.NEXT_PUBLIC_WALLET_COLLECTION || "wallets",
     transactionsCollectionId: process.env.TRANSACTIONS_COLLECTION_ID || process.env.NEXT_PUBLIC_TRANSACTION_COLLECTION || "transactions",
     escrowsCollectionId: process.env.ESCROWS_COLLECTION_ID || process.env.NEXT_PUBLIC_ESCROW_COLLECTION || "escrows",
-    ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders"
+    ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders",
+    campaignsCollectionId: process.env.CAMPAIGNS_COLLECTION_ID || process.env.NEXT_PUBLIC_CAMPAIGN_COLLECTION || "campaigns"
   };
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
@@ -91,6 +92,17 @@ async function completeTopup(databases, env, payment) {
   await databases.updateDocument(env.databaseId, env.walletsCollectionId, wallet.$id, {
     balance: Number(wallet.balance || 0) + Number(payment.amount)
   });
+
+  // Accumulate remainingBudget jika top-up untuk campaign
+  if (payment.purpose === "campaign" && payment.campaign_id) {
+    const campaign = await databases.getDocument(
+      env.databaseId, env.campaignsCollectionId, payment.campaign_id
+    );
+    await databases.updateDocument(
+      env.databaseId, env.campaignsCollectionId, payment.campaign_id,
+      { remainingBudget: Number(campaign.remainingBudget || 0) + Number(payment.amount) }
+    );
+  }
 
   return { walletId: wallet.$id };
 }

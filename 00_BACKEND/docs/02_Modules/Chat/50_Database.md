@@ -15,8 +15,9 @@ Ruang chat antara satu UMKM dan satu creator. Relasi: Conversation (1) → Messa
 | offer_id        | string  | no       | FK → offers terakhir/terkait         |
 | last_message    | string  | no       | denormalisasi pesan terakhir         |
 | last_message_at | datetime| no       | denormalisasi waktu pesan terakhir   |
+| is_archived     | boolean | no       | default `false`; `true` = sembunyikan dari inbox |
 
-**Index**: `umkm_id`, `creator_id`, unique `umkm_id + creator_id`, `offer_id`.
+**Index**: `umkm_id`, `creator_id`, unique `umkm_id + creator_id`, `offer_id`, `is_archived`.
 
 **Constraint**: kombinasi `umkm_id + creator_id` unik (satu percakapan per pasangan — lihat `30_Business_Rules.md`).
 

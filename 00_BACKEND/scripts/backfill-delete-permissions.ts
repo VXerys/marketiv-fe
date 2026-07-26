@@ -32,7 +32,7 @@ const DB_ID = process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID 
 
 interface Target {
   collectionId: string;
-  ownerField: string;
+  ownerField: string | null;
   label: string;
 }
 

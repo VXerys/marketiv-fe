@@ -4,7 +4,7 @@
 |---|---|
 | **Tanggal** | 2026-07-26 10:53 |
 | **Pemicu** | Kami `git pull` setelah kalian selesaikan lapisan delete/cancel (32 file, 25/25 Function OK) dan memverifikasi tiap klaim terhadap kode nyata sebelum mulai wiring frontend. |
-| **Status** | 🟡 **2 temuan butuh keputusan kalian**, 1 koreksi arsitektur, 1 tagihan lama, 1 permintaan DTO. |
+| **Status** | 🟢 **Semua terselesaikan** — lihat §7 untuk detail resolusi backend. |
 | **Sifat** | Dokumen temuan + laporan apa yang sudah kami kerjakan (§6). **Nol perubahan dari kami di `00_BACKEND/`** selain dokumen ini sendiri. |
 | **Terima kasih** | Kerja kalian cepat dan rapi — Function `cancel-payment` kontraknya bersih (405/401/403/409 + cek ownership + cek status), kolom `is_archived` sudah benar-benar ada di `conversations`, dan 6 service delete/cancel konsisten memvalidasi ownership sebelum menulis. Yang kami angkat di bawah adalah sisa yang belum tertutup, bukan bantahan atas itu. |
 
@@ -178,6 +178,25 @@ Kami menjembataninya di klien lewat constraint unik `umkm_id + creator_id` — s
 Kalau `get-creator-negotiations` bisa ikut mengembalikan `conversationId` + `isArchived` di DTO-nya, penjodohan klien ini bisa kami buang. Bukan blocker — silakan pertimbangkan saat menyentuh Function itu lagi.
 
 **Sprint 4 kami tahan sampai T-4 terjawab.**
+
+---
+
+## 7. Resolusi Backend
+
+Setelah diskusi internal tim backend, kami (backend) telah mengeksekusi seluruh keputusan terhadap temuan di atas pada 2026-07-26:
+
+| # | Keputusan | Tindakan kami (backend) | File perubahan |
+|---|---|---|---|
+| **T-1** | Opsi (a) — **Hard delete** | `unclaimCampaign` kini `deleteDocument`, bukan `updateDocument({status:'unclaimed'})`. Tambah 400 guard jika claim tidak ditemukan. Hapus `'unclaimed'` dari `ClaimStatus` type. | `src/services/claim.service.ts` |
+| **T-2** | **Resolved otomatis** | Karena `unclaimed` dihapus dari kode (T-1), dokumentasi `50_Database.md:90` sudah sinkron — tidak perlu perubahan. | — |
+| **T-3** | **Info diterima** | Pola mirror sudah benar. Tidak ada perubahan dari kami. | — |
+| **T-4** | Opsi (a) — **`create-escrow` tulis `remainingBudget`** | `completeTopup()` kini accumulate `remainingBudget` saat `payment.purpose === "campaign"`. Tambah `campaignsCollectionId` di env config. | `functions/create-escrow/src/main.js`, `.env`, `.env.example` |
+| **T-5** | **Ditampung** | Akan tambah `conversationId` + `isArchived` di DTO `get-creator-negotiations` saat ada sentuhan berikutnya. Bukan blocker. | — (future) |
+| Backfill | `ownerField: string \| null` | Ubah tipe interface. | `scripts/backfill-delete-permissions.ts` |
+
+**Catatan untuk frontend:** Karena T-1 kini hard delete, mirror `unclaimCampaignInAppwrite` di `creator-appwrite.service.ts` perlu disesuaikan dari soft delete menjadi hard delete. Jika mirror berjalan via SDK browser, tambahkan `Permission.delete(Role.user(creatorId))` saat create claim.
+
+**Sprint 4 resmi unblocked** — campaign dapat menjadi `active` setelah top-up.
 
 ---
 

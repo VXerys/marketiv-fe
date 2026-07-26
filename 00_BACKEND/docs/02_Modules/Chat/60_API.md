@@ -18,6 +18,13 @@ Fungsi-fungsi berikut dipanggil langsung dari frontend Next.js via **Appwrite Cl
 - **Proses**: validasi participant, tipe pesan; buat dokumen `messages`; update `last_message` & `last_message_at` pada conversation induk.
 - **Akses**: Participant.
 
+### `getConversations()` — [Client SDK]
+
+- **Input**: `{ limit?, includeArchived? }` — `includeArchived` default `false`.
+- **Proses**: query semua percakapan milik user. Jika `includeArchived = false`, filter `is_archived = false`.
+- **Output**: `Conversation[]` — tiap objek mencakup `id`, `umkmId`, `creatorId`, `lastMessage`, `lastMessageAt`, `isArchived`.
+- **Akses**: Participant.
+
 ### `archiveConversation()` — [Client SDK]
 
 - **Input**: `{ conversationId }`

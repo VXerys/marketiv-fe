@@ -1,7 +1,7 @@
 import { ID, Permission, Query, Role } from 'appwrite';
 import { COLLECTIONS, DATABASE_ID, databases } from '../lib/appwrite';
 
-export type ClaimStatus = 'claimed' | 'submitted' | 'approved' | 'rejected' | 'expired' | 'unclaimed';
+export type ClaimStatus = 'claimed' | 'submitted' | 'approved' | 'rejected' | 'expired';
 
 export type Claim = {
   id: string;
@@ -171,26 +171,30 @@ export const unclaimCampaign = async (claimId: string): Promise<void> => {
 
   try {
     const user = await account.get();
-    const claimDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.claims, claimId);
-    const claim = claimDoc as Record<string, any>;
 
-    if (claim.creatorId !== user.$id) {
+    let claimDoc: Record<string, any>;
+    try {
+      claimDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.claims, claimId) as Record<string, any>;
+    } catch {
+      throw new ClaimServiceError('validation', 'Claim tidak ditemukan.');
+    }
+
+    if (claimDoc.creatorId !== user.$id) {
       throw new ClaimServiceError('forbidden', 'Hanya kreator pemilik claim yang dapat membatalkan.');
     }
 
-    if (claim.status !== 'claimed') {
-      throw new ClaimServiceError('validation', `Hanya claim dengan status claimed yang dapat dibatalkan (saat ini: ${claim.status}).`);
+    if (claimDoc.status !== 'claimed') {
+      throw new ClaimServiceError('validation', `Hanya claim dengan status claimed yang dapat dibatalkan (saat ini: ${claimDoc.status}).`);
     }
 
-    await databases.updateDocument(DATABASE_ID, COLLECTIONS.claims, claimId, {
-      status: 'unclaimed',
-    });
+    // Hard delete — dokumen hilang, bukan soft delete
+    await databases.deleteDocument(DATABASE_ID, COLLECTIONS.claims, claimId);
 
     // Kurangi totalClaims denormalisasi
-    const campaignDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.campaigns, claim.campaignId);
+    const campaignDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.campaigns, claimDoc.campaignId);
     const currentTotal = (campaignDoc as Record<string, any>).totalClaims ?? 0;
     if (currentTotal > 0) {
-      await databases.updateDocument(DATABASE_ID, COLLECTIONS.campaigns, claim.campaignId, {
+      await databases.updateDocument(DATABASE_ID, COLLECTIONS.campaigns, claimDoc.campaignId, {
         totalClaims: currentTotal - 1,
       });
     }
