@@ -9,7 +9,7 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Method not allowed" }, 405);
     }
 
-    const env = getEnv();
+    const env = getEnv(req);
     const notification = parseBody(req, error);
     const validationError = validateRequiredPayload(notification);
 
@@ -30,7 +30,9 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Payment not found" }, 404);
     }
 
-    if (!isAmountEqual(payment.amount, notification.gross_amount)) {
+    // Midtrans menagih total_amount (budget + fee platform), bukan amount dasar.
+    // `?? payment.amount` menjaga baris lama yang belum punya total_amount.
+    if (!isAmountEqual(payment.total_amount ?? payment.amount, notification.gross_amount)) {
       error(`Amount mismatch for payment ${payment.$id}`);
       return json(res, { error: "Amount mismatch" }, 409);
     }
@@ -77,11 +79,11 @@ export default async ({ req, res, log, error }) => {
   }
 };
 
-function getEnv() {
+function getEnv(req) {
   const env = {
     appwriteEndpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT || process.env.APPWRITE_ENDPOINT,
     appwriteProjectId: process.env.APPWRITE_FUNCTION_PROJECT_ID || process.env.APPWRITE_PROJECT_ID,
-    appwriteApiKey: process.env.APPWRITE_API_KEY,
+    appwriteApiKey: req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY,
     databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
     paymentsCollectionId: process.env.PAYMENTS_COLLECTION_ID || process.env.NEXT_PUBLIC_PAYMENT_COLLECTION || "payments",
     midtransServerKey: process.env.MIDTRANS_SERVER_KEY

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import type { OrderStatus } from "@/types/domain";
 
 interface MessageComposerProps {
   onSendMessage: (content: string) => void;
-  orderStatus?: string;
+  orderStatus?: OrderStatus;
   onSendOffer?: () => void;
   onPay?: () => void;
   onVerify?: () => void;
@@ -57,21 +58,21 @@ export function MessageComposer({
   const buildQuickActions = (): QuickAction[] => {
     const actions: QuickAction[] = [];
 
-    if (orderStatus === "negotiation" && onSendOffer) {
+    if (orderStatus === "pending_payment" && onSendOffer) {
       actions.push({
         icon: "💰",
         label: "Ajukan Nego Harga",
         handler: () => { onSendOffer(); setMenuOpen(false); },
       });
     }
-    if (orderStatus === "waiting_payment" && onPay) {
+    if (orderStatus === "pending_payment" && onPay) {
       actions.push({
         icon: "💳",
         label: "Lakukan Pembayaran",
         handler: () => { onPay(); setMenuOpen(false); },
       });
     }
-    if (orderStatus === "waiting_verification" && onVerify) {
+    if (orderStatus === "approved" && onVerify) {
       actions.push({
         icon: "✅",
         label: "Verifikasi Collab Post",

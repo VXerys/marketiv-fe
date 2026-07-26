@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   User,
   ImageIcon,
@@ -26,8 +26,23 @@ import { toast } from "sonner";
 import { CreatorProfile, CreatorPortfolioItem, CreatorNiche } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
-import { mockCreatorPortfolioItems } from "@/mocks/creator-dashboard.mock";
 import { cn } from "@/lib/utils";
+import {
+  creatorProfileUpdateSchema,
+  creatorPortfolioSchema,
+  extractSocialUsername,
+} from "@/lib/validations/profile.schema";
+import { parseOrErrors } from "@/lib/validations/to-field-errors";
+import { getSession } from "@/services/auth/session.service";
+import {
+  updateCreatorProfile,
+  uploadCreatorAvatar,
+  upsertCreatorSocialAccount,
+  createCreatorPortfolio,
+  updateCreatorPortfolio,
+  deleteCreatorPortfolio,
+  uploadCreatorPortfolioThumbnail,
+} from "@/services/creator/creator-dashboard.service";
 
 // ─── Creator brand gradient ───────────────────────────────────────────────────
 const CREATOR_GRADIENT = "linear-gradient(135deg, #2563eb, #7c3aed)";
@@ -115,17 +130,24 @@ function StatRow({
 function ToggleSwitch({
   checked,
   onChange,
+  disabled,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      aria-disabled={disabled}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="relative shrink-0 w-12 h-[28px] rounded-full transition-all duration-250 cursor-pointer focus-visible:outline-[4px] focus-visible:outline focus-visible:outline-blue-500/20 focus-visible:outline-offset-2"
+      className={cn(
+        "relative shrink-0 w-12 h-[28px] rounded-full transition-all duration-250 focus-visible:outline-[4px] focus-visible:outline focus-visible:outline-blue-500/20 focus-visible:outline-offset-2",
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+      )}
       style={{
         background: checked ? CREATOR_GRADIENT : "#e2e8f0",
         boxShadow: checked ? "0 4px 14px rgba(37,99,235,.3)" : "inset 0 1px 3px rgba(0,0,0,.08)",
@@ -146,11 +168,13 @@ function NotifToggleRow({
   description,
   checked,
   onChange,
+  disabled,
 }: {
   label: string;
   description: string;
   checked: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-4 py-4 border-b border-neutral-100/70 last:border-0">
@@ -160,7 +184,7 @@ function NotifToggleRow({
           {description}
         </p>
       </div>
-      <ToggleSwitch checked={checked} onChange={onChange} />
+      <ToggleSwitch checked={checked} onChange={onChange} disabled={disabled} />
     </div>
   );
 }
@@ -172,20 +196,25 @@ function CreatorBtn({
   onClick,
   type = "button",
   className,
+  disabled,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   type?: "button" | "submit";
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type={type}
       onClick={onClick}
+      disabled={disabled}
+      aria-disabled={disabled}
       className={cn(
         "flex items-center justify-center gap-2 px-6 py-2.5 rounded-full",
-        "text-white font-[700] text-[0.84rem] cursor-pointer",
-        "transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0",
+        "text-white font-[700] text-[0.84rem]",
+        "transition-all duration-200 active:translate-y-0",
+        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:-translate-y-0.5",
         "focus-visible:outline-[4px] focus-visible:outline focus-visible:outline-blue-500/20 focus-visible:outline-offset-2",
         className
       )}
@@ -203,20 +232,25 @@ function GhostBtn({
   onClick,
   type = "button",
   className,
+  disabled,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   type?: "button" | "submit";
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type={type}
       onClick={onClick}
+      disabled={disabled}
+      aria-disabled={disabled}
       className={cn(
         "flex items-center justify-center gap-2 px-6 py-2.5 rounded-full",
         "border border-neutral-200 text-neutral-600 hover:bg-neutral-50",
-        "font-[700] text-[0.84rem] cursor-pointer transition-all duration-200",
+        "font-[700] text-[0.84rem] transition-all duration-200",
+        disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
         className
       )}
     >
@@ -231,22 +265,16 @@ function GhostBtn({
 
 interface SettingsViewProps {
   initialProfile: CreatorProfile;
+  initialPortfolio: CreatorPortfolioItem[];
 }
 
-export function SettingsView({ initialProfile }: SettingsViewProps) {
+export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>("profil");
 
   // ── Profile state ──
-  const [profile, setProfile] = useState<CreatorProfile>({
-    ...initialProfile,
-    bannerUrl:
-      initialProfile.bannerUrl ||
-      "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&h=300&fit=crop",
-    averageViews: initialProfile.averageViews || 48500,
-    responseTime: initialProfile.responseTime || "2 jam",
-    completionRate: initialProfile.completionRate || 98,
-    portfolioUrl: initialProfile.portfolioUrl || "https://nadiavisuals.myportfolio.com",
-  });
+  // Tanpa fallback fabrikasi: bannerUrl/averageViews/responseTime/completionRate/
+  // portfolioUrl tidak punya kolom sumber, jadi biarkan kosong dan render "—".
+  const [profile, setProfile] = useState<CreatorProfile>(initialProfile);
 
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState(profile.name);
@@ -254,25 +282,26 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
   const [location, setLocation] = useState(profile.location);
   const [tiktokUrl, setTiktokUrl] = useState(profile.tiktokUrl || "");
   const [instagramUrl, setInstagramUrl] = useState(profile.instagramUrl || "");
-  const [portfolioUrl, setPortfolioUrl] = useState(profile.portfolioUrl || "");
   const [selectedNiche, setSelectedNiche] = useState<CreatorNiche>(profile.niche);
   const [formError, setFormError] = useState<string | null>(null);
   const [isProfileSuccessOpen, setIsProfileSuccessOpen] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [accountEmail, setAccountEmail] = useState("");
 
   // ── Portfolio state ──
-  const [portfolioItems, setPortfolioItems] = useState<CreatorPortfolioItem[]>(
-    mockCreatorPortfolioItems
-  );
+  const [portfolioItems, setPortfolioItems] = useState<CreatorPortfolioItem[]>(initialPortfolio);
   const [isAddPortOpen, setIsAddPortOpen] = useState(false);
   const [isEditPortOpen, setIsEditPortOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [activePortItem, setActivePortItem] = useState<CreatorPortfolioItem | null>(null);
   const [portTitle, setPortTitle] = useState("");
-  const [portPlatform, setPortPlatform] = useState<"tiktok" | "instagram">("tiktok");
   const [portUrl, setPortUrl] = useState("");
-  const [portNiche, setPortNiche] = useState<CreatorNiche>("kecantikan");
-  const [portViews, setPortViews] = useState(50000);
   const [portDesc, setPortDesc] = useState("");
+  const [portThumbnailUrl, setPortThumbnailUrl] = useState("");
+  const [portError, setPortError] = useState<string | null>(null);
+  const [isSavingPort, setIsSavingPort] = useState(false);
+  const [isUploadingThumb, setIsUploadingThumb] = useState(false);
 
   // ── Notification toggles ──
   const [notifCampaign, setNotifCampaign] = useState(true);
@@ -284,103 +313,206 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
 
   const showToast = (msg: string) => toast.success(msg);
 
+  // Email dikelola collection `users` (read-only dari klien) — ambil dari sesi.
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const res = await getSession();
+      if (active && res.success && res.data) setAccountEmail(res.data.email);
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   // ── Profile handlers ──
-  const handleProfileSubmit = (e: React.FormEvent) => {
+  const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (tiktokUrl && !tiktokUrl.includes("tiktok.com")) {
-      setFormError("Tautan TikTok wajib mengandung 'tiktok.com'");
-      return;
-    }
-    if (instagramUrl && !instagramUrl.includes("instagram.com")) {
-      setFormError("Tautan Instagram wajib mengandung 'instagram.com'");
-      return;
-    }
-    setFormError(null);
-    setProfile((prev) => ({
-      ...prev,
-      name: displayName.trim(),
+    const parsed = parseOrErrors(creatorProfileUpdateSchema, {
+      displayName: displayName.trim(),
       bio: bio.trim(),
-      location: location.trim(),
-      tiktokUrl: tiktokUrl.trim() || undefined,
-      instagramUrl: instagramUrl.trim() || undefined,
-      portfolioUrl: portfolioUrl.trim() || undefined,
+      city: location.trim(),
       niche: selectedNiche,
-    }));
-    setIsEditing(false);
-    setIsProfileSuccessOpen(true);
+    });
+    if (!parsed.ok) {
+      setFormError(Object.values(parsed.errors)[0] ?? "Periksa kembali isian profil.");
+      return;
+    }
+    if (tiktokUrl && !extractSocialUsername(tiktokUrl)) {
+      setFormError("Tautan/username TikTok tidak valid.");
+      return;
+    }
+    if (instagramUrl && !extractSocialUsername(instagramUrl)) {
+      setFormError("Tautan/username Instagram tidak valid.");
+      return;
+    }
+
+    setFormError(null);
+    setIsSavingProfile(true);
+    const res = await updateCreatorProfile(parsed.data);
+
+    // Akun sosial ada di collection terpisah (creator_social_accounts).
+    const socialWrites: Promise<unknown>[] = [];
+    if (tiktokUrl.trim()) {
+      socialWrites.push(
+        upsertCreatorSocialAccount({ platform: "tiktok", username: extractSocialUsername(tiktokUrl) })
+      );
+    }
+    if (instagramUrl.trim()) {
+      socialWrites.push(
+        upsertCreatorSocialAccount({
+          platform: "instagram",
+          username: extractSocialUsername(instagramUrl),
+        })
+      );
+    }
+    await Promise.all(socialWrites);
+    setIsSavingProfile(false);
+
+    if (res.success && res.data) {
+      setProfile(res.data);
+      setIsEditing(false);
+      setIsProfileSuccessOpen(true);
+      return;
+    }
+    setFormError(
+      res.code === "auth"
+        ? "Sesi berakhir, silakan login kembali."
+        : res.error ?? "Gagal menyimpan profil."
+    );
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setIsUploadingAvatar(true);
+    const uploaded = await uploadCreatorAvatar(file);
+    if (!uploaded.success || !uploaded.data) {
+      setIsUploadingAvatar(false);
+      toast.error(uploaded.error ?? "Gagal mengunggah foto profil.");
+      return;
+    }
+    const saved = await updateCreatorProfile({ avatarUrl: uploaded.data });
+    setIsUploadingAvatar(false);
+    if (saved.success && saved.data) {
+      setProfile(saved.data);
+      showToast("Foto profil berhasil diperbarui.");
+    } else {
+      toast.error(saved.error ?? "Foto terunggah tapi gagal disimpan.");
+    }
   };
 
   // ── Portfolio handlers ──
-  const handleAddPortfolio = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!portTitle.trim() || !portUrl.trim()) return;
-    const newItem: CreatorPortfolioItem = {
-      id: `port_new_${Date.now()}`,
-      title: portTitle.trim(),
-      platform: portPlatform,
-      url: portUrl.trim(),
-      niche: portNiche,
-      views: Number(portViews),
-      thumbnailUrl:
-        portPlatform === "tiktok"
-          ? "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=400&h=300&fit=crop"
-          : "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=300&fit=crop",
-      description: portDesc.trim(),
-    };
-    setPortfolioItems((prev) => [...prev, newItem]);
-    setIsAddPortOpen(false);
+  // Kolom `creator_portfolios` hanya: creatorId, title, description,
+  // thumbnailUrl, portfolioUrl. platform/niche/views tidak ada kolomnya dan
+  // sudah dihapus dari form (diminta lagi di handoff Sprint 3).
+
+  const resetPortForm = () => {
     setPortTitle("");
     setPortUrl("");
     setPortDesc("");
-    setPortViews(50000);
-    showToast("Portofolio baru berhasil ditambahkan!");
+    setPortThumbnailUrl("");
+    setPortError(null);
+  };
+
+  const buildPortInput = () => ({
+    title: portTitle.trim(),
+    portfolioUrl: portUrl.trim(),
+    description: portDesc.trim(),
+    thumbnailUrl: portThumbnailUrl || undefined,
+  });
+
+  const handleThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setIsUploadingThumb(true);
+    const res = await uploadCreatorPortfolioThumbnail(file);
+    setIsUploadingThumb(false);
+    if (res.success && res.data) {
+      setPortThumbnailUrl(res.data);
+    } else {
+      setPortError(res.error ?? "Gagal mengunggah thumbnail.");
+    }
+  };
+
+  const handleAddPortfolio = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = parseOrErrors(creatorPortfolioSchema, buildPortInput());
+    if (!parsed.ok) {
+      setPortError(Object.values(parsed.errors)[0] ?? "Periksa kembali isian portofolio.");
+      return;
+    }
+    setPortError(null);
+    setIsSavingPort(true);
+    const res = await createCreatorPortfolio(parsed.data);
+    setIsSavingPort(false);
+    if (res.success && res.data) {
+      setPortfolioItems((prev) => [...prev, res.data!]);
+      setIsAddPortOpen(false);
+      resetPortForm();
+      showToast("Portofolio baru berhasil ditambahkan!");
+    } else {
+      setPortError(res.error ?? "Gagal menambahkan portofolio.");
+    }
   };
 
   const openEditPortModal = (item: CreatorPortfolioItem) => {
     setActivePortItem(item);
     setPortTitle(item.title);
-    setPortPlatform(item.platform);
     setPortUrl(item.url);
-    setPortNiche(item.niche);
-    setPortViews(item.views);
     setPortDesc(item.description);
+    setPortThumbnailUrl(item.thumbnailUrl ?? "");
+    setPortError(null);
     setIsEditPortOpen(true);
   };
 
-  const handleEditPortfolio = (e: React.FormEvent) => {
+  const handleEditPortfolio = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activePortItem || !portTitle.trim() || !portUrl.trim()) return;
-    setPortfolioItems((prev) =>
-      prev.map((item) =>
-        item.id === activePortItem.id
-          ? {
-              ...item,
-              title: portTitle.trim(),
-              platform: portPlatform,
-              url: portUrl.trim(),
-              niche: portNiche,
-              views: Number(portViews),
-              description: portDesc.trim(),
-            }
-          : item
-      )
-    );
-    setIsEditPortOpen(false);
-    setActivePortItem(null);
-    showToast("Portofolio berhasil diperbarui!");
+    if (!activePortItem) return;
+    const parsed = parseOrErrors(creatorPortfolioSchema, buildPortInput());
+    if (!parsed.ok) {
+      setPortError(Object.values(parsed.errors)[0] ?? "Periksa kembali isian portofolio.");
+      return;
+    }
+    setPortError(null);
+    setIsSavingPort(true);
+    const res = await updateCreatorPortfolio(activePortItem.id, parsed.data);
+    setIsSavingPort(false);
+    if (res.success && res.data) {
+      setPortfolioItems((prev) =>
+        prev.map((item) => (item.id === activePortItem.id ? res.data! : item))
+      );
+      setIsEditPortOpen(false);
+      setActivePortItem(null);
+      resetPortForm();
+      showToast("Portofolio berhasil diperbarui!");
+    } else {
+      setPortError(res.error ?? "Gagal memperbarui portofolio.");
+    }
   };
 
   const openDeleteConfirm = (item: CreatorPortfolioItem) => {
     setActivePortItem(item);
+    setPortError(null);
     setIsDeleteConfirmOpen(true);
   };
 
-  const executeDeletePortfolio = () => {
+  const executeDeletePortfolio = async () => {
     if (!activePortItem) return;
-    setPortfolioItems((prev) => prev.filter((item) => item.id !== activePortItem.id));
-    setIsDeleteConfirmOpen(false);
-    setActivePortItem(null);
-    showToast("Item portofolio berhasil dihapus.");
+    setIsSavingPort(true);
+    const res = await deleteCreatorPortfolio(activePortItem.id);
+    setIsSavingPort(false);
+    if (res.success) {
+      setPortfolioItems((prev) => prev.filter((item) => item.id !== activePortItem.id));
+      setIsDeleteConfirmOpen(false);
+      setActivePortItem(null);
+      showToast("Item portofolio berhasil dihapus.");
+    } else {
+      // Baris pra-Sprint 3 tak punya row-perm delete — sampaikan apa adanya.
+      setPortError(res.error ?? "Gagal menghapus item portofolio.");
+    }
   };
 
   // ── Input class ──
@@ -398,25 +530,10 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
 
       {/* ── Identity showcase card ── */}
       <SettingsCard>
-        {/* Banner — taller */}
-        <div className="relative w-full h-48 sm:h-52 group/banner">
-          {profile.bannerUrl ? (
-            <img
-              src={profile.bannerUrl}
-              alt="Banner"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full" style={{ background: CREATOR_GRADIENT }} />
-          )}
-          <label className="absolute inset-0 bg-neutral-950/40 opacity-0 group-hover/banner:opacity-100 transition-opacity flex items-center justify-center text-[0.72rem] font-[900] text-white uppercase tracking-wider cursor-pointer gap-1.5">
-            <ImageIcon size={13} /> Ganti Banner
-            <input
-              type="file"
-              className="hidden"
-              onChange={() => showToast("Banner berhasil diunggah (Simulasi).")}
-            />
-          </label>
+        {/* Banner — tidak ada kolom `creator_profiles.bannerUrl` maupun bucket
+            banner, jadi tanpa upload. Kolomnya diminta di handoff Sprint 3. */}
+        <div className="relative w-full h-48 sm:h-52">
+          <div className="w-full h-full" style={{ background: CREATOR_GRADIENT }} />
           {/* Gradient fade at bottom for avatar overlap */}
           <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/30 to-transparent pointer-events-none" />
         </div>
@@ -430,12 +547,21 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
               alt={profile.name}
               className="w-full h-full object-cover"
             />
-            <label className="absolute inset-0 bg-neutral-950/55 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center text-[0.65rem] font-[900] text-white uppercase tracking-wider cursor-pointer">
-              Ganti
+            <label
+              className={cn(
+                "absolute inset-0 bg-neutral-950/55 transition-opacity flex items-center justify-center text-[0.65rem] font-[900] text-white uppercase tracking-wider",
+                isUploadingAvatar
+                  ? "opacity-100 cursor-wait"
+                  : "opacity-0 group-hover/avatar:opacity-100 cursor-pointer"
+              )}
+            >
+              {isUploadingAvatar ? "Mengunggah…" : "Ganti"}
               <input
                 type="file"
+                accept="image/jpeg,image/png,image/webp"
                 className="hidden"
-                onChange={() => showToast("Foto profil berhasil diunggah (Simulasi).")}
+                disabled={isUploadingAvatar}
+                onChange={handleAvatarChange}
               />
             </label>
             {/* Online indicator */}
@@ -450,7 +576,6 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
                 setLocation(profile.location);
                 setTiktokUrl(profile.tiktokUrl || "");
                 setInstagramUrl(profile.instagramUrl || "");
-                setPortfolioUrl(profile.portfolioUrl || "");
                 setSelectedNiche(profile.niche);
                 setIsEditing(true);
               }}
@@ -514,16 +639,6 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
                     Instagram <ExternalLink size={10} />
                   </a>
                 )}
-                {profile.portfolioUrl && (
-                  <a
-                    href={profile.portfolioUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-100 text-blue-700 text-[0.75rem] font-[700] hover:bg-blue-100 transition-colors"
-                  >
-                    Portfolio <ExternalLink size={10} />
-                  </a>
-                )}
               </div>
             </div>
           )}
@@ -573,7 +688,18 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
                 Kategori Niche Utama
               </label>
               <div className="flex flex-wrap gap-2">
-                {(["kecantikan", "kuliner", "fesyen", "pariwisata", "lainnya"] as CreatorNiche[]).map(
+                {/* Harus lengkap sesuai enum creator_profiles.niche — `edukasi`
+                    sebelumnya hilang dari daftar ini. */}
+                {(
+                  [
+                    "kecantikan",
+                    "kuliner",
+                    "fashion",
+                    "pariwisata",
+                    "edukasi",
+                    "lainnya",
+                  ] as CreatorNiche[]
+                ).map(
                   (n) => (
                     <button
                       key={n}
@@ -611,14 +737,16 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-neutral-100 pt-4">
+            {/* Akun sosial disimpan di collection `creator_social_accounts`
+                (bukan kolom URL di profil) — handle diekstrak dari tautan. */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-neutral-100 pt-4">
               <div className="space-y-1.5">
                 <label className="block text-[0.68rem] font-[900] text-neutral-400 uppercase tracking-wider">
-                  Link TikTok
+                  Link / Username TikTok
                 </label>
                 <input
-                  type="url"
-                  placeholder="https://tiktok.com/@..."
+                  type="text"
+                  placeholder="https://tiktok.com/@handle"
                   value={tiktokUrl}
                   onChange={(e) => setTiktokUrl(e.target.value)}
                   className={inputCls}
@@ -626,25 +754,13 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
               </div>
               <div className="space-y-1.5">
                 <label className="block text-[0.68rem] font-[900] text-neutral-400 uppercase tracking-wider">
-                  Link Instagram
+                  Link / Username Instagram
                 </label>
                 <input
-                  type="url"
-                  placeholder="https://instagram.com/..."
+                  type="text"
+                  placeholder="https://instagram.com/handle"
                   value={instagramUrl}
                   onChange={(e) => setInstagramUrl(e.target.value)}
-                  className={inputCls}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-400 uppercase tracking-wider">
-                  Link Web Portofolio
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://myportfolio.com"
-                  value={portfolioUrl}
-                  onChange={(e) => setPortfolioUrl(e.target.value)}
                   className={inputCls}
                 />
               </div>
@@ -653,6 +769,7 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
             <div className="flex gap-3 pt-2">
               <GhostBtn
                 type="button"
+                disabled={isSavingProfile}
                 onClick={() => {
                   setIsEditing(false);
                   setFormError(null);
@@ -661,8 +778,8 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
               >
                 Batal
               </GhostBtn>
-              <CreatorBtn type="submit" className="flex-1">
-                Simpan Profil
+              <CreatorBtn type="submit" disabled={isSavingProfile} className="flex-1">
+                {isSavingProfile ? "Menyimpan…" : "Simpan Profil"}
               </CreatorBtn>
             </div>
           </form>
@@ -678,9 +795,15 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
             value={`${profile.completedJobs} Kontrak`}
             icon={<Briefcase size={13} />}
           />
+          {/* averageViews/responseTime/completionRate belum punya kolom sumber —
+              render "—", jangan mengarang angka performa milik kreator sendiri. */}
           <StatRow
             label="Rata-rata Views per Konten"
-            value={`${(profile.averageViews ?? 48500).toLocaleString("id-ID")} views`}
+            value={
+              profile.averageViews !== undefined
+                ? `${profile.averageViews.toLocaleString("id-ID")} views`
+                : "—"
+            }
             icon={<Eye size={13} />}
           />
           <StatRow
@@ -690,12 +813,12 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
           />
           <StatRow
             label="Estimasi Waktu Respon"
-            value={`⚡ ~${profile.responseTime ?? "2 jam"}`}
+            value={profile.responseTime ? `⚡ ~${profile.responseTime}` : "—"}
             icon={<Zap size={13} />}
           />
           <StatRow
             label="Tingkat Penyelesaian Job"
-            value={`${profile.completionRate ?? 98}%`}
+            value={profile.completionRate !== undefined ? `${profile.completionRate}%` : "—"}
             icon={<CheckCircle2 size={13} />}
           />
           <StatRow
@@ -725,10 +848,7 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
           action={
             <button
               onClick={() => {
-                setPortTitle("");
-                setPortUrl("");
-                setPortDesc("");
-                setPortViews(50000);
+                resetPortForm();
                 setIsAddPortOpen(true);
               }}
               className="flex items-center gap-1.5 px-4 py-2 rounded-[12px] text-[0.78rem] font-[800] text-white transition-all cursor-pointer hover:-translate-y-0.5"
@@ -758,9 +878,11 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
                         alt={item.title}
                         className="w-full h-full object-cover"
                       />
-                      <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-neutral-900/80 text-white text-[0.62rem] font-[900] uppercase tracking-wider">
-                        {item.platform}
-                      </span>
+                      {item.platform && (
+                        <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-neutral-900/80 text-white text-[0.62rem] font-[900] uppercase tracking-wider">
+                          {item.platform}
+                        </span>
+                      )}
                     </div>
                   )}
                   <div className="p-4 flex flex-col flex-1 gap-2">
@@ -768,17 +890,21 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
                       <h5 className="font-[800] text-neutral-900 text-[0.88rem] leading-snug line-clamp-1 flex-1">
                         {item.title}
                       </h5>
-                      <span className="shrink-0 inline-flex px-2 py-0.5 rounded-full text-white text-[0.62rem] font-[900] uppercase tracking-wider" style={{ background: CREATOR_GRADIENT }}>
-                        {item.niche}
-                      </span>
+                      {item.niche && (
+                        <span className="shrink-0 inline-flex px-2 py-0.5 rounded-full text-white text-[0.62rem] font-[900] uppercase tracking-wider" style={{ background: CREATOR_GRADIENT }}>
+                          {item.niche}
+                        </span>
+                      )}
                     </div>
                     <p className="text-[0.78rem] text-neutral-400 font-[500] leading-relaxed line-clamp-2 flex-1">
                       {item.description}
                     </p>
-                    <div className="flex items-center justify-between text-[0.72rem] font-[800] text-neutral-400 pt-2 border-t border-neutral-200/40 mt-auto">
-                      <span>VIEWS PENONTON</span>
-                      <span className="text-neutral-800">{item.views.toLocaleString("id-ID")} views</span>
-                    </div>
+                    {item.views !== undefined && (
+                      <div className="flex items-center justify-between text-[0.72rem] font-[800] text-neutral-400 pt-2 border-t border-neutral-200/40 mt-auto">
+                        <span>VIEWS PENONTON</span>
+                        <span className="text-neutral-800">{item.views.toLocaleString("id-ID")} views</span>
+                      </div>
+                    )}
                   </div>
                   <div className="p-3 border-t border-neutral-200/40 grid grid-cols-2 gap-2">
                     <button
@@ -811,24 +937,30 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
     <div className="flex flex-col gap-5 w-full">
       <SettingsCard>
         <CardSectionHeader title="Notifikasi Kampanye & Pekerjaan" />
+        <p className="px-6 pt-4 text-[0.72rem] font-[700] text-neutral-400">
+          Segera tersedia — preferensi belum bisa disimpan (belum ada tempat penyimpanannya).
+        </p>
         <div className="px-6 py-1">
           <NotifToggleRow
             label="Campaign Baru Sesuai Niche"
             description="Terima notifikasi saat ada campaign baru yang cocok dengan kategori konten Anda."
             checked={notifCampaign}
             onChange={setNotifCampaign}
+            disabled
           />
           <NotifToggleRow
             label="Pengingat Deadline Pekerjaan"
             description="Ingatkan saya H-2 sebelum tenggat waktu pengiriman konten."
             checked={notifDeadline}
             onChange={setNotifDeadline}
+            disabled
           />
           <NotifToggleRow
             label="Update Status Order Rate Card"
             description="Notifikasi saat UMKM melakukan order, konfirmasi, atau revisi pada paket Anda."
             checked={notifOrder}
             onChange={setNotifOrder}
+            disabled
           />
         </div>
       </SettingsCard>
@@ -841,24 +973,27 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
             description="Notifikasi instan saat pembayaran masuk ke wallet atau pencairan berhasil diproses."
             checked={notifPayment}
             onChange={setNotifPayment}
+            disabled
           />
           <NotifToggleRow
             label="Pesan Baru dari Brand atau Admin"
             description="Notifikasi saat ada pesan baru di negosiasi atau pengumuman dari Marketiv."
             checked={notifMessage}
             onChange={setNotifMessage}
+            disabled
           />
           <NotifToggleRow
             label="Newsletter & Tips Kreator"
             description="Email bulanan berisi tips monetisasi, update fitur, dan insight dari Marketiv."
             checked={notifNewsletter}
             onChange={setNotifNewsletter}
+            disabled
           />
         </div>
       </SettingsCard>
 
       <div className="flex justify-end">
-        <CreatorBtn onClick={() => showToast("Preferensi notifikasi berhasil disimpan!")}>
+        <CreatorBtn disabled onClick={() => {}}>
           Simpan Preferensi
         </CreatorBtn>
       </div>
@@ -892,7 +1027,7 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
               <div className="flex items-center gap-2.5 w-full px-4 py-2.5 bg-neutral-50/80 border border-neutral-200/60 rounded-[14px]">
                 <Mail size={14} className="text-neutral-300 shrink-0" />
                 <span className="text-[0.88rem] font-[600] text-neutral-600 truncate">
-                  kreator@example.com
+                  {accountEmail || "—"}
                 </span>
               </div>
               <p className="text-[0.68rem] font-[600] text-neutral-300">Dikelola via sistem autentikasi</p>
@@ -1178,6 +1313,11 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
               </svg>
             </button>
           </div>
+          {portError && (
+            <div className="bg-red-50 border border-red-200 p-3.5 rounded-[14px] text-red-800 text-[0.82rem] font-[700] mb-4">
+              ⚠️ {portError}
+            </div>
+          )}
           <form onSubmit={handleAddPortfolio} className="space-y-4 text-[0.85rem]">
             <div className="space-y-1.5">
               <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
@@ -1192,63 +1332,36 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
                 className={inputModalCls}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Platform
-                </label>
-                <select
-                  value={portPlatform}
-                  onChange={(e) => setPortPlatform(e.target.value as "tiktok" | "instagram")}
-                  className={cn(inputModalCls, "cursor-pointer")}
-                >
-                  <option value="tiktok">TikTok</option>
-                  <option value="instagram">Instagram</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Kategori Niche
-                </label>
-                <select
-                  value={portNiche}
-                  onChange={(e) => setPortNiche(e.target.value as CreatorNiche)}
-                  className={cn(inputModalCls, "cursor-pointer")}
-                >
-                  <option value="kecantikan">Kecantikan</option>
-                  <option value="kuliner">Kuliner</option>
-                  <option value="fesyen">Fesyen</option>
-                  <option value="pariwisata">Pariwisata</option>
-                  <option value="lainnya">Lainnya</option>
-                </select>
-              </div>
+            <div className="space-y-1.5">
+              <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
+                Tautan URL Postingan
+              </label>
+              <input
+                type="url"
+                required
+                placeholder="https://tiktok.com/@..."
+                value={portUrl}
+                onChange={(e) => setPortUrl(e.target.value)}
+                className={inputModalCls}
+              />
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2 space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Tautan URL Postingan
-                </label>
-                <input
-                  type="url"
-                  required
-                  placeholder="https://tiktok.com/@..."
-                  value={portUrl}
-                  onChange={(e) => setPortUrl(e.target.value)}
-                  className={inputModalCls}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Jumlah Views
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={portViews}
-                  onChange={(e) => setPortViews(Number(e.target.value))}
-                  className={inputModalCls}
-                />
-              </div>
+            <div className="space-y-1.5">
+              <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
+                Thumbnail (Opsional)
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={isUploadingThumb}
+                onChange={handleThumbnailChange}
+                className="block w-full text-[0.78rem] font-[600] text-neutral-600 file:mr-3 file:rounded-full file:border-0 file:bg-neutral-100 file:px-4 file:py-2 file:text-[0.75rem] file:font-[700] file:text-neutral-700 hover:file:bg-neutral-200 disabled:opacity-60"
+              />
+              {isUploadingThumb && (
+                <p className="text-[0.7rem] font-[700] text-neutral-400">Mengunggah thumbnail…</p>
+              )}
+              {portThumbnailUrl && !isUploadingThumb && (
+                <p className="text-[0.7rem] font-[700] text-emerald-600">Thumbnail siap disimpan.</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
@@ -1264,11 +1377,19 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
               />
             </div>
             <div className="pt-4 flex gap-3">
-              <GhostBtn type="button" onClick={() => setIsAddPortOpen(false)} className="flex-1">
+              <GhostBtn
+                type="button"
+                disabled={isSavingPort}
+                onClick={() => {
+                  setIsAddPortOpen(false);
+                  resetPortForm();
+                }}
+                className="flex-1"
+              >
                 Batal
               </GhostBtn>
-              <CreatorBtn type="submit" className="flex-1">
-                Tambahkan
+              <CreatorBtn type="submit" disabled={isSavingPort || isUploadingThumb} className="flex-1">
+                {isSavingPort ? "Menyimpan…" : "Tambahkan"}
               </CreatorBtn>
             </div>
           </form>
@@ -1299,6 +1420,11 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
               </svg>
             </button>
           </div>
+          {portError && (
+            <div className="bg-red-50 border border-red-200 p-3.5 rounded-[14px] text-red-800 text-[0.82rem] font-[700] mb-4">
+              ⚠️ {portError}
+            </div>
+          )}
           <form onSubmit={handleEditPortfolio} className="space-y-4 text-[0.85rem]">
             <div className="space-y-1.5">
               <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
@@ -1312,62 +1438,35 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
                 className={inputModalCls}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Platform
-                </label>
-                <select
-                  value={portPlatform}
-                  onChange={(e) => setPortPlatform(e.target.value as "tiktok" | "instagram")}
-                  className={cn(inputModalCls, "cursor-pointer")}
-                >
-                  <option value="tiktok">TikTok</option>
-                  <option value="instagram">Instagram</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Kategori Niche
-                </label>
-                <select
-                  value={portNiche}
-                  onChange={(e) => setPortNiche(e.target.value as CreatorNiche)}
-                  className={cn(inputModalCls, "cursor-pointer")}
-                >
-                  <option value="kecantikan">Kecantikan</option>
-                  <option value="kuliner">Kuliner</option>
-                  <option value="fesyen">Fesyen</option>
-                  <option value="pariwisata">Pariwisata</option>
-                  <option value="lainnya">Lainnya</option>
-                </select>
-              </div>
+            <div className="space-y-1.5">
+              <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
+                Tautan URL Postingan
+              </label>
+              <input
+                type="url"
+                required
+                value={portUrl}
+                onChange={(e) => setPortUrl(e.target.value)}
+                className={inputModalCls}
+              />
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="col-span-2 space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Tautan URL Postingan
-                </label>
-                <input
-                  type="url"
-                  required
-                  value={portUrl}
-                  onChange={(e) => setPortUrl(e.target.value)}
-                  className={inputModalCls}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
-                  Jumlah Views
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={portViews}
-                  onChange={(e) => setPortViews(Number(e.target.value))}
-                  className={inputModalCls}
-                />
-              </div>
+            <div className="space-y-1.5">
+              <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
+                Thumbnail (Opsional)
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={isUploadingThumb}
+                onChange={handleThumbnailChange}
+                className="block w-full text-[0.78rem] font-[600] text-neutral-600 file:mr-3 file:rounded-full file:border-0 file:bg-neutral-100 file:px-4 file:py-2 file:text-[0.75rem] file:font-[700] file:text-neutral-700 hover:file:bg-neutral-200 disabled:opacity-60"
+              />
+              {isUploadingThumb && (
+                <p className="text-[0.7rem] font-[700] text-neutral-400">Mengunggah thumbnail…</p>
+              )}
+              {portThumbnailUrl && !isUploadingThumb && (
+                <p className="text-[0.7rem] font-[700] text-emerald-600">Thumbnail siap disimpan.</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <label className="block text-[0.68rem] font-[900] text-neutral-500 uppercase tracking-wider">
@@ -1384,16 +1483,18 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
             <div className="pt-4 flex gap-3">
               <GhostBtn
                 type="button"
+                disabled={isSavingPort}
                 onClick={() => {
                   setIsEditPortOpen(false);
                   setActivePortItem(null);
+                  resetPortForm();
                 }}
                 className="flex-1"
               >
                 Batal
               </GhostBtn>
-              <CreatorBtn type="submit" className="flex-1">
-                Simpan Perubahan
+              <CreatorBtn type="submit" disabled={isSavingPort || isUploadingThumb} className="flex-1">
+                {isSavingPort ? "Menyimpan…" : "Simpan Perubahan"}
               </CreatorBtn>
             </div>
           </form>
@@ -1413,24 +1514,34 @@ export function SettingsView({ initialProfile }: SettingsViewProps) {
             </span>{" "}
             secara permanen. Tindakan ini tidak dapat dibatalkan.
           </p>
+          {portError && (
+            <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-[14px] text-amber-800 text-[0.78rem] font-[600] leading-relaxed mb-5">
+              {portError}
+            </div>
+          )}
           <div className="flex gap-3">
             <GhostBtn
               type="button"
+              disabled={isSavingPort}
               onClick={() => {
                 setIsDeleteConfirmOpen(false);
                 setActivePortItem(null);
+                setPortError(null);
               }}
               className="flex-1"
             >
-              Batal
+              {portError ? "Tutup" : "Batal"}
             </GhostBtn>
-            <button
-              type="button"
-              onClick={executeDeletePortfolio}
-              className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-[700] text-[0.82rem] rounded-full transition-all shadow-md cursor-pointer"
-            >
-              Ya, Hapus
-            </button>
+            {!portError && (
+              <button
+                type="button"
+                disabled={isSavingPort}
+                onClick={executeDeletePortfolio}
+                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-[700] text-[0.82rem] rounded-full transition-all shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isSavingPort ? "Menghapus…" : "Ya, Hapus"}
+              </button>
+            )}
           </div>
         </ModalFrame>
       )}

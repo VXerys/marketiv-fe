@@ -14,9 +14,11 @@ export function TransactionStatusBadge({ status, className }: TransactionStatusB
     switch (s) {
       case "pending":
         return "amber";
-      case "escrow":
+      case "held":
         return "blue";
-      case "success":
+      case "released":
+        return "green";
+      case "paid":
         return "green";
       case "failed":
         return "red";

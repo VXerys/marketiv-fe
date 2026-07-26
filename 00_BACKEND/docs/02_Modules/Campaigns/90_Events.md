@@ -4,6 +4,13 @@ Automasi modul Campaigns berjalan event-driven via Appwrite Functions (database 
 
 ---
 
+## Campaign Top-Up
+
+- **Trigger**: `payments.status` `pending → paid` dengan `purpose = campaign`.
+- **Function**: `midtrans-webhook` (sudah ada).
+- **Aksi**: konfirmasi pembayaran top-up, tandai campaign sebagai `funded = true` (atau langsung izinkan publish).
+- **Link**: `../Payments/`, `../Workflows/20_Campaign_PPV.md`.
+
 ## Campaign Published
 
 - **Trigger**: `campaigns.status` `draft → active`.
@@ -32,3 +39,10 @@ Automasi modul Campaigns berjalan event-driven via Appwrite Functions (database 
 - **Function**: `calculate-campaign-reward`.
 - **Aksi**: hitung reward (`views/1000 × rewardPer1000Views`), buat transaksi, pindahkan ke **pending balance** wallet creator.
 - **Link**: detail wallet & transaksi → `../Wallet/` (atau modul Payments/Wallet).
+
+## Claim Expired
+
+- **Trigger**: scheduled function (periodik).
+- **Function**: `expire-stale-claims`.
+- **Aksi**: query semua claim `status = claimed` yang melebihi `submissionDays`, ubah jadi `expired`, kurangi `campaigns.totalClaims`.
+- **Link**: `../Workflows/20_Campaign_PPV.md`.

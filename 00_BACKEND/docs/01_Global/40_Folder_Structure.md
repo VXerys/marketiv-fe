@@ -6,7 +6,7 @@
 
 - Frontend: Next.js (App Router) → deploy Vercel.
 - Backend: Appwrite BaaS (Auth, Database, Storage, Realtime, Functions) → Appwrite Cloud.
-- AI Layer: OpenAI API dibungkus Appwrite Function.
+- AI Layer: Gemini API dibungkus Appwrite Function.
 
 ## Struktur `src/`
 
@@ -40,7 +40,7 @@ src/
 
 ## Modules (`src/modules/`)
 
-`auth`, `users`, `creator`, `rate-card`, `campaign`, `submission`, `offer`, `order`, `wallet`, `payment`, `review`, `notification`, `ai`, `admin`.
+`auth`, `users`, `creator`, `rate-card`, `campaign`, `submission`, `chat`, `offer`, `order`, `wallet`, `payment`, `review`, `notification`, `ai`, `admin`.
 
 Tiap modul: `components/`, `services/`, `hooks/`, `validators/`, `store.js`. Modul memuat logika & UI fitur; **routing tetap di `src/app/`** yang meng-import view dari modul. Modul AI hanya 3 komponen MVP: `AiLandingAssistant`, `AiBriefGenerator`, `FraudScoreBadge`.
 
@@ -51,7 +51,9 @@ Tiap modul: `components/`, `services/`, `hooks/`, `validators/`, `store.js`. Mod
 
 ## Service Layer (`src/services/`)
 
-`authService.js`, `userService.js`, `creatorService.js`, `campaignService.js`, `submissionService.js`, `orderService.js`, `walletService.js`, `paymentService.js`, `aiService.js`. Aturan akses: lihat [`20_Coding_Standards.md`](20_Coding_Standards.md).
+Service layer global wajib menggunakan TypeScript (`.ts`). Service membungkus akses Appwrite SDK untuk aplikasi dan tidak boleh berisi implementasi Appwrite Function.
+
+Contoh: `auth.service.ts`, `user.service.ts`, `creator.service.ts`, `campaign.service.ts`, `submission.service.ts`, `chat.service.ts`, `offer.service.ts`, `order.service.ts`, `wallet.service.ts`, `claim.service.ts`, `notification.service.ts`. Aturan akses: lihat [`20_Coding_Standards.md`](20_Coding_Standards.md).
 
 ## Appwrite Config (`src/lib/appwrite/`)
 
@@ -59,17 +61,27 @@ Tiap modul: `components/`, `services/`, `hooks/`, `validators/`, `store.js`. Mod
 
 ## Stores / Validations / Hooks
 
-- `src/stores/`: `authStore.js`, `campaignStore.js`, `walletStore.js`, `notificationStore.js`.
-- `src/validations/`: `authSchema.js`, `campaignSchema.js`, `rateCardSchema.js`, `offerSchema.js`, `withdrawSchema.js` (Zod).
-- `src/hooks/`: `useAuth`, `useCampaign`, `useWallet`, `useRealtime`, `useNotification`.
+- `src/stores/`: `authStore.js`, `campaignStore.js`, `chatStore.js`, `walletStore.js`, `notificationStore.js`.
+- `src/validations/`: `authSchema.js`, `campaignSchema.js`, `rateCardSchema.js`, `chatSchema.js`, `offerSchema.js`, `withdrawSchema.js` (Zod).
+- `src/hooks/`: `useAuth`, `useCampaign`, `useChat`, `useWallet`, `useRealtime`, `useNotification`.
 
 ## Appwrite Functions (`functions/`)
 
-`create-wallet`, `create-order`, `process-payment`, `release-escrow`, `generate-brief`, `fraud-detection`, `send-notification`. Penamaan: `kebab-case`.
+`create-user-profile`, `validate-and-upload`, `delete-file`, `create-user-wallet`, `campaign-published`, `ai-brief`, `ai-fraud-precheck`, `create-order`, `calculate-campaign-reward`, `campaign-claimed`, `expire-stale-claims`, `create-payment`, `cancel-payment`, `midtrans-webhook`, `create-escrow`, `release-escrow`, `request-withdrawal`, `send-chat-notification`. Penamaan: `kebab-case`.
+
+Kode Appwrite Function wajib berada di `functions/<function-id>/`. Setiap function memiliki source dan dependency sendiri di folder tersebut. Entrypoint default adalah `functions/<function-id>/src/main.js`, dan file dependency function diletakkan di `functions/<function-id>/package.json`.
+
+Jangan menulis implementasi Appwrite Function di `src/` atau root proyek.
+
+## Appwrite Project Config (`appwrite/`)
+
+- `appwrite/generate_appwrite_json.cjs`: script generator untuk membuat ulang `appwrite.config.json` (root).
+- `appwrite.config.json`: konfigurasi Appwrite yang dihasilkan untuk project, database, storage, dan functions.
+- Saat menambah, menghapus, atau mengganti nama function, sinkronkan `functions/<function-id>/`, `appwrite.config.json`, dan `appwrite/generate_appwrite_json.cjs`.
 
 ## Storage Buckets (`storage/`)
 
-`avatars/`, `logos/`, `campaign-assets/`, `campaign-thumbnails/`, `submissions/`, `drafts/`, `payment-proofs/`.
+`avatars/`, `logos/`, `portfolios/`, `campaign-assets/`, `deliverables/`, `fraud-evidence/`, ~~`user-files/`~~ (dormant — post-MVP).
 
 ## Tests (`tests/`)
 
@@ -86,8 +98,15 @@ NEXT_PUBLIC_CREATOR_COLLECTION=
 NEXT_PUBLIC_CAMPAIGN_COLLECTION=
 NEXT_PUBLIC_ORDER_COLLECTION=
 NEXT_PUBLIC_WALLET_COLLECTION=
+NEXT_PUBLIC_PAYMENT_COLLECTION=
+NEXT_PUBLIC_TRANSACTION_COLLECTION=
+NEXT_PUBLIC_ESCROW_COLLECTION=
+NEXT_PUBLIC_WITHDRAWAL_COLLECTION=
+NEXT_PUBLIC_CREATE_PAYMENT_FUNCTION_ID=
+NEXT_PUBLIC_CANCEL_PAYMENT_FUNCTION_ID=
 NEXT_PUBLIC_STORAGE_BUCKET=
 NEXT_PUBLIC_AI_FUNCTION_ID=
+NEXT_PUBLIC_MIDTRANS_CLIENT_KEY=
 ```
 
 Deploy & env: [`80_Deployment.md`](80_Deployment.md).

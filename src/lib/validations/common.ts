@@ -13,7 +13,11 @@ import { z } from "zod";
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Maximum allowed file size for direct Appwrite Storage uploads (100 MB). */
+/**
+ * @deprecated Batas ukuran file beda per bucket (5MB avatars/logos, 50MB
+ * portfolios, 100MB campaign-assets). Gunakan BUCKET_RULES/assertFileAllowed di
+ * src/lib/appwrite/storage.ts, bukan konstanta tunggal ini.
+ */
 export const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 
 /** Minimum campaign / rate card price in Rupiah. */
@@ -31,6 +35,18 @@ export const requiredString = (fieldName = "Field ini") =>
   z
     .string({ error: `${fieldName} wajib diisi.` })
     .min(1, `${fieldName} tidak boleh kosong.`);
+
+/**
+ * String wajib DENGAN batas panjang kolom Appwrite.
+ *
+ * Pakai ini kalau nilainya masuk ke kolom string ber-size. Tanpa batas, input
+ * yang lebih panjang dari kolom baru ditolak Appwrite saat createDocument/
+ * updateDocument (400) dan user cuma melihat pesan generik "Gagal menyimpan
+ * data" — bukan "Nama paket maksimal 100 karakter". `max` harus disamakan
+ * dengan `size` kolom di 00_BACKEND/appwrite.config.json.
+ */
+export const requiredStringMax = (fieldName: string, max: number) =>
+  requiredString(fieldName).max(max, `${fieldName} maksimal ${max} karakter.`);
 
 /**
  * Optional URL string.
@@ -90,10 +106,42 @@ export const currencyAmountIDR = (min = MIN_CURRENCY_IDR) =>
 export const externalAssetUrl = requiredHttpsUrl("Link aset eksternal");
 
 /**
- * File size validation helper.
- * Used before uploading to Appwrite Storage.
- * Rejects files exceeding MAX_FILE_SIZE_BYTES (100 MB).
+ * @deprecated Lihat MAX_FILE_SIZE_BYTES — gunakan assertFileAllowed per bucket.
  */
 export function validateFileSize(file: File): boolean {
   return file.size <= MAX_FILE_SIZE_BYTES;
 }
+
+// ---------------------------------------------------------------------------
+// Primitive tambahan (Sprint 3)
+// ---------------------------------------------------------------------------
+
+/** String opsional dengan batas panjang. Menerima "" (dikirim sebagai kosong). */
+export const optionalString = (max = 2000, fieldName = "Field ini") =>
+  z
+    .string()
+    .max(max, `${fieldName} maksimal ${max} karakter.`)
+    .optional()
+    .or(z.literal(""));
+
+/** Enum dari daftar nilai, dengan pesan Indonesia. */
+export const enumOf = <T extends readonly [string, ...string[]]>(
+  values: T,
+  fieldName = "Pilihan"
+) => z.enum(values, { error: `${fieldName} tidak valid.` });
+
+/** Bilangan bulat non-negatif (jumlah/kuota/revisi). */
+export const integerCount = (fieldName = "Jumlah", min = 0) =>
+  z
+    .number({ error: `${fieldName} wajib berupa angka.` })
+    .int(`${fieldName} harus bilangan bulat.`)
+    .min(min, `${fieldName} minimal ${min}.`);
+
+/** String angka saja dengan panjang tertentu (nomor rekening/HP). */
+export const digitsOnly = (fieldName = "Nomor", min = 6, max = 20) =>
+  z
+    .string()
+    .regex(
+      new RegExp(`^\\d{${min},${max}}$`),
+      `${fieldName} harus ${min}-${max} digit angka.`
+    );

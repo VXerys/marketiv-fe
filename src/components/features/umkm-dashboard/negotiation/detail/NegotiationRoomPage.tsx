@@ -3,7 +3,13 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { getNegotiationById, getMessagesByOrderId } from "@/services/umkm/umkm-dashboard.service";
+import {
+  getNegotiationById,
+  getMessagesByOrderId,
+  cancelOrder,
+} from "@/services/umkm/umkm-dashboard.service";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { toast } from "sonner";
 import { NegotiationOrder, ChatMessage } from "@/types/umkm-dashboard.types";
 import { formatCurrency } from "@/lib/formatters";
 import { CollabPostWarningBanner } from "./CollabPostWarningBanner";
@@ -22,16 +28,14 @@ import { PaymentSimulationModal } from "../modals/PaymentSimulationModal";
 import { OrderSuccessModal } from "../modals/OrderSuccessModal";
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  negotiation:          { label: "Negosiasi",           color: "#2d5bd1", bg: "#f0f6ff", border: "rgba(96,165,250,.25)"  },
-  waiting_payment:      { label: "Menunggu Pembayaran", color: "#a15b0b", bg: "#fffbeb", border: "rgba(245,158,11,.24)"  },
-  escrow:               { label: "Dalam Escrow",        color: "#177b42", bg: "#f1fbf5", border: "rgba(74,222,128,.25)"  },
-  revision:             { label: "Revisi",              color: "#b4232a", bg: "#fff3f3", border: "rgba(248,113,113,.24)" },
-  waiting_verification: { label: "Verifikasi",          color: "#a15b0b", bg: "#fffbeb", border: "rgba(245,158,11,.24)"  },
-  completed:            { label: "Selesai",             color: "#177b42", bg: "#f1fbf5", border: "rgba(74,222,128,.25)"  },
-  dispute:              { label: "Dispute",             color: "#b4232a", bg: "#fff3f3", border: "rgba(248,113,113,.24)" },
-  cancelled:            { label: "Dibatalkan",          color: "#687386", bg: "#f8fafc", border: "rgba(148,163,184,.28)" },
+  pending_payment: { label: "Menunggu Pembayaran", color: "#a15b0b", bg: "#fffbeb", border: "rgba(245,158,11,.24)"  },
+  escrow:          { label: "Dalam Escrow",        color: "#177b42", bg: "#f1fbf5", border: "rgba(74,222,128,.25)"  },
+  in_progress:     { label: "Sedang Dikerjakan",   color: "#2d5bd1", bg: "#f0f6ff", border: "rgba(96,165,250,.25)"  },
+  revision:        { label: "Revisi",              color: "#b4232a", bg: "#fff3f3", border: "rgba(248,113,113,.24)" },
+  approved:        { label: "Disetujui",           color: "#177b42", bg: "#f1fbf5", border: "rgba(74,222,128,.25)"  },
+  completed:       { label: "Selesai",             color: "#177b42", bg: "#f1fbf5", border: "rgba(74,222,128,.25)"  },
+  cancelled:       { label: "Dibatalkan",          color: "#687386", bg: "#f8fafc", border: "rgba(148,163,184,.28)" },
 };
-
 interface NegotiationRoomPageProps {
   orderId: string;
 }
@@ -46,6 +50,23 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [isCancelOrderOpen, setIsCancelOrderOpen] = useState(false);
+
+  /**
+   * Batalkan pesanan yang belum dibayar. Status di-set lokal, bukan reload —
+   * baris tetap ada (soft cancel), jadi cukup memperbarui satu field.
+   * Lempar ulang saat gagal supaya ConfirmDialog tetap terbuka.
+   */
+  const handleCancelOrder = async () => {
+    if (!order) return;
+    const res = await cancelOrder(order.id);
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal membatalkan pesanan.");
+      throw new Error(res.error ?? "Gagal membatalkan pesanan.");
+    }
+    setOrder({ ...order, status: "cancelled" });
+    toast.success("Pesanan dibatalkan.");
+  };
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -64,7 +85,7 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
     } catch {
       setError("Kesalahan memuat data Negosiasi.");
     } finally {
-      setTimeout(() => setLoading(false), 600);
+      setLoading(false);
     }
   }, [orderId]);
 
@@ -80,7 +101,7 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
         scope: "1 video Reels/TikTok Collab Post, durasi minimal 30 hari tayang.",
         finalPrice: 1500000,
         deadline: "2026-06-25T00:00:00.000Z",
-        status: "negotiation",
+        status: "pending_payment",
         lastMessage: "Penawaran kolaborasi kustom berhasil dibuat. Menunggu persetujuan.",
         lastMessageAt: new Date().toISOString(),
         unreadCount: 0,
@@ -101,7 +122,7 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
           orderId: "rc-offer-simulated",
           senderId: "creator_001",
           senderRole: "creator",
-          type: "custom_offer",
+          type: "offer",
           content: "Penawaran Khusus: Review Sambal Bawang",
           offerData: {
             finalPrice: 1500000,
@@ -166,7 +187,7 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
       orderId,
       senderId: "umkm_001",
       senderRole: "umkm",
-      type: "custom_offer",
+      type: "offer",
       content: `Penawaran Khusus: ${order?.projectTitle || "Kustom Offer"}`,
       offerData: offer,
       isRead: true,
@@ -214,27 +235,14 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
   if (loading) return <div className="p-4 sm:p-6 lg:p-8"><NegotiationRoomSkeleton /></div>;
   if (error || !order) return <div className="p-4 sm:p-6 lg:p-8"><NegotiationNotFoundState /></div>;
 
-  const statusCfg = STATUS_CFG[order.status] ?? STATUS_CFG.negotiation;
+  const statusCfg = STATUS_CFG[order.status] ?? STATUS_CFG.pending_payment;
 
   const renderHeaderCTA = () => {
     const cls =
       "px-3 py-1.5 rounded-[10px] text-white text-[10px] font-extrabold transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer shrink-0 leading-none";
-    if (order.status === "negotiation") {
-      return (
-        <button
-          type="button"
-          onClick={() => setIsOfferModalOpen(true)}
-          className={cls}
-          style={{
-            background: "linear-gradient(180deg,#f97316,#ea580c)",
-            boxShadow: "0 3px 8px rgba(249,115,22,.28)",
-          }}
-        >
-          Custom Offer
-        </button>
-      );
-    }
-    if (order.status === "waiting_payment") {
+    // Custom Offer dikirim lewat composer chat (tombol +); begitu offer diterima,
+    // order lahir dengan status pending_payment dan CTA-nya menjadi "Bayar".
+    if (order.status === "pending_payment") {
       return (
         <button
           type="button"
@@ -249,7 +257,7 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
         </button>
       );
     }
-    if (order.status === "waiting_verification") {
+    if (order.status === "approved") {
       return (
         <button
           type="button"
@@ -369,7 +377,7 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
         <div
           className="flex flex-col gap-3 overflow-y-auto scrollbar-thin min-h-0"
         >
-          <OrderSummaryCard order={order} />
+          <OrderSummaryCard order={order} onCancelOrder={() => setIsCancelOrderOpen(true)} />
           <EscrowStatusCard orderStatus={order.status} />
           <CreatorMiniProfileCard order={order} />
           <DealChecklistCard orderStatus={order.status} />
@@ -414,6 +422,27 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
           isOpen={isSuccessModalOpen}
           onClose={() => setIsSuccessModalOpen(false)}
           onConfirm={() => setIsSuccessModalOpen(false)}
+        />
+      )}
+
+      {isCancelOrderOpen && (
+        <ConfirmDialog
+          open={isCancelOrderOpen}
+          onClose={() => setIsCancelOrderOpen(false)}
+          title="Batalkan Pesanan Ini?"
+          description={
+            <>
+              Pesanan{" "}
+              <span className="font-semibold text-text-primary">
+                &quot;{order.projectTitle}&quot;
+              </span>{" "}
+              dengan {order.creatorName} akan ditandai dibatalkan.
+            </>
+          }
+          note="Pesanan belum dibayar, jadi tidak ada dana yang tertahan. Riwayatnya tetap tersimpan — pesanan tidak dihapus. Untuk bekerja sama lagi, kirim penawaran baru."
+          confirmLabel="Batalkan Pesanan"
+          tone="warning"
+          onConfirm={handleCancelOrder}
         />
       )}
     </div>

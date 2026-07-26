@@ -4,12 +4,15 @@ export function getStatusBadgeVariant(status: TransactionStatus): "warning" | "i
   switch (status) {
     case "pending":
       return "warning";
-    case "escrow":
+    case "held":
       return "info";
-    case "success":
+    case "paid":
+    case "released":
       return "success";
     case "failed":
       return "danger";
+    case "expired":
+    case "cancelled":
     case "refunded":
       return "neutral";
     default:
@@ -21,12 +24,18 @@ export function getStatusLabel(status: TransactionStatus): string {
   switch (status) {
     case "pending":
       return "Menunggu Pembayaran";
-    case "escrow":
+    case "held":
       return "Dalam Escrow";
-    case "success":
+    case "paid":
       return "Sukses";
+    case "released":
+      return "Dana Dicairkan";
     case "failed":
       return "Gagal";
+    case "expired":
+      return "Kedaluwarsa";
+    case "cancelled":
+      return "Dibatalkan";
     case "refunded":
       return "Refunded / Dikembalikan";
     default:
@@ -40,18 +49,14 @@ export function getTypeLabel(type: TransactionType): string {
       return "Deposit / Bayar";
     case "withdrawal":
       return "Penarikan";
+    case "payment":
+      return "Pembayaran";
     case "fee":
       return "Platform Fee";
     case "refund":
       return "Refund";
-    case "payout":
+    case "release":
       return "Pencairan";
-    case "escrow":
-      return "Escrow";
-    case "pencairan":
-      return "Pencairan";
-    case "adjustment":
-      return "Penyesuaian";
     default:
       return type;
   }

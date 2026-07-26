@@ -32,19 +32,14 @@ export function CampaignSubmissionSection({
       count: submissions.filter((s) => s.validationStatus === "pending").length,
     },
     {
-      label: "Valid",
-      value: "valid",
-      count: submissions.filter((s) => s.validationStatus === "valid").length,
+      label: "Disetujui",
+      value: "approved",
+      count: submissions.filter((s) => s.validationStatus === "approved").length,
     },
     {
-      label: "Fraud",
-      value: "fraud",
-      count: submissions.filter((s) => s.validationStatus === "fraud").length,
-    },
-    {
-      label: "Sengketa (Dispute)",
-      value: "dispute",
-      count: submissions.filter((s) => s.validationStatus === "dispute").length,
+      label: "Ditolak",
+      value: "rejected",
+      count: submissions.filter((s) => s.validationStatus === "rejected").length,
     },
   ];
 

@@ -1,8 +1,8 @@
-import { Client, Databases, ID } from "node-appwrite";
+import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
 
 export default async ({ req, res, log, error }) => {
   try {
-    const env = getEnv();
+    const env = getEnv(req);
     const databases = createDatabasesClient(env);
     const { Query } = await import("node-appwrite");
 
@@ -68,7 +68,12 @@ export default async ({ req, res, log, error }) => {
         referenceId: submissionId,
         referenceType: "campaign_submission",
         status: "completed",
-      }
+      },
+      // Sejajar dengan release-escrow: baris ledger dimiliki kreator. Saat ini
+      // `transactions` masih punya read("users") di level koleksi, jadi tanpa baris
+      // ini pun terbaca — justru itu masalahnya (semua user bisa membaca semua
+      // transaksi). Permission baris membuat koleksi itu aman untuk diperketat.
+      [Permission.read(Role.user(creatorId))]
     );
 
     const spentAmount = Number(campaign.spentAmount) + reward;
@@ -98,7 +103,11 @@ export default async ({ req, res, log, error }) => {
         type: "reward",
         isRead: false,
         createdAt: new Date().toISOString(),
-      }
+      },
+      // `notifications` punya $permissions kosong + rowSecurity — tanpa permission
+      // baris, notifikasi tidak akan pernah terbaca pemiliknya. `update` diperlukan
+      // agar penerima bisa menandainya sudah dibaca.
+      [Permission.read(Role.user(creatorId)), Permission.update(Role.user(creatorId))]
     );
 
     log(`Reward ${reward} calculated for submission ${submissionId}`);
@@ -118,15 +127,16 @@ async function findOrCreateWallet(databases, env, userId) {
   if (existing.documents.length > 0) return existing.documents[0];
   return await databases.createDocument(
     env.databaseId, env.walletsCollectionId, ID.unique(),
-    { userId, balance: 0, pendingBalance: 0 }
+    { userId, balance: 0, pendingBalance: 0 },
+    [Permission.read(Role.user(userId))]
   );
 }
 
-function getEnv() {
+function getEnv(req) {
   const env = {
     appwriteEndpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT || process.env.APPWRITE_ENDPOINT,
     appwriteProjectId: process.env.APPWRITE_FUNCTION_PROJECT_ID || process.env.APPWRITE_PROJECT_ID,
-    appwriteApiKey: process.env.APPWRITE_API_KEY,
+    appwriteApiKey: req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY,
     databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
     campaignsCollectionId: process.env.CAMPAIGNS_COLLECTION_ID || process.env.NEXT_PUBLIC_CAMPAIGN_COLLECTION || "campaigns",
     walletsCollectionId: process.env.WALLETS_COLLECTION_ID || process.env.NEXT_PUBLIC_WALLET_COLLECTION || "wallets",

@@ -1,15 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { ClipboardList, BadgeDollarSign, ShoppingBag, Trophy } from "lucide-react";
+import { ClipboardList, BadgeDollarSign, ShoppingBag } from "lucide-react";
 import { CreatorRateCardPackage } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
-import { CreatorErrorState } from "./CreatorErrorState";
-import { CreatorCardSkeleton, CreatorMetricSkeleton } from "./CreatorSkeleton";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { rateCardPackageSchema } from "@/lib/validations/rate-card.schema";
+import { parseOrErrors } from "@/lib/validations/to-field-errors";
+import {
+  createRateCardPackage,
+  updateRateCardPackage,
+  setRateCardPackageStatus,
+  deleteRateCardPackage,
+} from "@/services/creator/creator-dashboard.service";
 
 // ── Metric info card — konsisten dengan SummaryCard di KeuanganView ───────────
 
@@ -123,14 +129,17 @@ function PlatformBadge({ platform }: { platform?: Platform }) {
 
 interface PackageCardProps {
   pkg: CreatorRateCardPackage;
-  onToggle: (id: string, current: boolean) => void;
+  onToggle: (pkg: CreatorRateCardPackage) => void;
   onEdit: (pkg: CreatorRateCardPackage) => void;
   onDelete: (pkg: CreatorRateCardPackage) => void;
+  busy?: boolean;
 }
 
-function PackageCard({ pkg, onToggle, onEdit, onDelete }: PackageCardProps) {
-  const p: Platform = (pkg.platform as Platform) ?? "all";
+function PackageCard({ pkg, onToggle, onEdit, onDelete, busy }: PackageCardProps) {
+  // MVP TikTok-only — tak ada kolom platform di rate_card_packages.
+  const p: Platform = "tiktok";
   const cfg = PLATFORM[p];
+  const isPublished = pkg.status === "published";
 
   return (
     <div
@@ -139,7 +148,7 @@ function PackageCard({ pkg, onToggle, onEdit, onDelete }: PackageCardProps) {
         "shadow-[0_8px_24px_rgba(15,23,42,.06)]",
         "hover:shadow-[0_18px_46px_rgba(15,23,42,.11)] hover:-translate-y-1",
         "transition-all duration-[240ms]",
-        !pkg.isActive && "opacity-60"
+        !isPublished && "opacity-60"
       )}
     >
       {/* Platform accent stripe */}
@@ -151,17 +160,18 @@ function PackageCard({ pkg, onToggle, onEdit, onDelete }: PackageCardProps) {
         <div className="flex items-center justify-between gap-2">
           <PlatformBadge platform={p} />
           <button
-            onClick={() => onToggle(pkg.id, pkg.isActive)}
-            aria-label={pkg.isActive ? "Nonaktifkan paket" : "Aktifkan paket"}
+            onClick={() => onToggle(pkg)}
+            disabled={busy}
+            aria-label={isPublished ? "Jadikan draft" : "Tayangkan paket"}
             className={cn(
-              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border cursor-pointer select-none transition-all duration-200 shrink-0",
-              pkg.isActive
+              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border cursor-pointer select-none transition-all duration-200 shrink-0 disabled:opacity-50",
+              isPublished
                 ? "bg-green-50 text-green-700 border-green-200/80 hover:bg-green-100"
                 : "bg-neutral-50 text-neutral-400 border-neutral-200 hover:bg-neutral-100"
             )}
           >
-            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", pkg.isActive ? "bg-green-500" : "bg-neutral-300")} />
-            {pkg.isActive ? "Aktif" : "Nonaktif"}
+            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", isPublished ? "bg-green-500" : "bg-neutral-300")} />
+            {isPublished ? "Tayang" : "Draft"}
           </button>
         </div>
 
@@ -173,15 +183,15 @@ function PackageCard({ pkg, onToggle, onEdit, onDelete }: PackageCardProps) {
         {/* Price chip */}
         <div className={cn(
           "rounded-2xl px-4 py-3.5 border transition-colors duration-200",
-          pkg.isActive
+          isPublished
             ? "bg-gradient-to-br from-orange-50/90 via-amber-50/50 to-transparent border-orange-100 group-hover:border-orange-200"
             : "bg-neutral-50/80 border-neutral-200/50"
         )}>
-          <span className={cn("block text-[9px] font-bold uppercase tracking-wider mb-1.5", pkg.isActive ? "text-orange-500" : "text-neutral-400")}>
+          <span className={cn("block text-[9px] font-bold uppercase tracking-wider mb-1.5", isPublished ? "text-orange-500" : "text-neutral-400")}>
             Harga Paket
           </span>
           <span
-            className={cn("font-display font-black tracking-tight leading-none", pkg.isActive ? "text-orange-700" : "text-neutral-600")}
+            className={cn("font-display font-black tracking-tight leading-none", isPublished ? "text-orange-700" : "text-neutral-600")}
             style={{ fontSize: "clamp(1.3rem, 2.5vw, 1.6rem)" }}
           >
             {formatCurrency(pkg.price)}
@@ -259,14 +269,15 @@ function packageGridClass(count: number): string {
 
 interface RateCardViewProps {
   initialPackages: CreatorRateCardPackage[];
+  /** Jumlah order Rate Card masuk — agregasi backend, bukan dihitung di klien. */
+  ordersCount: number;
 }
 
-export function RateCardView({ initialPackages }: RateCardViewProps) {
+export function RateCardView({ initialPackages, ordersCount }: RateCardViewProps) {
   const [packages, setPackages] = useState<CreatorRateCardPackage[]>(
     initialPackages.map((p) => ({
       ...p,
       revisionCount: p.revisionCount ?? 2,
-      platform: p.platform ?? "all",
     }))
   );
 
@@ -281,61 +292,73 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
   const [formDesc, setFormDesc] = useState("");
   const [formDuration, setFormDuration] = useState(3);
   const [formRevisions, setFormRevisions] = useState(2);
-  const [formPlatform, setFormPlatform] = useState<Platform>("all");
   const [formIsActive, setFormIsActive] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
-
-  // Dev simulation flags
-  const [isLoadingSimulated, setIsLoadingSimulated] = useState(false);
-  const [isEmptySimulated, setIsEmptySimulated] = useState(false);
-  const [isErrorSimulated, setIsErrorSimulated] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteBlocked, setDeleteBlocked] = useState(false);
 
   // Derived
-  const activeCount = packages.filter((p) => p.isActive).length;
-  const activePrices = packages.filter((p) => p.isActive).map((p) => p.price);
+  const activeCount = packages.filter((p) => p.status === "published").length;
+  const activePrices = packages.filter((p) => p.status === "published").map((p) => p.price);
   const startingPrice = activePrices.length > 0 ? Math.min(...activePrices) : 0;
-  const mockOrdersCount = 14;
-  const mostPopularPkg = packages.length > 0 ? packages[0].name : "Standard Single Post";
   const isAtLimit = packages.length >= MAX_PACKAGES;
 
   const showToast = (msg: string) => toast.success(msg);
+
+  const buildInput = () => ({
+    name: formName.trim(),
+    description: formDesc.trim(),
+    output: formDeliverables.trim(),
+    deliveryDays: formDuration,
+    price: formPrice,
+    revisionLimit: formRevisions,
+    published: formIsActive,
+  });
 
   const openCreate = () => {
     if (isAtLimit) return;
     setFormName(""); setFormPrice(150000); setFormDeliverables("");
     setFormDesc(""); setFormDuration(3); setFormRevisions(2);
-    setFormPlatform("all"); setFormIsActive(true); setFormError(null);
+    setFormIsActive(true); setFormError(null);
     setIsCreateOpen(true);
   };
 
-  const handleToggleActive = (id: string, current: boolean) => {
-    setPackages((prev) => prev.map((p) => (p.id === id ? { ...p, isActive: !current } : p)));
-    showToast(`Paket berhasil ${current ? "dinonaktifkan" : "diaktifkan"}!`);
+  const handleToggleActive = async (pkg: CreatorRateCardPackage) => {
+    const next = pkg.status === "published" ? ("draft" as const) : ("published" as const);
+    setTogglingId(pkg.id);
+    const res = await setRateCardPackageStatus(
+      { id: pkg.id, rateCardId: pkg.rateCardId, base: pkg },
+      next
+    );
+    setTogglingId(null);
+    if (res.success && res.data) {
+      setPackages((prev) => prev.map((p) => (p.id === pkg.id ? res.data! : p)));
+      showToast(`Paket berhasil ${next === "published" ? "diaktifkan" : "dinonaktifkan"}!`);
+    } else {
+      toast.error(res.error ?? "Gagal mengubah status paket.");
+    }
   };
 
-  const handleCreateSubmit = (e: React.FormEvent) => {
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim() || !formDeliverables.trim()) {
-      setFormError("Nama paket dan output/deliverables wajib diisi.");
+    const parsed = parseOrErrors(rateCardPackageSchema, buildInput());
+    if (!parsed.ok) {
+      setFormError(Object.values(parsed.errors)[0] ?? "Periksa kembali isian paket.");
       return;
     }
     setFormError(null);
-    setPackages((prev) => [
-      ...prev,
-      {
-        id: `pkg_${Date.now()}`,
-        name: formName.trim(),
-        price: formPrice,
-        deliverable: formDeliverables.trim(),
-        description: formDesc.trim(),
-        estimatedDays: formDuration,
-        revisionCount: formRevisions,
-        platform: formPlatform,
-        isActive: formIsActive,
-      },
-    ]);
-    setIsCreateOpen(false);
-    showToast(`Paket "${formName.trim()}" berhasil dibuat!`);
+    setIsSubmitting(true);
+    const res = await createRateCardPackage({ ...parsed.data, published: formIsActive });
+    setIsSubmitting(false);
+    if (res.success && res.data) {
+      setPackages((prev) => [...prev, res.data!]);
+      setIsCreateOpen(false);
+      showToast(`Paket "${res.data.name}" berhasil dibuat!`);
+    } else {
+      setFormError(res.error ?? "Gagal membuat paket.");
+    }
   };
 
   const handleOpenEdit = (pkg: CreatorRateCardPackage) => {
@@ -343,50 +366,80 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
     setFormName(pkg.name); setFormPrice(pkg.price);
     setFormDeliverables(pkg.deliverable); setFormDesc(pkg.description);
     setFormDuration(pkg.estimatedDays); setFormRevisions(pkg.revisionCount ?? 2);
-    setFormPlatform((pkg.platform as Platform) ?? "all"); setFormIsActive(pkg.isActive);
+    setFormIsActive(pkg.status === "published"); setFormError(null);
     setIsEditOpen(true);
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activePackage || !formName.trim() || !formDeliverables.trim()) return;
-    setPackages((prev) =>
-      prev.map((p) =>
-        p.id === activePackage.id
-          ? { ...p, name: formName.trim(), price: formPrice, deliverable: formDeliverables.trim(), description: formDesc.trim(), estimatedDays: formDuration, revisionCount: formRevisions, platform: formPlatform, isActive: formIsActive }
-          : p
-      )
+    if (!activePackage) return;
+    const parsed = parseOrErrors(rateCardPackageSchema, buildInput());
+    if (!parsed.ok) {
+      setFormError(Object.values(parsed.errors)[0] ?? "Periksa kembali isian paket.");
+      return;
+    }
+    setFormError(null);
+    setIsSubmitting(true);
+    const res = await updateRateCardPackage(
+      { id: activePackage.id, rateCardId: activePackage.rateCardId },
+      { ...parsed.data, published: formIsActive }
     );
-    setIsEditOpen(false); setActivePackage(null);
-    showToast(`Paket "${formName.trim()}" berhasil diperbarui!`);
+    setIsSubmitting(false);
+    if (res.success && res.data) {
+      setPackages((prev) => prev.map((p) => (p.id === activePackage.id ? res.data! : p)));
+      setIsEditOpen(false); setActivePackage(null);
+      showToast(`Paket "${res.data.name}" berhasil diperbarui!`);
+    } else {
+      setFormError(res.error ?? "Gagal memperbarui paket.");
+    }
   };
 
-  const handleOpenDelete = (pkg: CreatorRateCardPackage) => { setActivePackage(pkg); setIsDeleteOpen(true); };
+  const handleOpenDelete = (pkg: CreatorRateCardPackage) => {
+    setActivePackage(pkg);
+    setDeleteError(null);
+    setDeleteBlocked(false);
+    setIsDeleteOpen(true);
+  };
 
-  const executeDelete = () => {
+  const executeDelete = async () => {
     if (!activePackage) return;
-    setPackages((prev) => prev.filter((p) => p.id !== activePackage.id));
-    setIsDeleteOpen(false); setActivePackage(null);
-    showToast("Paket Rate Card berhasil dihapus.");
+    setIsSubmitting(true);
+    const res = await deleteRateCardPackage({
+      id: activePackage.id,
+      rateCardId: activePackage.rateCardId,
+    });
+    setIsSubmitting(false);
+    if (res.success) {
+      setPackages((prev) => prev.filter((p) => p.id !== activePackage.id));
+      setIsDeleteOpen(false); setActivePackage(null);
+      showToast("Paket Rate Card berhasil dihapus.");
+    } else {
+      // forbidden/validation → tawarkan "Jadikan Draft" alih-alih gagal senyap.
+      setDeleteError(res.error ?? "Gagal menghapus paket.");
+      setDeleteBlocked(res.code === "forbidden" || res.code === "validation");
+    }
+  };
+
+  const handleMakeDraftFromDelete = async () => {
+    if (!activePackage) return;
+    setIsSubmitting(true);
+    const res = await setRateCardPackageStatus(
+      { id: activePackage.id, rateCardId: activePackage.rateCardId, base: activePackage },
+      "draft"
+    );
+    setIsSubmitting(false);
+    if (res.success && res.data) {
+      setPackages((prev) => prev.map((p) => (p.id === activePackage.id ? res.data! : p)));
+      setIsDeleteOpen(false); setActivePackage(null);
+      showToast("Paket dijadikan draft — tidak lagi tampil di marketplace.");
+    } else {
+      setDeleteError(res.error ?? "Gagal menjadikan draft.");
+    }
   };
 
   // ── Error ──
-  if (isErrorSimulated) {
-    return (
-      <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[80vh]">
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-8 max-w-md w-full flex items-center justify-between shadow-sm text-xs font-semibold text-red-800">
-          <span>Mode Uji Coba Error Aktif.</span>
-          <button onClick={() => setIsErrorSimulated(false)} className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all cursor-pointer font-bold">Matikan</button>
-        </div>
-        <CreatorErrorState
-          errorMsg="Gagal menyinkronkan daftar paket Rate Card ke database."
-          onRetry={() => { setIsErrorSimulated(false); showToast("Sinkronisasi Rate Card berhasil dipulihkan!"); }}
-        />
-      </div>
-    );
-  }
 
-  const shownPackages = isEmptySimulated ? [] : packages;
+  const shownPackages = packages;
 
   // ── Shared input class ──
   const inputCls = "w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-semibold text-neutral-800 text-xs";
@@ -394,13 +447,6 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto relative">
 
-      {isLoadingSimulated ? (
-        <div>
-          <CreatorMetricSkeleton />
-          <div className="h-10 bg-white border border-neutral-200/50 rounded-xl animate-pulse w-full mb-6" />
-          <CreatorCardSkeleton count={3} />
-        </div>
-      ) : (
         <div>
 
           {/* ── Page header ── */}
@@ -432,7 +478,7 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
           </div>
 
           {/* ── Metric summary ── */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-8">
             <MetricInfoCard
               icon={ClipboardList}
               label="Paket Aktif"
@@ -450,17 +496,9 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
             <MetricInfoCard
               icon={ShoppingBag}
               label="Order Jasa Masuk"
-              value={mockOrdersCount.toString()}
+              value={ordersCount.toString()}
               note="Melalui Rate Card"
               colors={{ bg: "#f1fbf5", iconColor: "#16a34a", border: "#bbf7d0" }}
-            />
-            <MetricInfoCard
-              icon={Trophy}
-              label="Paket Terpopuler"
-              value={mostPopularPkg}
-              note="Paling sering dipesan"
-              colors={{ bg: "#f7f3ff", iconColor: "#7c3aed", border: "#ddd6fe" }}
-              badge={{ text: "Best Seller", cls: "bg-green-50 text-green-700 border-green-200/80" }}
             />
           </div>
 
@@ -489,13 +527,13 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
                   onToggle={handleToggleActive}
                   onEdit={handleOpenEdit}
                   onDelete={handleOpenDelete}
+                  busy={togglingId === pkg.id}
                 />
               ))}
             </div>
           )}
 
         </div>
-      )}
 
       {/* ════════════════ Modal: Create ════════════════ */}
       {isCreateOpen && (
@@ -526,24 +564,13 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
                   <input type="number" required min={0} value={formPrice} onChange={(e) => setFormPrice(Number(e.target.value))} className={inputCls} />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-[9px] font-bold text-neutral-500 uppercase tracking-wider">Platform</label>
-                  <select value={formPlatform} onChange={(e) => setFormPlatform(e.target.value as Platform)} className={cn(inputCls, "cursor-pointer")}>
-                    <option value="all">Semua Platform</option>
-                    <option value="tiktok">TikTok</option>
-                    <option value="instagram">Instagram</option>
-                    <option value="youtube">YouTube</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
                   <label className="block text-[9px] font-bold text-neutral-500 uppercase tracking-wider">Estimasi (Hari)</label>
                   <input type="number" required min={1} value={formDuration} onChange={(e) => setFormDuration(Number(e.target.value))} className={inputCls} />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="block text-[9px] font-bold text-neutral-500 uppercase tracking-wider">Batas Revisi</label>
-                  <input type="number" required min={0} value={formRevisions} onChange={(e) => setFormRevisions(Number(e.target.value))} className={inputCls} />
-                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-[9px] font-bold text-neutral-500 uppercase tracking-wider">Batas Revisi</label>
+                <input type="number" required min={0} value={formRevisions} onChange={(e) => setFormRevisions(Number(e.target.value))} className={inputCls} />
               </div>
               <div className="space-y-1.5">
                 <label className="block text-[9px] font-bold text-neutral-500 uppercase tracking-wider">Output / Deliverables</label>
@@ -558,8 +585,8 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
                 <label htmlFor="create-active" className="font-bold text-neutral-700 cursor-pointer select-none">Aktifkan dan tampilkan di katalog publik</label>
               </div>
               <div className="pt-4 flex gap-3">
-                <button type="button" onClick={() => setIsCreateOpen(false)} className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-full transition-all cursor-pointer">Batal</button>
-                <button type="submit" className="flex-1 py-3 bg-primary hover:bg-primary-600 text-white font-bold text-xs rounded-full transition-all border border-primary-600/10 shadow-md cursor-pointer">Buat Paket</button>
+                <button type="button" disabled={isSubmitting} onClick={() => setIsCreateOpen(false)} className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-full transition-all cursor-pointer disabled:opacity-50">Batal</button>
+                <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-primary hover:bg-primary-600 text-white font-bold text-xs rounded-full transition-all border border-primary-600/10 shadow-md cursor-pointer disabled:opacity-60">{isSubmitting ? "Menyimpan…" : "Buat Paket"}</button>
               </div>
             </form>
           </div>
@@ -580,6 +607,10 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
               </button>
             </div>
 
+            {formError && (
+              <div className="bg-red-50 border border-red-200 p-3.5 rounded-xl text-red-800 text-xs font-bold mb-4">⚠️ {formError}</div>
+            )}
+
             <form onSubmit={handleEditSubmit} className="space-y-4 text-xs">
               <div className="space-y-1.5">
                 <label className="block text-[9px] font-bold text-neutral-500 uppercase tracking-wider">Nama Paket</label>
@@ -591,24 +622,13 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
                   <input type="number" required min={0} value={formPrice} onChange={(e) => setFormPrice(Number(e.target.value))} className={inputCls} />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-[9px] font-bold text-neutral-500 uppercase tracking-wider">Platform</label>
-                  <select value={formPlatform} onChange={(e) => setFormPlatform(e.target.value as Platform)} className={cn(inputCls, "cursor-pointer")}>
-                    <option value="all">Semua Platform</option>
-                    <option value="tiktok">TikTok</option>
-                    <option value="instagram">Instagram</option>
-                    <option value="youtube">YouTube</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
                   <label className="block text-[9px] font-bold text-neutral-500 uppercase tracking-wider">Estimasi (Hari)</label>
                   <input type="number" required min={1} value={formDuration} onChange={(e) => setFormDuration(Number(e.target.value))} className={inputCls} />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="block text-[9px] font-bold text-neutral-500 uppercase tracking-wider">Batas Revisi</label>
-                  <input type="number" required min={0} value={formRevisions} onChange={(e) => setFormRevisions(Number(e.target.value))} className={inputCls} />
-                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-[9px] font-bold text-neutral-500 uppercase tracking-wider">Batas Revisi</label>
+                <input type="number" required min={0} value={formRevisions} onChange={(e) => setFormRevisions(Number(e.target.value))} className={inputCls} />
               </div>
               <div className="space-y-1.5">
                 <label className="block text-[9px] font-bold text-neutral-500 uppercase tracking-wider">Output / Deliverables</label>
@@ -623,8 +643,8 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
                 <label htmlFor="edit-active" className="font-bold text-neutral-700 cursor-pointer select-none">Aktifkan dan tampilkan di katalog publik</label>
               </div>
               <div className="pt-4 flex gap-3">
-                <button type="button" onClick={() => { setIsEditOpen(false); setActivePackage(null); }} className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-full transition-all cursor-pointer">Batal</button>
-                <button type="submit" className="flex-1 py-3 bg-primary hover:bg-primary-600 text-white font-bold text-xs rounded-full transition-all border border-primary-600/10 shadow-md cursor-pointer">Simpan Perubahan</button>
+                <button type="button" disabled={isSubmitting} onClick={() => { setIsEditOpen(false); setActivePackage(null); }} className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-full transition-all cursor-pointer disabled:opacity-50">Batal</button>
+                <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-primary hover:bg-primary-600 text-white font-bold text-xs rounded-full transition-all border border-primary-600/10 shadow-md cursor-pointer disabled:opacity-60">{isSubmitting ? "Menyimpan…" : "Simpan Perubahan"}</button>
               </div>
             </form>
           </div>
@@ -641,15 +661,31 @@ export function RateCardView({ initialPackages }: RateCardViewProps) {
               </svg>
             </div>
             <h3 className="text-base font-black text-neutral-900 text-center mb-2">Hapus Paket Jasa?</h3>
-            <p className="text-xs text-neutral-500 font-semibold leading-relaxed text-center mb-6">
+            <p className="text-xs text-neutral-500 font-semibold leading-relaxed text-center mb-4">
               Apakah Anda yakin ingin menghapus{" "}
               <span className="font-extrabold text-neutral-900">&quot;{activePackage.name}&quot;</span>{" "}
               secara permanen? Tindakan ini tidak dapat dibatalkan.
             </p>
-            <div className="flex gap-3">
-              <button type="button" onClick={() => { setIsDeleteOpen(false); setActivePackage(null); }} className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-full transition-all cursor-pointer">Batal</button>
-              <button type="button" onClick={executeDelete} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-full transition-all shadow-md cursor-pointer">Ya, Hapus Paket</button>
-            </div>
+
+            {deleteError && (
+              <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl text-amber-800 text-[11px] font-semibold leading-relaxed mb-4">
+                {deleteError}
+              </div>
+            )}
+
+            {deleteBlocked ? (
+              <div className="flex flex-col gap-3">
+                <button type="button" disabled={isSubmitting} onClick={handleMakeDraftFromDelete} className="w-full py-3 bg-primary hover:bg-primary-600 text-white font-bold text-xs rounded-full transition-all shadow-md cursor-pointer disabled:opacity-60">
+                  {isSubmitting ? "Memproses…" : "Jadikan Draft Saja"}
+                </button>
+                <button type="button" onClick={() => { setIsDeleteOpen(false); setActivePackage(null); }} className="w-full py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-full transition-all cursor-pointer">Tutup</button>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <button type="button" disabled={isSubmitting} onClick={() => { setIsDeleteOpen(false); setActivePackage(null); }} className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-full transition-all cursor-pointer disabled:opacity-50">Batal</button>
+                <button type="button" disabled={isSubmitting} onClick={executeDelete} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-full transition-all shadow-md cursor-pointer disabled:opacity-60">{isSubmitting ? "Menghapus…" : "Ya, Hapus Paket"}</button>
+              </div>
+            )}
           </div>
         </div>
       )}

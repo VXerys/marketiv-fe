@@ -17,7 +17,7 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Method not allowed" }, 405);
     }
 
-    const env = getEnv();
+    const env = getEnv(req);
     const userId = getUserId(req);
     if (!userId) return json(res, { error: "Unauthorized" }, 401);
 
@@ -79,11 +79,11 @@ export default async ({ req, res, log, error }) => {
   }
 };
 
-function getEnv() {
+function getEnv(req) {
   const env = {
     appwriteEndpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT || process.env.APPWRITE_ENDPOINT,
     appwriteProjectId: process.env.APPWRITE_FUNCTION_PROJECT_ID || process.env.APPWRITE_PROJECT_ID,
-    appwriteApiKey: process.env.APPWRITE_API_KEY,
+    appwriteApiKey: req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY,
     databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
     userFilesCollectionId: process.env.USER_FILES_COLLECTION_ID || "user_files",
     storageUsageCollectionId: process.env.USER_STORAGE_USAGE_COLLECTION_ID || "user_storage_usage",

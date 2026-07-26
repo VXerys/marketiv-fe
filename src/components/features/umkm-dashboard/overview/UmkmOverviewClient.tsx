@@ -11,11 +11,11 @@ import { FinancialOverview } from "./FinancialOverview";
 import { InsightSection } from "./InsightSection";
 import { QuickActions } from "./QuickActions";
 import { formatCompactViews, formatCompactCurrency } from "@/lib/formatters";
-import type { UmkmDashboardData } from "@/types/umkmDashboard";
+import type { UmkmOverviewData } from "@/mocks/umkm/overview.mock";
 import type { Campaign } from "@/types/umkm-dashboard.types";
 
 interface UmkmOverviewClientProps {
-  data: UmkmDashboardData;
+  data: UmkmOverviewData;
   /** Pre-mapped campaign list — dikirim dari Server Component (page.tsx) */
   mappedCampaigns: Campaign[];
 }

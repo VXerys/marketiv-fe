@@ -1,5 +1,6 @@
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
 import { mockDelay } from "@/lib/mock-delay";
+import { MINIMUM_CAMPAIGN_BUDGET } from "@/types/domain";
 import {
   ServiceResult,
   UmkmProfile,
@@ -13,6 +14,7 @@ import {
   Transaction,
   UmkmFinanceSummary,
   EscrowOverview,
+  UmkmSettingsProfile,
 } from "@/types/umkm-dashboard.types";
 import {
   mockUmkmProfile,
@@ -23,8 +25,11 @@ import {
   mockNegotiations,
   mockChatMessages,
   mockTransactions,
+  mockUmkmOverview,
+  mockUmkmSettingsProfile,
   getCalculatedDashboardSummary,
 } from "@/mocks/umkm";
+import type { UmkmOverviewData } from "@/mocks/umkm/overview.mock";
 import {
   getUmkmProfileFromAppwrite,
   getDashboardSummaryFromAppwrite,
@@ -42,6 +47,30 @@ import {
   getTransactionByIdFromAppwrite,
   getFinanceSummaryFromAppwrite,
   getEscrowOverviewFromAppwrite,
+  getFinanceOverviewFromAppwrite,
+  createCampaignDraftInAppwrite,
+  updateCampaignStatusInAppwrite,
+  duplicateCampaignInAppwrite,
+  getUmkmSettingsProfileFromAppwrite,
+  updateUmkmProfileInAppwrite,
+  uploadUmkmLogoInAppwrite,
+  generateCampaignBriefFromAppwrite,
+  createCampaignPaymentInAppwrite,
+  deleteCampaignDraftInAppwrite,
+  removeCampaignAssetInAppwrite,
+  deleteOfferInAppwrite,
+  cancelOrderInAppwrite,
+  cancelPaymentInAppwrite,
+} from "./umkm-appwrite.service";
+import type {
+  UmkmFinanceOverview,
+  AiBriefInput,
+  AiBrief,
+  PaymentIntent,
+  CreateCampaignDraftInput,
+  CampaignDraftResult,
+  DuplicateCampaignOptions,
+  UmkmProfileWriteInput,
 } from "./umkm-appwrite.service";
 
 export async function getUmkmProfile(): Promise<ServiceResult<UmkmProfile>> {
@@ -50,6 +79,24 @@ export async function getUmkmProfile(): Promise<ServiceResult<UmkmProfile>> {
     return { success: true, data: mockUmkmProfile };
   }
   return getUmkmProfileFromAppwrite();
+}
+
+/**
+ * View-model kaya untuk halaman Overview (hero, KPI, insights, activities).
+ * Mock ON  → mock overview terelokasi. Mock OFF → memerlukan Function DTO
+ * `get-umkm-dashboard-summary` (belum ada) — lihat chip task backend.
+ */
+export async function getOverview(): Promise<ServiceResult<UmkmOverviewData>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return { success: true, data: mockUmkmOverview };
+  }
+  return {
+    success: false,
+    data: null,
+    error: "Belum tersedia — memerlukan Function DTO backend.",
+    code: "unknown",
+  };
 }
 
 export async function getDashboardSummary(): Promise<ServiceResult<UmkmDashboardSummary>> {
@@ -73,7 +120,7 @@ export async function getCampaignById(id: string): Promise<ServiceResult<Campaig
     await mockDelay(300);
     const campaign = mockCampaigns.find((c) => c.id === id);
     if (!campaign) {
-      return { success: false, data: null, error: "Campaign tidak ditemukan" };
+      return { success: false, data: null, error: "Campaign tidak ditemukan", code: "not_found" };
     }
     return { success: true, data: campaign };
   }
@@ -111,7 +158,7 @@ export async function getCreatorById(id: string): Promise<ServiceResult<CreatorP
     await mockDelay(300);
     const creator = mockCreators.find((c) => c.id === id);
     if (!creator) {
-      return { success: false, data: null, error: "Kreator tidak ditemukan" };
+      return { success: false, data: null, error: "Kreator tidak ditemukan", code: "not_found" };
     }
     return { success: true, data: creator };
   }
@@ -121,7 +168,7 @@ export async function getCreatorById(id: string): Promise<ServiceResult<CreatorP
 export async function getCreatorRateCards(creatorId: string): Promise<ServiceResult<RateCardPackage[]>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(300);
-    const packages = mockRateCardPackages.filter((p) => p.creatorId === creatorId && p.isActive);
+    const packages = mockRateCardPackages.filter((p) => p.creatorId === creatorId && p.status === "published");
     return { success: true, data: packages };
   }
   return getCreatorRateCardsFromAppwrite(creatorId);
@@ -140,7 +187,7 @@ export async function getNegotiationById(id: string): Promise<ServiceResult<Nego
     await mockDelay(300);
     const order = mockNegotiations.find((n) => n.id === id);
     if (!order) {
-      return { success: false, data: null, error: "Negosiasi tidak ditemukan" };
+      return { success: false, data: null, error: "Negosiasi tidak ditemukan", code: "not_found" };
     }
     return { success: true, data: order };
   }
@@ -169,7 +216,7 @@ export async function getTransactionById(id: string): Promise<ServiceResult<Tran
     await mockDelay(300);
     const transaction = mockTransactions.find((tx) => tx.id === id);
     if (!transaction) {
-      return { success: false, data: null, error: "Transaksi tidak ditemukan" };
+      return { success: false, data: null, error: "Transaksi tidak ditemukan", code: "not_found" };
     }
     return { success: true, data: transaction };
   }
@@ -182,11 +229,11 @@ export async function getFinanceSummary(): Promise<ServiceResult<UmkmFinanceSumm
     
     // Total expenses: deposit + fee transactions that are success or escrow
     const totalExpenses = mockTransactions
-      .filter((tx) => (tx.status === "success" || tx.status === "escrow") && (tx.type === "deposit" || tx.type === "fee"))
+      .filter((tx) => (tx.status === "paid" || tx.status === "held") && (tx.type === "deposit" || tx.type === "fee"))
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const escrowBalance = mockTransactions
-      .filter((tx) => tx.status === "escrow")
+      .filter((tx) => tx.status === "held")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const pendingPayments = mockTransactions
@@ -198,11 +245,11 @@ export async function getFinanceSummary(): Promise<ServiceResult<UmkmFinanceSumm
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const platformFees = mockTransactions
-      .filter((tx) => tx.type === "fee" && tx.status === "success")
+      .filter((tx) => tx.type === "fee" && tx.status === "paid")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const successfulTransactionsCount = mockTransactions
-      .filter((tx) => tx.status === "success" || tx.status === "escrow" || tx.status === "refunded")
+      .filter((tx) => tx.status === "paid" || tx.status === "held" || tx.status === "refunded")
       .length;
 
     return {
@@ -220,20 +267,46 @@ export async function getFinanceSummary(): Promise<ServiceResult<UmkmFinanceSumm
   return getFinanceSummaryFromAppwrite();
 }
 
+/**
+ * Ringkasan keuangan + escrow dalam satu perjalanan.
+ *
+ * Mock OFF → satu eksekusi Function `get-umkm-finance-summary`. Halaman Keuangan
+ * harus memakai ini, bukan getFinanceSummary() + getEscrowOverview() bersamaan,
+ * karena keduanya memicu agregasi backend yang sama dua kali.
+ */
+export async function getFinanceOverview(): Promise<ServiceResult<UmkmFinanceOverview>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    const [financeRes, escrowRes] = await Promise.all([
+      getFinanceSummary(),
+      getEscrowOverview(),
+    ]);
+    if (!financeRes.success || !financeRes.data || !escrowRes.success || !escrowRes.data) {
+      return {
+        success: false,
+        data: null,
+        error: financeRes.error ?? escrowRes.error ?? "Gagal memuat ringkasan keuangan.",
+        code: financeRes.code ?? escrowRes.code ?? "unknown",
+      };
+    }
+    return { success: true, data: { finance: financeRes.data, escrow: escrowRes.data } };
+  }
+  return getFinanceOverviewFromAppwrite();
+}
+
 export async function getEscrowOverview(): Promise<ServiceResult<EscrowOverview>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(300);
     
     const activeEscrow = mockTransactions
-      .filter((tx) => tx.status === "escrow")
+      .filter((tx) => tx.status === "held")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const campaignEscrow = mockTransactions
-      .filter((tx) => tx.status === "escrow" && tx.referenceType === "campaign")
+      .filter((tx) => tx.status === "held" && tx.referenceType === "campaign")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const rateCardEscrow = mockTransactions
-      .filter((tx) => tx.status === "escrow" && tx.referenceType === "rate_card")
+      .filter((tx) => tx.status === "held" && tx.referenceType === "rate_card")
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const pendingRelease = rateCardEscrow; // Rate card custom offers pending verification / collab post URL
@@ -251,4 +324,268 @@ export async function getEscrowOverview(): Promise<ServiceResult<EscrowOverview>
     };
   }
   return getEscrowOverviewFromAppwrite();
+}
+
+// ── writes (Sprint 3) ────────────────────────────────────────────────────────
+
+export type { CreateCampaignDraftInput, CampaignDraftResult };
+
+/**
+ * Buat campaign draft (campaigns + campaign_briefs + campaign_assets).
+ * Mock: echo input jadi Campaign dengan id `mock_campaign_*` — TIDAK memutasi
+ * mockCampaigns (mutasi module-level di dev server tidak konsisten). Id fabrikasi
+ * kini hanya hidup di cabang mock.
+ */
+export async function createCampaignDraft(
+  input: CreateCampaignDraftInput
+): Promise<ServiceResult<CampaignDraftResult>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(600);
+    const campaign: Campaign = {
+      id: `mock_campaign_${Date.now()}`,
+      umkmId: "mock_umkm",
+      title: input.title,
+      brief: input.brief?.briefDetail ?? "",
+      externalAssetUrl: input.asset?.fileUrl ?? "",
+      thumbnailUrl: "",
+      niche: input.category as Campaign["niche"],
+      status: "draft",
+      creatorQuota: input.claimLimit,
+      usedQuota: 0,
+      pricePerThousandViews: input.rewardPer1000Views,
+      totalBudgetEscrow: input.budget,
+      usedBudget: 0,
+      totalViews: 0,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    return { success: true, data: { campaign, complete: true, warnings: [] } };
+  }
+  return createCampaignDraftInAppwrite(input);
+}
+
+export type { DuplicateCampaignOptions };
+
+/** Jeda / aktifkan kembali campaign. Mock meniru validasi status yang sama. */
+export async function updateCampaignStatus(
+  campaignId: string,
+  next: "paused" | "active"
+): Promise<ServiceResult<Campaign>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    const c = mockCampaigns.find((x) => x.id === campaignId);
+    if (!c) return { success: false, data: null, error: "Campaign tidak ditemukan.", code: "not_found" };
+    if (next === "paused" && c.status !== "active") {
+      return { success: false, data: null, error: "Hanya campaign aktif yang bisa dijeda.", code: "validation" };
+    }
+    if (next === "active" && c.status !== "paused") {
+      return { success: false, data: null, error: "Hanya campaign terjeda yang bisa diaktifkan kembali.", code: "validation" };
+    }
+    return { success: true, data: { ...c, status: next } };
+  }
+  return updateCampaignStatusInAppwrite(campaignId, next);
+}
+
+/** Duplikasi campaign jadi draft baru. Mock echo dari mockCampaigns. */
+export async function duplicateCampaign(
+  sourceId: string,
+  newTitle: string,
+  options: DuplicateCampaignOptions
+): Promise<ServiceResult<CampaignDraftResult>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(600);
+    const src = mockCampaigns.find((x) => x.id === sourceId);
+    if (!src) return { success: false, data: null, error: "Campaign sumber tidak ditemukan.", code: "not_found" };
+    const campaign: Campaign = {
+      ...src,
+      id: `mock_campaign_${Date.now()}`,
+      title: newTitle,
+      status: "draft",
+      totalBudgetEscrow: options.copyBudget ? src.totalBudgetEscrow : MINIMUM_CAMPAIGN_BUDGET,
+      usedQuota: 0,
+      usedBudget: 0,
+      totalViews: 0,
+      externalAssetUrl: options.copyAssets ? src.externalAssetUrl : "",
+      brief: options.copyBrief ? src.brief : "",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    return { success: true, data: { campaign, complete: true, warnings: [] } };
+  }
+  return duplicateCampaignInAppwrite(sourceId, newTitle, options);
+}
+
+// ── profil UMKM / pengaturan (Sprint 3) ──────────────────────────────────────
+
+export type { UmkmProfileWriteInput };
+
+export async function getUmkmSettingsProfile(): Promise<ServiceResult<UmkmSettingsProfile>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return { success: true, data: mockUmkmSettingsProfile };
+  }
+  return getUmkmSettingsProfileFromAppwrite();
+}
+
+export async function updateUmkmProfile(
+  input: UmkmProfileWriteInput
+): Promise<ServiceResult<UmkmSettingsProfile>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return {
+      success: true,
+      data: { ...mockUmkmSettingsProfile, ...(input as Partial<UmkmSettingsProfile>) },
+    };
+  }
+  return updateUmkmProfileInAppwrite(input);
+}
+
+export async function uploadUmkmLogo(file: File): Promise<ServiceResult<string>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(700);
+    return { success: true, data: `https://placehold.co/128x128?text=${encodeURIComponent(file.name.slice(0, 8))}` };
+  }
+  return uploadUmkmLogoInAppwrite(file);
+}
+
+// ── AI brief (Sprint 3) ──────────────────────────────────────────────────────
+
+export type { AiBriefInput, AiBrief };
+
+/**
+ * Mock mengembalikan brief tetap setelah delay supaya UX loading/confirm/error
+ * bisa diuji di browser hari ini — Function-nya sendiri masih kena blocker
+ * APPWRITE_FUNCTION_API_KEY. Ini tempat yang jujur untuk contoh brief lama.
+ */
+export async function generateCampaignBrief(
+  input: AiBriefInput
+): Promise<ServiceResult<AiBrief>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(1400);
+    return {
+      success: true,
+      data: {
+        objective: `Meningkatkan awareness ${input.productName ?? "produk"} di kalangan pengguna TikTok.`,
+        contentAngle: "Daily vlog santai menikmati produk di sore hari.",
+        cta: input.goal ?? "Kunjungi toko",
+        briefDetail: [
+          "Konsep Video:",
+          "Daily vlog santai saat menikmati produk.",
+          "",
+          "Panduan Produksi:",
+          "- Tunjukkan kemasan produk dengan jelas di awal video.",
+          "- Ambil close-up detail tekstur dan penyajian produk.",
+          "- Perlihatkan reaksi jujur saat mencoba produk.",
+          "- Tutup video dengan mengarahkan penonton ke tautan di bio.",
+        ].join("\n"),
+        doAndDont: {
+          do: [
+            "Wajib menunjukkan kemasan di awal video",
+            "Wajib memperlihatkan reaksi saat mencoba produk",
+          ],
+          dont: ["membandingkan produk dengan kompetitor", "menggunakan musik berhak cipta"],
+        },
+      },
+    };
+  }
+  return generateCampaignBriefFromAppwrite(input);
+}
+
+// ── pembayaran campaign (Sprint 3 / 6b) ──────────────────────────────────────
+
+export type { PaymentIntent };
+
+/**
+ * Mock mengembalikan intent tanpa snapToken/redirectUrl, sehingga modal jatuh ke
+ * jalur "berhasil" lokal dan UX mock tidak berubah.
+ */
+export async function createCampaignPayment(input: {
+  campaignId: string;
+  budget: number;
+}): Promise<ServiceResult<PaymentIntent>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(800);
+    return {
+      success: true,
+      data: {
+        paymentId: `mock_pay_${Date.now()}`,
+        gateway: "midtrans",
+        status: "pending",
+      },
+    };
+  }
+  return createCampaignPaymentInAppwrite(input);
+}
+
+// ── hapus & batalkan (Sprint 3.5) ────────────────────────────────────────────
+//
+// Mock menegakkan guard status yang SAMA dengan jalur Appwrite, bukan sekadar
+// mengembalikan sukses. Kalau mock selalu berhasil, UI tidak akan pernah
+// menampilkan pesan penolakan sampai mock dimatikan — persis pola "toast palsu"
+// yang dibersihkan di Sprint 3.
+
+/** Hapus campaign draft beserta brief & asetnya. Hanya status `draft`. */
+export async function deleteCampaignDraft(campaignId: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    const c = mockCampaigns.find((x) => x.id === campaignId);
+    if (!c) return { success: false, data: null, error: "Campaign tidak ditemukan.", code: "not_found" };
+    if (c.status !== "draft") {
+      return {
+        success: false,
+        data: null,
+        error: "Hanya campaign draft yang bisa dihapus. Campaign yang sudah tayang cukup dijeda.",
+        code: "validation",
+      };
+    }
+    return { success: true, data: null };
+  }
+  return deleteCampaignDraftInAppwrite(campaignId);
+}
+
+/** Hapus satu aset campaign. Hanya selama induknya masih `draft`. */
+export async function removeCampaignAsset(assetId: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    return { success: true, data: null };
+  }
+  return removeCampaignAssetInAppwrite(assetId);
+}
+
+/** Hapus custom offer yang masih `pending`. */
+export async function deleteOffer(offerId: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    return { success: true, data: null };
+  }
+  return deleteOfferInAppwrite(offerId);
+}
+
+/** Batalkan pesanan yang belum dibayar — status jadi `cancelled`, baris tetap ada. */
+export async function cancelOrder(orderId: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    const n = mockNegotiations.find((x) => x.id === orderId);
+    if (!n) return { success: false, data: null, error: "Pesanan tidak ditemukan.", code: "not_found" };
+    if (n.status !== "pending_payment") {
+      return {
+        success: false,
+        data: null,
+        error:
+          "Hanya pesanan yang belum dibayar yang bisa dibatalkan. Dana yang sudah masuk escrow harus lewat pengembalian dana.",
+        code: "validation",
+      };
+    }
+    return { success: true, data: null };
+  }
+  return cancelOrderInAppwrite(orderId);
+}
+
+/** Batalkan payment `pending` lewat Function `cancel-payment`. */
+export async function cancelPayment(paymentId: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return { success: true, data: null };
+  }
+  return cancelPaymentInAppwrite(paymentId);
 }

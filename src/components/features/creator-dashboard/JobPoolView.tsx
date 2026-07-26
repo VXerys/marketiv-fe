@@ -4,7 +4,6 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useStickyToolbar } from "@/hooks/useStickyToolbar";
-import { toast } from "sonner";
 import {
   Briefcase,
   BadgeDollarSign,
@@ -16,8 +15,6 @@ import {
 import { CreatorJob } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
-import { CreatorErrorState } from "./CreatorErrorState";
-import { CreatorCardSkeleton, CreatorMetricSkeleton } from "./CreatorSkeleton";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +22,7 @@ import { cn } from "@/lib/utils";
 
 const NICHE_GRADIENTS: Record<string, [string, string]> = {
   kuliner:    ["#f59e0b", "#ef4444"],
-  fesyen:     ["#ec4899", "#8b5cf6"],
+  fashion:     ["#ec4899", "#8b5cf6"],
   pariwisata: ["#14b8a6", "#3b82f6"],
   edukasi:    ["#3b82f6", "#1d4ed8"],
   kecantikan: ["#f472b6", "#d946ef"],
@@ -34,7 +31,7 @@ const NICHE_GRADIENTS: Record<string, [string, string]> = {
 
 const NICHE_LABELS: Record<string, string> = {
   kuliner:    "Kuliner",
-  fesyen:     "Fashion",
+  fashion:     "Fashion",
   pariwisata: "Travel",
   edukasi:    "Edukasi",
   kecantikan: "Beauty",
@@ -260,9 +257,6 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
   const [filterOpen, setFilterOpen] = useState(false);
 
   // Slicing State Simulators (for QA / User review)
-  const [isLoadingSimulated, setIsLoadingSimulated] = useState(false);
-  const [isErrorSimulated, setIsErrorSimulated] = useState(false);
-  const [isEmptySimulated, setIsEmptySimulated] = useState(false);
 
   // Modal states
   const [claimingJob, setClaimingJob] = useState<CreatorJob | null>(null);
@@ -274,7 +268,6 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
     views: false,
   });
 
-  const showToast = (msg: string) => toast.success(msg);
 
   const handleClearFilters = () => {
     setSearch("");
@@ -331,38 +324,10 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
   const hasActiveFilters = search !== "" || selectedNiche !== "all" || filterAvailableOnly;
   const allRulesChecked  = isRulesChecked.brief && isRulesChecked.privacy && isRulesChecked.retention && isRulesChecked.views;
 
-  // ── Error state ────────────────────────────────────────────────────────────
-  if (isErrorSimulated) {
-    return (
-      <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[80vh]">
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4.5 mb-8 max-w-md w-full flex items-center justify-between shadow-sm text-xs font-semibold text-red-800">
-          <span>Mode Uji Coba Error Aktif.</span>
-          <button
-            onClick={() => setIsErrorSimulated(false)}
-            className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all cursor-pointer font-bold"
-          >
-            Matikan Mode Error
-          </button>
-        </div>
-        <CreatorErrorState
-          errorMsg="Simulator error diaktifkan untuk memenuhi persyaratan Slicing DoD."
-          onRetry={() => { setIsErrorSimulated(false); showToast("Berhasil memulihkan dari state error!"); }}
-        />
-      </div>
-    );
-  }
-
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 relative">
 
-      {isLoadingSimulated ? (
-        <div>
-          <CreatorMetricSkeleton />
-          <div className="h-14 bg-white border border-neutral-200/50 rounded-xl animate-pulse w-full mb-6" />
-          <CreatorCardSkeleton count={3} />
-        </div>
-      ) : (
         <div>
           {/* Header */}
           <CreatorPageHeader
@@ -462,7 +427,7 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
                 <option value="all">Semua Kategori</option>
                 <option value="kecantikan">Kecantikan</option>
                 <option value="kuliner">Kuliner</option>
-                <option value="fesyen">Fesyen</option>
+                <option value="fashion">Fashion</option>
                 <option value="pariwisata">Pariwisata</option>
                 <option value="edukasi">Edukasi</option>
               </select>
@@ -505,16 +470,16 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
           </div>
 
           {/* Grid Content */}
-          {isEmptySimulated || filteredJobs.length === 0 ? (
+          {filteredJobs.length === 0 ? (
             <CreatorEmptyState
-              title={isEmptySimulated ? "Job pool kosong" : "Job tidak ditemukan"}
+              title={hasActiveFilters ? "Job tidak ditemukan" : "Job pool kosong"}
               description={
-                isEmptySimulated
-                  ? "UMKM belum menerbitkan kampanye baru di pool. Silakan tunggu beberapa saat lagi."
-                  : "Coba ganti kata kunci pencarian atau bersihkan filter di atas."
+                hasActiveFilters
+                  ? "Coba ganti kata kunci pencarian atau bersihkan filter di atas."
+                  : "UMKM belum menerbitkan kampanye baru di pool. Silakan tunggu beberapa saat lagi."
               }
               actionButton={
-                !isEmptySimulated && hasActiveFilters ? (
+                hasActiveFilters ? (
                   <button
                     onClick={handleClearFilters}
                     className="bg-primary hover:bg-primary-600 text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow border border-primary-600/10 cursor-pointer"
@@ -532,7 +497,6 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
             </div>
           )}
         </div>
-      )}
 
       {/* ── Claim Checklist Modal ──────────────────────────────────────────── */}
       {claimingJob && (

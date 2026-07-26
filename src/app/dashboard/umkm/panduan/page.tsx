@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ChevronDown,
@@ -15,7 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { UmkmPageWrapper } from "@/components/features/umkm-dashboard/shared/UmkmPageWrapper";
-import { UMKM_DASHBOARD_MOCK_DATA } from "@/data/umkmDashboard";
+import { getUmkmProfile } from "@/services/umkm/umkm-dashboard.service";
 
 type TabType = "rules" | "faq" | "terms";
 
@@ -23,7 +23,17 @@ export default function FAQRulesDashboardPage() {
   const [activeTab, setActiveTab] = useState<TabType>("rules");
   const [openFAQIndex, setOpenFAQIndex] = useState<number | null>(null);
 
-  const businessName = UMKM_DASHBOARD_MOCK_DATA.businessName;
+  const [businessName, setBusinessName] = useState("");
+
+  useEffect(() => {
+    getUmkmProfile()
+      .then((res) => {
+        if (res.success && res.data) setBusinessName(res.data.businessName);
+      })
+      .catch(() => {
+        /* chrome tetap render tanpa nama bisnis */
+      });
+  }, []);
 
   const toggleFAQ = (index: number) => {
     setOpenFAQIndex(openFAQIndex === index ? null : index);

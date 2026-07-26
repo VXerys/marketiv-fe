@@ -4,8 +4,7 @@
 
 - **Appwrite Auth** — layanan autentikasi Appwrite yang mengelola kredensial, sesi, dan token.
 - **Role** — tipe pengguna: `umkm`, `creator`, atau `admin`.
-- **Google OAuth** — login satu klik via akun Google, khusus Content Creator.
-- **Verifikasi Email** — proses konfirmasi alamat email via link yang dikirim ke email pengguna.
+- **Google OAuth** — login satu klik via akun Google, tersedia untuk UMKM dan Creator.
 - **Reset Password** — mekanisme pemulihan akses via link reset yang dikirim ke email.
 
 ## Konsep

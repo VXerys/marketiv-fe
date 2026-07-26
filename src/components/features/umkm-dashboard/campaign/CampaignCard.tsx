@@ -16,6 +16,7 @@ interface CampaignCardProps {
   disputeCount?: number;
   onDuplicate: () => void;
   onCancel: () => void;
+  onDelete: () => void;
   onExport: () => void;
   onEdit: () => void;
 }
@@ -23,7 +24,7 @@ interface CampaignCardProps {
 // Cover gradients per niche — dipertahankan karena nilai dinamis runtime
 const COVER_GRADIENTS: Record<string, string> = {
   kuliner:    "linear-gradient(135deg, #fb923c, #c2410c)",
-  fesyen:     "linear-gradient(135deg, #16a34a, #84cc16)",
+  fashion:     "linear-gradient(135deg, #16a34a, #84cc16)",
   pariwisata: "linear-gradient(135deg, #1e3a5f, #93c5fd)",
   edukasi:    "linear-gradient(135deg, #a78bfa, #6d28d9)",
   kecantikan: "linear-gradient(135deg, #f472b6, #be185d)",
@@ -34,23 +35,21 @@ const COVER_GRADIENTS: Record<string, string> = {
 const STATUS_DOT_COLOR: Record<CampaignStatus, string> = {
   active:    "text-emerald-700 border-emerald-200/60",
   draft:     "text-ink-500 border-ink-200/60",
-  full:      "text-orange-700 border-orange-200/60",
+  paused:    "text-orange-700 border-orange-200/60",
   completed: "text-blue-700 border-blue-200/60",
-  cancelled: "text-red-700 border-red-200/60",
 };
 
 const STATUS_LABEL: Record<CampaignStatus, string> = {
   active:    "Aktif",
   draft:     "Draft",
-  full:      "Penuh",
+  paused:    "Dijeda",
   completed: "Selesai",
-  cancelled: "Dibatalkan",
 };
 
 // Niche (kategori) color configuration untuk label bervariasi sesuai best practices
 const NICHE_COLOR_CONFIG: Record<string, { bg: string; text: string; border: string }> = {
   kuliner:    { bg: "bg-orange-50",     text: "text-orange-700",    border: "border-orange-200/40" },
-  fesyen:     { bg: "bg-emerald-50",    text: "text-emerald-700",   border: "border-emerald-200/40" },
+  fashion:     { bg: "bg-emerald-50",    text: "text-emerald-700",   border: "border-emerald-200/40" },
   pariwisata: { bg: "bg-blue-50",       text: "text-blue-700",      border: "border-blue-200/40" },
   edukasi:    { bg: "bg-purple-50",     text: "text-purple-700",    border: "border-purple-200/40" },
   kecantikan: { bg: "bg-rose-50",       text: "text-rose-600",      border: "border-rose-200/40" },
@@ -64,6 +63,7 @@ export function CampaignCard({
   disputeCount = 0,
   onDuplicate,
   onCancel,
+  onDelete,
   onExport,
   onEdit,
 }: CampaignCardProps) {
@@ -76,8 +76,10 @@ export function CampaignCard({
     ? Math.min(100, Math.round((campaign.usedBudget / campaign.totalBudgetEscrow) * 100))
     : 0;
 
-  const isCancelDisabled = campaign.status === "completed" || campaign.status === "cancelled";
+  const isCancelDisabled = campaign.status === "completed";
   const isEditVisible    = campaign.status === "draft";
+  // Hapus permanen hanya untuk draft — sekali tayang campaign cuma bisa dijeda.
+  const isDeleteVisible  = campaign.status === "draft";
 
   const actionItems = [
     { label: "Lihat Detail",       onClick: () => router.push(`/dashboard/umkm/campaign/${campaign.id}`) },
@@ -85,6 +87,7 @@ export function CampaignCard({
     { label: "Duplikasi Campaign", onClick: onDuplicate },
     { label: "Unduh Laporan",      onClick: onExport    },
     ...(!isCancelDisabled ? [{ label: "Batalkan Campaign", onClick: onCancel, danger: true }] : []),
+    ...(isDeleteVisible ? [{ label: "Hapus Draft", onClick: onDelete, danger: true }] : []),
   ];
 
   const statusDotClass = STATUS_DOT_COLOR[campaign.status] ?? STATUS_DOT_COLOR.active;

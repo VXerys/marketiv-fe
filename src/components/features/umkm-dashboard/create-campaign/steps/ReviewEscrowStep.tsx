@@ -130,7 +130,7 @@ export function ReviewEscrowStep({
                 <span className="font-bold text-text-primary">{formatCurrency(totalBudgetEscrow)}</span>
               </div>
               <div className="flex justify-between items-center text-text-muted text-[11px]">
-                <span>Biaya Platform (15%)</span>
+                <span>Biaya Platform (2%)</span>
                 <span className="font-bold text-text-primary">{formatCurrency(platformFee)}</span>
               </div>
               <div className="flex justify-between items-center text-text-primary text-[11px] pt-2 border-t border-dashed border-border-soft">

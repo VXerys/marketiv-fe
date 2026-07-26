@@ -1,4 +1,4 @@
-import { getCreatorJobs } from "@/services/creator-dashboard.service";
+import { getCreatorJobs } from "@/services/creator/creator-dashboard.service";
 import { JobPoolView } from "@/components/features/creator-dashboard/JobPoolView";
 
 export default async function JobPoolPage() {

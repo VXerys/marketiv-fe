@@ -10,7 +10,7 @@ export const mockRateCardPackages: RateCardPackage[] = [
     price: 350000,
     deliverable: "1 TikTok Video Post",
     estimatedDays: 5,
-    isActive: true,
+    status: "published",
   },
   {
     id: "pkg_001_2",
@@ -20,7 +20,7 @@ export const mockRateCardPackages: RateCardPackage[] = [
     price: 600000,
     deliverable: "1 TikTok Post & 1 IG Reel Collab Post",
     estimatedDays: 7,
-    isActive: true,
+    status: "published",
   },
   {
     id: "pkg_001_3",
@@ -30,7 +30,7 @@ export const mockRateCardPackages: RateCardPackage[] = [
     price: 1200000,
     deliverable: "2 TikTok Video, 2 IG Reels (Collab Post), 1 IG Story",
     estimatedDays: 10,
-    isActive: true,
+    status: "published",
   },
 
   // Packages for creator_002 (Siti Rahma - max 2)
@@ -42,7 +42,7 @@ export const mockRateCardPackages: RateCardPackage[] = [
     price: 200000,
     deliverable: "3 Instagram Story Posts",
     estimatedDays: 3,
-    isActive: true,
+    status: "published",
   },
   {
     id: "pkg_002_2",
@@ -52,7 +52,7 @@ export const mockRateCardPackages: RateCardPackage[] = [
     price: 350000,
     deliverable: "1 IG Reel Collab Post",
     estimatedDays: 5,
-    isActive: true,
+    status: "published",
   },
 
   // Packages for creator_003 (Budi Santoso - max 3)
@@ -64,7 +64,7 @@ export const mockRateCardPackages: RateCardPackage[] = [
     price: 500000,
     deliverable: "1 TikTok ASMR Video",
     estimatedDays: 5,
-    isActive: true,
+    status: "published",
   },
   {
     id: "pkg_003_2",
@@ -74,7 +74,7 @@ export const mockRateCardPackages: RateCardPackage[] = [
     price: 900000,
     deliverable: "1 TikTok Video & 1 IG Reel Collab Post",
     estimatedDays: 7,
-    isActive: true,
+    status: "published",
   },
   {
     id: "pkg_003_3",
@@ -84,7 +84,7 @@ export const mockRateCardPackages: RateCardPackage[] = [
     price: 1600000,
     deliverable: "2 TikTok Video, 2 IG Reels Collab Post, Raw Files",
     estimatedDays: 10,
-    isActive: true,
+    status: "published",
   },
 
   // Packages for creator_004 (Dewi Lestari - max 2)
@@ -96,7 +96,7 @@ export const mockRateCardPackages: RateCardPackage[] = [
     price: 400000,
     deliverable: "1 IG Carousel Post",
     estimatedDays: 4,
-    isActive: true,
+    status: "published",
   },
   {
     id: "pkg_004_2",
@@ -106,7 +106,7 @@ export const mockRateCardPackages: RateCardPackage[] = [
     price: 750000,
     deliverable: "1 IG Reels Collab Post",
     estimatedDays: 6,
-    isActive: true,
+    status: "published",
   },
 
   // Packages for creator_005 (Eko Prasetyo - max 2)
@@ -118,7 +118,7 @@ export const mockRateCardPackages: RateCardPackage[] = [
     price: 600000,
     deliverable: "1 TikTok Travel Vlog Video",
     estimatedDays: 7,
-    isActive: true,
+    status: "published",
   },
   {
     id: "pkg_005_2",
@@ -128,7 +128,7 @@ export const mockRateCardPackages: RateCardPackage[] = [
     price: 1100000,
     deliverable: "1 TikTok Video, 1 IG Reel Collab, 2 IG Stories",
     estimatedDays: 10,
-    isActive: true,
+    status: "published",
   },
 
   // Packages for creator_006 (Fitriani - max 1)
@@ -140,6 +140,6 @@ export const mockRateCardPackages: RateCardPackage[] = [
     price: 300000,
     deliverable: "1 TikTok Video Post",
     estimatedDays: 5,
-    isActive: true,
+    status: "published",
   }
 ];

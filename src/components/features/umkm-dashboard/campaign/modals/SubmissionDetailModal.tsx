@@ -139,7 +139,7 @@ export function SubmissionDetailModal({
             {submission.validationStatus !== "pending" && (
               <div className="flex gap-4 relative">
                 <div className={`h-6 w-6 rounded-full flex items-center justify-center z-10 border ${
-                  submission.validationStatus === "valid" ? "bg-success-soft text-success border-success/30" : "bg-danger-soft text-danger border-danger/30"
+                  submission.validationStatus === "approved" ? "bg-success-soft text-success border-success/30" : "bg-danger-soft text-danger border-danger/30"
                 }`}>
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -147,11 +147,11 @@ export function SubmissionDetailModal({
                 </div>
                 <div>
                   <p className="text-xs font-bold text-text-primary">
-                    {submission.validationStatus === "valid" 
-                      ? "Konten disetujui & dana dicairkan" 
-                      : submission.validationStatus === "fraud"
-                        ? "Konten ditandai sebagai fraud"
-                        : "Sengketa/dispute konten dilaporkan"
+                    {submission.validationStatus === "approved"
+                      ? "Konten disetujui & dana dicairkan"
+                      : submission.fraudStatus === "rejected"
+                        ? "Konten ditolak — terindikasi fraud"
+                        : "Konten ditolak oleh UMKM"
                     }
                   </p>
                   {submission.validatedAt && (

@@ -37,7 +37,7 @@ export function ChatTimeline({ messages, onPayOffer, orderStatus }: ChatTimeline
             if (msg.type === "system") {
               return <SystemMessageCard key={msg.id} message={msg} />;
             }
-            if (msg.type === "custom_offer") {
+            if (msg.type === "offer") {
               return (
                 <CustomOfferCard
                   key={msg.id}

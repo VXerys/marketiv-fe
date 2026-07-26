@@ -2,9 +2,9 @@
 
 ## Istilah
 
-- **Custom Offer** — penawaran khusus yang dibuat Creator untuk UMKM dalam percakapan chat.
-- **Accept** — aksi UMKM menyetujui offer, memicu pembuatan order.
-- **Reject** — aksi UMKM menolak offer.
+- **Custom Offer** — penawaran khusus yang dibuat UMKM untuk Creator dalam percakapan chat.
+- **Accept** — aksi Creator menyetujui offer, memicu pembuatan order.
+- **Reject** — aksi Creator menolak offer.
 
 ## Status Offer
 
@@ -12,7 +12,7 @@
 
 ## Konsep
 
-- Hanya Content Creator yang dapat membuat offer.
+- Hanya UMKM yang dapat membuat offer.
 - Offer menjadi jembatan antara negosiasi (chat) dan eksekusi (order).
 - Saat di-accept, sistem otomatis membuat Order dengan status `pending_payment`.
 - Field offer: title, description, price, deadline, revisionLimit.

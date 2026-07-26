@@ -20,6 +20,7 @@ interface CampaignTableProps {
   submissionCounts: Record<string, { pending: number; valid: number; dispute: number }>;
   onDuplicate: (campaign: Campaign) => void;
   onCancel: (campaign: Campaign) => void;
+  onDelete: (campaign: Campaign) => void;
   onExport: (campaign: Campaign) => void;
   onEdit: (campaign: Campaign) => void;
 }
@@ -29,14 +30,17 @@ export function CampaignTable({
   submissionCounts,
   onDuplicate,
   onCancel,
+  onDelete,
   onExport,
   onEdit,
 }: CampaignTableProps) {
   const router = useRouter();
 
   function getActionItems(campaign: Campaign, detailUrl: string): ActionMenuItem[] {
-    const isCancelDisabled = campaign.status === "completed" || campaign.status === "cancelled";
+    const isCancelDisabled = campaign.status === "completed";
     const isEditVisible = campaign.status === "draft";
+    // Hapus permanen hanya untuk draft — sekali tayang campaign cuma bisa dijeda.
+    const isDeleteVisible = campaign.status === "draft";
 
     return [
       {
@@ -64,6 +68,15 @@ export function CampaignTable({
             {
               label: "Batalkan Campaign",
               onClick: () => onCancel(campaign),
+              tone: "danger" as const,
+            },
+          ]
+        : []),
+      ...(isDeleteVisible
+        ? [
+            {
+              label: "Hapus Draft",
+              onClick: () => onDelete(campaign),
               tone: "danger" as const,
             },
           ]

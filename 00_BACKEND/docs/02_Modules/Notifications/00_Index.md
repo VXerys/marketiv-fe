@@ -1,6 +1,6 @@
 # Notifications
 
-Modul notifikasi Marketiv: notifikasi in-app & email yang dipicu oleh event dari modul lain. Pemilik collection `notifications`.
+Modul notifikasi Marketiv: notifikasi in-app, email, dan push notification Appwrite Messaging yang dipicu oleh event dari modul lain. Pemilik collection `notifications`.
 
 ## Dokumen
 

@@ -57,7 +57,7 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
       orderId: "order_001",
       senderId: "creator_001",
       senderRole: "creator",
-      type: "custom_offer",
+      type: "offer",
       content: "Penawaran Khusus: Promosi Sambal Matah Botolan",
       offerData: {
         finalPrice: 600000,
@@ -105,7 +105,7 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
       orderId: "order_002",
       senderId: "creator_002",
       senderRole: "creator",
-      type: "custom_offer",
+      type: "offer",
       content: "Penawaran Khusus: Ulasan Katering Nasi Kotak Sehat",
       offerData: {
         finalPrice: 350000,
@@ -153,7 +153,7 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
       orderId: "order_003",
       senderId: "creator_003",
       senderRole: "creator",
-      type: "custom_offer",
+      type: "offer",
       content: "Penawaran Khusus: ASMR Makan Brownies Ubi Cilembu",
       offerData: {
         finalPrice: 500000,

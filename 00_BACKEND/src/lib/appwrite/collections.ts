@@ -39,4 +39,6 @@ export const FUNCTIONS = {
   campaignClaimed: process.env.NEXT_PUBLIC_CAMPAIGN_CLAIMED_FUNCTION_ID || 'campaign-claimed',
   expireStaleClaims: process.env.NEXT_PUBLIC_EXPIRE_CLAIMS_FUNCTION_ID || 'expire-stale-claims',
   aiFraudPrecheck: process.env.NEXT_PUBLIC_AI_FRAUD_PRECHECK_FUNCTION_ID || 'ai-fraud-precheck',
+  aiBrief: process.env.NEXT_PUBLIC_AI_BRIEF_FUNCTION_ID || 'ai-brief',
+  cancelPayment: process.env.NEXT_PUBLIC_CANCEL_PAYMENT_FUNCTION_ID || 'cancel-payment',
 } as const;

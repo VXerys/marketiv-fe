@@ -347,7 +347,7 @@ export const searchCreators = async (filter: SearchCreatorFilter = {}): Promise<
 
     if (filter.minPrice !== undefined || filter.maxPrice !== undefined || filter.sortBy?.startsWith('price_')) {
       const creatorIds = await getCreatorIdsByRateCardPrice(filter);
-      creators = creators.filter((creator) => creatorIds.includes(creator.id));
+      creators = creators.filter((creator) => creatorIds.includes(creator.userId));
     }
 
     return creators;
@@ -357,15 +357,27 @@ export const searchCreators = async (filter: SearchCreatorFilter = {}): Promise<
 };
 
 const getCreatorIdsByRateCardPrice = async (filter: SearchCreatorFilter): Promise<string[]> => {
-  const queries = [Query.equal('is_active', true), Query.limit(100)];
+  const queries = [Query.limit(100)];
 
   if (filter.minPrice !== undefined) queries.push(Query.greaterThanEqual('price', filter.minPrice));
   if (filter.maxPrice !== undefined) queries.push(Query.lessThanEqual('price', filter.maxPrice));
   if (filter.sortBy === 'price_asc') queries.push(Query.orderAsc('price'));
   if (filter.sortBy === 'price_desc') queries.push(Query.orderDesc('price'));
 
-  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.rateCards, queries);
-  return [...new Set(response.documents.map((document) => document.creator_id || document.creatorId).filter(Boolean))];
+  // Price lives on `rate_card_packages`, not `rate_cards`.
+  const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.rateCardPackages, queries);
+  const rateCardIds = [...new Set(response.documents.map((document) => document.rateCardId).filter(Boolean))];
+
+  if (rateCardIds.length === 0) return [];
+
+  // Map rate card ids -> creator ids. Appwrite `equal` accepts an
+  // array for OR semantics.
+  const cards = await databases.listDocuments(DATABASE_ID, COLLECTIONS.rateCards, [
+    Query.equal('$id', rateCardIds as unknown as string),
+    Query.limit(100),
+  ]);
+
+  return [...new Set(cards.documents.map((document) => document.creatorId).filter(Boolean))];
 };
 
 export const uploadFile = async (input: UploadFileInput): Promise<UserFile> => {

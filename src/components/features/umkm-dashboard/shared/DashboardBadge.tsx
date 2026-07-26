@@ -49,8 +49,8 @@ export function DashboardBadge({
     switch (c) {
       case "kuliner":
         return "Kuliner";
-      case "fesyen":
-        return "Fesyen";
+      case "fashion":
+        return "Fashion";
       case "pariwisata":
         return "Pariwisata";
       case "edukasi":

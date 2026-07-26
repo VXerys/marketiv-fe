@@ -18,14 +18,13 @@ import {
   Eye,
 } from "lucide-react";
 import { CreatorActiveWork } from "@/types/creator-dashboard";
+import { getClaimStatusLabel, getFraudStatusLabel, getSubmissionStatusLabel } from "@/lib/creator-status";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-import { DashboardCard, DashboardModal, DashboardButton, DashboardStateCard } from "@/components/features/dashboard/shared";
-import { toast } from "sonner";
+import { DashboardModal, DashboardButton, DashboardStateCard } from "@/components/features/dashboard/shared";
 
 interface ActiveWorkDetailViewProps {
   work: CreatorActiveWork | null;
-  onRetry?: () => void;
 }
 
 const getThumbnailUrl = (campaignId: string): string => {
@@ -48,10 +47,8 @@ function StatPill({ icon, label }: { icon: React.ReactNode; label: string }) {
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
-export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkDetailViewProps) {
+export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailViewProps) {
   const [work, setWork] = useState<CreatorActiveWork | null>(initialWork);
-  const [isLoadingSimulated] = useState(false);
-  const [isErrorSimulated, setIsErrorSimulated] = useState(false);
 
   const [platform, setPlatform] = useState<"tiktok" | "instagram">("tiktok");
   const [contentUrl, setContentUrl] = useState("");
@@ -63,17 +60,12 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"detail" | "video">("detail");
 
-  const showToast = (msg: string) => toast.success(msg);
 
   const getSubStatusLabel = (w: CreatorActiveWork): string => {
-    if (w.submissionStatus) {
-      if (w.submissionStatus === "Pending") return "Menunggu Validasi";
-      if (w.submissionStatus === "Valid") return "Valid";
-      if (w.submissionStatus === "Fraud") return "Fraud";
-      if (w.submissionStatus === "Dispute") return "Dispute";
-      if (w.submissionStatus === "Rejected") return "Rejected";
-    }
-    if (w.status === "Selesai") return "Selesai";
+    if (w.status === "expired") return getClaimStatusLabel("expired");
+    if (w.fraudStatus && w.fraudStatus !== "safe") return getFraudStatusLabel(w.fraudStatus);
+    if (w.submissionStatus) return getSubmissionStatusLabel(w.submissionStatus);
+    if (w.status === "approved") return "Selesai";
     return "Belum Submit";
   };
 
@@ -113,7 +105,9 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
           ...prev,
           contentUrl: contentUrl.trim(),
           platform,
-          submissionStatus: "Pending",
+          status: "submitted" as const,
+          submissionStatus: "pending" as const,
+          fraudStatus: "safe" as const,
           submittedAt: new Date().toISOString(),
           notes: notes.trim(),
         };
@@ -121,33 +115,6 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
       setIsSuccessOpen(true);
     }, 1000);
   };
-
-  if (isErrorSimulated) {
-    return (
-      <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[80vh]">
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4.5 mb-8 max-w-md w-full flex items-center justify-between shadow-sm text-xs font-semibold text-red-800">
-          <span>Mode Uji Coba Error Aktif.</span>
-          <button
-            onClick={() => setIsErrorSimulated(false)}
-            className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all cursor-pointer font-bold"
-          >
-            Matikan Mode Error
-          </button>
-        </div>
-        <DashboardStateCard
-          kind="error"
-          title="Terjadi Kesalahan"
-          description="Simulator error diaktifkan pada Halaman Detail Pekerjaan."
-          actionLabel="Coba Lagi"
-          onAction={() => {
-            setIsErrorSimulated(false);
-            showToast("Berhasil memulihkan dari state error!");
-            if (onRetry) onRetry();
-          }}
-        />
-      </div>
-    );
-  }
 
   if (!work) {
     return (
@@ -165,10 +132,12 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
 
   const statusLabel  = getSubStatusLabel(work);
   const isSubmitted  = !!work.contentUrl;
-  const isFraud      = ["Fraud", "Dispute", "Rejected"].includes(statusLabel);
-  const isValid      = statusLabel === "Valid" || statusLabel === "Selesai";
-  const dummyViews   = work.actualViews || (isSubmitted ? 12500 : 0);
-  const earningsEstimate = work.earnings || (work.ratePerThousandViews * dummyViews) / 1000;
+  const isFraud      = work.fraudStatus === "rejected" || work.submissionStatus === "rejected" || work.status === "rejected";
+  const isValid      = work.submissionStatus === "approved" || work.status === "approved";
+  // Views hasil audit backend. Sebelum tervalidasi nilainya 0 — jangan difabrikasi,
+  // angka ini yang dipakai kreator untuk memperkirakan bayaran.
+  const auditedViews = work.actualViews ?? 0;
+  const earningsEstimate = work.earnings ?? (work.ratePerThousandViews * auditedViews) / 1000;
   const thumbnailUrl = getThumbnailUrl(work.campaignId);
 
   const { text: deadlineText, days } = (() => {
@@ -180,35 +149,20 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
     return { text: `${diffDays} hari lagi`, days: diffDays };
   })();
 
+  // Key = label hasil getSubStatusLabel (lihat src/lib/creator-status.ts)
   const STATUS_BADGE: Record<string, string> = {
-    "Belum Submit":      "bg-blue-500/25 text-blue-200 border-blue-400/30",
-    "Menunggu Validasi": "bg-amber-500/25 text-amber-200 border-amber-400/30",
-    "Valid":             "bg-emerald-500/25 text-emerald-200 border-emerald-400/30",
-    "Selesai":           "bg-emerald-500/25 text-emerald-200 border-emerald-400/30",
-    "Fraud":             "bg-red-500/25 text-red-200 border-red-400/30",
-    "Dispute":           "bg-red-500/25 text-red-200 border-red-400/30",
-    "Rejected":          "bg-red-500/25 text-red-200 border-red-400/30",
+    "Belum Submit":       "bg-blue-500/25 text-blue-200 border-blue-400/30",
+    "Menunggu Review":    "bg-amber-500/25 text-amber-200 border-amber-400/30",
+    "Perlu Ditinjau":     "bg-amber-500/25 text-amber-200 border-amber-400/30",
+    "Disetujui":          "bg-emerald-500/25 text-emerald-200 border-emerald-400/30",
+    "Selesai":            "bg-emerald-500/25 text-emerald-200 border-emerald-400/30",
+    "Ditolak":            "bg-red-500/25 text-red-200 border-red-400/30",
+    "Terindikasi Fraud":  "bg-red-500/25 text-red-200 border-red-400/30",
   };
 
   return (
     <div className="flex-1 overflow-y-auto">
 
-      {isLoadingSimulated ? (
-        <div className="animate-pulse p-6 space-y-6">
-          <div className="h-[340px] bg-neutral-200 rounded-3xl" />
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-4">
-              <div className="h-44 bg-neutral-100 rounded-[22px]" />
-              <div className="h-64 bg-neutral-100 rounded-[22px]" />
-            </div>
-            <div className="space-y-4">
-              <div className="h-40 bg-neutral-100 rounded-[22px]" />
-              <div className="h-52 bg-neutral-100 rounded-[22px]" />
-            </div>
-          </div>
-        </div>
-      ) : (
-        <>
           {/* ═══ HERO — full-bleed blurred background ═══ */}
           <div className="relative overflow-hidden" style={{ minHeight: 320 }}>
             {/* Blurred background image */}
@@ -302,7 +256,7 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
                     <span className="w-1 h-1 rounded-full bg-white/25 shrink-0" />
                     <StatPill icon={<Eye className="w-3.5 h-3.5" />} label="CPM MODE" />
                     <span className="w-1 h-1 rounded-full bg-white/25 shrink-0" />
-                    <StatPill icon={<Users className="w-3.5 h-3.5" />} label={`${dummyViews.toLocaleString("id-ID")} VIEW AUDIT`} />
+                    <StatPill icon={<Users className="w-3.5 h-3.5" />} label={`${auditedViews.toLocaleString("id-ID")} VIEW AUDIT`} />
                   </div>
 
                   {/* CTA row */}
@@ -326,15 +280,17 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
                       </div>
                     )}
 
-                    <a
-                      href="https://drive.google.com/drive/folders/mock-assets"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 min-h-[44px] px-6 rounded-xl border border-white/15 bg-white/[0.06] hover:bg-white/[0.10] text-white font-extrabold text-xs transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
-                    >
-                      <FolderOpen className="w-4 h-4 text-violet-300" />
-                      <span>Buka Aset Drive</span>
-                    </a>
+                    {work.assetUrl && (
+                      <a
+                        href={work.assetUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 min-h-[44px] px-6 rounded-xl border border-white/15 bg-white/[0.06] hover:bg-white/[0.10] text-white font-extrabold text-xs transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                      >
+                        <FolderOpen className="w-4 h-4 text-violet-300" />
+                        <span>Buka Materi</span>
+                      </a>
+                    )}
                   </div>
                 </div>
 
@@ -415,22 +371,24 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
                       ))}
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-neutral-50 p-4 rounded-[16px] border border-neutral-200/30">
-                      <div>
-                        <h5 className="text-[10px] font-extrabold text-neutral-500 uppercase tracking-wider">Materi Pendukung &amp; Logo Brand</h5>
-                        <p className="text-[11px] text-neutral-400 font-semibold mt-0.5">Unduh aset video raw atau referensi foto di Drive.</p>
+                    {work.assetUrl && (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-neutral-50 p-4 rounded-[16px] border border-neutral-200/30">
+                        <div>
+                          <h5 className="text-[10px] font-extrabold text-neutral-500 uppercase tracking-wider">Materi Pendukung &amp; Logo Brand</h5>
+                          <p className="text-[11px] text-neutral-400 font-semibold mt-0.5">Aset yang dilampirkan UMKM untuk campaign ini.</p>
+                        </div>
+                        <a
+                          href={work.assetUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-extrabold text-xs transition-all hover:-translate-y-0.5 cursor-pointer shrink-0"
+                          style={{ background: "linear-gradient(135deg, #7c3aed, #4f46e5)" }}
+                        >
+                          <FolderOpen className="w-3.5 h-3.5" />
+                          Buka Materi
+                        </a>
                       </div>
-                      <a
-                        href="https://drive.google.com/drive/folders/mock-assets"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-extrabold text-xs transition-all hover:-translate-y-0.5 cursor-pointer shrink-0"
-                        style={{ background: "linear-gradient(135deg, #7c3aed, #4f46e5)" }}
-                      >
-                        <FolderOpen className="w-3.5 h-3.5" />
-                        Buka Aset Drive
-                      </a>
-                    </div>
+                    )}
                   </div>
 
                   {/* Submit form OR submitted details */}
@@ -591,7 +549,7 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
                             <Eye className="w-4 h-4 text-neutral-400 mx-auto mb-2" />
                             <span className="block text-[8px] font-bold text-neutral-400 uppercase tracking-wider">Jumlah Views</span>
                             <span className="block text-lg font-black text-neutral-900 mt-1">
-                              {dummyViews.toLocaleString("id-ID")}
+                              {auditedViews.toLocaleString("id-ID")}
                             </span>
                           </div>
                           <div className="p-4 bg-neutral-50 border border-neutral-200/30 rounded-[14px] text-center">
@@ -804,7 +762,7 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
                           <div className="flex gap-5 shrink-0">
                             <div className="text-center">
                               <span className="block text-[8px] font-bold text-neutral-400 uppercase tracking-wider">Views</span>
-                              <span className="block text-sm font-black text-neutral-900 mt-0.5">{dummyViews.toLocaleString("id-ID")}</span>
+                              <span className="block text-sm font-black text-neutral-900 mt-0.5">{auditedViews.toLocaleString("id-ID")}</span>
                             </div>
                             <div className="text-center">
                               <span className="block text-[8px] font-bold text-neutral-400 uppercase tracking-wider">Reward</span>
@@ -846,8 +804,6 @@ export function ActiveWorkDetailView({ work: initialWork, onRetry }: ActiveWorkD
               </div>
             )}
           </div>
-        </>
-      )}
 
       {/* Confirmation Modal */}
       <DashboardModal

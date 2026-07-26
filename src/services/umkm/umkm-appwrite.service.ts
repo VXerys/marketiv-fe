@@ -1,136 +1,1113 @@
+import { Query, ID, Permission, Role } from "appwrite";
+import { databases } from "@/lib/appwrite/databases";
+import { appwriteConfig } from "@/lib/appwrite/config";
+import {
+  executeFunction,
+  FunctionExecutionError,
+  FUNCTION_IDS,
+} from "@/lib/appwrite/functions";
+import { uploadPublicFile, FileRuleError } from "@/lib/appwrite/storage";
+import { type CampaignType, MINIMUM_CAMPAIGN_BUDGET } from "@/types/domain";
+import {
+  type Doc,
+  str,
+  num,
+  ok,
+  fail,
+  failValidation,
+  failFromError,
+  failFromWriteError,
+  requireUserId,
+} from "@/services/shared/service-result";
 import {
   ServiceResult,
   UmkmProfile,
+  UmkmSettingsProfile,
   UmkmDashboardSummary,
   Campaign,
   CampaignSubmission,
   CreatorProfile,
+  CreatorNiche,
   RateCardPackage,
   NegotiationOrder,
   ChatMessage,
   Transaction,
   UmkmFinanceSummary,
   EscrowOverview,
+  CampaignStatus,
+  SubmissionStatus,
+  FraudStatus,
+  RateCardStatus,
+  OrderStatus,
+  MessageType,
+  TransactionType,
+  TransactionStatus,
 } from "@/types/umkm-dashboard.types";
 
+/**
+ * Lapisan Appwrite dashboard UMKM (s1-appwrite-read).
+ *
+ * Sumber kebenaran skema: 00_BACKEND/appwrite.config.json (tables camelCase).
+ * Pola: getSession() untuk kepemilikan → databases.listDocuments → mapper $id→id.
+ * Semua nilai status di DB adalah string bebas; backend Function menulis nilai
+ * kanon (@/types/domain), jadi mapper melakukan cast langsung.
+ *
+ * Agregasi & join yang tidak bisa dipetakan setia dari satu collection dilayani
+ * Function DTO backend (00_BACKEND/functions/get-*), bukan dihitung di klien —
+ * lihat docs/.../08-frontend-data-contract.md §6, §15, §28.
+ *
+ * CATATAN JUJUR (belum bisa runtime-test — NEXT_PUBLIC_USE_MOCK_DATA=true):
+ * - Field view-model berikut masih tanpa kolom sumber: Campaign.thumbnailUrl/
+ *   externalAssetUrl/totalViews, Negotiation.projectTitle/scope/creatorName.
+ *   Diberi default terdokumentasi sampai kolom/Function-nya ada.
+ * - CreatorProfile.niche baru terisi setelah kolom `creator_profiles.niche`
+ *   di-push dan di-backfill; sebelum itu Function mengembalikan "lainnya".
+ */
+
+const DB = appwriteConfig.databaseId;
+
+const COLLECTIONS = {
+  campaigns: "campaigns",
+  campaignBriefs: "campaign_briefs",
+  campaignAssets: "campaign_assets",
+  umkmProfiles: "umkm_profiles",
+  submissions: "campaign_submissions",
+  rateCards: "rate_cards",
+  rateCardPackages: "rate_card_packages",
+  orders: "orders",
+  offers: "offers",
+  messages: "messages",
+  payments: "payments",
+} as const;
+
+// ── mappers ──────────────────────────────────────────────────────────────────
+
+const mapCampaign = (d: Doc): Campaign => ({
+  id: str(d.$id),
+  umkmId: str(d.umkmId),
+  title: str(d.title),
+  brief: str(d.description),
+  externalAssetUrl: "", // tak ada kolom sumber — aset ada di campaign_assets
+  thumbnailUrl: "", // tak ada kolom sumber
+  niche: (str(d.category) as CreatorNiche) || "lainnya",
+  status: str(d.status) as CampaignStatus,
+  creatorQuota: num(d.claimLimit),
+  usedQuota: num(d.totalClaims),
+  pricePerThousandViews: num(d.rewardPer1000Views),
+  totalBudgetEscrow: num(d.budget),
+  usedBudget: num(d.spentAmount),
+  totalViews: 0, // tak ada kolom — perlu agregasi campaign_submissions
+  createdAt: str(d.$createdAt),
+  updatedAt: str(d.$updatedAt),
+});
+
+const mapSubmission = (d: Doc): CampaignSubmission => ({
+  id: str(d.$id),
+  campaignId: str(d.campaignId),
+  creatorId: str(d.creatorId),
+  creatorName: "", // perlu join creator_profiles
+  creatorAvatarUrl: "",
+  platform: (str(d.platform) as "tiktok" | "instagram") || "tiktok",
+  contentUrl: str(d.postUrl),
+  actualViews: num(d.views),
+  targetViews: 0, // tak ada kolom sumber
+  releasedFund: 0, // ditentukan calculate-campaign-reward Function
+  validationStatus: str(d.status) as SubmissionStatus,
+  fraudStatus: str(d.fraudStatus) as FraudStatus,
+  submittedAt: str(d.$createdAt),
+});
+
+// CreatorProfile dipetakan di Function `get-creator-directory` — join lintas
+// collection tidak bisa dilakukan di klien tanpa kehilangan field.
+
+const mapOrder = (d: Doc): NegotiationOrder => ({
+  id: str(d.$id),
+  umkmId: str(d.umkmId),
+  creatorId: str(d.creatorId),
+  creatorName: "", // perlu join creator_profiles
+  creatorAvatarUrl: "",
+  projectTitle: "", // tak ada kolom sumber (ada di rate_card / offer)
+  scope: "",
+  finalPrice: num(d.amount),
+  deadline: "", // tak ada kolom sumber
+  status: str(d.status) as OrderStatus,
+  lastMessage: "", // perlu query messages terakhir
+  lastMessageAt: str(d.createdAt) || str(d.$createdAt),
+  unreadCount: 0,
+});
+
+const mapTransaction = (d: Doc): Transaction => {
+  const campaignId = str(d.campaign_id);
+  return {
+    id: str(d.$id),
+    userId: str(d.user_id),
+    referenceId: campaignId || str(d.order_id),
+    referenceType: campaignId ? "campaign" : "rate_card",
+    amount: num(d.amount),
+    type: str(d.purpose) as TransactionType,
+    status: str(d.status) as TransactionStatus,
+    description: str(d.purpose),
+    midtransOrderId: str(d.gateway_reference) || undefined,
+    createdAt: str(d.paid_at) || str(d.$createdAt),
+  };
+};
+
+// ── KOMPOSIT via Function DTO ────────────────────────────────────────────────
+//
+// Function menegakkan kepemilikan sendiri lewat header `x-appwrite-user-id`
+// (sesi aktif), jadi userId TIDAK pernah dikirim dari klien — tidak bisa dipalsukan.
+
+/** Join `users` + `umkm_profiles` + akun Auth → Function `get-umkm-profile`. */
 export async function getUmkmProfileFromAppwrite(): Promise<ServiceResult<UmkmProfile>> {
-  // TODO: Query Appwrite collection "Profiles"
-  // Filter: $userId === currentSession.userId
-  // RBAC: Requires active session, role UMKM
-  // Ref: docs/marketiv-md/database/02-collections-schema.md → Profiles
-  return { success: false, data: null, error: "Not implemented" };
+  try {
+    const data = await executeFunction<UmkmProfile>(FUNCTION_IDS.umkmProfile);
+    return { success: true, data };
+  } catch (err) {
+    return failFromError<UmkmProfile>(err, null as unknown as UmkmProfile);
+  }
 }
 
+/** Agregasi campaigns + campaign_submissions + orders + escrows. */
 export async function getDashboardSummaryFromAppwrite(): Promise<ServiceResult<UmkmDashboardSummary>> {
-  // TODO: Aggregate from Appwrite collections "Campaigns" + "Transactions"
-  // Compute: activeCampaigns, completedCampaigns, totalViews, totalSpent, escrowBalance,
-  //          pendingSubmissions, activeNegotiations, pendingPayments
-  // RBAC: Requires active session, role UMKM
-  return { success: false, data: null, error: "Not implemented" };
+  try {
+    const data = await executeFunction<UmkmDashboardSummary>(FUNCTION_IDS.umkmDashboardSummary);
+    return { success: true, data };
+  } catch (err) {
+    return failFromError<UmkmDashboardSummary>(err, null as unknown as UmkmDashboardSummary);
+  }
 }
+
+/**
+ * `get-umkm-finance-summary` mengembalikan finance + escrow sekali jalan supaya
+ * halaman Keuangan tidak memicu dua agregasi identik atas data yang sama.
+ */
+export type UmkmFinanceOverview = {
+  finance: UmkmFinanceSummary;
+  escrow: EscrowOverview;
+};
+
+/**
+ * Satu eksekusi Function untuk finance + escrow sekaligus. Halaman Keuangan
+ * WAJIB memakai ini; memanggil getFinanceSummary + getEscrowOverview bersamaan
+ * akan menjalankan agregasi yang sama dua kali.
+ */
+export async function getFinanceOverviewFromAppwrite(): Promise<ServiceResult<UmkmFinanceOverview>> {
+  try {
+    const data = await executeFunction<UmkmFinanceOverview>(FUNCTION_IDS.umkmFinanceSummary);
+    return { success: true, data };
+  } catch (err) {
+    return failFromError<UmkmFinanceOverview>(err, null as unknown as UmkmFinanceOverview);
+  }
+}
+
+/** Dipakai bila hanya ringkasan finance yang dibutuhkan (tanpa escrow). */
+export async function getFinanceSummaryFromAppwrite(): Promise<ServiceResult<UmkmFinanceSummary>> {
+  try {
+    const data = await executeFunction<UmkmFinanceOverview>(FUNCTION_IDS.umkmFinanceSummary);
+    return { success: true, data: data.finance };
+  } catch (err) {
+    return failFromError<UmkmFinanceSummary>(err, null as unknown as UmkmFinanceSummary);
+  }
+}
+
+/** Dipakai bila hanya escrow yang dibutuhkan (tanpa ringkasan finance). */
+export async function getEscrowOverviewFromAppwrite(): Promise<ServiceResult<EscrowOverview>> {
+  try {
+    const data = await executeFunction<UmkmFinanceOverview>(FUNCTION_IDS.umkmFinanceSummary);
+    return { success: true, data: data.escrow };
+  } catch (err) {
+    return failFromError<EscrowOverview>(err, null as unknown as EscrowOverview);
+  }
+}
+
+// ── READS single-collection ──────────────────────────────────────────────────
 
 export async function getCampaignsFromAppwrite(): Promise<ServiceResult<Campaign[]>> {
-  // TODO: Query Appwrite collection "Campaigns"
-  // Filter: umkmId === currentSession.userId
-  // Order: updatedAt DESC
-  // RBAC: Requires active session, role UMKM
-  return { success: false, data: [], error: "Not implemented" };
+  const auth = await requireUserId<Campaign[]>([]);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("umkmId", auth.userId),
+      Query.orderDesc("$updatedAt"),
+      Query.limit(100),
+    ]);
+    return { success: true, data: res.documents.map((d) => mapCampaign(d as unknown as Doc)) };
+  } catch (err) {
+    return failFromError<Campaign[]>(err, []);
+  }
 }
 
-export async function getCampaignByIdFromAppwrite(_id: string): Promise<ServiceResult<Campaign>> {
-  // TODO: Query Appwrite collection "Campaigns"
-  // Filter: $id === id AND umkmId === currentSession.userId
-  // RBAC: Requires active session, role UMKM — only owner can read own campaign detail
-  return { success: false, data: null, error: "Not implemented" };
+export async function getCampaignByIdFromAppwrite(id: string): Promise<ServiceResult<Campaign>> {
+  const auth = await requireUserId<Campaign>(null as unknown as Campaign);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", id),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0];
+    if (!doc) {
+      return { success: false, data: null, error: "Campaign tidak ditemukan", code: "not_found" };
+    }
+    return { success: true, data: mapCampaign(doc as unknown as Doc) };
+  } catch (err) {
+    return failFromError<Campaign>(err, null as unknown as Campaign);
+  }
 }
 
-export async function getCampaignSubmissionsFromAppwrite(_campaignId: string): Promise<ServiceResult<CampaignSubmission[]>> {
-  // TODO: Query Appwrite collection "Submissions"
-  // Filter: campaignId === campaignId
-  // RBAC: UMKM owner of the campaign may read all submissions for that campaign
-  return { success: false, data: [], error: "Not implemented" };
+export async function getCampaignSubmissionsFromAppwrite(
+  campaignId: string
+): Promise<ServiceResult<CampaignSubmission[]>> {
+  const auth = await requireUserId<CampaignSubmission[]>([]);
+  if (!auth.ok) return auth.result;
+  try {
+    // Kepemilikan: pastikan campaign milik UMKM ini sebelum membaca submission-nya.
+    const owned = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", campaignId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    if (!owned.documents[0]) {
+      return { success: false, data: [], error: "Campaign tidak ditemukan", code: "not_found" };
+    }
+    const res = await databases.listDocuments(DB, COLLECTIONS.submissions, [
+      Query.equal("campaignId", campaignId),
+      Query.orderDesc("$createdAt"),
+      Query.limit(100),
+    ]);
+    return { success: true, data: res.documents.map((d) => mapSubmission(d as unknown as Doc)) };
+  } catch (err) {
+    return failFromError<CampaignSubmission[]>(err, []);
+  }
 }
 
 export async function getPendingSubmissionsFromAppwrite(): Promise<ServiceResult<CampaignSubmission[]>> {
-  // TODO: Query Appwrite collection "Submissions"
-  // Filter: umkmId === currentSession.userId AND validationStatus === "pending"
-  // RBAC: Requires active session, role UMKM
-  return { success: false, data: [], error: "Not implemented" };
+  const auth = await requireUserId<CampaignSubmission[]>([]);
+  if (!auth.ok) return auth.result;
+  try {
+    // submissions tak punya umkmId → ambil campaign milik UMKM dulu, lalu filter.
+    const campaigns = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("umkmId", auth.userId),
+      Query.limit(100),
+    ]);
+    const campaignIds = campaigns.documents.map((c) => str((c as unknown as Doc).$id));
+    if (campaignIds.length === 0) return { success: true, data: [] };
+
+    const res = await databases.listDocuments(DB, COLLECTIONS.submissions, [
+      Query.equal("campaignId", campaignIds),
+      Query.equal("status", "pending"),
+      Query.orderDesc("$createdAt"),
+      Query.limit(100),
+    ]);
+    return { success: true, data: res.documents.map((d) => mapSubmission(d as unknown as Doc)) };
+  } catch (err) {
+    return failFromError<CampaignSubmission[]>(err, []);
+  }
 }
 
+/**
+ * Direktori kreator via Function `get-creator-directory`.
+ *
+ * Query langsung ke `creator_profiles` tidak dipakai lagi: username,
+ * engagementRate (creator_social_accounts) dan startingPrice (rate_cards →
+ * rate_card_packages termurah) butuh join lintas collection.
+ *
+ * `id` yang dikembalikan adalah `userId`, BUKAN `$id` dokumen profil — itu kunci
+ * yang dipakai orders.creatorId, rate_cards.creatorId dan wallets.userId.
+ */
 export async function getCreatorsFromAppwrite(): Promise<ServiceResult<CreatorProfile[]>> {
-  // TODO: Query Appwrite collection "Profiles"
-  // Filter: role === "KREATOR" AND isVerified === true
-  // Order: rating DESC
-  // RBAC: Public read — authenticated users of any role may browse creator profiles
-  return { success: false, data: [], error: "Not implemented" };
+  try {
+    const data = await executeFunction<CreatorProfile[]>(FUNCTION_IDS.creatorDirectory);
+    return { success: true, data };
+  } catch (err) {
+    return failFromError<CreatorProfile[]>(err, []);
+  }
 }
 
-export async function getCreatorByIdFromAppwrite(_id: string): Promise<ServiceResult<CreatorProfile>> {
-  // TODO: Query Appwrite collection "Profiles"
-  // Filter: $id === id AND role === "KREATOR"
-  // RBAC: Public read — any authenticated user may view a creator profile
-  return { success: false, data: null, error: "Not implemented" };
+export async function getCreatorByIdFromAppwrite(id: string): Promise<ServiceResult<CreatorProfile>> {
+  try {
+    const data = await executeFunction<CreatorProfile>(FUNCTION_IDS.creatorDirectory, { creatorId: id });
+    return { success: true, data };
+  } catch (err) {
+    if (err instanceof FunctionExecutionError && err.code === "not_found") {
+      return { success: false, data: null, error: "Kreator tidak ditemukan", code: "not_found" };
+    }
+    return failFromError<CreatorProfile>(err, null as unknown as CreatorProfile);
+  }
 }
 
-export async function getCreatorRateCardsFromAppwrite(_creatorId: string): Promise<ServiceResult<RateCardPackage[]>> {
-  // TODO: Query Appwrite collection "RateCards" (verify collection name in schema)
-  // Filter: creatorId === creatorId AND isActive === true
-  // RBAC: Public read — UMKM may browse active rate card packages
-  return { success: false, data: [], error: "Not implemented" };
+export async function getCreatorRateCardsFromAppwrite(
+  creatorId: string
+): Promise<ServiceResult<RateCardPackage[]>> {
+  const auth = await requireUserId<RateCardPackage[]>([]);
+  if (!auth.ok) return auth.result;
+  try {
+    // creatorId & status ada di parent `rate_cards`; paket ada di `rate_card_packages`.
+    const cards = await databases.listDocuments(DB, COLLECTIONS.rateCards, [
+      Query.equal("creatorId", creatorId),
+      Query.equal("status", "published"),
+      Query.limit(100),
+    ]);
+    if (cards.documents.length === 0) return { success: true, data: [] };
+
+    // Peta rateCardId → status parent, untuk RateCardPackage.status.
+    const statusByCard = new Map<string, RateCardStatus>();
+    for (const c of cards.documents) {
+      const cd = c as unknown as Doc;
+      statusByCard.set(str(cd.$id), str(cd.status) as RateCardStatus);
+    }
+    const cardIds = Array.from(statusByCard.keys());
+
+    const packages = await databases.listDocuments(DB, COLLECTIONS.rateCardPackages, [
+      Query.equal("rateCardId", cardIds),
+      Query.limit(100),
+    ]);
+    const data: RateCardPackage[] = packages.documents.map((p) => {
+      const pd = p as unknown as Doc;
+      const rateCardId = str(pd.rateCardId);
+      return {
+        id: str(pd.$id),
+        creatorId,
+        name: str(pd.name),
+        description: str(pd.description),
+        price: num(pd.price),
+        deliverable: str(pd.output),
+        estimatedDays: num(pd.deliveryDays),
+        status: statusByCard.get(rateCardId) ?? "published",
+      };
+    });
+    return { success: true, data };
+  } catch (err) {
+    return failFromError<RateCardPackage[]>(err, []);
+  }
 }
 
 export async function getNegotiationsFromAppwrite(): Promise<ServiceResult<NegotiationOrder[]>> {
-  // TODO: Query Appwrite collection "Orders"
-  // Filter: umkmId === currentSession.userId
-  // Order: lastMessageAt DESC
-  // RBAC: Requires active session, role UMKM — only participant may read own negotiations
-  return { success: false, data: [], error: "Not implemented" };
+  const auth = await requireUserId<NegotiationOrder[]>([]);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.orders, [
+      Query.equal("umkmId", auth.userId),
+      Query.orderDesc("$createdAt"),
+      Query.limit(100),
+    ]);
+    return { success: true, data: res.documents.map((d) => mapOrder(d as unknown as Doc)) };
+  } catch (err) {
+    return failFromError<NegotiationOrder[]>(err, []);
+  }
 }
 
-export async function getNegotiationByIdFromAppwrite(_id: string): Promise<ServiceResult<NegotiationOrder>> {
-  // TODO: Query Appwrite collection "Orders"
-  // Filter: $id === id AND umkmId === currentSession.userId
-  // RBAC: Requires active session, role UMKM — only UMKM participant may read negotiation detail
-  return { success: false, data: null, error: "Not implemented" };
+export async function getNegotiationByIdFromAppwrite(id: string): Promise<ServiceResult<NegotiationOrder>> {
+  const auth = await requireUserId<NegotiationOrder>(null as unknown as NegotiationOrder);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.orders, [
+      Query.equal("$id", id),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0];
+    if (!doc) {
+      return { success: false, data: null, error: "Negosiasi tidak ditemukan", code: "not_found" };
+    }
+    return { success: true, data: mapOrder(doc as unknown as Doc) };
+  } catch (err) {
+    return failFromError<NegotiationOrder>(err, null as unknown as NegotiationOrder);
+  }
 }
 
-export async function getMessagesByOrderIdFromAppwrite(_orderId: string): Promise<ServiceResult<ChatMessage[]>> {
-  // TODO: Query Appwrite collection "Messages"
-  // Filter: orderId === orderId
-  // RBAC: Participants only (umkmId OR creatorId must match currentSession.userId)
-  // Order: createdAt ASC
-  return { success: false, data: [], error: "Not implemented" };
+export async function getMessagesByOrderIdFromAppwrite(orderId: string): Promise<ServiceResult<ChatMessage[]>> {
+  const auth = await requireUserId<ChatMessage[]>([]);
+  if (!auth.ok) return auth.result;
+  try {
+    // Catatan: `messages` di-key oleh conversation_id. Diasumsikan caller mengirim
+    // conversation_id order terkait. senderRole diturunkan via perbandingan sesi.
+    const res = await databases.listDocuments(DB, COLLECTIONS.messages, [
+      Query.equal("conversation_id", orderId),
+      Query.orderAsc("$createdAt"),
+      Query.limit(200),
+    ]);
+    const data: ChatMessage[] = res.documents.map((m) => {
+      const md = m as unknown as Doc;
+      const senderId = str(md.sender_id);
+      return {
+        id: str(md.$id),
+        orderId,
+        senderId,
+        senderRole: senderId === auth.userId ? "umkm" : "creator",
+        type: str(md.message_type) as MessageType,
+        content: str(md.content),
+        isRead: str(md.read_at) !== "",
+        createdAt: str(md.$createdAt),
+      };
+    });
+    return { success: true, data };
+  } catch (err) {
+    return failFromError<ChatMessage[]>(err, []);
+  }
 }
 
 export async function getTransactionsFromAppwrite(): Promise<ServiceResult<Transaction[]>> {
-  // TODO: Query Appwrite collection "Transactions"
-  // Filter: userId === currentSession.userId
-  // Order: createdAt DESC
-  // RBAC: Requires active session — owner only, READ-ONLY (NO direct write from client)
-  return { success: false, data: [], error: "Not implemented" };
+  const auth = await requireUserId<Transaction[]>([]);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.payments, [
+      Query.equal("user_id", auth.userId),
+      Query.orderDesc("$createdAt"),
+      Query.limit(100),
+    ]);
+    return { success: true, data: res.documents.map((d) => mapTransaction(d as unknown as Doc)) };
+  } catch (err) {
+    return failFromError<Transaction[]>(err, []);
+  }
 }
 
-export async function getTransactionByIdFromAppwrite(_id: string): Promise<ServiceResult<Transaction>> {
-  // TODO: Query Appwrite collection "Transactions"
-  // Filter: $id === id AND userId === currentSession.userId
-  // RBAC: Requires active session — owner only, READ-ONLY
-  return { success: false, data: null, error: "Not implemented" };
+export async function getTransactionByIdFromAppwrite(id: string): Promise<ServiceResult<Transaction>> {
+  const auth = await requireUserId<Transaction>(null as unknown as Transaction);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.payments, [
+      Query.equal("$id", id),
+      Query.equal("user_id", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0];
+    if (!doc) {
+      return { success: false, data: null, error: "Transaksi tidak ditemukan", code: "not_found" };
+    }
+    return { success: true, data: mapTransaction(doc as unknown as Doc) };
+  } catch (err) {
+    return failFromError<Transaction>(err, null as unknown as Transaction);
+  }
 }
 
-export async function getFinanceSummaryFromAppwrite(): Promise<ServiceResult<UmkmFinanceSummary>> {
-  // TODO: Aggregate from Appwrite collection "Transactions"
-  // Compute: totalExpenses, escrowBalance, pendingPayments, refundsReceived,
-  //          platformFees, successfulTransactionsCount
-  // Filter: userId === currentSession.userId
-  // RBAC: Requires active session, role UMKM — READ-ONLY
-  return { success: false, data: null, error: "Not implemented" };
+// ── writes (Sprint 3) ────────────────────────────────────────────────────────
+
+export type CreateCampaignDraftInput = {
+  title: string;
+  category: string;
+  type: CampaignType;
+  description: string;
+  budget: number;
+  rewardPer1000Views: number;
+  claimLimit: number;
+  submissionDays?: number;
+  /** Brief sudah dikomposisi klien (composeBriefDetail/packDoAndDontJson). */
+  brief?: {
+    briefDetail: string;
+    contentAngle: string;
+    cta: string;
+    objective?: string;
+    doAndDont?: string;
+    generatedByAi?: boolean;
+  };
+  asset?: { fileUrl: string; fileName?: string };
+};
+
+export type CampaignDraftResult = {
+  campaign: Campaign;
+  /** false bila brief/asset gagal ditulis — campaign-nya tetap ada & bisa diedit. */
+  complete: boolean;
+  warnings: string[];
+};
+
+/**
+ * Tulis campaign draft (status "draft") + campaign_briefs + campaign_assets.
+ * TANPA transaction — SDK 25 mendukungnya tapi belum teruji di server ini.
+ * Kebijakan gagal: campaign row adalah sumber keberhasilan; brief/asset yang
+ * gagal hanya menambah warning, campaign tidak di-rollback (draft tetap ada).
+ * Permission baris read(any)/update+delete(owner) — grant delete adalah satu-
+ * satunya cara baris ini nanti bisa dihapus (tak ada collection delete("users")).
+ */
+export async function createCampaignDraftInAppwrite(
+  input: CreateCampaignDraftInput
+): Promise<ServiceResult<CampaignDraftResult>> {
+  const empty = null as unknown as CampaignDraftResult;
+  const auth = await requireUserId<CampaignDraftResult>(empty);
+  if (!auth.ok) return auth.result;
+  const uid = auth.userId;
+  const perms = [
+    Permission.read(Role.any()),
+    Permission.update(Role.user(uid)),
+    Permission.delete(Role.user(uid)),
+  ];
+
+  let campaignDoc: Doc;
+  try {
+    campaignDoc = (await databases.createDocument(
+      DB,
+      COLLECTIONS.campaigns,
+      ID.unique(),
+      {
+        umkmId: uid,
+        title: input.title.trim(),
+        category: input.category,
+        type: input.type,
+        platforms: ["tiktok"],
+        description: input.description.trim(),
+        budget: input.budget,
+        rewardPer1000Views: input.rewardPer1000Views,
+        status: "draft",
+        claimLimit: input.claimLimit,
+        submissionDays: input.submissionDays ?? 7,
+        totalClaims: 0,
+        spentAmount: 0,
+        remainingBudget: 0,
+      },
+      perms
+    )) as unknown as Doc;
+  } catch (err) {
+    return failFromWriteError<CampaignDraftResult>(err, empty);
+  }
+
+  const warnings: string[] = [];
+  const campaignId = str(campaignDoc.$id);
+
+  if (input.brief) {
+    try {
+      await databases.createDocument(
+        DB,
+        COLLECTIONS.campaignBriefs,
+        ID.unique(),
+        {
+          campaignId,
+          objective: input.brief.objective ?? "",
+          contentAngle: input.brief.contentAngle,
+          cta: input.brief.cta,
+          briefDetail: input.brief.briefDetail,
+          doAndDont: input.brief.doAndDont ?? "",
+          generatedByAi: input.brief.generatedByAi ?? false,
+        },
+        perms
+      );
+    } catch {
+      warnings.push("Brief belum tersimpan — buka draft untuk melengkapi.");
+    }
+  }
+
+  if (input.asset) {
+    try {
+      await databases.createDocument(
+        DB,
+        COLLECTIONS.campaignAssets,
+        ID.unique(),
+        {
+          campaignId,
+          source: "external",
+          type: "link",
+          fileUrl: input.asset.fileUrl,
+          fileName: input.asset.fileName ?? "Folder Aset Eksternal",
+        },
+        perms
+      );
+    } catch {
+      warnings.push("Tautan aset belum tersimpan — buka draft untuk melengkapi.");
+    }
+  }
+
+  return ok<CampaignDraftResult>({
+    campaign: mapCampaign(campaignDoc),
+    complete: warnings.length === 0,
+    warnings,
+  });
 }
 
-export async function getEscrowOverviewFromAppwrite(): Promise<ServiceResult<EscrowOverview>> {
-  // TODO: Aggregate from Appwrite collection "Transactions"
-  // Compute: activeEscrow, pendingRelease, refundEligible, campaignEscrow, rateCardEscrow
-  // Filter: userId === currentSession.userId AND status === "escrow"
-  // RBAC: Requires active session, role UMKM — READ-ONLY
-  return { success: false, data: null, error: "Not implemented" };
+/**
+ * Ubah status campaign (jeda/aktifkan). Baca ownership-filtered dulu sebagai
+ * defence in depth — collection update("users") terlalu longgar (temuan handoff).
+ */
+export async function updateCampaignStatusInAppwrite(
+  campaignId: string,
+  next: "paused" | "active"
+): Promise<ServiceResult<Campaign>> {
+  const empty = null as unknown as Campaign;
+  const auth = await requireUserId<Campaign>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", campaignId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Campaign tidak ditemukan.", "not_found", empty);
+
+    const current = str(doc.status);
+    if (next === "paused" && current !== "active") {
+      return failValidation("Hanya campaign aktif yang bisa dijeda.", empty);
+    }
+    if (next === "active" && current !== "paused") {
+      return failValidation("Hanya campaign terjeda yang bisa diaktifkan kembali.", empty);
+    }
+
+    const updated = await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
+      status: next,
+    });
+    return ok(mapCampaign(updated as unknown as Doc));
+  } catch (err) {
+    return failFromWriteError<Campaign>(err, empty);
+  }
+}
+
+export type DuplicateCampaignOptions = {
+  copyBrief: boolean;
+  copyBudget: boolean;
+  copyAssets: boolean;
+};
+
+/**
+ * Duplikasi campaign lewat createCampaignDraftInAppwrite (satu jalur create).
+ * Baca sumber ownership-filtered + brief/asset opsional sesuai options.
+ */
+export async function duplicateCampaignInAppwrite(
+  sourceId: string,
+  newTitle: string,
+  options: DuplicateCampaignOptions
+): Promise<ServiceResult<CampaignDraftResult>> {
+  const empty = null as unknown as CampaignDraftResult;
+  const auth = await requireUserId<CampaignDraftResult>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const srcRes = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", sourceId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const src = srcRes.documents[0] as unknown as Doc | undefined;
+    if (!src) return fail("Campaign sumber tidak ditemukan.", "not_found", empty);
+
+    let brief: CreateCampaignDraftInput["brief"];
+    if (options.copyBrief) {
+      const bRes = await databases.listDocuments(DB, COLLECTIONS.campaignBriefs, [
+        Query.equal("campaignId", sourceId),
+        Query.limit(1),
+      ]);
+      const b = bRes.documents[0] as unknown as Doc | undefined;
+      if (b) {
+        brief = {
+          briefDetail: str(b.briefDetail),
+          contentAngle: str(b.contentAngle),
+          cta: str(b.cta),
+          objective: str(b.objective),
+          doAndDont: str(b.doAndDont),
+          generatedByAi: Boolean(b.generatedByAi),
+        };
+      }
+    }
+
+    let asset: CreateCampaignDraftInput["asset"];
+    if (options.copyAssets) {
+      const aRes = await databases.listDocuments(DB, COLLECTIONS.campaignAssets, [
+        Query.equal("campaignId", sourceId),
+        Query.limit(1),
+      ]);
+      const a = aRes.documents[0] as unknown as Doc | undefined;
+      if (a) asset = { fileUrl: str(a.fileUrl), fileName: str(a.fileName) || undefined };
+    }
+
+    return createCampaignDraftInAppwrite({
+      title: newTitle,
+      category: str(src.category),
+      type: (str(src.type) as CampaignType) || "ugc",
+      description: str(src.description),
+      budget: options.copyBudget ? num(src.budget) : MINIMUM_CAMPAIGN_BUDGET,
+      rewardPer1000Views: num(src.rewardPer1000Views),
+      claimLimit: num(src.claimLimit),
+      submissionDays: num(src.submissionDays) || 7,
+      brief,
+      asset,
+    });
+  } catch (err) {
+    return failFromWriteError<CampaignDraftResult>(err, empty);
+  }
+}
+
+// ── profil UMKM / pengaturan (Sprint 3) ──────────────────────────────────────
+
+const mapUmkmSettingsProfile = (d: Doc): UmkmSettingsProfile => ({
+  docId: str(d.$id),
+  userId: str(d.userId),
+  businessName: str(d.businessName),
+  category: str(d.category),
+  description: str(d.description),
+  city: str(d.city),
+  address: str(d.address),
+  tiktok: str(d.tiktok),
+  logoUrl: str(d.logoUrl),
+  isProfileCompleted: Boolean(d.isProfileCompleted),
+});
+
+/**
+ * Baca baris umkm_profiles langsung (bukan lewat Function DTO): halaman
+ * Pengaturan butuh 9 kolom, sedangkan get-umkm-profile mengembalikan 7 kolom
+ * lain. `umkm_profiles` read("any") jadi query klien sah.
+ */
+export async function getUmkmSettingsProfileFromAppwrite(): Promise<
+  ServiceResult<UmkmSettingsProfile>
+> {
+  const empty = null as unknown as UmkmSettingsProfile;
+  const auth = await requireUserId<UmkmSettingsProfile>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.umkmProfiles, [
+      Query.equal("userId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Profil UMKM tidak ditemukan.", "not_found", empty);
+    return ok(mapUmkmSettingsProfile(doc));
+  } catch (err) {
+    return failFromError<UmkmSettingsProfile>(err, empty);
+  }
+}
+
+/** Kolom yang boleh ditulis klien — identik allow-list user.service.ts:269. */
+const UMKM_PROFILE_WRITABLE = [
+  "businessName",
+  "category",
+  "description",
+  "city",
+  "address",
+  "tiktok",
+  "logoUrl",
+  "isProfileCompleted",
+] as const;
+
+export type UmkmProfileWriteInput = Partial<
+  Record<(typeof UMKM_PROFILE_WRITABLE)[number], string | boolean>
+>;
+
+export async function updateUmkmProfileInAppwrite(
+  input: UmkmProfileWriteInput
+): Promise<ServiceResult<UmkmSettingsProfile>> {
+  const empty = null as unknown as UmkmSettingsProfile;
+  const auth = await requireUserId<UmkmSettingsProfile>(empty);
+  if (!auth.ok) return auth.result;
+
+  const payload: Record<string, string | boolean> = {};
+  for (const key of UMKM_PROFILE_WRITABLE) {
+    const value = input[key];
+    if (value !== undefined) payload[key] = value;
+  }
+  if (Object.keys(payload).length === 0) {
+    return failValidation("Tidak ada perubahan untuk disimpan.", empty);
+  }
+
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.umkmProfiles, [
+      Query.equal("userId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Profil UMKM tidak ditemukan.", "not_found", empty);
+
+    const updated = await databases.updateDocument(
+      DB,
+      COLLECTIONS.umkmProfiles,
+      str(doc.$id),
+      payload
+    );
+    return ok(mapUmkmSettingsProfile(updated as unknown as Doc));
+  } catch (err) {
+    return failFromWriteError<UmkmSettingsProfile>(err, empty);
+  }
+}
+
+/** Unggah logo ke bucket `logos` (client-writable) dan kembalikan URL-nya. */
+export async function uploadUmkmLogoInAppwrite(file: File): Promise<ServiceResult<string>> {
+  const auth = await requireUserId<string>("");
+  if (!auth.ok) return auth.result;
+  try {
+    const uploaded = await uploadPublicFile("logos", file, auth.userId);
+    return ok(uploaded.url);
+  } catch (err) {
+    if (err instanceof FileRuleError) return failValidation(err.message, "");
+    return failFromWriteError<string>(err, "");
+  }
+}
+
+// ── AI brief (Sprint 3) ──────────────────────────────────────────────────────
+
+export type AiBriefInput = {
+  description: string;
+  type: CampaignType;
+  productName?: string;
+  targetMarket?: string;
+  goal?: string;
+  materials?: string[];
+};
+
+export type AiBrief = {
+  objective: string;
+  contentAngle: string;
+  cta: string;
+  briefDetail: string;
+  doAndDont: { do: string[]; dont: string[] };
+};
+
+/**
+ * Panggil Function `ai-brief`.
+ *
+ * Dua penghilangan sengaja dari body:
+ * - TANPA `campaignId`: campaign belum ada di langkah 2, dan bila dikirim
+ *   ai-brief menulis baris campaign_briefs sendiri yang bersaing dengan tulisan
+ *   createCampaignDraft dan gagal senyap di batas kolom doAndDont (400 char).
+ * - TANPA `userId`: ai-brief menerima userId dari klien (spoofable). Dikirim
+ *   kosong: baris audit ai_requests terdegradasi, bukan dipalsukan. Handoff
+ *   meminta backend membaca header x-appwrite-user-id seperti 10 Function lain.
+ */
+export async function generateCampaignBriefFromAppwrite(
+  input: AiBriefInput
+): Promise<ServiceResult<AiBrief>> {
+  const empty = null as unknown as AiBrief;
+  const auth = await requireUserId<AiBrief>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await executeFunction<{ success: boolean; brief?: AiBrief; error?: string }>(
+      FUNCTION_IDS.aiBrief,
+      {
+        description: input.description,
+        type: input.type,
+        productName: input.productName || "Not specified",
+        targetMarket: input.targetMarket || "General",
+        goal: input.goal || "Brand awareness",
+        materials: input.materials ?? [],
+      }
+    );
+    if (!res.success || !res.brief) {
+      return fail(res.error ?? "Gagal menghasilkan brief AI. Coba lagi.", "server", empty);
+    }
+    return ok(res.brief);
+  } catch (err) {
+    return failFromWriteError<AiBrief>(err, empty);
+  }
+}
+
+// ── pembayaran campaign (Sprint 3 / 6b) ──────────────────────────────────────
+
+export type PaymentIntent = {
+  paymentId: string;
+  gateway: "midtrans";
+  snapToken?: string;
+  redirectUrl?: string;
+  status: "pending";
+};
+
+/**
+ * Buat payment untuk top-up escrow campaign lewat Function `create-payment`.
+ * `amount` = budget DASAR; Function yang menurunkan fee 2% dan total_amount.
+ * `payments` read-only dari klien, jadi jalur ini wajib lewat Function.
+ */
+export async function createCampaignPaymentInAppwrite(input: {
+  campaignId: string;
+  budget: number;
+}): Promise<ServiceResult<PaymentIntent>> {
+  const empty = null as unknown as PaymentIntent;
+  const auth = await requireUserId<PaymentIntent>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await executeFunction<PaymentIntent>(FUNCTION_IDS.createPayment, {
+      purpose: "campaign",
+      amount: input.budget,
+      campaignId: input.campaignId,
+    });
+    return ok(res);
+  } catch (err) {
+    return failFromWriteError<PaymentIntent>(err, empty);
+  }
+}
+
+// ── hapus & batalkan (Sprint 3.5) ────────────────────────────────────────────
+//
+// Dua kelas yang SENGAJA dibedakan — jangan disatukan:
+// - HAPUS    : baris benar-benar hilang. Hanya untuk data yang belum mengikat
+//              pihak lain (draft campaign, offer pending, aset draft).
+// - BATALKAN : baris tetap ada, statusnya berubah. Untuk apa pun yang sudah
+//              menyentuh uang atau punya konsekuensi lanjutan (order, payment).
+//
+// Mirror dari 00_BACKEND/src/services/{campaign,offer,order,payment}.service.ts.
+// Frontend TIDAK mengimpor file itu — `00_BACKEND` dikecualikan dari tsconfig
+// dan paket npm-nya terpisah. Lihat §3 di integration-context/
+// 2026-07-26-review-frontend-atas-delete-layer.md.
+
+/** 401/403 saat menghapus = baris dibuat tanpa Permission.delete, bukan salah user. */
+const failDelete = (err: unknown, subject: string): ServiceResult<null> => {
+  const code = (err as { code?: number })?.code;
+  if (code === 401 || code === 403) {
+    return fail(
+      `${subject} ini tidak bisa dihapus dari aplikasi karena dibuat sebelum fitur hapus aktif; hubungi support.`,
+      "forbidden",
+      null
+    );
+  }
+  return failFromWriteError<null>(err, null);
+};
+
+/**
+ * Hapus campaign berstatus `draft` beserta brief & asetnya.
+ *
+ * Anak dihapus lebih dulu supaya tidak ada baris yatim bila penghapusan induk
+ * gagal — urutan sebaliknya akan meninggalkan brief/aset yang tak terjangkau
+ * (keduanya hanya bisa ditemukan lewat `campaignId`).
+ * Kegagalan menghapus anak TIDAK membatalkan operasi: induk yang tersisa jauh
+ * lebih mengganggu pengguna daripada satu baris brief yatim.
+ */
+export async function deleteCampaignDraftInAppwrite(
+  campaignId: string
+): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", campaignId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Campaign tidak ditemukan.", "not_found", null);
+
+    if (str(doc.status) !== "draft") {
+      return failValidation(
+        "Hanya campaign draft yang bisa dihapus. Campaign yang sudah tayang cukup dijeda.",
+        null
+      );
+    }
+
+    for (const collection of [COLLECTIONS.campaignBriefs, COLLECTIONS.campaignAssets]) {
+      try {
+        const children = await databases.listDocuments(DB, collection, [
+          Query.equal("campaignId", campaignId),
+          Query.limit(100),
+        ]);
+        for (const child of children.documents) {
+          await databases.deleteDocument(DB, collection, child.$id);
+        }
+      } catch {
+        // Baris anak yatim lebih ringan daripada gagal menghapus induk.
+      }
+    }
+
+    await databases.deleteDocument(DB, COLLECTIONS.campaigns, campaignId);
+    return ok(null);
+  } catch (err) {
+    return failDelete(err, "Campaign");
+  }
+}
+
+/**
+ * Hapus satu aset campaign. Hanya selama induknya masih `draft` — setelah tayang
+ * kreator sudah bisa melihat asetnya, jadi menghapusnya mengubah brief berjalan.
+ */
+export async function removeCampaignAssetInAppwrite(
+  assetId: string
+): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    const asset = (await databases.getDocument(
+      DB,
+      COLLECTIONS.campaignAssets,
+      assetId
+    )) as unknown as Doc;
+
+    const parent = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", str(asset.campaignId)),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const campaign = parent.documents[0] as unknown as Doc | undefined;
+    if (!campaign) return fail("Aset tidak ditemukan.", "not_found", null);
+
+    if (str(campaign.status) !== "draft") {
+      return failValidation(
+        "Aset hanya bisa dihapus selama campaign masih draft.",
+        null
+      );
+    }
+
+    await databases.deleteDocument(DB, COLLECTIONS.campaignAssets, assetId);
+    return ok(null);
+  } catch (err) {
+    return failDelete(err, "Aset");
+  }
+}
+
+/**
+ * Hapus custom offer yang masih `pending`. Setelah `accepted` sudah ada order
+ * yang terbentuk darinya, dan `rejected` adalah jejak negosiasi yang berguna.
+ */
+export async function deleteOfferInAppwrite(offerId: string): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.offers, [
+      Query.equal("$id", offerId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Penawaran tidak ditemukan.", "not_found", null);
+
+    if (str(doc.status) !== "pending") {
+      return failValidation(
+        "Hanya penawaran yang belum direspons yang bisa dihapus.",
+        null
+      );
+    }
+
+    await databases.deleteDocument(DB, COLLECTIONS.offers, offerId);
+    return ok(null);
+  } catch (err) {
+    return failDelete(err, "Penawaran");
+  }
+}
+
+/**
+ * Batalkan order yang belum dibayar. BUKAN hapus — barisnya tetap ada dengan
+ * status `cancelled` supaya riwayat pesanan tetap utuh.
+ */
+export async function cancelOrderInAppwrite(orderId: string): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.orders, [
+      Query.equal("$id", orderId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Pesanan tidak ditemukan.", "not_found", null);
+
+    if (str(doc.status) !== "pending_payment") {
+      return failValidation(
+        "Hanya pesanan yang belum dibayar yang bisa dibatalkan. Dana yang sudah masuk escrow harus lewat pengembalian dana.",
+        null
+      );
+    }
+
+    await databases.updateDocument(DB, COLLECTIONS.orders, orderId, {
+      status: "cancelled",
+    });
+    return ok(null);
+  } catch (err) {
+    return failFromWriteError<null>(err, null);
+  }
+}
+
+/**
+ * Batalkan payment yang belum dibayar lewat Function `cancel-payment`.
+ * `payments` hanya punya `read("users")` — tidak ada jalur update dari browser,
+ * jadi ini satu-satunya fitur di sprint ini yang wajib lewat Function.
+ * Function menegakkan ownership + status `pending` sendiri.
+ */
+export async function cancelPaymentInAppwrite(paymentId: string): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    await executeFunction(FUNCTION_IDS.cancelPayment, { paymentId });
+    return ok(null);
+  } catch (err) {
+    return failFromWriteError<null>(err, null);
+  }
 }

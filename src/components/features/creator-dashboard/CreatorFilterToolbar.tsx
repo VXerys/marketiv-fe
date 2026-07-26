@@ -33,7 +33,7 @@ export function CreatorFilterToolbar({
   const niches: Array<{ label: string; value: string }> = [
     { label: "Semua Kategori", value: "all" },
     { label: "Kuliner", value: "kuliner" },
-    { label: "Fesyen", value: "fesyen" },
+    { label: "Fashion", value: "fashion" },
     { label: "Kecantikan", value: "kecantikan" },
     { label: "Edukasi", value: "edukasi" },
     { label: "Pariwisata", value: "pariwisata" },

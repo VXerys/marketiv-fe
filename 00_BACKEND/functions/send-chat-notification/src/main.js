@@ -2,7 +2,7 @@ import { Client, Databases, ID, Messaging, Permission, Role } from "node-appwrit
 
 export default async ({ req, res, log, error }) => {
   try {
-    const env = getEnv();
+    const env = getEnv(req);
     const message = parseBody(req);
     const conversationId = message.conversation_id;
     const senderId = message.sender_id;
@@ -66,11 +66,11 @@ export default async ({ req, res, log, error }) => {
   }
 };
 
-function getEnv() {
+function getEnv(req) {
   const env = {
     appwriteEndpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT || process.env.APPWRITE_ENDPOINT,
     appwriteProjectId: process.env.APPWRITE_FUNCTION_PROJECT_ID || process.env.APPWRITE_PROJECT_ID,
-    appwriteApiKey: process.env.APPWRITE_API_KEY,
+    appwriteApiKey: req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY,
     databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
     conversationsCollectionId: process.env.CONVERSATIONS_COLLECTION_ID || "conversations",
     notificationsCollectionId: process.env.NOTIFICATIONS_COLLECTION_ID || "notifications"

@@ -20,6 +20,9 @@ import {
   getDashboardSummary,
   getCampaignSubmissions,
   getUmkmProfile,
+  updateCampaignStatus,
+  duplicateCampaign,
+  deleteCampaignDraft,
 } from "@/services/umkm/umkm-dashboard.service";
 import {
   Campaign,
@@ -31,6 +34,7 @@ import {
 import { CancelCampaignModal } from "./modals/CancelCampaignModal";
 import { DuplicateCampaignModal } from "./modals/DuplicateCampaignModal";
 import { ExportReportModal } from "./modals/ExportReportModal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 import { toast } from "sonner";
 
@@ -56,6 +60,7 @@ export function CampaignsPage() {
 
   // Modal states
   const [activeCancelCampaign, setActiveCancelCampaign] = useState<Campaign | null>(null);
+  const [activeDeleteCampaign, setActiveDeleteCampaign] = useState<Campaign | null>(null);
   const [activeDuplicateCampaign, setActiveDuplicateCampaign] = useState<Campaign | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
@@ -94,8 +99,8 @@ export function CampaignsPage() {
             const subRes = await getCampaignSubmissions(c.id);
             if (subRes.success && subRes.data) {
               const pending = subRes.data.filter((s) => s.validationStatus === "pending").length;
-              const valid = subRes.data.filter((s) => s.validationStatus === "valid").length;
-              const dispute = subRes.data.filter((s) => s.validationStatus === "dispute").length;
+              const valid = subRes.data.filter((s) => s.validationStatus === "approved").length;
+              const dispute = subRes.data.filter((s) => s.fraudStatus !== "safe").length;
               subCounts[c.id] = { pending, valid, dispute };
             }
           })
@@ -138,45 +143,67 @@ export function CampaignsPage() {
     all: campaigns.length,
     active: campaigns.filter((c) => c.status === "active").length,
     draft: campaigns.filter((c) => c.status === "draft").length,
-    full: campaigns.filter((c) => c.status === "full").length,
+    paused: campaigns.filter((c) => c.status === "paused").length,
     completed: campaigns.filter((c) => c.status === "completed").length,
-    cancelled: campaigns.filter((c) => c.status === "cancelled").length,
   };
 
   // Modal actions
-  const handleCancelConfirm = (reason: string) => {
+  const handleCancelConfirm = async () => {
     if (!activeCancelCampaign) return;
-    // Simulate campaign cancellation locally
-    setCampaigns(
-      campaigns.map((c) =>
-        c.id === activeCancelCampaign.id
-          ? { ...c, status: "cancelled" as const }
-          : c
-      )
-    );
-    showToast(`Campaign "${activeCancelCampaign.title}" berhasil dibatalkan. Alasan: ${reason}`);
+    const target = activeCancelCampaign;
+    const res = await updateCampaignStatus(target.id, "paused");
+    if (res.success && res.data) {
+      setCampaigns((prev) => prev.map((c) => (c.id === target.id ? res.data! : c)));
+      showToast(`Campaign "${target.title}" berhasil dijeda.`);
+    } else {
+      toast.error(res.error ?? "Gagal menjeda campaign.");
+    }
   };
 
-  const handleDuplicateConfirm = (newTitle: string) => {
-    if (!activeDuplicateCampaign) return;
-    // Simulate dupliacte campaign creation
-    const newCamp: Campaign = {
-      ...activeDuplicateCampaign,
-      id: `campaign_new_${Date.now()}`,
-      title: newTitle,
-      status: "draft" as const,
-      usedQuota: 0,
-      usedBudget: 0,
-      totalViews: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setCampaigns([newCamp, ...campaigns]);
-    setSubmissionCounts({
-      ...submissionCounts,
-      [newCamp.id]: { pending: 0, valid: 0, dispute: 0 },
+  /**
+   * Hapus draft. Baris dibuang dari state lokal, bukan loadData() penuh —
+   * memuat ulang seluruh halaman berikut hitungan submission tiap campaign
+   * (satu request per campaign) hanya untuk menghilangkan satu kartu itu boros.
+   * Lempar ulang saat gagal supaya ConfirmDialog tetap terbuka.
+   */
+  const handleDeleteConfirm = async () => {
+    if (!activeDeleteCampaign) return;
+    const target = activeDeleteCampaign;
+    const res = await deleteCampaignDraft(target.id);
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal menghapus draft.");
+      throw new Error(res.error ?? "Gagal menghapus draft.");
+    }
+    setCampaigns((prev) => prev.filter((c) => c.id !== target.id));
+    setSubmissionCounts((prev) => {
+      const next = { ...prev };
+      delete next[target.id];
+      return next;
     });
-    showToast(`Campaign baru "${newTitle}" berhasil dibuat sebagai Draft.`);
+    showToast(`Draft "${target.title}" berhasil dihapus.`);
+  };
+
+  const handleDuplicateConfirm = async (
+    newTitle: string,
+    options: { copyBrief: boolean; copyBudget: boolean; copyAssets: boolean }
+  ) => {
+    if (!activeDuplicateCampaign) return;
+    const res = await duplicateCampaign(activeDuplicateCampaign.id, newTitle, options);
+    if (res.success && res.data) {
+      const newCamp = res.data.campaign;
+      setCampaigns((prev) => [newCamp, ...prev]);
+      setSubmissionCounts((prev) => ({
+        ...prev,
+        [newCamp.id]: { pending: 0, valid: 0, dispute: 0 },
+      }));
+      if (res.data.warnings.length > 0) {
+        res.data.warnings.forEach((w) => toast.warning(w));
+      } else {
+        showToast(`Campaign baru "${newTitle}" berhasil dibuat sebagai Draft.`);
+      }
+    } else {
+      toast.error(res.error ?? "Gagal menduplikasi campaign.");
+    }
   };
 
   const businessName = profile?.businessName || "Dapur Sehat Sukabumi";
@@ -241,6 +268,7 @@ export function CampaignsPage() {
             submissionCounts={submissionCounts}
             onDuplicate={setActiveDuplicateCampaign}
             onCancel={setActiveCancelCampaign}
+            onDelete={setActiveDeleteCampaign}
             onExport={() => setIsExportModalOpen(true)}
             onEdit={(camp) => showToast(`Melanjutkan edit Draft: ${camp.title}`)}
           />
@@ -257,6 +285,7 @@ export function CampaignsPage() {
                   disputeCount={counts.dispute}
                   onDuplicate={() => setActiveDuplicateCampaign(camp)}
                   onCancel={() => setActiveCancelCampaign(camp)}
+                  onDelete={() => setActiveDeleteCampaign(camp)}
                   onExport={() => setIsExportModalOpen(true)}
                   onEdit={() => showToast(`Melanjutkan edit Draft: ${camp.title}`)}
                 />
@@ -272,6 +301,27 @@ export function CampaignsPage() {
             onClose={() => setActiveCancelCampaign(null)}
             campaignTitle={activeCancelCampaign.title}
             onConfirm={handleCancelConfirm}
+          />
+        )}
+
+        {activeDeleteCampaign && (
+          <ConfirmDialog
+            open={!!activeDeleteCampaign}
+            onClose={() => setActiveDeleteCampaign(null)}
+            title="Hapus Draft Campaign?"
+            description={
+              <>
+                Draft{" "}
+                <span className="font-semibold text-text-primary">
+                  &quot;{activeDeleteCampaign.title}&quot;
+                </span>{" "}
+                akan dihapus permanen beserta brief dan aset yang menempel padanya.
+              </>
+            }
+            note="Draft belum pernah tayang, jadi tidak ada klaim kreator atau dana escrow yang terpengaruh. Campaign yang sudah tayang tidak bisa dihapus — gunakan Jeda Campaign."
+            acknowledgement="Saya mengerti draft ini tidak bisa dikembalikan."
+            confirmLabel="Hapus Draft"
+            onConfirm={handleDeleteConfirm}
           />
         )}
 

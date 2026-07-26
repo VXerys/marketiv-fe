@@ -1,20 +1,38 @@
-import {
+/**
+ * Tipe view-model dashboard Kreator.
+ *
+ * Semua nilai status di-reexport dari kanon `@/types/domain` — jangan
+ * mendefinisikan ulang union status di file ini.
+ */
+import type {
   CampaignStatus,
-  CampaignClaimStatus,
+  ClaimStatus,
   SubmissionStatus,
-  RateCardOrderStatus,
+  FraudStatus,
+  OrderStatus,
+  EscrowStatus,
+  RateCardStatus,
   TransactionStatus,
-} from "./status";
+  TransactionType,
+} from "./domain";
 
-export interface ServiceResult<T> {
-  success: boolean;
-  data: T | null;
-  error?: string;
-}
+export type {
+  ServiceResult,
+  ServiceErrorCode,
+  CampaignStatus,
+  ClaimStatus,
+  SubmissionStatus,
+  FraudStatus,
+  OrderStatus,
+  EscrowStatus,
+  RateCardStatus,
+  TransactionStatus,
+  TransactionType,
+} from "./domain";
 
 export type CreatorNiche =
   | "kuliner"
-  | "fesyen"
+  | "fashion"
   | "pariwisata"
   | "edukasi"
   | "kecantikan"
@@ -44,15 +62,20 @@ export interface CreatorProfile {
   portfolioUrl?: string;
 }
 
+/**
+ * `creator_portfolios` hanya menyimpan creatorId, title, description,
+ * thumbnailUrl, dan portfolioUrl. `platform`, `niche`, dan `views` tidak punya
+ * kolom — biarkan opsional dan jangan dirender bila kosong.
+ */
 export interface CreatorPortfolioItem {
   id: string;
   title: string;
-  platform: "tiktok" | "instagram";
   url: string;
-  niche: CreatorNiche;
-  views: number;
-  thumbnailUrl?: string;
   description: string;
+  thumbnailUrl?: string;
+  platform?: "tiktok" | "instagram";
+  niche?: CreatorNiche;
+  views?: number;
 }
 
 export interface CreatorMetric {
@@ -69,6 +92,16 @@ export interface CreatorMetric {
   thisMonthEarnings?: number;
   campaignEarnings?: number;
   rateCardEarnings?: number;
+}
+
+/** Satu baris `campaign_assets` — materi opsional yang disediakan UMKM. */
+export interface CreatorJobMaterial {
+  id: string;
+  /** `campaign_assets.fileName`, jatuh ke host URL bila kosong. */
+  label: string;
+  url: string;
+  /** `campaign_assets.type` — menentukan aksi "Buka" (link) atau "Unduh" (file). */
+  kind: "link" | "file";
 }
 
 export interface CreatorJob {
@@ -96,6 +129,10 @@ export interface CreatorJob {
   ctaInstruction?: string;
   externalAssetUrl?: string;
   thumbnailUrl?: string;
+  /** `campaigns.platforms` — kolom array, bukan string tunggal. */
+  platforms?: string[];
+  /** Seluruh baris `campaign_assets` milik campaign ini. */
+  materials?: CreatorJobMaterial[];
 }
 
 export interface CreatorActiveWork {
@@ -106,11 +143,14 @@ export interface CreatorActiveWork {
   brandAvatar: string;
   brief: string;
   ratePerThousandViews: number;
-  status: CampaignClaimStatus;
+  /** campaign_claims.status kanon */
+  status: ClaimStatus;
   claimedAt: string;
   deadline: string;
   submissionId?: string;
   submissionStatus?: SubmissionStatus;
+  /** hasil ai-fraud-precheck — terpisah dari submissionStatus */
+  fraudStatus?: FraudStatus;
   contentUrl?: string;
   actualViews?: number;
   earnings?: number;
@@ -119,6 +159,8 @@ export interface CreatorActiveWork {
   submittedAt?: string;
   validatedAt?: string;
   rejectedReason?: string;
+  /** Materi pendukung campaign — `campaign_assets.fileUrl` pertama. */
+  assetUrl?: string;
 }
 
 export interface CreatorSubmission {
@@ -129,6 +171,7 @@ export interface CreatorSubmission {
   contentUrl: string;
   actualViews: number;
   status: SubmissionStatus;
+  fraudStatus?: FraudStatus;
   submittedAt: string;
   validatedAt?: string;
   earnings: number;
@@ -143,7 +186,8 @@ export interface CreatorNegotiation {
   scope: string;
   finalPrice: number;
   deadline: string;
-  status: RateCardOrderStatus;
+  /** orders.status kanon */
+  status: OrderStatus;
   lastMessage: string;
   lastMessageAt: string;
   unreadCount: number;
@@ -151,25 +195,29 @@ export interface CreatorNegotiation {
   revisionCount?: number;
   platformFee?: number;
   totalAmount?: number;
-  escrowStatus?: "Pending" | "Escrowed" | "Released" | "Refunded";
+  /** escrows.status kanon */
+  escrowStatus?: EscrowStatus;
   submittedCollabUrl?: string;
 }
 
 export interface CreatorRateCardPackage {
   id: string;
+  /** $id parent rate_cards — dibutuhkan write (model 1 rate_cards per paket). */
+  rateCardId: string;
   name: string;
   description: string;
   price: number;
   deliverable: string;
   estimatedDays: number;
-  isActive: boolean;
+  /** rate_cards.status — bukan boolean isActive */
+  status: RateCardStatus;
   revisionCount?: number;
-  platform?: "tiktok" | "instagram" | "youtube" | "all";
+  // Tidak ada kolom platform di rate_card_packages (MVP TikTok-only).
 }
 
 export interface CreatorTransaction {
   id: string;
-  type: "withdrawal" | "payout" | "adjustment" | "escrow_release";
+  type: TransactionType;
   amount: number;
   status: TransactionStatus;
   description: string;
@@ -180,9 +228,24 @@ export interface CreatorTransaction {
   notes?: string;
 }
 
+/**
+ * Empat nilai pertama adalah kategori tampilan yang sudah punya warna & label di
+ * CreatorDashboardView. Sisanya adalah nilai `notifications.type` yang benar-benar
+ * ditulis backend dan tidak punya padanan — diteruskan apa adanya, dan UI
+ * menampilkannya sebagai "INFO" lewat cabang default-nya.
+ */
+export type CreatorActivityType =
+  | "submission_valid"
+  | "payout"
+  | "negotiation_new"
+  | "pending_escrow"
+  | "claim"
+  | "claim_expired"
+  | "campaign_published";
+
 export interface CreatorActivity {
   id: string;
-  type: "submission_valid" | "payout" | "negotiation_new" | "pending_escrow";
+  type: CreatorActivityType;
   title: string;
   description: string;
   amount?: number;

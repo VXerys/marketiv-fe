@@ -4,7 +4,7 @@ import { type ReactNode, useState, useEffect } from "react";
 import { DashboardShell } from "@/components/features/dashboard/DashboardShell";
 import { CreatorDashboardSidebar } from "./CreatorDashboardSidebar";
 import { CreatorDashboardTopbar } from "./CreatorDashboardTopbar";
-import { getCreatorProfile } from "@/services/creator-dashboard.service";
+import { getCreatorProfile } from "@/services/creator/creator-dashboard.service";
 import { CreatorProfile } from "@/types/creator-dashboard";
 
 interface CreatorDashboardChromeProps {

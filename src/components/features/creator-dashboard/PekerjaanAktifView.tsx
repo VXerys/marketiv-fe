@@ -5,11 +5,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { CreatorActiveWork } from "@/types/creator-dashboard";
-import { toast } from "sonner";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { DashboardStateCard } from "@/components/features/dashboard/shared";
 import { formatCurrency } from "@/lib/formatters";
+import { getClaimStatusLabel, getFraudStatusLabel, getSubmissionStatusLabel } from "@/lib/creator-status";
 import { cn } from "@/lib/utils";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { unclaimCampaign } from "@/services/creator/creator-dashboard.service";
+import { toast } from "sonner";
 import {
   CheckCircle2,
   AlertTriangle,
@@ -106,24 +109,30 @@ function ActiveJobCard({
   work,
   getSubStatusLabel,
   getDaysRemaining,
+  onUnclaim,
 }: {
   work: CreatorActiveWork;
   getSubStatusLabel: (w: CreatorActiveWork) => string;
   getDaysRemaining: (d: string) => { text: string; days: number };
+  onUnclaim: () => void;
 }) {
   const subStatus    = getSubStatusLabel(work);
   const hasSubmitted = !!work.contentUrl;
   const { text: deadlineText, days } = getDaysRemaining(work.deadline);
   const thumbnailUrl = getThumbnailUrl(work.campaignId);
-  const isFraud  = ["Fraud", "Dispute", "Rejected"].includes(subStatus);
-  const isValid  = subStatus === "Valid" || subStatus === "Selesai";
-  const isPending = subStatus === "Menunggu Validasi";
+  const isFraud   = work.submissionStatus === "rejected" || work.status === "rejected" || work.fraudStatus === "rejected";
+  const isValid   = work.submissionStatus === "approved" || work.status === "approved";
+  const isPending = work.submissionStatus === "pending";
+  // Sejalan dengan guard service: hanya claim `claimed` yang belum kirim bukti.
+  const canUnclaim = work.status === "claimed" && !hasSubmitted;
 
   // Earnings data
-  const mockViews    = work.actualViews ?? (hasSubmitted ? 12500 : 50000);
+  // Views hasil audit backend; 0 sebelum tervalidasi. Estimasi hanya ditampilkan
+  // bila sudah ada angka nyata — jangan menjanjikan nominal dari views karangan.
+  const auditedViews = work.actualViews ?? 0;
   const earningVal   = isValid
     ? (work.earnings ?? 0)
-    : (work.ratePerThousandViews * mockViews) / 1000;
+    : (work.ratePerThousandViews * auditedViews) / 1000;
   const earningLabel = isValid ? "Pendapatan Dirilis" : "Estimasi Reward";
 
   // Claimed date
@@ -133,14 +142,15 @@ function ActiveJobCard({
 
   const platform = work.platform;
 
+  // Key = label hasil getSubStatusLabel (lihat src/lib/creator-status.ts)
   const STATUS_CHIP: Record<string, string> = {
     "Belum Submit":      "bg-blue-600/90 text-white border-blue-400/30",
-    "Menunggu Validasi": "bg-amber-500/90 text-white border-amber-300/30",
-    "Valid":             "bg-emerald-600/90 text-white border-emerald-400/30",
+    "Menunggu Review":   "bg-amber-500/90 text-white border-amber-300/30",
+    "Perlu Ditinjau":    "bg-amber-500/90 text-white border-amber-300/30",
+    "Disetujui":         "bg-emerald-600/90 text-white border-emerald-400/30",
     "Selesai":           "bg-emerald-600/90 text-white border-emerald-400/30",
-    "Fraud":             "bg-red-600/90 text-white border-red-400/30",
-    "Dispute":           "bg-red-600/90 text-white border-red-400/30",
-    "Rejected":          "bg-red-600/90 text-white border-red-400/30",
+    "Ditolak":           "bg-red-600/90 text-white border-red-400/30",
+    "Terindikasi Fraud": "bg-red-600/90 text-white border-red-400/30",
   };
 
   return (
@@ -240,7 +250,7 @@ function ActiveJobCard({
             ⏱ {deadlineText}
           </span>
           <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-600 border border-violet-200/50">
-            {(isValid || isPending ? "Audit" : "Target")} {mockViews.toLocaleString("id-ID")} views
+            {(isValid || isPending ? "Audit" : "Target")} {auditedViews.toLocaleString("id-ID")} views
           </span>
         </div>
 
@@ -301,6 +311,20 @@ function ActiveJobCard({
             </div>
           )}
         </div>
+
+        {/*
+          Batalkan hanya selama belum ada bukti terkirim. Sengaja beremphasis
+          rendah (teks, bukan tombol penuh) — aksi merusak yang jarang dipakai
+          tidak boleh menyaingi "Submit Bukti" secara visual.
+        */}
+        {canUnclaim && (
+          <button
+            onClick={onUnclaim}
+            className="text-[10px] font-bold text-neutral-400 hover:text-red-600 transition-colors self-center underline underline-offset-2 cursor-pointer"
+          >
+            Batalkan pekerjaan ini
+          </button>
+        )}
       </div>
     </div>
   );
@@ -309,7 +333,8 @@ function ActiveJobCard({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
-  const [works] = useState<CreatorActiveWork[]>(initialWorks);
+  const [works, setWorks] = useState<CreatorActiveWork[]>(initialWorks);
+  const [unclaimTarget, setUnclaimTarget] = useState<CreatorActiveWork | null>(null);
   const { toolbarRef, isSticky } = useStickyToolbar();
 
   const [search, setSearch] = useState("");
@@ -318,11 +343,7 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
   const [sortBy, setSortBy] = useState("nearest-deadline");
   const [filterOpen, setFilterOpen] = useState(false);
 
-  const [isLoadingSimulated, setIsLoadingSimulated] = useState(false);
-  const [isErrorSimulated, setIsErrorSimulated] = useState(false);
-  const [isEmptySimulated, setIsEmptySimulated] = useState(false);
 
-  const showToast = (msg: string) => toast.success(msg);
 
   const handleClearFilters = () => {
     setSearch("");
@@ -331,22 +352,39 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
     setSortBy("nearest-deadline");
   };
 
-  const getSubStatusLabel = (work: CreatorActiveWork): string => {
-    if (work.submissionStatus) {
-      if (work.submissionStatus === "Pending") return "Menunggu Validasi";
-      if (work.submissionStatus === "Valid") return "Valid";
-      if (work.submissionStatus === "Fraud") return "Fraud";
-      if (work.submissionStatus === "Dispute") return "Dispute";
-      if (work.submissionStatus === "Rejected") return "Rejected";
+  /**
+   * Batalkan claim. Baris dibuang dari daftar karena statusnya jadi `unclaimed`
+   * — bukan lagi "pekerjaan aktif". Lempar ulang saat gagal supaya
+   * ConfirmDialog tetap terbuka dengan pesan errornya.
+   */
+  const handleUnclaimConfirm = async () => {
+    if (!unclaimTarget) return;
+    const target = unclaimTarget;
+    const res = await unclaimCampaign(target.id);
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal membatalkan pekerjaan.");
+      throw new Error(res.error ?? "Gagal membatalkan pekerjaan.");
     }
-    if (work.status === "Selesai") return "Selesai";
+    setWorks((prev) => prev.filter((w) => w.id !== target.id));
+    toast.success(`Pekerjaan "${target.title}" dibatalkan. Slot campaign kembali terbuka.`);
+  };
+
+  const getSubStatusLabel = (work: CreatorActiveWork): string => {
+    // Klaim kedaluwarsa lebih dulu: submission tidak akan pernah ada, dan tanpa
+    // cabang ini kreator melihat "Belum Submit" untuk klaim yang sudah hangus.
+    if (work.status === "expired") return getClaimStatusLabel("expired");
+    if (work.fraudStatus && work.fraudStatus !== "safe") return getFraudStatusLabel(work.fraudStatus);
+    if (work.submissionStatus) return getSubmissionStatusLabel(work.submissionStatus);
+    if (work.status === "approved") return "Selesai";
     return "Belum Submit";
   };
 
-  const countBelumSubmit  = works.filter(w => !w.submissionStatus && w.status === "Aktif").length;
-  const countPending      = works.filter(w => w.submissionStatus === "Pending").length;
-  const countValid        = works.filter(w => w.submissionStatus === "Valid" || w.status === "Selesai").length;
-  const countReviewFraud  = works.filter(w => ["Fraud", "Dispute", "Rejected"].includes(w.submissionStatus ?? "")).length;
+  const countBelumSubmit  = works.filter(w => !w.submissionStatus && w.status === "claimed").length;
+  const countPending      = works.filter(w => w.submissionStatus === "pending").length;
+  const countValid        = works.filter(w => w.submissionStatus === "approved" || w.status === "approved").length;
+  const countReviewFraud  = works.filter(
+    w => w.submissionStatus === "rejected" || (w.fraudStatus != null && w.fraudStatus !== "safe")
+  ).length;
 
   const getDaysRemaining = (deadlineStr: string) => {
     const deadline = new Date(deadlineStr);
@@ -364,13 +402,13 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
         w.brandName.toLowerCase().includes(search.toLowerCase()) ||
         w.brief.toLowerCase().includes(search.toLowerCase());
 
-      const subStatus = getSubStatusLabel(w);
       const matchesStatus =
         selectedStatus === "all" ||
-        (selectedStatus === "belum-submit" && subStatus === "Belum Submit") ||
-        (selectedStatus === "pending" && subStatus === "Menunggu Validasi") ||
-        (selectedStatus === "valid" && (subStatus === "Valid" || subStatus === "Selesai")) ||
-        (selectedStatus === "review-fraud" && ["Fraud", "Dispute", "Rejected"].includes(subStatus));
+        (selectedStatus === "belum-submit" && !w.submissionStatus && w.status === "claimed") ||
+        (selectedStatus === "pending" && w.submissionStatus === "pending") ||
+        (selectedStatus === "valid" && (w.submissionStatus === "approved" || w.status === "approved")) ||
+        (selectedStatus === "review-fraud" &&
+          (w.submissionStatus === "rejected" || (w.fraudStatus != null && w.fraudStatus !== "safe")));
 
       const { days } = getDaysRemaining(w.deadline);
       const matchesDeadline =
@@ -389,46 +427,10 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
 
   const hasActiveFilters = search !== "" || selectedStatus !== "all" || selectedDeadline !== "all";
 
-  if (isErrorSimulated) {
-    return (
-      <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[80vh]">
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4.5 mb-8 max-w-md w-full flex items-center justify-between shadow-sm text-xs font-semibold text-red-800">
-          <span>Mode Uji Coba Error Aktif.</span>
-          <button
-            onClick={() => setIsErrorSimulated(false)}
-            className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all cursor-pointer font-bold"
-          >
-            Matikan Mode Error
-          </button>
-        </div>
-        <DashboardStateCard
-          kind="error"
-          title="Terjadi Kesalahan"
-          description="Simulator error diaktifkan pada Halaman Pekerjaan Aktif."
-          actionLabel="Coba Lagi"
-          onAction={() => {
-            setIsErrorSimulated(false);
-            showToast("Berhasil memulihkan dari state error!");
-          }}
-        />
-      </div>
-    );
-  }
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 relative">
 
-      {isLoadingSimulated ? (
-        <div className="space-y-6 animate-pulse">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => <div key={i} className="h-28 bg-neutral-100 rounded-[22px]" />)}
-          </div>
-          <div className="h-14 bg-neutral-100 rounded-2xl" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => <div key={i} className="h-72 bg-neutral-100 rounded-[22px]" />)}
-          </div>
-        </div>
-      ) : (
         <div>
           <CreatorPageHeader
             title="Pekerjaan Aktif"
@@ -563,20 +565,20 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
           </div>
 
           {/* Grid */}
-          {isEmptySimulated || filteredWorks.length === 0 ? (
+          {filteredWorks.length === 0 ? (
             <DashboardStateCard
               kind="empty"
-              title="Belum ada pekerjaan aktif"
+              title={hasActiveFilters ? "Tidak ada yang cocok" : "Belum ada pekerjaan aktif"}
               description={
-                isEmptySimulated
-                  ? "Kamu belum mengklaim campaign apa pun dari pool pekerjaan."
-                  : "Tidak ada pekerjaan aktif yang cocok dengan filter pencarianmu."
+                hasActiveFilters
+                  ? "Tidak ada pekerjaan aktif yang cocok dengan filter pencarianmu."
+                  : "Kamu belum mengklaim campaign apa pun dari pool pekerjaan."
               }
-              actionLabel={isEmptySimulated ? "Cari Job di Job Pool" : "Reset Filter"}
+              actionLabel={hasActiveFilters ? "Reset Filter" : "Cari Job di Job Pool"}
               onAction={
-                isEmptySimulated
-                  ? () => { window.location.href = "/dashboard/kreator/job-pool"; }
-                  : handleClearFilters
+                hasActiveFilters
+                  ? handleClearFilters
+                  : () => { window.location.href = "/dashboard/kreator/job-pool"; }
               }
             />
           ) : (
@@ -587,12 +589,34 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
                   work={work}
                   getSubStatusLabel={getSubStatusLabel}
                   getDaysRemaining={getDaysRemaining}
+                  onUnclaim={() => setUnclaimTarget(work)}
                 />
               ))}
             </div>
           )}
         </div>
-      )}
+
+        {unclaimTarget && (
+          <ConfirmDialog
+            open={!!unclaimTarget}
+            onClose={() => setUnclaimTarget(null)}
+            title="Batalkan Pekerjaan Ini?"
+            description={
+              <>
+                Klaim kamu atas{" "}
+                <span className="font-semibold text-text-primary">
+                  &quot;{unclaimTarget.title}&quot;
+                </span>{" "}
+                akan dilepas dan slotnya kembali terbuka untuk kreator lain.
+              </>
+            }
+            note="Kamu tidak bisa mengambil campaign ini lagi setelah dibatalkan. Pastikan memang tidak akan mengerjakannya."
+            acknowledgement="Saya mengerti campaign ini tidak bisa saya klaim ulang."
+            confirmLabel="Batalkan Pekerjaan"
+            tone="warning"
+            onConfirm={handleUnclaimConfirm}
+          />
+        )}
     </div>
   );
 }

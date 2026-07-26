@@ -1,42 +1,36 @@
-export interface ServiceResult<T> {
-  success: boolean;
-  data: T | null;
-  error?: string;
-}
+/**
+ * Tipe view-model dashboard UMKM.
+ *
+ * Semua nilai status di-reexport dari kanon `@/types/domain` — jangan
+ * mendefinisikan ulang union status di file ini.
+ */
+export type {
+  ServiceResult,
+  ServiceErrorCode,
+  CampaignStatus,
+  SubmissionStatus,
+  FraudStatus,
+  TransactionStatus,
+  TransactionType,
+  OrderStatus,
+  MessageType,
+  RateCardStatus,
+} from "./domain";
 
-export type CampaignStatus =
-  | "draft"
-  | "active"
-  | "full"
-  | "completed"
-  | "cancelled";
-
-export type SubmissionStatus =
-  | "pending"
-  | "valid"
-  | "fraud"
-  | "dispute";
-
-export type TransactionStatus =
-  | "pending"
-  | "escrow"
-  | "success"
-  | "failed"
-  | "refunded";
-
-export type TransactionType =
-  | "deposit"
-  | "withdrawal"
-  | "fee"
-  | "refund"
-  | "payout"
-  | "escrow"
-  | "pencairan"
-  | "adjustment";
+import type {
+  CampaignStatus,
+  SubmissionStatus,
+  FraudStatus,
+  TransactionStatus,
+  TransactionType,
+  OrderStatus,
+  MessageType,
+  RateCardStatus,
+} from "./domain";
 
 export type CreatorNiche =
   | "kuliner"
-  | "fesyen"
+  | "fashion"
   | "pariwisata"
   | "edukasi"
   | "kecantikan"
@@ -51,6 +45,24 @@ export interface UmkmProfile {
   location: string;
   avatarUrl: string;
   isVerified: boolean;
+}
+
+/**
+ * Baris `umkm_profiles` mentah untuk halaman Pengaturan — DTO get-umkm-profile
+ * tidak mengembalikan category/description/address/tiktok yang form butuh.
+ * `docId` = $id dokumen, dibutuhkan updateDocument.
+ */
+export interface UmkmSettingsProfile {
+  docId: string;
+  userId: string;
+  businessName: string;
+  category: string;
+  description: string;
+  city: string;
+  address: string;
+  tiktok: string;
+  logoUrl: string;
+  isProfileCompleted: boolean;
 }
 
 export interface Campaign {
@@ -91,7 +103,11 @@ export interface CampaignSubmission {
   actualViews: number;
   targetViews: number;
   releasedFund: number;
+  /** campaign_submissions.status — keputusan UMKM */
   validationStatus: SubmissionStatus;
+  /** campaign_submissions.fraudStatus — hasil ai-fraud-precheck, terpisah dari status */
+  fraudStatus: FraudStatus;
+  rejectedReason?: string;
   submittedAt: string;
   validatedAt?: string;
 }
@@ -121,7 +137,8 @@ export interface RateCardPackage {
   price: number;
   deliverable: string;
   estimatedDays: number;
-  isActive: boolean;
+  /** rate_cards.status — bukan boolean isActive */
+  status: RateCardStatus;
 }
 
 export interface NegotiationOrder {
@@ -134,15 +151,8 @@ export interface NegotiationOrder {
   scope: string;
   finalPrice: number;
   deadline: string;
-  status:
-    | "negotiation"
-    | "waiting_payment"
-    | "escrow"
-    | "revision"
-    | "waiting_verification"
-    | "completed"
-    | "cancelled"
-    | "dispute";
+  /** orders.status kanon */
+  status: OrderStatus;
   lastMessage: string;
   lastMessageAt: string;
   unreadCount: number;
@@ -153,7 +163,8 @@ export interface ChatMessage {
   orderId: string;
   senderId: string;
   senderRole: "umkm" | "creator" | "system";
-  type: "text" | "custom_offer" | "system";
+  /** messages.message_type kanon */
+  type: MessageType;
   content: string;
   offerData?: {
     finalPrice: number;

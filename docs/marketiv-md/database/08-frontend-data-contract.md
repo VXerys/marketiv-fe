@@ -1,593 +1,683 @@
 # 08 — Frontend Data Contract
-> Dokumen ini adalah kontrak data untuk tim Frontend Marketiv.
-> Gunakan dokumen ini saat membuat UI Next.js, hooks, service layer, mapper, dan prompt AI di VS Code.
+
+> Kontrak data untuk Frontend Marketiv.
+> Semua DTO camelCase English — cocok dengan output Function backend.
+> Source status: `src/types/domain.ts` (kanon). Jangan invent nilai sendiri.
+> Source tipe: `src/types/umkm-dashboard.types.ts`, `src/types/creator-dashboard.ts`.
+
 ---
-## 1. Prinsip Frontend Contract
-1. Frontend hanya mengirim intent, bukan memutuskan status bisnis sensitif.
-2. Backend/Appwrite Function memutuskan validasi, saldo, escrow, payout, dan payment status.
-3. Frontend tidak boleh invent field baru di luar dokumen ini.
-4. Frontend tidak boleh hardcode enum selain yang tercatat di dokumen ini.
-5. Frontend harus punya loading, empty, error, dan success state.
-6. Frontend harus mobile-first.
-7. Frontend harus memakai Bahasa Indonesia sederhana.
-8. Campaign Mode tidak boleh punya chat.
-9. Rate Card Mode adalah satu-satunya mode dengan chat.
-10. Semua response gabungan kompleks sebaiknya berasal dari Function DTO.
+
+## 1. Frontend Principles
+
+1. Frontend hanya kirim intent — backend/Function putuskan validasi, saldo, escrow, payout, status.
+2. Frontend tidak invent field di luar dokumen ini.
+3. Frontend tidak hardcode enum selain yang tercatat.
+4. Frontend wajib punya: loading, empty, error, success state.
+5. Frontend mobile-first.
+6. Frontend pakai Bahasa Indonesia di UI layer saja — state/data pakai English lowercase.
+7. Campaign Mode tidak punya chat.
+8. Rate Card Mode satu-satunya mode dengan chat.
+9. Data agregasi kompleks berasal dari Function DTO — jangan hitung di klien.
+
 ---
+
 ## 2. Base API Response
+
 ```ts
-export type ApiSuccessDTO<T> = {
+export interface ApiSuccessDTO<T> {
   success: true;
   data: T;
   message?: string;
-};
-export type ApiErrorDTO = {
+}
+
+export interface ApiErrorDTO {
   success: false;
   code: string;
   message: string;
   details?: unknown;
-};
+}
+
 export type ApiResponseDTO<T> = ApiSuccessDTO<T> | ApiErrorDTO;
 ```
-Frontend harus menampilkan `message` dari backend jika tersedia.
-Jika backend mengembalikan `code`, frontend boleh mapping ke pesan UI yang lebih spesifik.
-Jangan tampilkan stack trace, raw webhook payload, atau error teknis ke user.
+
+- Tampilkan `message` jika ada.
+- `code` boleh di-map ke pesan UI spesifik.
+- Jangan tampilkan stack trace / raw payload ke user.
+
 ---
+
 ## 3. Shared Primitive Types
+
 ```ts
-export type MarketivRole = 'UMKM' | 'KREATOR' | 'ADMIN';
-export type MarketivNiche = 'Kuliner' | 'Fesyen' | 'Pariwisata' | 'Edukasi' | 'Kecantikan' | 'Teknologi' | 'Lainnya';
-export type VerificationStatus = 'Pending' | 'Verified' | 'Rejected' | 'Suspended';
-export type OnboardingStatus = 'Incomplete' | 'Complete';
-export type PaymentStatus = 'Unpaid' | 'Pending' | 'Paid' | 'Failed' | 'Expired' | 'Refunded';
-export type MoneyInRupiah = number;
-export type ISODateString = string;
+export type UserRole = "umkm" | "creator" | "admin";
+export type UserStatus = "active" | "suspended";
+
+export type CreatorNiche =
+  | "kuliner"
+  | "fashion"
+  | "pariwisata"
+  | "edukasi"
+  | "kecantikan"
+  | "lainnya";
+
+export type CampaignStatus = "draft" | "active" | "paused" | "completed";
+export type CampaignType = "ugc" | "clipping";
+export type CampaignPlatform = "tiktok";
+
+export type ClaimStatus = "claimed" | "submitted" | "approved" | "rejected" | "expired";
+export type SubmissionStatus = "pending" | "approved" | "rejected";
+export type FraudStatus = "safe" | "review" | "rejected";
+
+export type RateCardStatus = "draft" | "published";
+export type OfferStatus = "pending" | "accepted" | "rejected";
+export type OrderStatus =
+  | "pending_payment"
+  | "escrow"
+  | "in_progress"
+  | "revision"
+  | "approved"
+  | "completed"
+  | "cancelled";
+
+export type PaymentStatus = "pending" | "paid" | "failed" | "expired" | "cancelled";
+export type PaymentPurpose = "order" | "topup" | "campaign";
+export type EscrowStatus = "held" | "released" | "refunded";
+export type WithdrawalStatus = "processed";
+export type TransactionType =
+  | "deposit"
+  | "withdrawal"
+  | "payment"
+  | "refund"
+  | "release"
+  | "fee";
+export type TransactionStatus = PaymentStatus | EscrowStatus;
+
+export type MessageType = "text" | "offer" | "system";
 ```
-Money selalu integer Rupiah.
-Tanggal selalu ISO string dari database/backend.
-UI menampilkan tanggal memakai zona Asia/Jakarta.
+
+Money: integer Rupiah.
+Date: ISO string dari backend. UI tampilkan zona Asia/Jakarta.
+
 ---
+
 ## 4. Auth Session Contract
+
 ```ts
-export type AuthSessionDTO = {
+export interface AuthSessionDTO {
   userId: string;
   email: string;
-  profile: ProfileDTO;
-};
+  profile: UmkmProfile | CreatorProfile;
+}
 ```
-Flow setelah login:
+
+Flow after login:
 1. Ambil Appwrite Auth session.
-2. Ambil `profiles` berdasarkan `user_id`.
-3. Jika profile belum ada, panggil bootstrap profile Function.
-4. Jika role `UMKM`, redirect ke `/dashboard/umkm`.
-5. Jika role `KREATOR`, redirect ke `/dashboard/kreator`.
-6. Jika role `ADMIN`, redirect ke `/admin`.
-7. Jika `verification_status = Suspended`, blokir dashboard dan tampilkan pesan akun ditangguhkan.
+2. Ambil profile dari collection `users` (mirror) + `umkm_profiles` / `creator_profiles`.
+3. Jika profile belum ada, panggil `create-user-profile` Function.
+4. Jika role `umkm` → redirect `/dashboard/umkm`.
+5. Jika role `creator` → redirect `/dashboard/kreator`.
+6. Jika role `admin` → redirect `/admin`.
+7. Jika `status = suspended` → blokir dashboard.
+
 ---
-## 5. Profile DTO
+
+## 5. UMKM Profile DTO
+
+**Function:** `get-umkm-profile`
+
 ```ts
-export type ProfileDTO = {
-  user_id: string;
-  role: MarketivRole;
-  nama_lengkap: string;
+export interface UmkmProfile {
+  id: string;
+  businessName: string;
+  ownerName: string;        // dari Auth users.get(name), fallback businessName
   email: string;
-  nomor_whatsapp?: string | null;
-  foto_profil_url?: string | null;
-  bio?: string | null;
-  niche?: MarketivNiche | null;
-  dompet_saldo?: MoneyInRupiah;
-  is_verified: boolean;
-  verification_status: VerificationStatus;
-  onboarding_status: OnboardingStatus;
-  created_at?: ISODateString;
-  updated_at?: ISODateString;
-};
+  whatsappNumber: string;   // dari users.phone, fallback Auth phone
+  location: string;         // umkm_profiles.city
+  avatarUrl: string;        // umkm_profiles.logoUrl
+  isVerified: boolean;      // umkm_profiles.isProfileCompleted
+}
 ```
-Frontend boleh update field berikut:
-1. `nama_lengkap`.
-2. `nomor_whatsapp`.
-3. `foto_profil_url`.
-4. `bio`.
-5. `niche`.
-Frontend tidak boleh update field berikut:
-1. `role`.
-2. `dompet_saldo`.
-3. `is_verified`.
-4. `verification_status`.
-5. `email` tanpa sinkronisasi Auth.
+
+Frontend boleh update:
+- `businessName`, `location`, `avatarUrl`
+- Field profil lainnya lewat service layer
+
+Frontend tidak boleh update:
+- `ownerName`, `email`, `whatsappNumber` (sumber: Auth/users mirror)
+- `isVerified`
+
 ---
+
 ## 6. UMKM Dashboard Summary DTO
-Recommended Function:
-```txt
-get-umkm-dashboard-summary
-```
-DTO:
+
+**Function:** `get-umkm-dashboard-summary`
+
 ```ts
-export type UmkmDashboardSummaryDTO = {
-  total_campaign: number;
-  campaign_aktif: number;
-  campaign_draft: number;
-  total_budget_escrow: MoneyInRupiah;
-  submission_pending: number;
-  submission_valid: number;
-  estimasi_total_views: number;
-  campaign_terbaru: CampaignPreviewDTO[];
-  transaksi_terbaru: TransactionPreviewDTO[];
-};
+export interface UmkmDashboardSummary {
+  activeCampaigns: number;
+  completedCampaigns: number;
+  totalViews: number;           // Σ submission views (rejected excluded)
+  totalSpent: number;           // spentAmount + completed order amounts
+  escrowBalance: number;        // remainingBudget (active/paused) + held escrows
+  pendingSubmissions: number;   // count
+  activeNegotiations: number;   // orders not completed/cancelled
+  pendingPayments: number;      // count of pending_payment orders
+}
 ```
+
 UI usage:
-1. Metric cards.
-2. Campaign preview.
-3. Transaction preview.
-4. CTA `Buat Campaign Baru`.
-Frontend tidak menghitung summary dengan load semua campaign.
+- Metric cards (4-6 kartu)
+- Tidak hitung ulang di klien
+
 ---
-## 7. Kreator Dashboard Summary DTO
-Recommended Function:
-```txt
-get-kreator-dashboard-summary
-```
-DTO:
+
+## 7. Kreator Dashboard — Planned
+
+**Function:** `get-creator-metrics` — **BELUM ADA.** Sementara gunakan `get-creator-directory` untuk data profil dasar + query langsung ke `campaign_claims` dan `orders`.
+
 ```ts
-export type KreatorDashboardSummaryDTO = {
-  saldo_tersedia: MoneyInRupiah;
-  pekerjaan_aktif: number;
-  submission_pending: number;
-  submission_valid: number;
-  campaign_tersedia: number;
-  order_negosiasi: number;
-  withdrawal_pending: number;
-  pekerjaan_terbaru: CampaignClaimDTO[];
-  transaksi_terbaru: TransactionPreviewDTO[];
-};
+// Planned — belum diimplementasikan
+export interface CreatorMetric {
+  availableJobsCount: number;
+  activeJobsCount: number;
+  pendingSubmissionsCount: number;
+  balance: number;
+  pendingPayouts: number;
+  validatedViewsCount: number;
+  activeRateCardsCount: number;
+  negotiationOrdersCount: number;
+  escrowBalance: number;
+}
 ```
-UI usage:
-1. Saldo card.
-2. Active job card.
-3. CTA `Lihat Job Pool`.
-4. CTA `Tarik Dana` jika saldo cukup.
+
 ---
-## 8. Campaign Status Types
+
+## 8. Campaign — Tipe Status
+
+Semua status lowercase English — lihat `src/types/domain.ts`:
+
 ```ts
-export type CampaignStatus = 'Draft' | 'MenungguPembayaran' | 'Aktif' | 'Penuh' | 'Selesai' | 'Dibatalkan' | 'Dispute';
-export type CampaignAssetType = 'ExternalUrl' | 'AppwriteStorage' | 'Mixed';
+type CampaignStatus = "draft" | "active" | "paused" | "completed";
+type CampaignType = "ugc" | "clipping";
+type CampaignPlatform = "tiktok";     // MVP hanya TikTok
 ```
-Status label:
-1. `Draft` → Draft.
-2. `MenungguPembayaran` → Menunggu Pembayaran.
-3. `Aktif` → Aktif.
-4. `Penuh` → Kuota Penuh.
-5. `Selesai` → Selesai.
-6. `Dibatalkan` → Dibatalkan.
-7. `Dispute` → Sengketa.
+
+Label UI (Bahasa Indonesia):
+- `draft` → Draft
+- `active` → Aktif
+- `paused` → Dihentikan
+- `completed` → Selesai
+
 ---
-## 9. Campaign Preview DTO
+
+## 9. Campaign DTO
+
 ```ts
-export type CampaignPreviewDTO = {
-  $id: string;
-  judul_campaign: string;
-  niche: MarketivNiche;
-  thumbnail_url?: string | null;
-  harga_per_1000_views: MoneyInRupiah;
-  kuota_kreator: number;
-  kuota_terpakai: number;
-  total_budget_escrow: MoneyInRupiah;
-  status: CampaignStatus;
-  payment_status: PaymentStatus;
-  created_at: ISODateString;
-  published_at?: ISODateString | null;
-};
-```
-Allowed frontend derived values:
-```ts
-const sisaKuota = campaign.kuota_kreator - campaign.kuota_terpakai;
-const progressKuota = campaign.kuota_terpakai / campaign.kuota_kreator;
-```
-Derived kuota boleh dihitung frontend.
-Derived payout sensitif tidak boleh dihitung frontend untuk final payment.
----
-## 10. Campaign Detail DTO
-```ts
-export type CampaignDetailDTO = CampaignPreviewDTO & {
-  umkm_user_id: string;
-  deskripsi_brief: string;
-  asset_type: CampaignAssetType;
-  asset_file_ids: string[];
-  asset_external_url?: string | null;
-  estimasi_views_target?: number;
-  platform_fee_amount: MoneyInRupiah;
-  total_payment_amount: MoneyInRupiah;
-  ended_at?: ISODateString | null;
-  cancelled_at?: ISODateString | null;
-};
-```
-UMKM owner boleh melihat detail penuh.
-Kreator hanya melihat detail campaign yang aktif dan aman untuk Job Pool.
-Jangan tampilkan data payment internal ke kreator jika tidak relevan.
----
-## 11. Campaign Create Payload
-```ts
-export type CreateCampaignPayload = {
-  judul_campaign: string;
-  deskripsi_brief: string;
-  niche: MarketivNiche;
-  asset_external_url?: string | null;
-  asset_file_ids?: string[];
-  harga_per_1000_views: MoneyInRupiah;
-  kuota_kreator: number;
-  total_budget_escrow: MoneyInRupiah;
-};
-```
-Frontend validation:
-1. Judul wajib.
-2. Brief minimal 50 karakter.
-3. Niche wajib.
-4. URL harus HTTPS jika diisi.
-5. File upload maksimal 100MB jika dipakai.
-6. Harga per 1000 views Rp 2.000 sampai Rp 10.000.
-7. Kuota minimal 1.
-8. Budget lebih dari 0.
-Submit target:
-```txt
-save-campaign-draft
-create-campaign-payment
-```
----
-## 12. Job Pool DTO
-Recommended Function:
-```txt
-get-job-pool-feed
-```
-DTO:
-```ts
-export type JobPoolItemDTO = {
-  $id: string;
-  judul_campaign: string;
-  niche: MarketivNiche;
-  thumbnail_url?: string | null;
-  harga_per_1000_views: MoneyInRupiah;
-  kuota_kreator: number;
-  kuota_terpakai: number;
-  published_at: ISODateString;
-  has_claimed: boolean;
-  can_claim: boolean;
-  disabled_reason?: 'ALREADY_CLAIMED' | 'QUOTA_FULL' | 'NOT_VERIFIED' | null;
-};
-```
-Button mapping:
-1. `can_claim = true` → `Klaim Job Ini`.
-2. `ALREADY_CLAIMED` → `Sudah Diklaim`.
-3. `QUOTA_FULL` → `Kuota Penuh`.
-4. `NOT_VERIFIED` → `Verifikasi Dulu`.
-Mutation target:
-```txt
-claim-campaign
-```
----
-## 13. Campaign Claim DTO
-```ts
-export type CampaignClaimStatus = 'Aktif' | 'Dibatalkan' | 'Selesai' | 'Dispute';
-export type CampaignClaimDTO = {
-  $id: string;
-  campaign_id: string;
-  umkm_user_id: string;
-  kreator_user_id: string;
-  status: CampaignClaimStatus;
-  claimed_at: ISODateString;
-  cancelled_at?: ISODateString | null;
-  completed_at?: ISODateString | null;
-  campaign?: CampaignPreviewDTO;
-  submission?: CampaignSubmissionDTO | null;
-};
-```
-Used by:
-1. Kreator active jobs.
-2. Submit proof page.
-3. Job history.
-4. Dashboard preview.
----
-## 14. Campaign Submission DTO
-```ts
-export type CampaignSubmissionStatus = 'Pending' | 'Valid' | 'Fraud' | 'Dispute' | 'Rejected';
-export type CampaignPlatform = 'TikTok' | 'Instagram';
-export type CampaignSubmissionDTO = {
-  $id: string;
-  campaign_id: string;
-  claim_id: string;
-  kreator_user_id: string;
-  url_bukti_tayang: string;
-  platform: CampaignPlatform;
-  jumlah_views_target?: number;
-  jumlah_views_aktual: number;
-  status_validasi: CampaignSubmissionStatus;
-  fraud_notes?: string | null;
-  dana_dicairkan: MoneyInRupiah;
-  submitted_at: ISODateString;
-  validated_at?: ISODateString | null;
-};
-```
-Frontend may create/update through:
-```txt
-submit-campaign-proof
-```
-Frontend must not update:
-1. `jumlah_views_aktual`.
-2. `status_validasi`.
-3. `dana_dicairkan`.
-4. `fraud_notes`.
----
-## 15. Creator Directory DTO
-Recommended Function:
-```txt
-get-creator-directory
-```
-DTO:
-```ts
-export type CreatorDirectoryItemDTO = {
-  user_id: string;
-  nama_lengkap: string;
-  foto_profil_url?: string | null;
-  bio?: string | null;
-  niche?: MarketivNiche | null;
-  is_verified: boolean;
-  harga_mulai?: MoneyInRupiah | null;
-  rate_card_count: number;
-};
-```
-Do not expose by default:
-1. Full WhatsApp number.
-2. Saldo kreator.
-3. Data bank.
-4. Internal verification notes.
----
-## 16. Creator Rate Card DTO
-```ts
-export type CreatorRateCardDTO = {
-  $id: string;
-  kreator_user_id: string;
-  nama_paket: string;
-  deskripsi_paket?: string | null;
-  harga_paket: MoneyInRupiah;
-  deliverable: string;
-  estimasi_hari?: number | null;
-  revision_limit: number;
-  is_active: boolean;
-  created_at: ISODateString;
-  updated_at: ISODateString;
-};
-```
-Frontend rule:
-1. Disable add button if active cards already 3.
-2. Backend still validates max 3.
-3. Use Function for create/update/toggle.
-4. Do not hard delete from UI; use nonaktifkan.
----
-## 17. Rate Card Order DTO
-```ts
-export type RateCardOrderStatus = 'Negosiasi' | 'MenungguPembayaran' | 'Escrow' | 'Revisi' | 'MenungguVerifikasi' | 'Selesai' | 'Dibatalkan' | 'Dispute';
-export type RateCardOrderDTO = {
-  $id: string;
-  umkm_user_id: string;
-  kreator_user_id: string;
-  rate_card_id?: string | null;
-  judul_proyek?: string | null;
-  scope_pekerjaan?: string | null;
-  harga_final: MoneyInRupiah;
-  platform_fee_amount: MoneyInRupiah;
-  total_payment_amount: MoneyInRupiah;
-  deadline?: ISODateString | null;
-  url_collab_post?: string | null;
-  status: RateCardOrderStatus;
-  payment_status: PaymentStatus;
-  created_at: ISODateString;
-  updated_at: ISODateString;
-  accepted_at?: ISODateString | null;
-  paid_at?: ISODateString | null;
-  completed_at?: ISODateString | null;
-};
-```
-UI rule:
-1. Show chat only for Rate Card order.
-2. Show payment CTA only for UMKM when `MenungguPembayaran`.
-3. Show Collab Post submit for Kreator when order allows it.
-4. Show warning banner Collab Post at top of chat.
----
-## 18. Message DTO
-```ts
-export type MessageType = 'Text' | 'CustomOffer' | 'System';
-export type CustomOfferDataDTO = {
-  harga_final: MoneyInRupiah;
-  scope_pekerjaan: string;
-  deadline?: ISODateString | null;
-  revision_limit?: number;
-  status: 'Pending' | 'Accepted' | 'Rejected' | 'Expired';
-};
-export type MessageDTO = {
-  $id: string;
-  order_id: string;
-  sender_user_id: string;
-  receiver_user_id: string;
-  tipe_pesan: MessageType;
-  konten: string;
-  offer_data?: CustomOfferDataDTO | null;
-  is_read: boolean;
-  created_at: ISODateString;
-};
-```
-Render rule:
-1. `Text` → normal chat bubble.
-2. `System` → centered system notice.
-3. `CustomOffer` → structured offer card.
-4. Never render message component inside Campaign Mode.
----
-## 19. Transaction Preview DTO
-```ts
-export type TransactionPreviewDTO = {
-  $id: string;
-  reference_id?: string | null;
-  reference_type: 'Campaign' | 'RateCardOrder' | 'Withdrawal' | 'Refund' | 'ManualAdjustment';
-  nominal: MoneyInRupiah;
-  tipe: 'Deposit' | 'Fee' | 'Escrow' | 'Pencairan' | 'Refund' | 'Withdrawal' | 'Adjustment';
-  status: 'Pending' | 'Escrow' | 'Success' | 'Failed' | 'Expired' | 'Refunded' | 'Cancelled';
-  provider?: 'Midtrans' | 'Manual' | 'Xendit' | 'Internal' | null;
-  created_at: ISODateString;
-  keterangan?: string | null;
-};
-```
-Do not expose to normal frontend:
-1. Raw provider payload.
-2. Provider secret.
-3. Internal signature data.
-4. Full audit object.
----
-## 20. Withdrawal DTO
-```ts
-export type WithdrawalDTO = {
-  $id: string;
-  kreator_user_id: string;
-  nominal: MoneyInRupiah;
-  bank_name: string;
-  bank_account_number_masked: string;
-  bank_account_holder: string;
-  status: 'Pending' | 'Processing' | 'Success' | 'Failed' | 'Rejected' | 'Cancelled';
-  requested_at: ISODateString;
-  processed_at?: ISODateString | null;
-  completed_at?: ISODateString | null;
-  rejection_reason?: string | null;
-};
-```
-Frontend form payload:
-1. `nominal`.
-2. `bank_name`.
-3. `bank_account_number`.
-4. `bank_account_holder`.
-Submit target:
-```txt
-request-withdrawal
-```
----
-## 21. Notification DTO
-```ts
-export type NotificationType = 'CampaignActivated' | 'ClaimCreated' | 'SubmissionValidated' | 'PaymentSuccess' | 'CustomOfferReceived' | 'OrderCompleted' | 'WithdrawalSuccess' | 'DisputeUpdated' | 'System';
-export type NotificationDTO = {
-  $id: string;
+export interface Campaign {
+  id: string;
+  umkmId: string;
   title: string;
-  body: string;
+  brief: string;               // campaign_briefs.briefDetail
+  externalAssetUrl: string;    // campaign_assets.fileUrl (source=external)
+  thumbnailUrl: string;
+  niche: CreatorNiche;         // campaigns.category
+  status: CampaignStatus;
+  creatorQuota: number;        // claimLimit
+  usedQuota: number;           // totalClaims
+  pricePerThousandViews: number; // rewardPer1000Views
+  totalBudgetEscrow: number;   // budget
+  usedBudget: number;          // spentAmount
+  totalViews: number;          // dari submissions
+  createdAt: string;
+  updatedAt: string;
+  // Optional wizard fields
+  location?: string;
+  videoStyle?: string;
+  callToAction?: string;
+  hashtags?: string;
+  requiredPoints?: string;
+  assetNotes?: string;
+}
+```
+
+---
+
+## 10. Campaign Detail — Planned
+
+**Function:** Belum ada endpoint detail. Sementara compose dari `campaigns` + `campaign_briefs` + `campaign_assets` via service layer.
+
+---
+
+## 11. Campaign Create Payload
+
+```ts
+export interface CampaignWizardState {
+  // Step 1 — Informasi Produk
+  title: string;
+  brief: string;
+  niche: CreatorNiche | "";
+  externalAssetUrl: string;
+  // Step 2 — Budget & Kuota
+  pricePerThousandViews: number;   // 2000 - 10000
+  creatorQuota: number;            // min 1
+  totalBudgetEscrow: number;       // > 0
+  // Optional wizard fields
+  location: string;
+  videoStyle: string;
+  callToAction: string;
+  hashtags: string;
+  requiredPoints: string;
+  assetNotes: string;
+}
+```
+
+Frontend validation:
+- Title wajib
+- Brief min 50 karakter
+- Niche wajib
+- URL harus HTTPS jika diisi
+- File upload max 100MB
+- Harga per 1000 views Rp 2.000 - Rp 10.000
+- Kuota min 1
+- Budget > 0
+
+Submit via service layer → Appwrite SDK langsung (security via permission).
+
+---
+
+## 12. Job Pool — Planned
+
+**Function:** Belum ada. Sementara query `campaigns` collection langsung (`status = "active"`, `remainingBudget > 0`).
+
+---
+
+## 13. Campaign Claim DTO
+
+Collection: `campaign_claims`
+
+```ts
+export interface CampaignClaimDTO {
+  $id: string;
+  campaignId: string;
+  creatorId: string;
+  status: ClaimStatus;
+  claimedAt: string;
+  cancelledAt?: string;
+  completedAt?: string;
+}
+```
+
+Frontend action:
+- Klaim → `campaigns` document update (via service layer)
+- Lihat status klaim
+
+---
+
+## 14. Campaign Submission DTO
+
+Collection: `campaign_submissions`  
+**Function (read):** Belum ada endpoint terpisah. Dibaca via query langsung.
+
+```ts
+export interface CampaignSubmission {
+  id: string;
+  campaignId: string;
+  creatorId: string;
+  creatorName: string;
+  creatorAvatarUrl: string;
+  platform: CampaignPlatform | "instagram";
+  contentUrl: string;
+  actualViews: number;
+  targetViews: number;
+  releasedFund: number;
+  validationStatus: SubmissionStatus;
+  fraudStatus: FraudStatus;        // field terpisah dari status
+  rejectedReason?: string;
+  submittedAt: string;
+  validatedAt?: string;
+}
+```
+
+Frontend tidak boleh update:
+- `actualViews`
+- `validationStatus`
+- `fraudStatus`
+- `releasedFund`
+
+**AI Fraud Precheck** (otomatis via Function): `ai-fraud-precheck` — trigger on `campaign_submissions.*.create`.
+
+---
+
+## 15. Creator Directory DTO
+
+**Function:** `get-creator-directory`
+
+```ts
+export interface CreatorProfile {
+  id: string;
+  name: string;              // creator_profiles.displayName
+  username: string;          // dari social account (TikTok priority)
+  avatarUrl: string;
+  niche: CreatorNiche;       // creator_profiles.niche, fallback "lainnya"
+  bio: string;
+  location: string;          // creator_profiles.city
+  startingPrice: number;     // termurah dari rate_card_packages.published
+  rating: number;            // creator_profiles.rating
+  completedJobs: number;     // creator_profiles.totalOrders
+  engagementRate: number;    // dari social account
+  instagramUrl?: string;
+  tiktokUrl?: string;
+  isVerified: boolean;       // isProfileCompleted
+}
+```
+
+Body opsional:
+```json
+{ "creatorId": "string", "limit": number }
+```
+
+Jangan ekspos:
+- Nomor WhatsApp
+- Saldo kreator
+- Data bank
+
+---
+
+## 16. Creator Rate Card DTO
+
+Collections: `rate_cards` + `rate_card_packages`
+
+```ts
+export interface RateCardPackage {
+  id: string;
+  creatorId: string;
+  name: string;
+  description: string;
+  price: number;
+  deliverable: string;
+  estimatedDays: number;
+  status: RateCardStatus;      // "draft" | "published"
+}
+```
+
+Frontend rule:
+- Max 3 published rate cards per creator (backend validasi)
+- Draft tidak boleh bocor ke UMKM
+- Jangan hard delete — pakai status draft
+
+---
+
+## 17. Negotiation / Order DTO
+
+Collections: `orders` + `offers`  
+
+**Function (read):** Belum ada endpoint terpisah. Baca via query langsung.
+
+```ts
+export interface NegotiationOrder {
+  id: string;
+  umkmId: string;
+  creatorId: string;
+  creatorName: string;
+  creatorAvatarUrl: string;
+  projectTitle: string;
+  scope: string;
+  finalPrice: number;
+  deadline: string;
+  status: OrderStatus;
+  lastMessage: string;
+  lastMessageAt: string;
+  unreadCount: number;
+}
+```
+
+Order status flow:
+```
+pending_payment → escrow → in_progress → revision → approved → completed
+                                                              → cancelled
+```
+
+---
+
+## 18. Message DTO
+
+Collection: `messages`
+
+```ts
+export interface ChatMessage {
+  id: string;
+  orderId: string;
+  senderId: string;
+  senderRole: "umkm" | "creator" | "system";
+  type: MessageType;
+  content: string;
+  offerData?: {
+    finalPrice: number;
+    scope: string;
+    deadline: string;
+    revisionCount: number;
+  };
+  isRead: boolean;
+  createdAt: string;
+}
+```
+
+Render rules:
+- `text` → normal chat bubble
+- `system` → centered system notice
+- `offer` → structured offer card
+- Jangan render di Campaign Mode
+
+---
+
+## 19. Transaction DTO
+
+Collection: `transactions`  
+**Function:** `get-umkm-finance-summary` (agregasi, bukan list)
+
+```ts
+export interface Transaction {
+  id: string;
+  userId: string;
+  referenceId: string;
+  referenceType: "campaign" | "rate_card";
+  amount: number;
+  type: TransactionType;
+  status: TransactionStatus;
+  description: string;
+  midtransOrderId?: string;
+  createdAt: string;
+}
+```
+
+Jangan ekspos:
+- Raw provider payload
+- Provider secret
+- Internal signature
+
+---
+
+## 20. Finance Summary DTO
+
+**Function:** `get-umkm-finance-summary`
+
+Response: `{ finance: UmkmFinanceSummary, escrow: EscrowOverview }`
+
+```ts
+export interface UmkmFinanceSummary {
+  totalExpenses: number;
+  escrowBalance: number;
+  pendingPayments: number;
+  refundsReceived: number;
+  platformFees: number;
+  successfulTransactionsCount: number;
+}
+
+export interface EscrowOverview {
+  activeEscrow: number;
+  pendingRelease: number;
+  refundEligible: number;
+  campaignEscrow: number;
+  rateCardEscrow: number;
+}
+```
+
+---
+
+## 21. Withdrawal DTO
+
+Collection: `withdrawals`  
+**Mutation:** Langsung via service layer (ADR-008: tanpa review admin).
+
+```ts
+export interface WithdrawalDTO {
+  $id: string;
+  userId: string;
+  amount: number;
+  payoutMethod: string;    // "bank_transfer"
+  providerName: string;
+  accountNumber: string;
+  accountName: string;
+  status: WithdrawalStatus; // selalu "processed"
+  processedAt: string;
+}
+```
+
+Frontend form:
+- `amount` (min Rp 50.000)
+- `payoutMethod`
+- `providerName` (bank name)
+- `accountNumber`
+- `accountName`
+
+---
+
+## 22. Notification DTO
+
+Collection: `notifications`
+
+```ts
+export type NotificationType =
+  | "campaign_activated"
+  | "claim_created"
+  | "submission_validated"
+  | "payment_success"
+  | "offer_received"
+  | "order_completed"
+  | "withdrawal_success"
+  | "dispute_updated"
+  | "system";
+
+export interface NotificationDTO {
+  $id: string;
+  userId: string;
+  title: string;
+  message: string;
   type: NotificationType;
-  reference_id?: string | null;
-  reference_type?: string | null;
-  is_read: boolean;
-  created_at: ISODateString;
-  read_at?: ISODateString | null;
-};
+  isRead: boolean;
+  createdAt: string;
+  readAt?: string;
+}
 ```
-Frontend may update:
-1. `is_read`.
-2. `read_at`.
-Frontend may not create notification directly.
+
+Frontend boleh update: `isRead`, `readAt`.  
+Frontend tidak boleh create notification langsung.
+
 ---
-## 22. Page Contract: Campaign Create
-Required sections:
-1. Informasi Produk.
-2. Aset Mentah.
-3. Budget dan Kuota.
-4. Review dan Pembayaran.
+
+## 23. Page Contract: Campaign Create
+
+Sections:
+1. Informasi Produk (title, brief, niche, asset)
+2. Budget & Kuota (price, quota, total)
+3. Review & Simpan
+
 Required states:
-1. Draft saved.
-2. Validation error.
-3. Payment loading.
-4. Payment success redirect.
-5. Payment failed/expired message.
-Primary CTA:
-```txt
-Bayar Sekarang via Escrow
-```
+- Validation error
+- Save success
+- Error save
+
 ---
-## 23. Page Contract: Job Pool
-Required data:
-1. `JobPoolItemDTO[]`.
-2. Pagination cursor.
-3. Filter niche.
-4. Sort terbaru/bayaran tertinggi.
-Required states:
-1. Loading skeleton.
-2. Empty campaign.
-3. Error load.
-4. Claim loading per card.
-5. Claim success.
-6. Claim rejected with clear reason.
+
+## 24. Page Contract: Job Pool (Planned)
+
+Function `get-job-pool-feed` — **BELUM ADA.**  
+Sementara query `campaigns` dengan filter `status = "active"`.
+
+Required:
+- Filter niche
+- Sort by date / payout
+- Pagination cursor
+
 ---
-## 24. Page Contract: Rate Card Chat
+
+## 25. Page Contract: Rate Card Chat
+
 Required data:
-1. `RateCardOrderDTO`.
-2. Participant profile subset.
-3. `MessageDTO[]`.
-4. Realtime subscription.
-Required UI:
-1. Sticky Collab Post warning.
-2. Message list.
-3. Custom Offer card.
-4. Payment CTA for UMKM.
-5. Accept/Reject Offer CTA for Kreator.
-6. Submit Collab Post CTA for Kreator.
+- `NegotiationOrder`
+- Participant profiles
+- `ChatMessage[]`
+- Realtime subscription (Appwrite Realtime)
+
 Forbidden:
-```txt
-Reusing this chat for Campaign Mode.
-```
+- Jangan pakai chat di Campaign Mode
+
 ---
-## 25. Formatting Contract
+
+## 26. Formatting Contract
+
 Money:
 ```ts
-formatRupiah(350000) // "Rp 350.000"
+formatRupiah(350000); // "Rp 350.000"
 ```
-Date:
-```ts
-formatDateJakarta(isoString)
-```
-Status badge guidance:
-1. Success/Valid/Selesai → green.
-2. Pending/Menunggu/Escrow → orange/amber.
-3. Failed/Fraud/Rejected/Dispute → red.
-4. Draft/Inactive → neutral.
-5. Active/Aktif → green or orange depending context.
+
+Date: `formatDateJakarta(isoString)`
+
+Status badge colors:
+- success/approved/completed/paid → green
+- pending/escrow/in_progress → amber
+- failed/rejected/cancelled → red
+- draft → neutral
+- active → green
+
 ---
-## 26. Mutation Boundary
-Must use Function:
-1. Create campaign payment.
-2. Claim campaign.
-3. Submit campaign proof.
-4. Validate submission.
-5. Create rate card.
-6. Create rate card order.
-7. Send custom offer.
-8. Accept custom offer.
-9. Create payment.
-10. Request withdrawal.
-11. Open dispute.
-12. Resolve dispute.
-May direct write if permission allows:
-1. Safe profile update.
-2. Message read state.
-3. Notification read state.
+
+## 27. Mutation Boundary
+
+**Wajib panggil Function atau Appwrite SDK langsung (service layer):**
+
+| Action | Mechanism |
+|--------|-----------|
+| Create campaign | SDK direct write (service layer) |
+| Claim campaign | SDK direct update `campaigns` + create `campaign_claims` |
+| Submit proof | SDK direct create `campaign_submissions` |
+| Create rate card | SDK direct write |
+| Send offer | SDK direct create `offers` |
+| Accept offer | SDK direct update `offers` |
+| Create payment | `create-payment` Function |
+| Request withdrawal | SDK direct create `withdrawals` |
+
+**Auto-trigger Functions (events):**
+- `create-user-profile` → on `users.*.create`
+- `create-user-wallet` → on `users.*.create`
+- `campaign-published` → on `campaigns.*.update`
+- `ai-fraud-precheck` → on `campaign_submissions.*.create`
+- `campaign-claimed` → on `campaign_claims.*.create`
+- `create-order` → on `offers.*.update`
+- `calculate-campaign-reward` → on `campaign_submissions.*.update`
+- `create-escrow` → on `payments.*.update`
+- `release-escrow` → on `deliverables.*.update`
+- `send-chat-notification` → on `messages.*.create`
+
+**May direct write:**
+- Profile update (safe fields only)
+- Message read state
+- Notification read state
+
 ---
-## 27. AI Coding Assistant Rules
-1. Import DTO types from a single frontend contract file.
-2. Do not invent collection field names.
-3. Do not invent enum status names.
-4. Do not create Supabase client code.
-5. Use Appwrite client or backend Function service.
-6. Do not mutate financial fields from UI.
-7. Do not mutate validation status from UI.
-8. Do not render chat for Campaign Mode.
-9. Always add loading state.
-10. Always add empty state.
-11. Always add actionable error state.
-12. Keep Bahasa Indonesia labels simple.
-13. Keep mobile-first layout.
-14. Use orange primary CTA.
-15. Use DTO mapper for Appwrite documents.
----
+
 ## 28. Final Rule
-Frontend harus predictable, typed, dan aman.
-Jika data gabungan sulit didapat dengan query sederhana, gunakan Function DTO.
-Jika field tidak ada di kontrak ini, jangan dipakai sebelum dokumentasi diupdate.
+
+Frontend harus predictable, typed, aman.  
+Jika data gabungan sulit dapat dengan query sederhana, buat Function DTO baru — jangan hitung di klien.  
+Jika field tidak ada di kontrak ini, jangan pakai sebelum dokumentasi diupdate.

@@ -1,4 +1,4 @@
-import { getCreatorActiveWorkById } from "@/services/creator-dashboard.service";
+import { getCreatorActiveWorkById } from "@/services/creator/creator-dashboard.service";
 import { ActiveWorkDetailView } from "@/components/features/creator-dashboard";
 
 interface ActiveWorkDetailPageProps {

@@ -17,6 +17,7 @@ import {
   getCampaignById,
   getCampaignSubmissions,
   getUmkmProfile,
+  updateCampaignStatus,
 } from "@/services/umkm/umkm-dashboard.service";
 import {
   Campaign,
@@ -98,7 +99,7 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
 
     // Estimate released funds locally if approved (e.g. rate per 1000 views)
     let releasedFund = 0;
-    if (status === "valid") {
+    if (status === "approved") {
       releasedFund = Math.round(
         (activeReviewSubmission.actualViews || 15000) *
           (campaign.pricePerThousandViews / 1000)
@@ -121,7 +122,7 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
     // Recompute total views & budget used for the campaign
     const totalViews = updatedSubmissions.reduce((sum, s) => sum + s.actualViews, 0);
     const usedBudget = updatedSubmissions
-      .filter((s) => s.validationStatus === "valid")
+      .filter((s) => s.validationStatus === "approved")
       .reduce((sum, s) => sum + s.releasedFund, 0);
 
     setCampaign({
@@ -130,23 +131,25 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
       usedBudget,
     });
 
-    const statusLabel =
-      status === "valid" ? "Disetujui" : status === "fraud" ? "Ditandai Fraud" : "Disengketakan";
+    const statusLabel = status === "approved" ? "Disetujui" : "Ditolak";
     showToast(`Ulasan oleh "${activeReviewSubmission.creatorName}" berhasil ${statusLabel}. Catatan: ${notes || "-"}`);
   };
 
-  const handleCancelConfirm = () => {
+  const handleCancelConfirm = async () => {
     if (!campaign) return;
-    setCampaign({
-      ...campaign,
-      status: "cancelled",
-    });
-    showToast(`Campaign "${campaign.title}" berhasil dibatalkan.`);
+    const target = campaign;
+    const res = await updateCampaignStatus(target.id, "paused");
+    if (res.success && res.data) {
+      setCampaign(res.data);
+      showToast(`Campaign "${target.title}" berhasil dijeda.`);
+    } else {
+      toast.error(res.error ?? "Gagal menjeda campaign.");
+    }
   };
 
   if (loading) {
     return (
-      <UmkmDashboardChrome businessName="Memuat...">
+      <UmkmDashboardChrome businessName={profile?.businessName ?? ""}>
         <CampaignDetailSkeleton />
       </UmkmDashboardChrome>
     );
@@ -154,13 +157,13 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
 
   if (error || !campaign) {
     return (
-      <UmkmDashboardChrome businessName="Tidak Ditemukan">
+      <UmkmDashboardChrome businessName={profile?.businessName ?? ""}>
         <CampaignNotFoundState />
       </UmkmDashboardChrome>
     );
   }
 
-  const businessName = profile?.businessName || "Dapur Sehat Sukabumi";
+  const businessName = profile?.businessName ?? "";
   const pendingSubmissionsCount = submissions.filter((s) => s.validationStatus === "pending").length;
 
   return (

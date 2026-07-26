@@ -9,7 +9,6 @@ import { NegotiationOrder } from "@/types/umkm-dashboard.types";
 
 interface NegotiationRoomHeaderProps {
   order: NegotiationOrder;
-  onSendOffer: () => void;
   onPay: () => void;
 }
 
@@ -33,7 +32,7 @@ const BADGE_STYLES: Record<string, React.CSSProperties> = {
   gray:   { color: "#687386", background: "#f8fafc", border: "1px solid rgba(148,163,184,.28)" },
 };
 
-export function NegotiationRoomHeader({ order, onSendOffer, onPay }: NegotiationRoomHeaderProps) {
+export function NegotiationRoomHeader({ order, onPay }: NegotiationRoomHeaderProps) {
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
 
   const status = STATUS_MAP[order.status] ?? { label: order.status, variant: "gray" };
@@ -42,19 +41,9 @@ export function NegotiationRoomHeader({ order, onSendOffer, onPay }: Negotiation
   const btnPrimary = "px-5 py-2.5 rounded-[15px] text-white text-xs font-extrabold transition-all duration-200 select-none cursor-pointer hover:-translate-y-0.5 active:translate-y-0 shrink-0";
 
   const renderAction = () => {
-    if (order.status === "negotiation") {
-      return (
-        <button
-          type="button"
-          onClick={onSendOffer}
-          className={btnPrimary}
-          style={{ background: "linear-gradient(180deg,#f97316,#ea580c)", boxShadow: "0 4px 14px rgba(249,115,22,.35)" }}
-        >
-          Kirim Custom Offer
-        </button>
-      );
-    }
-    if (order.status === "waiting_payment") {
+    // Custom Offer dikirim lewat composer chat (tombol +), bukan dari header —
+    // order baru ada setelah offer di-accept, dan saat itu statusnya pending_payment.
+    if (order.status === "pending_payment") {
       return (
         <button
           type="button"
@@ -66,7 +55,7 @@ export function NegotiationRoomHeader({ order, onSendOffer, onPay }: Negotiation
         </button>
       );
     }
-    if (order.status === "escrow" || order.status === "revision") {
+    if (order.status === "escrow" || order.status === "in_progress" || order.status === "revision") {
       return (
         <div
           className="px-4 py-2.5 rounded-[15px] text-[10px] font-extrabold select-none cursor-default shrink-0"
@@ -76,7 +65,7 @@ export function NegotiationRoomHeader({ order, onSendOffer, onPay }: Negotiation
         </div>
       );
     }
-    if (order.status === "waiting_verification") {
+    if (order.status === "approved") {
       return (
         <button
           type="button"

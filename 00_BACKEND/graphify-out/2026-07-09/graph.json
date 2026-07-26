@@ -227,7 +227,7 @@
       "label": "tables",
       "file_type": "code",
       "source_file": "appwrite/generate_appwrite_json.js",
-      "source_location": "L628",
+      "source_location": "L633",
       "_origin": "ast",
       "id": "appwrite_generate_appwrite_json_tables",
       "community": 9,
@@ -237,7 +237,7 @@
       "label": "buckets",
       "file_type": "code",
       "source_file": "appwrite/generate_appwrite_json.js",
-      "source_location": "L643",
+      "source_location": "L648",
       "_origin": "ast",
       "id": "appwrite_generate_appwrite_json_buckets",
       "community": 9,
@@ -247,7 +247,7 @@
       "label": "functions",
       "file_type": "code",
       "source_file": "appwrite/generate_appwrite_json.js",
-      "source_location": "L746",
+      "source_location": "L751",
       "_origin": "ast",
       "id": "appwrite_generate_appwrite_json_functions",
       "community": 9,
@@ -257,101 +257,11 @@
       "label": "appwriteJson",
       "file_type": "code",
       "source_file": "appwrite/generate_appwrite_json.js",
-      "source_location": "L1000",
+      "source_location": "L1005",
       "_origin": "ast",
       "id": "appwrite_generate_appwrite_json_appwritejson",
       "community": 9,
       "norm_label": "appwritejson"
-    },
-    {
-      "label": "package.json",
-      "file_type": "code",
-      "source_file": "functions/ai-brief/ai-brief-backup/package.json",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "functions_ai_brief_ai_brief_backup_package",
-      "community": 153,
-      "norm_label": "package.json"
-    },
-    {
-      "label": "name",
-      "file_type": "code",
-      "source_file": "functions/ai-brief/ai-brief-backup/package.json",
-      "source_location": "L2",
-      "_origin": "ast",
-      "id": "functions_ai_brief_ai_brief_backup_package_name",
-      "community": 153,
-      "norm_label": "name"
-    },
-    {
-      "label": "version",
-      "file_type": "code",
-      "source_file": "functions/ai-brief/ai-brief-backup/package.json",
-      "source_location": "L3",
-      "_origin": "ast",
-      "id": "functions_ai_brief_ai_brief_backup_package_version",
-      "community": 153,
-      "norm_label": "version"
-    },
-    {
-      "label": "type",
-      "file_type": "code",
-      "source_file": "functions/ai-brief/ai-brief-backup/package.json",
-      "source_location": "L4",
-      "_origin": "ast",
-      "id": "functions_ai_brief_ai_brief_backup_package_type",
-      "community": 153,
-      "norm_label": "type"
-    },
-    {
-      "label": "main",
-      "file_type": "code",
-      "source_file": "functions/ai-brief/ai-brief-backup/package.json",
-      "source_location": "L5",
-      "_origin": "ast",
-      "id": "functions_ai_brief_ai_brief_backup_package_main",
-      "community": 153,
-      "norm_label": "main"
-    },
-    {
-      "label": "dependencies",
-      "file_type": "code",
-      "source_file": "functions/ai-brief/ai-brief-backup/package.json",
-      "source_location": "L6",
-      "_origin": "ast",
-      "id": "functions_ai_brief_ai_brief_backup_package_dependencies",
-      "community": 153,
-      "norm_label": "dependencies"
-    },
-    {
-      "label": "@google/generative-ai",
-      "file_type": "code",
-      "source_file": "functions/ai-brief/ai-brief-backup/package.json",
-      "source_location": "L7",
-      "_origin": "ast",
-      "id": "functions_ai_brief_ai_brief_backup_package_dependencies_google_generative_ai",
-      "community": 153,
-      "norm_label": "@google/generative-ai"
-    },
-    {
-      "label": "node-appwrite",
-      "file_type": "code",
-      "source_file": "functions/ai-brief/ai-brief-backup/package.json",
-      "source_location": "L8",
-      "_origin": "ast",
-      "id": "functions_ai_brief_ai_brief_backup_package_dependencies_node_appwrite",
-      "community": 153,
-      "norm_label": "node-appwrite"
-    },
-    {
-      "label": "main.js",
-      "file_type": "code",
-      "source_file": "functions/ai-brief/ai-brief-backup/src/main.js",
-      "source_location": "L1",
-      "_origin": "ast",
-      "id": "functions_ai_brief_ai_brief_backup_src_main",
-      "community": 168,
-      "norm_label": "main.js"
     },
     {
       "label": "package.json",
@@ -504,6 +414,66 @@
       "norm_label": "main.js"
     },
     {
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "functions/calculate-campaign-reward/package.json",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "functions_calculate_campaign_reward_package",
+      "community": 88,
+      "norm_label": "package.json"
+    },
+    {
+      "label": "name",
+      "file_type": "code",
+      "source_file": "functions/calculate-campaign-reward/package.json",
+      "source_location": "L2",
+      "_origin": "ast",
+      "id": "functions_calculate_campaign_reward_package_name",
+      "community": 88,
+      "norm_label": "name"
+    },
+    {
+      "label": "version",
+      "file_type": "code",
+      "source_file": "functions/calculate-campaign-reward/package.json",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "functions_calculate_campaign_reward_package_version",
+      "community": 88,
+      "norm_label": "version"
+    },
+    {
+      "label": "type",
+      "file_type": "code",
+      "source_file": "functions/calculate-campaign-reward/package.json",
+      "source_location": "L4",
+      "_origin": "ast",
+      "id": "functions_calculate_campaign_reward_package_type",
+      "community": 88,
+      "norm_label": "type"
+    },
+    {
+      "label": "dependencies",
+      "file_type": "code",
+      "source_file": "functions/calculate-campaign-reward/package.json",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "functions_calculate_campaign_reward_package_dependencies",
+      "community": 88,
+      "norm_label": "dependencies"
+    },
+    {
+      "label": "node-appwrite",
+      "file_type": "code",
+      "source_file": "functions/calculate-campaign-reward/package.json",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "functions_calculate_campaign_reward_package_dependencies_node_appwrite",
+      "community": 88,
+      "norm_label": "node-appwrite"
+    },
+    {
       "label": "main.js",
       "file_type": "code",
       "source_file": "functions/calculate-campaign-reward/src/main.js",
@@ -542,6 +512,66 @@
       "id": "functions_calculate_campaign_reward_src_main_createdatabasesclient",
       "community": 165,
       "norm_label": "createdatabasesclient()"
+    },
+    {
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "functions/campaign-claimed/package.json",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "functions_campaign_claimed_package",
+      "community": 153,
+      "norm_label": "package.json"
+    },
+    {
+      "label": "name",
+      "file_type": "code",
+      "source_file": "functions/campaign-claimed/package.json",
+      "source_location": "L2",
+      "_origin": "ast",
+      "id": "functions_campaign_claimed_package_name",
+      "community": 153,
+      "norm_label": "name"
+    },
+    {
+      "label": "version",
+      "file_type": "code",
+      "source_file": "functions/campaign-claimed/package.json",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "functions_campaign_claimed_package_version",
+      "community": 153,
+      "norm_label": "version"
+    },
+    {
+      "label": "type",
+      "file_type": "code",
+      "source_file": "functions/campaign-claimed/package.json",
+      "source_location": "L4",
+      "_origin": "ast",
+      "id": "functions_campaign_claimed_package_type",
+      "community": 153,
+      "norm_label": "type"
+    },
+    {
+      "label": "dependencies",
+      "file_type": "code",
+      "source_file": "functions/campaign-claimed/package.json",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "functions_campaign_claimed_package_dependencies",
+      "community": 153,
+      "norm_label": "dependencies"
+    },
+    {
+      "label": "node-appwrite",
+      "file_type": "code",
+      "source_file": "functions/campaign-claimed/package.json",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "functions_campaign_claimed_package_dependencies_node_appwrite",
+      "community": 153,
+      "norm_label": "node-appwrite"
     },
     {
       "label": "main.js",
@@ -1582,6 +1612,66 @@
       "id": "functions_delete_file_src_main_json",
       "community": 69,
       "norm_label": "json()"
+    },
+    {
+      "label": "package.json",
+      "file_type": "code",
+      "source_file": "functions/expire-stale-claims/package.json",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "functions_expire_stale_claims_package",
+      "community": 158,
+      "norm_label": "package.json"
+    },
+    {
+      "label": "name",
+      "file_type": "code",
+      "source_file": "functions/expire-stale-claims/package.json",
+      "source_location": "L2",
+      "_origin": "ast",
+      "id": "functions_expire_stale_claims_package_name",
+      "community": 158,
+      "norm_label": "name"
+    },
+    {
+      "label": "version",
+      "file_type": "code",
+      "source_file": "functions/expire-stale-claims/package.json",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "functions_expire_stale_claims_package_version",
+      "community": 158,
+      "norm_label": "version"
+    },
+    {
+      "label": "type",
+      "file_type": "code",
+      "source_file": "functions/expire-stale-claims/package.json",
+      "source_location": "L4",
+      "_origin": "ast",
+      "id": "functions_expire_stale_claims_package_type",
+      "community": 158,
+      "norm_label": "type"
+    },
+    {
+      "label": "dependencies",
+      "file_type": "code",
+      "source_file": "functions/expire-stale-claims/package.json",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "functions_expire_stale_claims_package_dependencies",
+      "community": 158,
+      "norm_label": "dependencies"
+    },
+    {
+      "label": "node-appwrite",
+      "file_type": "code",
+      "source_file": "functions/expire-stale-claims/package.json",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "functions_expire_stale_claims_package_dependencies_node_appwrite",
+      "community": 158,
+      "norm_label": "node-appwrite"
     },
     {
       "label": "main.js",
@@ -3570,7 +3660,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "src_services_payment_service",
-      "community": 88,
+      "community": 147,
       "norm_label": "payment.service.ts"
     },
     {
@@ -3580,7 +3670,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "src_services_payment_service_paymentpurpose",
-      "community": 88,
+      "community": 147,
       "norm_label": "paymentpurpose"
     },
     {
@@ -3590,7 +3680,7 @@
       "source_location": "L6",
       "_origin": "ast",
       "id": "src_services_payment_service_paymentstatus",
-      "community": 88,
+      "community": 147,
       "norm_label": "paymentstatus"
     },
     {
@@ -3600,7 +3690,7 @@
       "source_location": "L8",
       "_origin": "ast",
       "id": "src_services_payment_service_createpaymentinput",
-      "community": 88,
+      "community": 147,
       "norm_label": "createpaymentinput"
     },
     {
@@ -3610,7 +3700,7 @@
       "source_location": "L15",
       "_origin": "ast",
       "id": "src_services_payment_service_getpaymentsoptions",
-      "community": 88,
+      "community": 147,
       "norm_label": "getpaymentsoptions"
     },
     {
@@ -3620,7 +3710,7 @@
       "source_location": "L21",
       "_origin": "ast",
       "id": "src_services_payment_service_payment",
-      "community": 88,
+      "community": 147,
       "norm_label": "payment"
     },
     {
@@ -3630,7 +3720,7 @@
       "source_location": "L39",
       "_origin": "ast",
       "id": "src_services_payment_service_createpaymentresult",
-      "community": 88,
+      "community": 147,
       "norm_label": "createpaymentresult"
     },
     {
@@ -3640,7 +3730,7 @@
       "source_location": "L47",
       "_origin": "ast",
       "id": "src_services_payment_service_paymentserviceerror",
-      "community": 88,
+      "community": 147,
       "norm_label": "paymentserviceerror"
     },
     {
@@ -3650,7 +3740,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "src_services_payment_service_paymentserviceerror_constructor",
-      "community": 88,
+      "community": 147,
       "norm_label": ".constructor()"
     },
     {
@@ -3660,7 +3750,7 @@
       "source_location": "L59",
       "_origin": "ast",
       "id": "src_services_payment_service_mappayment",
-      "community": 88,
+      "community": 147,
       "norm_label": "mappayment()"
     },
     {
@@ -3670,7 +3760,7 @@
       "source_location": "L77",
       "_origin": "ast",
       "id": "src_services_payment_service_parsefunctionresponse",
-      "community": 88,
+      "community": 147,
       "norm_label": "parsefunctionresponse()"
     },
     {
@@ -3680,7 +3770,7 @@
       "source_location": "L89",
       "_origin": "ast",
       "id": "src_services_payment_service_validateamount",
-      "community": 88,
+      "community": 147,
       "norm_label": "validateamount()"
     },
     {
@@ -3690,7 +3780,7 @@
       "source_location": "L95",
       "_origin": "ast",
       "id": "src_services_payment_service_maperror",
-      "community": 88,
+      "community": 147,
       "norm_label": "maperror()"
     },
     {
@@ -3700,7 +3790,7 @@
       "source_location": "L115",
       "_origin": "ast",
       "id": "src_services_payment_service_createpayment",
-      "community": 88,
+      "community": 147,
       "norm_label": "createpayment()"
     },
     {
@@ -3710,7 +3800,7 @@
       "source_location": "L168",
       "_origin": "ast",
       "id": "src_services_payment_service_getpayment",
-      "community": 88,
+      "community": 147,
       "norm_label": "getpayment()"
     },
     {
@@ -3720,7 +3810,7 @@
       "source_location": "L187",
       "_origin": "ast",
       "id": "src_services_payment_service_getpayments",
-      "community": 88,
+      "community": 147,
       "norm_label": "getpayments()"
     },
     {
@@ -3730,7 +3820,7 @@
       "source_location": "L211",
       "_origin": "ast",
       "id": "src_services_payment_service_getpendingpayments",
-      "community": 88,
+      "community": 147,
       "norm_label": "getpendingpayments()"
     },
     {
@@ -3740,7 +3830,7 @@
       "source_location": "L213",
       "_origin": "ast",
       "id": "src_services_payment_service_getpaidpayments",
-      "community": 88,
+      "community": 147,
       "norm_label": "getpaidpayments()"
     },
     {
@@ -18917,7 +19007,7 @@
       "label": "send-chat-notification",
       "file_type": "document",
       "source_file": "docs/02_Modules/Notifications/70_Backend.md",
-      "source_location": "L16",
+      "source_location": "L17",
       "_origin": "ast",
       "id": "docs_02_modules_notifications_70_backend_send_chat_notification",
       "community": 58,
@@ -18927,7 +19017,7 @@
       "label": "Arsitektur",
       "file_type": "document",
       "source_file": "docs/02_Modules/Notifications/70_Backend.md",
-      "source_location": "L22",
+      "source_location": "L23",
       "_origin": "ast",
       "id": "docs_02_modules_notifications_70_backend_arsitektur",
       "community": 58,
@@ -18937,7 +19027,7 @@
       "label": "Integrasi Eksternal",
       "file_type": "document",
       "source_file": "docs/02_Modules/Notifications/70_Backend.md",
-      "source_location": "L32",
+      "source_location": "L33",
       "_origin": "ast",
       "id": "docs_02_modules_notifications_70_backend_integrasi_eksternal",
       "community": 58,
@@ -20700,7 +20790,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_02_modules_payments_60_api",
-      "community": 149,
+      "community": 40,
       "norm_label": "60_api.md"
     },
     {
@@ -20880,7 +20970,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_02_modules_payments_70_backend",
-      "community": 129,
+      "community": 40,
       "norm_label": "70_backend.md"
     },
     {
@@ -20967,7 +21057,7 @@
       "label": "Aturan Backend",
       "file_type": "document",
       "source_file": "docs/02_Modules/Payments/70_Backend.md",
-      "source_location": "L39",
+      "source_location": "L40",
       "_origin": "ast",
       "id": "docs_02_modules_payments_70_backend_aturan_backend",
       "community": 129,
@@ -21060,7 +21150,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_02_modules_payments_90_events",
-      "community": 149,
+      "community": 160,
       "norm_label": "90_events.md"
     },
     {
@@ -23910,7 +24000,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_04_decisions_00_index",
-      "community": 40,
+      "community": 115,
       "norm_label": "00_index.md"
     },
     {
@@ -23920,7 +24010,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_04_decisions_00_index_04_decisions_index",
-      "community": 40,
+      "community": 115,
       "norm_label": "04_decisions \u2014 index"
     },
     {
@@ -23930,7 +24020,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "docs_04_decisions_00_index_daftar_adr",
-      "community": 40,
+      "community": 115,
       "norm_label": "daftar adr"
     },
     {
@@ -23940,7 +24030,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_04_decisions_adr_001",
-      "community": 11,
+      "community": 115,
       "norm_label": "adr-001.md"
     },
     {
@@ -24000,7 +24090,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "docs_04_decisions_adr_002",
-      "community": 11,
+      "community": 115,
       "norm_label": "adr-002.md"
     },
     {
@@ -25249,7 +25339,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "appwrite/generate_appwrite_json.js",
-      "source_location": "L1000",
+      "source_location": "L1005",
       "weight": 1.0,
       "source": "appwrite_generate_appwrite_json",
       "target": "appwrite_generate_appwrite_json_appwritejson",
@@ -25269,7 +25359,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "appwrite/generate_appwrite_json.js",
-      "source_location": "L643",
+      "source_location": "L648",
       "weight": 1.0,
       "source": "appwrite_generate_appwrite_json",
       "target": "appwrite_generate_appwrite_json_buckets",
@@ -25369,7 +25459,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "appwrite/generate_appwrite_json.js",
-      "source_location": "L746",
+      "source_location": "L751",
       "weight": 1.0,
       "source": "appwrite_generate_appwrite_json",
       "target": "appwrite_generate_appwrite_json_functions",
@@ -25389,80 +25479,10 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "appwrite/generate_appwrite_json.js",
-      "source_location": "L628",
+      "source_location": "L633",
       "weight": 1.0,
       "source": "appwrite_generate_appwrite_json",
       "target": "appwrite_generate_appwrite_json_tables",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "functions/ai-brief/ai-brief-backup/package.json",
-      "source_location": "L6",
-      "weight": 1.0,
-      "source": "functions_ai_brief_ai_brief_backup_package",
-      "target": "functions_ai_brief_ai_brief_backup_package_dependencies",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "functions/ai-brief/ai-brief-backup/package.json",
-      "source_location": "L5",
-      "weight": 1.0,
-      "source": "functions_ai_brief_ai_brief_backup_package",
-      "target": "functions_ai_brief_ai_brief_backup_package_main",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "functions/ai-brief/ai-brief-backup/package.json",
-      "source_location": "L2",
-      "weight": 1.0,
-      "source": "functions_ai_brief_ai_brief_backup_package",
-      "target": "functions_ai_brief_ai_brief_backup_package_name",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "functions/ai-brief/ai-brief-backup/package.json",
-      "source_location": "L4",
-      "weight": 1.0,
-      "source": "functions_ai_brief_ai_brief_backup_package",
-      "target": "functions_ai_brief_ai_brief_backup_package_type",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "functions/ai-brief/ai-brief-backup/package.json",
-      "source_location": "L3",
-      "weight": 1.0,
-      "source": "functions_ai_brief_ai_brief_backup_package",
-      "target": "functions_ai_brief_ai_brief_backup_package_version",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "functions/ai-brief/ai-brief-backup/package.json",
-      "source_location": "L7",
-      "weight": 1.0,
-      "source": "functions_ai_brief_ai_brief_backup_package_dependencies",
-      "target": "functions_ai_brief_ai_brief_backup_package_dependencies_google_generative_ai",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "functions/ai-brief/ai-brief-backup/package.json",
-      "source_location": "L8",
-      "weight": 1.0,
-      "source": "functions_ai_brief_ai_brief_backup_package_dependencies",
-      "target": "functions_ai_brief_ai_brief_backup_package_dependencies_node_appwrite",
       "confidence_score": 1.0
     },
     {
@@ -25578,6 +25598,56 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "functions/calculate-campaign-reward/package.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "functions_calculate_campaign_reward_package",
+      "target": "functions_calculate_campaign_reward_package_dependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "functions/calculate-campaign-reward/package.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "functions_calculate_campaign_reward_package",
+      "target": "functions_calculate_campaign_reward_package_name",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "functions/calculate-campaign-reward/package.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "functions_calculate_campaign_reward_package",
+      "target": "functions_calculate_campaign_reward_package_type",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "functions/calculate-campaign-reward/package.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "functions_calculate_campaign_reward_package",
+      "target": "functions_calculate_campaign_reward_package_version",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "functions/calculate-campaign-reward/package.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "functions_calculate_campaign_reward_package_dependencies",
+      "target": "functions_calculate_campaign_reward_package_dependencies_node_appwrite",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "functions/calculate-campaign-reward/src/main.js",
       "source_location": "L141",
       "weight": 1.0,
@@ -25603,6 +25673,56 @@
       "weight": 1.0,
       "source": "functions_calculate_campaign_reward_src_main",
       "target": "functions_calculate_campaign_reward_src_main_getenv",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "functions/campaign-claimed/package.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "functions_campaign_claimed_package",
+      "target": "functions_campaign_claimed_package_dependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "functions/campaign-claimed/package.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "functions_campaign_claimed_package",
+      "target": "functions_campaign_claimed_package_name",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "functions/campaign-claimed/package.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "functions_campaign_claimed_package",
+      "target": "functions_campaign_claimed_package_type",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "functions/campaign-claimed/package.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "functions_campaign_claimed_package",
+      "target": "functions_campaign_claimed_package_version",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "functions/campaign-claimed/package.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "functions_campaign_claimed_package_dependencies",
+      "target": "functions_campaign_claimed_package_dependencies_node_appwrite",
       "confidence_score": 1.0
     },
     {
@@ -26592,6 +26712,56 @@
       "weight": 1.0,
       "source": "functions_delete_file_src_main",
       "target": "functions_delete_file_src_main_parsebody",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "functions/expire-stale-claims/package.json",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "functions_expire_stale_claims_package",
+      "target": "functions_expire_stale_claims_package_dependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "functions/expire-stale-claims/package.json",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "functions_expire_stale_claims_package",
+      "target": "functions_expire_stale_claims_package_name",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "functions/expire-stale-claims/package.json",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "functions_expire_stale_claims_package",
+      "target": "functions_expire_stale_claims_package_type",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "functions/expire-stale-claims/package.json",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "functions_expire_stale_claims_package",
+      "target": "functions_expire_stale_claims_package_version",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "functions/expire-stale-claims/package.json",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "functions_expire_stale_claims_package_dependencies",
+      "target": "functions_expire_stale_claims_package_dependencies_node_appwrite",
       "confidence_score": 1.0
     },
     {
@@ -45444,7 +45614,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/02_Modules/Notifications/70_Backend.md",
-      "source_location": "L22",
+      "source_location": "L23",
       "weight": 1.0,
       "source": "docs_02_modules_notifications_70_backend_notifications_backend",
       "target": "docs_02_modules_notifications_70_backend_arsitektur",
@@ -45454,7 +45624,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/02_Modules/Notifications/70_Backend.md",
-      "source_location": "L32",
+      "source_location": "L33",
       "weight": 1.0,
       "source": "docs_02_modules_notifications_70_backend_notifications_backend",
       "target": "docs_02_modules_notifications_70_backend_integrasi_eksternal",
@@ -45464,7 +45634,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/02_Modules/Notifications/70_Backend.md",
-      "source_location": "L16",
+      "source_location": "L17",
       "weight": 1.0,
       "source": "docs_02_modules_notifications_70_backend_appwrite_functions",
       "target": "docs_02_modules_notifications_70_backend_send_chat_notification",
@@ -47344,7 +47514,7 @@
       "relation": "references",
       "confidence": "EXTRACTED",
       "source_file": "docs/02_Modules/Payments/70_Backend.md",
-      "source_location": "L41",
+      "source_location": "L42",
       "weight": 1.0,
       "source": "docs_02_modules_payments_70_backend",
       "target": "docs_04_decisions_adr_007",
@@ -47364,7 +47534,7 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "docs/02_Modules/Payments/70_Backend.md",
-      "source_location": "L39",
+      "source_location": "L40",
       "weight": 1.0,
       "source": "docs_02_modules_payments_70_backend_payments_backend",
       "target": "docs_02_modules_payments_70_backend_aturan_backend",
@@ -51802,5 +51972,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "ffb180279760de511ea357b4b9eef0fa07e240f7"
+  "built_at_commit": "c13758a2020504504ac3115481677fcb1429e50d"
 }

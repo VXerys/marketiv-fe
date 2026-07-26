@@ -22,6 +22,16 @@ import { BriefQualityCard } from "./cards/BriefQualityCard";
 import { BudgetCalculatorCard } from "./cards/BudgetCalculatorCard";
 import { CampaignWizardState } from "./types";
 import { validateStepFields, isStepCompleted } from "./create-campaign.validation";
+import { TONE_OPTIONS, CTA_OPTIONS } from "./create-campaign.constants";
+import { composeBriefDetail, packDoAndDontJson } from "@/lib/validations/campaign.schema";
+import {
+  createCampaignDraft,
+  generateCampaignBrief,
+  createCampaignPayment,
+} from "@/services/umkm/umkm-dashboard.service";
+import { loadSnap } from "@/lib/midtrans/snap";
+import type { CampaignType } from "@/types/domain";
+import { toast } from "sonner";
 
 // Modals
 import { SaveDraftModal } from "./modals/SaveDraftModal";
@@ -38,6 +48,7 @@ export function CreateCampaignWizard() {
   // Form states
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
+  const [type, setType] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [brief, setBrief] = useState("");
@@ -56,6 +67,16 @@ export function CreateCampaignWizard() {
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [stepValidationTried, setStepValidationTried] = useState<Record<number, boolean>>({});
 
+  // AI brief state
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  /** Diisi hasil AI agar ikut tersimpan ke campaign_briefs saat draft dibuat. */
+  const [aiObjective, setAiObjective] = useState("");
+  const [aiGenerated, setAiGenerated] = useState(false);
+
+  /** Id campaign draft yang sudah tertulis — mencegah create ganda saat bayar. */
+  const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
+
   // Modals state
   const [isDraftOpen, setIsDraftOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
@@ -66,6 +87,7 @@ export function CreateCampaignWizard() {
   const wizardState: CampaignWizardState = {
     title,
     category,
+    type,
     description,
     location,
     brief,
@@ -119,19 +141,169 @@ export function CreateCampaignWizard() {
     setIsDraftOpen(true);
   };
 
-  const handleConfirmDraft = () => {
+  /**
+   * Aksi eksplisit "Bantu dengan AI". Mengisi brief + poin wajib; TIDAK menimpa
+   * videoStyle/callToAction karena itu pilihan enumerated user (AI mengembalikan
+   * prosa, bukan id opsi).
+   */
+  const handleGenerateAiBrief = async () => {
+    if (brief.trim() && !window.confirm("Brief yang sudah Anda tulis akan ditimpa. Lanjutkan?")) {
+      return;
+    }
+    setAiError(null);
+    setIsGeneratingAi(true);
+    const res = await generateCampaignBrief({
+      description,
+      type: (type as CampaignType) || "ugc",
+      productName: title || undefined,
+      targetMarket: location || undefined,
+      goal: CTA_OPTIONS.find((o) => o.id === callToAction)?.label,
+      materials: externalAssetUrl.trim() ? [externalAssetUrl.trim()] : [],
+    });
+    setIsGeneratingAi(false);
+
+    if (!res.success || !res.data) {
+      setAiError(
+        res.code === "validation"
+          ? res.error ?? "Data belum cukup untuk menyusun brief."
+          : "Layanan AI sedang tidak tersedia. Coba lagi nanti."
+      );
+      return;
+    }
+
+    const ai = res.data;
+    setBrief(ai.briefDetail);
+    setRequiredPoints(
+      [
+        ...ai.doAndDont.do.map((d) => `- ${d}`),
+        ...ai.doAndDont.dont.map((d) => `- Dilarang: ${d}`),
+      ].join("\n")
+    );
+    setAiObjective(ai.objective);
+    setAiGenerated(true);
+  };
+
+  /**
+   * Tulis campaign draft. Dipakai tombol "Simpan Draft" maupun jalur pembayaran
+   * (campaign harus ada dulu supaya create-payment punya campaignId).
+   * Idempoten lewat createdCampaignId — konfirmasi ulang tidak membuat duplikat.
+   */
+  const saveDraft = async (): Promise<string | null> => {
+    if (createdCampaignId) return createdCampaignId;
+
+    // Kolom wajib campaigns (title/category/type/description) = langkah 1.
+    if (!isStepCompleted(1, wizardState)) {
+      setCurrentStep(1);
+      validateStep(1);
+      toast.error("Lengkapi Informasi Produk (langkah 1) sebelum menyimpan draft.");
+      return null;
+    }
+
+    const tone = TONE_OPTIONS.find((o) => o.id === videoStyle);
+    const ctaOpt = CTA_OPTIONS.find((o) => o.id === callToAction);
+
+    const res = await createCampaignDraft({
+      title,
+      category,
+      type: type as CampaignType,
+      description,
+      budget: totalBudgetEscrow,
+      rewardPer1000Views: pricePerThousandViews,
+      claimLimit: creatorQuota,
+      brief: {
+        briefDetail: composeBriefDetail({ brief, requiredPoints, hashtags, location, assetNotes }),
+        contentAngle: tone ? `${tone.label} — ${tone.desc}` : videoStyle,
+        cta: ctaOpt ? ctaOpt.label : callToAction,
+        doAndDont: requiredPoints.trim() ? packDoAndDontJson(requiredPoints) : "",
+        objective: aiObjective || undefined,
+        generatedByAi: aiGenerated,
+      },
+      asset: externalAssetUrl.trim() ? { fileUrl: externalAssetUrl.trim() } : undefined,
+    });
+
+    if (res.success && res.data) {
+      res.data.warnings.forEach((w) => toast.warning(w));
+      setCreatedCampaignId(res.data.campaign.id);
+      return res.data.campaign.id;
+    }
+
+    toast.error(
+      res.code === "auth"
+        ? "Sesi berakhir, silakan login kembali."
+        : res.error ?? "Gagal menyimpan draft. Coba lagi."
+    );
+    return null;
+  };
+
+  const handleConfirmDraft = async () => {
     setIsDraftOpen(false);
+    setIsSubmitting(true);
+    const id = await saveDraft();
+    setIsSubmitting(false);
+    if (!id) return;
+    toast.success("Draft campaign berhasil disimpan.");
     router.push("/dashboard/umkm/campaign");
   };
 
-  const handleConfirmPayment = () => {
+  /**
+   * Bayar: pastikan draft ada → create-payment → Snap.
+   * Publish ke `active` BUKAN di sini — itu Sprint 4 lewat webhook Midtrans
+   * (create-escrow), bukan aksi klien.
+   */
+  const handleConfirmPayment = async () => {
     setIsPaymentOpen(false);
     setIsSubmitting(true);
-    // Simulate payment API transaction time
-    setTimeout(() => {
+
+    const campaignId = await saveDraft();
+    if (!campaignId) {
       setIsSubmitting(false);
-      setIsCreatedOpen(true);
-    }, 1500);
+      return;
+    }
+
+    const res = await createCampaignPayment({ campaignId, budget: totalBudgetEscrow });
+    if (!res.success || !res.data) {
+      setIsSubmitting(false);
+      toast.error(
+        res.code === "auth"
+          ? "Sesi berakhir, silakan login kembali."
+          : res.error ?? "Gagal membuat pembayaran. Draft Anda sudah tersimpan."
+      );
+      return;
+    }
+
+    const intent = res.data;
+
+    // Snap token → buka popup pembayaran.
+    if (intent.snapToken) {
+      try {
+        const snap = await loadSnap();
+        setIsSubmitting(false);
+        snap.pay(intent.snapToken, {
+          onSuccess: () => setIsCreatedOpen(true),
+          onPending: () => {
+            toast.info("Pembayaran menunggu konfirmasi. Campaign tetap tersimpan sebagai draft.");
+            router.push("/dashboard/umkm/campaign");
+          },
+          onError: () => toast.error("Pembayaran gagal. Draft Anda tetap tersimpan."),
+          onClose: () =>
+            toast.info("Pembayaran dibatalkan. Campaign tersimpan sebagai draft."),
+        });
+      } catch (err) {
+        setIsSubmitting(false);
+        toast.error(err instanceof Error ? err.message : "Gagal membuka pembayaran.");
+      }
+      return;
+    }
+
+    // Hanya redirect URL → alihkan halaman.
+    if (intent.redirectUrl) {
+      window.location.assign(intent.redirectUrl);
+      return;
+    }
+
+    // Tidak ada keduanya (mock) → tampilkan modal berhasil seperti sebelumnya.
+    setIsSubmitting(false);
+    setIsCreatedOpen(true);
   };
 
   const handleSuccessRedirect = () => {
@@ -144,6 +316,7 @@ export function CreateCampaignWizard() {
     setCurrentStep(1);
     setTitle("");
     setCategory("");
+    setType("");
     setDescription("");
     setLocation("");
     setBrief("");
@@ -159,6 +332,10 @@ export function CreateCampaignWizard() {
     setTermsAgreed(false);
     setValidationErrors({});
     setStepValidationTried({});
+    setAiError(null);
+    setAiObjective("");
+    setAiGenerated(false);
+    setCreatedCampaignId(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -172,6 +349,8 @@ export function CreateCampaignWizard() {
             onChangeTitle={setTitle}
             category={category}
             onChangeCategory={setCategory}
+            type={type}
+            onChangeType={setType}
             description={description}
             onChangeDescription={setDescription}
             location={location}
@@ -193,6 +372,10 @@ export function CreateCampaignWizard() {
             hashtags={hashtags}
             onChangeHashtags={setHashtags}
             validationErrors={validationErrors}
+            onGenerateAi={handleGenerateAiBrief}
+            isGeneratingAi={isGeneratingAi}
+            aiError={aiError}
+            canGenerateAi={description.trim().length >= 30}
           />
         );
       case 3:

@@ -25,11 +25,13 @@ const CATEGORIES = [
   { id: "lainnya",    label: "Lainnya"        },
 ];
 
+// Opsi mengikuti field kanon CreatorProfile (s1-creators) — followers & jumlah
+// ulasan belum tersedia di kanon, jadi diganti pesanan selesai & engagement.
 const SORT_OPTIONS = [
-  { id: "rating",    label: "Rating Tertinggi"   },
-  { id: "followers", label: "Followers Terbanyak" },
-  { id: "price_asc", label: "Harga Terendah"      },
-  { id: "reviews",   label: "Review Terbanyak"    },
+  { id: "rating",     label: "Rating Tertinggi"      },
+  { id: "price_asc",  label: "Harga Terendah"        },
+  { id: "jobs",       label: "Pesanan Terbanyak"     },
+  { id: "engagement", label: "Engagement Tertinggi"  },
 ];
 
 export function CreatorToolbar({

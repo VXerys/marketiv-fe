@@ -20,7 +20,6 @@
 # production
 /build
 
-# misc
 # misc & secrets
 .DS_Store
 *.pem
@@ -53,4 +52,8 @@ next-env.d.ts
 
 # agents & local scratch
 /.agents
-/.gemini
+./.agents
+/.gemini
+
+# appwrite
+appwrite.config.json

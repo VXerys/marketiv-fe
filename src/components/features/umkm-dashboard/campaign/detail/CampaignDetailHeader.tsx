@@ -23,19 +23,17 @@ export function CampaignDetailHeader({
         return { label: "Lanjutkan Draft", onClick: onEditClick };
       case "active":
         return { label: "Ekspor Performa", onClick: onExportClick };
-      case "full":
-        return { label: "Ekspor Performa", onClick: onExportClick };
+      case "paused":
+        return { label: "Lanjutkan Campaign", onClick: onEditClick };
       case "completed":
         return { label: "Unduh Laporan Selesai", onClick: onExportClick };
-      case "cancelled":
-        return { label: "Lihat Riwayat", onClick: () => {} };
       default:
         return { label: "Ekspor Performa", onClick: onExportClick };
     }
   };
 
   const primaryAction = getPrimaryAction();
-  const isCancelable = campaign.status !== "completed" && campaign.status !== "cancelled";
+  const isCancelable = campaign.status !== "completed";
 
   return (
     <div className="flex flex-col gap-4 shrink-0">

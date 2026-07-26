@@ -35,7 +35,7 @@ export function CampaignActionMenu({
     };
   }, []);
 
-  const isCancelDisabled = status === "completed" || status === "cancelled";
+  const isCancelDisabled = status === "completed";
   const isEditVisible = status === "draft";
 
   return (

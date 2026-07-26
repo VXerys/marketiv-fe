@@ -2,14 +2,13 @@ export const CAMPAIGN_STATUS_OPTIONS = [
   { label: "Semua", value: "all" },
   { label: "Draft", value: "draft" },
   { label: "Aktif", value: "active" },
-  { label: "Penuh", value: "full" },
+  { label: "Dijeda", value: "paused" },
   { label: "Selesai", value: "completed" },
-  { label: "Dibatalkan", value: "cancelled" },
 ];
 
 export const CREATOR_NICHE_OPTIONS = [
   { label: "Kuliner", value: "kuliner" },
-  { label: "Fesyen", value: "fesyen" },
+  { label: "Fashion", value: "fashion" },
   { label: "Pariwisata", value: "pariwisata" },
   { label: "Edukasi", value: "edukasi" },
   { label: "Kecantikan", value: "kecantikan" },
@@ -18,11 +17,11 @@ export const CREATOR_NICHE_OPTIONS = [
 
 export const NEGOTIATION_STATUS_OPTIONS = [
   { label: "Semua", value: "all" },
-  { label: "Negosiasi", value: "negotiation" },
-  { label: "Menunggu Pembayaran", value: "waiting_payment" },
+  { label: "Menunggu Pembayaran", value: "pending_payment" },
   { label: "Escrow", value: "escrow" },
+  { label: "Sedang Dikerjakan", value: "in_progress" },
   { label: "Revisi", value: "revision" },
-  { label: "Menunggu Verifikasi", value: "waiting_verification" },
+  { label: "Disetujui", value: "approved" },
   { label: "Selesai", value: "completed" },
-  { label: "Dispute", value: "dispute" },
+  { label: "Dibatalkan", value: "cancelled" },
 ];
