@@ -113,6 +113,20 @@ Untuk kelas ini, **tidak perlu ubah permission apapun** — memang harus tetap t
 | API docs `60_API.md` (6 module) | ✅ | Orders, Payments, Campaigns, Chat, Offers, RateCards — semua endpoint cancel/delete ditambahkan |
 | Bloker doc | ✅ | `2026-07-26-bloker-frontend-delete.md` — koreksi arsitektur + resolved |
 
+### ✅ Verifikasi Permission.delete — Backend Tidak Tolak Delete
+
+| Metode | Hasil | Detail |
+|---|---|---|
+| **Kode — semua service tambah `Permission.delete`** | ✅ | `campaign.service.ts:136`, `offer.service.ts:150`, `creator.service.ts:119` (rateCards), `creator.service.ts:141` (rateCardPackages), `campaign-asset.service.ts:103`, `user.service.ts:318` — lihat tabel §5 di atas |
+| **Backfill ulang — idempotent** | ✅ 0 updated | `npx tsx scripts/backfill-delete-permissions.ts` — semua dokumen existing sudah punya delete perm |
+| **Script verifikasi** | ✅ ada | `scripts/verify-delete-permissions.ts` — cek 1 dokumen per koleksi, lapor ada/tidak `delete("user:...")` di `$permissions` |
+| **Appwrite Console — level dokumen** | ✅ | Buka dokumen → tab Permissions → lihat pill `delete("user:<id>")`. Collection-level checkbox tidak relevan (diabaikan karena permission per-dokumen eksplisit). |
+
+**Cara konfirmasi (3 opsi):**
+1. **Console:** Database → pilih koleksi → klik dokumen → scroll ke Permissions, cek ada pill `delete("user:...")`.
+2. **Script:** `npx tsx scripts/verify-delete-permissions.ts` (butuh `APPWRITE_API_KEY`).
+3. **Test langsung:** Login sbg owner → delete dokumen status `draft`/`pending` → response 200 (bukan 401/403).
+
 ---
 
 ## Rujukan
