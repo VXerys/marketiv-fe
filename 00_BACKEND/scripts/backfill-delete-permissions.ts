@@ -38,6 +38,7 @@ interface Target {
 
 const TARGETS: Target[] = [
   { collectionId: "campaigns",        ownerField: "umkmId",    label: "Campaigns" },
+  { collectionId: "campaign_claims",  ownerField: "creatorId", label: "Campaign Claims" },
   { collectionId: "rate_cards",       ownerField: "creatorId", label: "Rate Cards" },
   { collectionId: "offers",           ownerField: "umkmId",    label: "Offers" },
   { collectionId: "campaign_assets",  ownerField: null,        label: "Campaign Assets" },

@@ -78,10 +78,12 @@ async function completeTopup(databases, env, payment) {
   const wallet = await findWallet(databases, env, payment.user_id);
   if (!wallet) throw new Error(`Wallet not found for user ${payment.user_id}`);
 
+  const isCampaign = payment.purpose === "campaign" && payment.campaign_id;
+
   const result = await ensureTransaction(databases, env, {
     userId: payment.user_id,
     amount: Number(payment.amount),
-    type: "deposit",
+    type: isCampaign ? "payment" : "deposit",
     referenceId: payment.$id,
     referenceType: "payment",
     status: "completed"
@@ -89,12 +91,8 @@ async function completeTopup(databases, env, payment) {
 
   if (!result.created) return { walletId: wallet.$id };
 
-  await databases.updateDocument(env.databaseId, env.walletsCollectionId, wallet.$id, {
-    balance: Number(wallet.balance || 0) + Number(payment.amount)
-  });
-
-  // Accumulate remainingBudget jika top-up untuk campaign
-  if (payment.purpose === "campaign" && payment.campaign_id) {
+  if (isCampaign) {
+    // Campaign top-up: credit remainingBudget only — dana tidak masuk wallet bebas
     const campaign = await databases.getDocument(
       env.databaseId, env.campaignsCollectionId, payment.campaign_id
     );
@@ -102,6 +100,11 @@ async function completeTopup(databases, env, payment) {
       env.databaseId, env.campaignsCollectionId, payment.campaign_id,
       { remainingBudget: Number(campaign.remainingBudget || 0) + Number(payment.amount) }
     );
+  } else {
+    // Regular top-up: credit wallet balance
+    await databases.updateDocument(env.databaseId, env.walletsCollectionId, wallet.$id, {
+      balance: Number(wallet.balance || 0) + Number(payment.amount)
+    });
   }
 
   return { walletId: wallet.$id };

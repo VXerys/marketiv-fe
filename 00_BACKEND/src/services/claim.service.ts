@@ -147,6 +147,7 @@ export const claimCampaign = async (campaignId: string): Promise<Claim> => {
       [
         Permission.read(Role.user(creatorId)),
         Permission.update(Role.user(creatorId)),
+        Permission.delete(Role.user(creatorId)),
       ]
     );
 
