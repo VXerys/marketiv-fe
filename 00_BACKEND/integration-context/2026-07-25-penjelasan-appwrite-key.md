@@ -213,8 +213,8 @@ Setelah itu stabil, bisa *mulai* research tentang Opsi 2 (adopsi header) untuk j
 |---|---|
 | 2026-07-24 | Commit `1f6e3ec` → semua 23 Function berubah ke nama baru |
 | 2026-07-25 | Frontend menemukan masalah via dokumentasi Appwrite |
-| Sekarang | Blocker dilaporkan + penjelasan disiapkan |
-| **ASAP** | Backend pilih Opsi 1 atau 2 → verifikasi → deploy |
+| 2026-07-25 | Blocker dilaporkan + penjelasan disiapkan |
+| 2026-07-25 | ✅ Backend memilih **Opsi 2** (header `x-appwrite-key`) → diverifikasi → di-deploy. Lihat § Resolusi di bawah |
 
 ---
 

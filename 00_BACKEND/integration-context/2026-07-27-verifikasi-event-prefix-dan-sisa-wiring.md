@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Tanggal** | 2026-07-27 |
+| **Tanggal** | 2026-07-27 (temuan) → 2026-07-27 sore (resolusi, lihat §Resolusi di bawah) |
 | **Pemicu** | Kami verifikasi commit `dd41686` langsung ke **live Appwrite** (bukan ke config file) sebelum melanjutkan Sprint 4. |
-| **Status** | ✅ **8 event database benar-benar terpasang** · 🔴 **17 function masih punya wiring kosong** |
-| **Sifat** | Dokumen temuan. **Nol perubahan dari kami di `00_BACKEND/`** selain dokumen ini. |
+| **Status** | ✅ **W-1…W-6, M-1…M-3, B-1…B-3 selesai** · ⬜ **§5 (claim expired) masih menunggu keputusan produk** |
+| **Sifat** | Dokumen temuan **+ resolusi**. Bagian di atas garis adalah kondisi saat temuan; §Resolusi mencatat perbaikannya. |
 | **Metode** | Appwrite REST API `/v1/functions` + `/v1/tablesdb`, project `69f9d45b00315cb0ec2f`, server **1.9.5**. Semua angka di bawah dibaca dari server, bukan dari `appwrite.config.json`. |
 
 ---
@@ -246,3 +246,64 @@ Perbaikannya sama seperti yang sudah dipakai `get-creator-profile:72` dan `campa
 ### Catatan kecil di luar konteks Appwrite
 
 Ada `appwrite.config.json` **di root repo** (bukan di `00_BACKEND/`) berisi 2 baris saja: `{"projectId": "69f9d45b00315cb0ec2f"}`. File ini tidak ter-track Git. Karena CLI Appwrite membaca config dari direktori kerja, menjalankan perintah `appwrite` dari root repo akan memakai stub kosong ini — 0 function, 0 table. Mungkin ini sisa `appwrite init` yang tidak sengaja. Saran: hapus, atau tambahkan ke `.gitignore` dengan catatan agar tidak tertukar.
+
+---
+
+## ✅ Resolusi — 2026-07-27 (sore)
+
+Dikerjakan setelah audit menyeluruh atas seluruh folder ini, `appwrite.config.json`, ke-25 Function, dan snapshot live.
+
+### 🔴 Temuan baru: W-6 — 8 Function kehilangan `scopes`
+
+Tidak pernah terdeteksi sebelumnya, dan **lebih menentukan daripada W-1…W-4.**
+
+`snapshot-functions.json` (diambil sebelum pemulihan wiring) menunjukkan 8 Function event-driven punya `scopes: []`, sementara 17 lainnya utuh: `ai-fraud-precheck`, `campaign-published`, `campaign-claimed`, `calculate-campaign-reward`, `create-escrow`, `release-escrow`, `create-order`, `send-chat-notification` — persis 8 Function yang di-`appwrite push` di `dd41686`.
+
+Rantai sebabnya:
+
+1. `appwrite/generate_appwrite_json.cjs` tidak pernah menulis key `scopes` ke `appwrite.config.json`; scopes hidup terpisah di `appwrite/function-scopes.json`.
+2. `appwrite push functions` punya replace-semantics → field yang tidak ada di config dikosongkan di Appwrite.
+3. Di Appwrite, `scopes` menentukan hak dynamic API key (`x-appwrite-key`). Scopes kosong = **setiap panggilan `databases.*` balik 401, senyap.**
+4. Pemulihan wiring mengirim ulang `scopes` dari live, jadi kekosongan itu ikut dilestarikan — bukan diperbaiki.
+5. `drift.mjs` berbunyi `if (c.scopes && ...)`. Karena config tidak punya key itu, perbandingan scopes **selalu dilewati** → `NO DRIFT` memberi lampu hijau palsu.
+
+Artinya seluruh Alur A yang dinyatakan selesai di Sprint 4 **tidak akan berjalan** sampai scopes dipulihkan.
+
+**Perbaikan:** generator kini membaca `function-scopes.json` dan menulis `scopes` ke tiap entry function (dan **melempar error** kalau ada Function tanpa entry scope, supaya tidak bisa lolos lagi). `drift.mjs` membandingkan scopes tanpa syarat. Pemulihan di live lewat `npm run sync:scopes`.
+
+### Status per temuan
+
+| ID | Status | Keterangan |
+|---|---|---|
+| **W-1** | ✅ | `create-user-profile` & `create-user-wallet` — events `users.*.create` pulih |
+| **W-2** | ✅ | `execute: ["users"]` pulih di 15 Function HTTP |
+| **W-3** | ✅ | `midtrans-webhook` — `execute: ["any"]` pulih |
+| **W-4** | ✅ | `expire-stale-claims` — schedule `0 */6 * * *` pulih |
+| **W-5** | ✅ | Akar masalahnya sama dengan W-6; ditutup oleh perbaikan generator |
+| **W-6** | ✅ | Baru — lihat di atas |
+| **M-1** | ✅ | Function baru `mature-pending-balance` (cron harian 02:00) memindahkan reward ≥ 7 hari dari `pendingBalance` → `balance`. Idempotensi memakai pola ledger `create-escrow`. Ledger bertipe `mature`, bukan `release`, supaya tidak terhitung dua kali sebagai earnings |
+| **M-2** | ✅ | Sudah selesai di `11ebfc3` — `completeTopup` memakai ledger `pending` → kredit → `completed` |
+| **M-3** | ✅ | Gelombang 1 (6 tabel) sudah diterapkan. Gelombang 2 — `conversations`, `messages`, `offers`, `orders` — aman diketatkan setelah jalur create-nya memasang row perm. **`appwrite.config.json` ikut diperbarui**, kalau tidak `appwrite push tables` akan mengembalikan kebocorannya |
+| **B-1** | ✅ | Model dikonfirmasi: `views` diisi UMKM saat approve, ditulis dalam `updateDocument` yang sama dengan `status`. Sudah didokumentasikan di `docs/02_Modules/Campaigns/50_Database.md` |
+| **B-2** | ✅ | Kolom `reviewNotes` (string, 1000, opsional) sudah ada di live, dan kini juga di config, generator, dan docs |
+| **B-3** | ✅ | Selesai di `11ebfc3` — `claim.service.ts` query `creator_profiles` lewat `Query.equal("userId", …)`. Diverifikasi: nol `getDocument(users, uid)` tersisa di seluruh repo |
+| **§5** | ⬜ | Claim `expired` mengunci kreator selamanya — **masih menunggu keputusan produk** |
+
+### Temuan tambahan yang ikut ditutup
+
+- **`create-order` tidak pernah membuat order.** Guardnya butuh `oldStatus` dari `offer.$previous?.status`, padahal event dokumen Appwrite tidak mengirim `$previous` — jadi guard selalu gagal dan Function selalu `return ignored`. Ini memblokir **seluruh Alur B**, bukan hanya satu langkah. Guard transisi dibuang; kini hanya memeriksa `offer.status === "accepted"`, dan order ganda ditolak unique index `idx_offerId` (ditangkap sebagai `already_exists`, bukan 500).
+- **`request-withdrawal` tanpa guard peran.** Nol pengecekan role — siapa pun bersaldo bisa menarik. Ditambah guard `403` untuk non-creator. Perannya dibaca lewat `Query.equal("userId", …)`, **bukan** `getDocument` — jebakan yang sama dengan B-3.
+- **`deliverables` & `revisions` dibuat tanpa permission baris** (`order.service.ts`). Ditambah read/update untuk kedua pihak. Kedua tabel ini **belum** diketatkan; menyusul setelah perbaikan ini ter-deploy.
+- **`messages` hanya punya `Permission.read`.** Ditambah `update` untuk kedua pihak supaya `read_at` tetap bisa ditulis setelah `read("users")` dicabut.
+- **Stub `appwrite.config.json` di root repo** — sudah dihapus.
+
+### Yang masih terbuka
+
+| Item | Kenapa |
+|---|---|
+| **§5** — claim `expired` mengunci kreator | Keputusan produk, belum diambil |
+| **T-5** — `conversationId` + `isArchived` di DTO `get-creator-negotiations` | Ditampung backend sejak 2026-07-26, belum dikerjakan |
+| Pengetatan `deliverables` & `revisions` | Menunggu perbaikan row perm di atas ter-deploy |
+| Sprint 3 §6 — permintaan kolom (`doAndDont` 400→4000, dll.) | Belum ditinjau ulang |
+| Harness `vitest` rusak | 102/121 gagal sebelum maupun sesudah `11ebfc3` — bukan regresi, tapi artinya tidak ada gate tes |
+

@@ -40,6 +40,13 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 - **Trigger**: `deliverables.status` → `approved`.
 - **Aksi**: rilis escrow, tambah balance wallet Creator, catat transaksi `release`, update order.
 
+### mature-pending-balance
+
+- **Trigger**: terjadwal, `0 2 * * *` (harian pukul 02:00).
+- **Aksi**: cari `transactions` bertipe `release` dengan `referenceType: "campaign_submission"`, `status: "completed"`, dan berumur ≥ 7 hari. Untuk tiap baris: pindahkan `pendingBalance → balance` di wallet pemiliknya, tandai baris sumber `status: "matured"`, dan kirim notifikasi ke creator.
+- **Idempotensi**: memakai pola `create-escrow` — baris ledger `mature` dengan id deterministik dibuat sebagai `pending` sebelum dana dipindah, lalu ditandai `completed`. Eksekusi yang terputus di tengah diselesaikan cron berikutnya, bukan diulang dari nol.
+- **Catatan**: tanpa Function ini reward campaign mengendap permanen — `request-withdrawal` hanya membaca `balance`.
+
 ### get-umkm-finance-summary
 
 - **Trigger**: dipanggil frontend (`executeFunction`), bukan event.

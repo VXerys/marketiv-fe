@@ -192,6 +192,8 @@ Setelah diskusi internal tim backend, kami (backend) telah mengeksekusi seluruh 
 | **T-3** | **Info diterima** | Pola mirror sudah benar. Tidak ada perubahan dari kami. | — |
 | **T-4** | Opsi (a) — **`create-escrow` tulis `remainingBudget`** | `completeTopup()` kini accumulate `remainingBudget` saat `payment.purpose === "campaign"`. Tambah `campaignsCollectionId` di env config. | `functions/create-escrow/src/main.js`, `.env`, `.env.example` |
 | **T-5** | **Ditampung** | Akan tambah `conversationId` + `isArchived` di DTO `get-creator-negotiations` saat ada sentuhan berikutnya. Bukan blocker. | — (future) |
+
+> **Update 2026-07-27:** T-5 **masih terbuka**, belum dikerjakan sejak ditampung 2026-07-26. Diperiksa ulang saat audit menyeluruh 2026-07-27 — `get-creator-negotiations` belum mengembalikan `conversationId` maupun `isArchived`. Tetap bukan blocker Alur B, tapi perlu diselesaikan sebelum fitur arsip dipakai sungguhan. Terdaftar di `README.md` folder ini.
 | Backfill | `ownerField: string \| null` | Ubah tipe interface. | `scripts/backfill-delete-permissions.ts` |
 
 **Catatan untuk frontend:** Karena T-1 kini hard delete, mirror `unclaimCampaignInAppwrite` di `creator-appwrite.service.ts` perlu disesuaikan dari soft delete menjadi hard delete. Jika mirror berjalan via SDK browser, tambahkan `Permission.delete(Role.user(creatorId))` saat create claim.

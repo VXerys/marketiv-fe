@@ -110,11 +110,12 @@ Konten yang dikirim creator. Dipakai AI Fraud Detection. Relasi: Claim (1) → S
 | platform    | enum    | yes      | MVP hanya `tiktok`               |
 | postUrl     | string  | yes      | URL konten                       |
 | caption     | string  | no       |                                  |
-| views       | integer | yes      | basis perhitungan reward         |
+| views       | integer | yes      | basis perhitungan reward. Diisi creator saat submit, lalu **ditimpa UMKM saat approve** — ditulis dalam `updateDocument` yang sama dengan `status`, karena `calculate-campaign-reward` membaca `doc.views` dari payload event |
 | engagement  | integer | no       |                                  |
 | fraudScore  | integer | no       | 0–100 (hasil AI Fraud Detection) |
 | fraudStatus | enum    | no       | `safe\|review\|rejected`         |
 | status      | enum    | yes      | `pending\|approved\|rejected`    |
+| reviewNotes | string  | no       | maks 1000 — catatan UMKM saat approve/reject |
 
 **Index**: `claimId`, `creatorId`, `campaignId`, `status`, `fraudStatus`.
 

@@ -23,13 +23,22 @@
 - `pendingBalance` — saldo belum cair (mis. reward submission yang menunggu, atau dana dalam proses).
 - Saat escrow dirilis untuk order, saldo masuk ke wallet creator (lihat `90_Events.md`).
 
+### Pematangan pendingBalance
+
+- Reward campaign (`calculate-campaign-reward`) masuk ke `pendingBalance`, **bukan** `balance`.
+- **Masa tunggu 7 hari** sejak baris `transactions` reward dibuat. Jeda ini memberi jendela koreksi kalau fraud baru ketahuan setelah UMKM menyetujui submission.
+- Function terjadwal `mature-pending-balance` (harian, 02:00) memindahkan reward yang sudah lewat masa tunggu: `pendingBalance -= amount`, `balance += amount`.
+- Baris `transactions` sumber ditandai `status: "matured"` agar tidak diproses dua kali; pemindahannya sendiri dicatat sebagai baris ledger baru bertipe `mature`.
+- Rilis escrow order (`release-escrow`) **tidak** lewat jalur ini — dana order langsung masuk `balance`.
+
 ## Tipe Transaksi
 
-`deposit | withdrawal | payment | refund | release | fee`
+`deposit | withdrawal | payment | refund | release | fee | mature`
 
 - `deposit` — dana masuk (top up).
 - `withdrawal` — pencairan dana keluar.
 - `payment` — pembayaran order oleh UMKM.
+- `mature` — pemindahan reward dari `pendingBalance` ke `balance`. Bukan pendapatan baru, jadi jangan ikut dijumlahkan sebagai earnings (`get-creator-dashboard-summary` hanya menghitung `release`).
 - `refund` — pengembalian dana.
 - `release` — pelepasan escrow ke creator.
 - `fee` — biaya platform.

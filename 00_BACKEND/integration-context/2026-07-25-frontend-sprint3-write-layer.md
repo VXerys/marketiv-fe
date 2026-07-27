@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Tanggal** | 2026-07-25 (diperbarui setelah merge dengan `27b7ea7`) |
+| **Tanggal** | 2026-07-25 (diperbarui setelah merge dengan `27b7ea7`) → 2026-07-27 (verifikasi B-1…B-5, lihat §Resolusi di bawah) |
 | **Pemicu** | Sprint 3 integrasi Appwrite — lapisan **tulis** satu-sisi. Sebelum sprint ini frontend punya **nol** fungsi tulis. |
-| **Status** | ✅ **Sudah di-merge ke `staging`.** Belum di-deploy ke Appwrite. |
+| **Status** | ✅ **B-1, B-2, B-4, B-5 selesai** · 🔴 **B-3 (`doAndDont` 400 char) masih terbuka** — lihat §Resolusi |
 | **Sifat** | 1 Function baru + perbaikan bug pada 2 Function + 1 perbaikan generator. **Nol perubahan skema.** |
 | **Terima kasih** | Blocker `APPWRITE_FUNCTION_API_KEY` sudah kalian selesaikan di `27b7ea7`. Kami verifikasi ulang setelah merge — hasilnya benar dan menyeluruh. Detail di §1. |
 
@@ -399,3 +399,37 @@ Tiga jalur Function **belum diuji end-to-end** karena belum di-deploy dengan kod
 - Helper ServiceResult bersama: `src/services/shared/service-result.ts`
 - Skema validasi per modul: `src/lib/validations/`
 - Handoff sebelumnya: `00_BACKEND/integration-context/2026-07-23-frontend-sprint2-appwrite-changes.md`
+
+---
+
+## ✅ Resolusi B-1…B-5 — diverifikasi 2026-07-27
+
+Diperiksa satu per satu terhadap kode saat ini, bukan diasumsikan dari commit message.
+
+| ID | Status | Bukti |
+|---|---|---|
+| **B-1** `create-payment` tanpa `total_amount` | ✅ Selesai | `create-payment/src/main.js:64-65` menulis `total_amount` + `fee_amount`, dan `:62` menulis `campaign_id` |
+| **B-2** `create-escrow` tanpa `remainingBudget` | ✅ Selesai | `create-escrow/src/main.js:118-124` — `completeTopup` mengkredit `campaigns.remainingBudget` untuk `purpose: "campaign"`. Ini juga resolusi T-4 |
+| **B-3** `campaign_briefs.doAndDont` 400 char | 🔴 **MASIH TERBUKA** | `appwrite.config.json` masih `size: 400`. Brief hasil AI tetap berisiko gagal simpan diam-diam. Perlu keputusan: naikkan ke 4000, atau potong di sisi penulis |
+| **B-4** `request-withdrawal` belum di-deploy | ✅ Selesai | Function #24 ada di `appwrite.config.json`, scopes terdaftar di `function-scopes.json`. `set-env-all-functions.sh` sudah tidak ada — env kini lewat Console/CLI |
+| **B-5** `addSocialAccount` menulis `creatorId` yang tak terbaca | ✅ **Diperbaiki hari ini** | Lihat di bawah |
+
+### B-5 — dikonfirmasi nyata, lalu diperbaiki
+
+Kedua pembacanya menjodohkan `creator_social_accounts.creatorId` dengan **`creator_profiles.userId`** (id akun Auth):
+
+- `get-creator-profile/src/main.js:72` — `Query.equal("creatorId", userId)`
+- `get-creator-directory/src/main.js:74` — `profiles.map((p) => str(p.userId))`
+
+Sedangkan penulisnya, `user.service.ts:306`, berbunyi `data.creatorId || creatorProfile.document.$id` — yaitu **`$id` dokumen profil**, bukan id Auth. Akun sosial yang ditulis lewat jalur ini tidak akan pernah muncul di direktori maupun halaman profil kreator.
+
+Ini kelas kesalahan yang sama persis dengan B-3 Sprint 4 (klaim selalu 404): mencampuradukkan `$id` dokumen dengan id akun Auth pada koleksi yang barisnya dibuat dengan `ID.unique()`.
+
+**Perbaikan:** `creatorId` selalu diambil dari sesi (`user.$id`). Parameter `data.creatorId` sengaja diabaikan dan ditandai `@deprecated` — selain salah kunci, ia membuat seorang kreator bisa menulis akun sosial atas nama orang lain.
+
+### Sisa yang belum ditinjau
+
+§5 item 3, 4, 6, 7 (konvensi tanda `transactions.amount`, permission union 17 koleksi, transaksi Appwrite, higiene `ai-brief`) dan §6 permintaan kolom selain `doAndDont` **belum** ditinjau ulang di pass ini.
+
+Catatan §4 (permission union): sebagian sudah tertutup — `withdrawals` tidak lagi punya `read("users")`, begitu pula `users`, `payments`, `user_files`, `user_storage_usage`, `wallets`, `conversations`, `messages`, `offers`, `orders`. Lihat §Resolusi di `2026-07-27-verifikasi-event-prefix-dan-sisa-wiring.md`.
+
