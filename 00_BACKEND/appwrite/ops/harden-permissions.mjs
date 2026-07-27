@@ -11,8 +11,9 @@
 // create, dan live masih 0 baris — jadi tidak ada pemilik yang bisa terkunci
 // dari datanya sendiri.
 //
-// MASIH DIKECUALIKAN: `deliverables` dan `revisions`. Row perm-nya baru
-// ditambahkan di order.service.ts dan belum ter-deploy; ketatkan menyusul.
+// Gelombang 3 (2026-07-28, prasyarat Sprint 4 Alur B): deliverables, revisions.
+// Row perm keduanya sudah dipasang order.service.ts dan sudah ter-deploy lewat
+// push tim backend 2026-07-27 — pengecualian gelombang 2 tidak berlaku lagi.
 //
 // Jalankan dengan --dry untuk melihat rencana tanpa menulis.
 import { aw, DB } from "./client.mjs";
@@ -83,6 +84,22 @@ const TARGETS = [
     permissions: [],
     rowSecurity: true,
     why: "nominal & pihak order semua user terbaca; row perm dipasang create-order:32",
+  },
+
+  // ── Gelombang 3 ────────────────────────────────────────────────────────
+  {
+    id: "deliverables",
+    permissions: ['create("users")'],
+    rowSecurity: true,
+    why:
+      'update("users") level koleksi = SIAPA PUN yang login bisa menyetujui deliverable siapa pun, ' +
+      "dan update itulah yang memicu release-escrow mencairkan dana; row perm dipasang order.service.ts:240",
+  },
+  {
+    id: "revisions",
+    permissions: ['create("users")'],
+    rowSecurity: true,
+    why: "isi & riwayat revisi semua order terbaca dan bisa diubah siapa pun; row perm dipasang order.service.ts:337",
   },
 ];
 

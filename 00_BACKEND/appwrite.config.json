@@ -318,6 +318,7 @@
           "type": "string",
           "required": false,
           "array": false,
+          "format": "enum",
           "elements": [
             "kuliner",
             "fashion",
@@ -326,6 +327,7 @@
             "kecantikan",
             "lainnya"
           ],
+          "size": 10,
           "default": null,
           "encrypt": false
         },
@@ -2209,9 +2211,7 @@
       "$id": "deliverables",
       "name": "Deliverables",
       "$permissions": [
-        "read(\"users\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -2317,9 +2317,7 @@
       "$id": "revisions",
       "name": "Revisions",
       "$permissions": [
-        "read(\"users\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -3013,11 +3011,13 @@
           "type": "string",
           "required": true,
           "array": false,
+          "format": "enum",
           "elements": [
             "brief",
             "fraud",
             "landing"
           ],
+          "size": 7,
           "default": null,
           "encrypt": false
         },

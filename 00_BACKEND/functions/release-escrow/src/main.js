@@ -1,5 +1,27 @@
 import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
 
+/**
+ * Mirror PLATFORM_FEE_RATE di 00_BACKEND/src/services/wallet.service.ts:6 dan
+ * src/types/domain.ts:117. Jangan menuliskan angka fee di tempat lain.
+ *
+ * ADR-008: Rate Card Order memakai fee SELLER-SIDE — UMKM membayar persis harga
+ * rate card, potongan 2% diambil dari pendapatan kreator saat escrow dirilis.
+ * (Campaign PPV sebaliknya, buyer-side, ditangani create-payment.)
+ *
+ * Sebelum ini Function mengkredit escrow PENUH ke kreator sementara
+ * get-creator-negotiations:138 sudah menampilkan potongan 2% ke layar kreator —
+ * angka layar dan angka wallet tidak pernah cocok, dan platform tidak pernah
+ * mencatat pendapatan apa pun dari Rate Card Mode.
+ */
+const PLATFORM_FEE_RATE = 0.02;
+
+/**
+ * Status order yang boleh menghasilkan pelepasan dana. Order `cancelled`,
+ * `completed`, atau `pending_payment` tidak boleh ikut cair hanya karena ada
+ * baris deliverable yang berpindah ke `approved`.
+ */
+const RELEASABLE_ORDER_STATUSES = new Set(["in_progress", "revision"]);
+
 export default async ({ req, res, log, error }) => {
   try {
     const env = getEnv(req);
@@ -15,21 +37,71 @@ export default async ({ req, res, log, error }) => {
     const creatorId = order.creatorId;
     if (!creatorId) return json(res, { error: "Order has no creator" }, 400);
 
+    // Payload event adalah baris deliverable apa adanya; `orderId`-nya dipakai
+    // untuk memuat order di atas, jadi keduanya sudah pasti sinkron. Yang belum
+    // diperiksa adalah apakah order-nya memang sedang berjalan.
+    if (!RELEASABLE_ORDER_STATUSES.has(String(order.status))) {
+      return json(res, { status: "ignored", reason: `order status is ${order.status}` });
+    }
+
     const escrow = await findHeldEscrow(databases, env, orderId);
     if (!escrow) return json(res, { status: "ignored", reason: "held escrow not found" });
 
     const wallet = await findWallet(databases, env, creatorId);
     if (!wallet) throw new Error(`Wallet not found for creator ${creatorId}`);
 
+    const escrowAmount = Number(escrow.amount);
+    const feeAmount = Math.floor(escrowAmount * PLATFORM_FEE_RATE);
+    // Sejajar calculateCreatorPayout() di src/services/wallet.service.ts:129.
+    const creatorAmount = escrowAmount - feeAmount;
+
+    // Urutannya sengaja: escrow di-flip ke `released` LEBIH DULU, baru wallet
+    // dikredit. Kalau eksekusi berhenti di antara keduanya, `findHeldEscrow`
+    // pada percobaan berikutnya mengembalikan null sehingga kreator tidak
+    // dibayar dua kali — dana tertahan dan bisa dikoreksi manual. Urutan
+    // sebaliknya (kredit dulu) akan membayar dua kali saat event terkirim ulang,
+    // dan itu tidak bisa ditarik kembali.
     await databases.updateDocument(env.databaseId, env.escrowsCollectionId, escrow.$id, { status: "released" });
     await databases.updateDocument(env.databaseId, env.walletsCollectionId, wallet.$id, {
-      balance: Number(wallet.balance || 0) + Number(escrow.amount)
+      balance: Number(wallet.balance || 0) + creatorAmount
     });
-    await ensureReleaseTransaction(databases, env, creatorId, escrow);
+
+    await ensureTransaction(databases, env, {
+      userId: creatorId,
+      amount: creatorAmount,
+      // `release` + referenceType `escrow` adalah kunci yang dibaca
+      // get-creator-dashboard-summary:99 sebagai pendapatan Rate Card. Nominalnya
+      // kini bersih setelah fee — itu memang yang diterima kreator.
+      type: "release",
+      referenceId: escrow.$id,
+      referenceType: "escrow",
+      status: "completed"
+    });
+
+    if (feeAmount > 0) {
+      await ensureTransaction(databases, env, {
+        userId: creatorId,
+        amount: feeAmount,
+        // Tipe `fee` tidak ikut terhitung sebagai pendapatan di dashboard
+        // (EARNING_TYPE = "release"), jadi baris ini murni jejak transparansi
+        // bagi kreator atas potongan yang diambil platform.
+        type: "fee",
+        referenceId: escrow.$id,
+        referenceType: "escrow",
+        status: "completed"
+      });
+    }
+
     await updateOrderCompleted(databases, env, orderId);
 
-    log(`Escrow ${escrow.$id} released to creator ${creatorId}`);
-    return json(res, { status: "ok", escrowId: escrow.$id, walletId: wallet.$id });
+    log(`Escrow ${escrow.$id} released to creator ${creatorId}: ${creatorAmount} net, ${feeAmount} fee`);
+    return json(res, {
+      status: "ok",
+      escrowId: escrow.$id,
+      walletId: wallet.$id,
+      creatorAmount,
+      feeAmount
+    });
   } catch (err) {
     error(err?.stack || err?.message || String(err));
     return json(res, { error: "Internal server error" }, 500);
@@ -77,11 +149,16 @@ async function findWallet(databases, env, userId) {
   return result.documents[0] || null;
 }
 
-async function ensureReleaseTransaction(databases, env, creatorId, escrow) {
+/**
+ * Satu baris ledger per (referenceId, referenceType, type). Dipakai dua kali:
+ * sekali untuk `release` (nominal bersih) dan sekali untuk `fee` (potongan
+ * platform). Karena `type` ikut jadi kunci, keduanya tidak saling menimpa.
+ */
+async function ensureTransaction(databases, env, transaction) {
   const existing = await databases.listDocuments(env.databaseId, env.transactionsCollectionId, [
-    Query.equal("referenceId", escrow.$id),
-    Query.equal("referenceType", "escrow"),
-    Query.equal("type", "release"),
+    Query.equal("referenceId", transaction.referenceId),
+    Query.equal("referenceType", transaction.referenceType),
+    Query.equal("type", transaction.type),
     Query.limit(1)
   ]);
   if (existing.documents[0]) return existing.documents[0];
@@ -90,15 +167,10 @@ async function ensureReleaseTransaction(databases, env, creatorId, escrow) {
     env.databaseId,
     env.transactionsCollectionId,
     ID.unique(),
-    {
-      userId: creatorId,
-      amount: Number(escrow.amount),
-      type: "release",
-      referenceId: escrow.$id,
-      referenceType: "escrow",
-      status: "completed"
-    },
-    [Permission.read(Role.user(creatorId))]
+    transaction,
+    // `transactions` punya $permissions kosong + rowSecurity, jadi permission
+    // baris adalah satu-satunya jalur baca bagi pemiliknya.
+    [Permission.read(Role.user(transaction.userId))]
   );
 }
 

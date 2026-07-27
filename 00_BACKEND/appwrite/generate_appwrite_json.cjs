@@ -20,8 +20,20 @@ const createBoolAttr = (key, required = false, def = null, array = false) => ({
 const createDatetimeAttr = (key, required = false, array = false) => ({
     key, type: "datetime", required, array, default: null
 });
+// `format` dan `size` WAJIB ikut ditulis. Tanpa keduanya `appwrite push tables`
+// gagal dengan `Missing required parameter: "size"` saat harus membuat ulang
+// kolomnya — itu yang menghentikan push di `creator_profiles.niche` (2026-07-27).
+// Nilai size mengikuti perilaku server Appwrite: sepanjang elemen terpanjang.
 const createEnumAttr = (key, required = false, elements = [], def = null) => ({
-    key, type: "string", required, array: false, elements, default: def, encrypt: false
+    key,
+    type: "string",
+    required,
+    array: false,
+    format: "enum",
+    elements,
+    size: Math.max(...elements.map((e) => e.length)),
+    default: def,
+    encrypt: false
 });
 
 const createIndex = (key, type, attributes, orders = []) => {
@@ -466,7 +478,14 @@ const collections = [
     {
         $id: "deliverables",
         name: "Deliverables",
-        $permissions: ["read(\"users\")", "create(\"users\")", "update(\"users\")"],
+        // Sengaja TANPA read/update("users"): permission Appwrite adalah union,
+        // jadi update("users") di sini membuat setiap user login bisa mengubah
+        // baris deliverable siapa pun — termasuk menyetujuinya, dan approve
+        // itulah yang memicu release-escrow mencairkan dana ke wallet kreator.
+        // Akses hanya lewat permission baris yang dipasang order.service.ts
+        // (read: kedua pihak, update: UMKM saja).
+        // JANGAN kembalikan read/update("users") di sini.
+        $permissions: ["create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -487,7 +506,10 @@ const collections = [
     {
         $id: "revisions",
         name: "Revisions",
-        $permissions: ["read(\"users\")", "create(\"users\")", "update(\"users\")"],
+        // Sejajar deliverables: isi & riwayat revisi order lain tidak boleh
+        // terbaca, apalagi diubah. Row perm dipasang order.service.ts
+        // (read + update: kedua pihak order).
+        $permissions: ["create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
