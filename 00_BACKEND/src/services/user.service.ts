@@ -61,6 +61,7 @@ export type UpdateProfileInput = Partial<{
 }>;
 
 export type AddSocialAccountInput = {
+  /** @deprecated Diabaikan — creatorId selalu diambil dari sesi. Lihat addSocialAccount. */
   creatorId?: string;
   platform: SocialPlatform;
   username: string;
@@ -302,8 +303,18 @@ export const addSocialAccount = async (data: AddSocialAccountInput): Promise<Cre
 
   try {
     const user = await account.get();
-    const creatorProfile = await getProfileDocument(user.$id, 'creator');
-    const creatorId = data.creatorId || creatorProfile.document.$id;
+    // Memastikan profil kreatornya ada sebelum menulis akun sosial.
+    await getProfileDocument(user.$id, 'creator');
+
+    // WAJIB id akun Auth, BUKAN `$id` dokumen creator_profiles. Kedua
+    // pembacanya menjodohkan `creator_social_accounts.creatorId` dengan
+    // `creator_profiles.userId` — get-creator-profile:72 dan
+    // get-creator-directory:74. Versi sebelumnya jatuh ke `document.$id`,
+    // jadi akun sosial yang ditulis di sini TIDAK PERNAH terbaca siapa pun.
+    // `data.creatorId` sengaja diabaikan: selain salah kunci, ia membuat
+    // kreator bisa menulis akun sosial atas nama orang lain.
+    const creatorId = user.$id;
+
     const document = await databases.createDocument(
       DATABASE_ID,
       COLLECTIONS.creatorSocialAccounts,

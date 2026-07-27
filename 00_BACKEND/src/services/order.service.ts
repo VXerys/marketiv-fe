@@ -238,6 +238,15 @@ export const uploadDeliverable = async (input: UploadDeliverableInput): Promise<
         version: currentVersion + 1,
         status: 'submitted',
       },
+      // Kedua pihak harus bisa membaca; kreator memperbarui saat kirim ulang,
+      // UMKM memperbarui saat approve — dan update itulah yang memicu
+      // `release-escrow`. Prasyarat sebelum read("users") level koleksi dicabut.
+      [
+        Permission.read(Role.user(order.umkmId)),
+        Permission.read(Role.user(order.creatorId)),
+        Permission.update(Role.user(order.umkmId)),
+        Permission.update(Role.user(order.creatorId)),
+      ],
     );
 
     if (order.status !== 'in_progress') {
@@ -323,6 +332,14 @@ export const requestRevision = async (input: RequestRevisionInput): Promise<Revi
         message: input.message,
         status: 'open',
       },
+      // Sejajar dengan deliverables: kedua pihak membaca, kedua pihak bisa
+      // menutup revisi (`status: 'resolved'`).
+      [
+        Permission.read(Role.user(order.umkmId)),
+        Permission.read(Role.user(order.creatorId)),
+        Permission.update(Role.user(order.umkmId)),
+        Permission.update(Role.user(order.creatorId)),
+      ],
     );
 
     await databases.updateDocument(DATABASE_ID, COLLECTIONS.orders, input.orderId, {
