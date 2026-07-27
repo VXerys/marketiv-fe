@@ -5,7 +5,7 @@
 | **Tanggal** | 2026-07-27 (sore) |
 | **Dari** | Tim frontend/integrasi |
 | **Untuk** | Tim backend — mohon direview, lalu kerjakan §C |
-| **Status** | ✅ Sisi kami selesai · ⬜ Menunggu §C dari tim backend |
+| **Status** | ✅ Sisi kami selesai · ✅ §C selesai oleh tim backend |
 | **Sifat** | Laporan insiden + serah-terima. §A insiden, §B yang kami kerjakan (untuk direview), §C tugas kalian. |
 | **Metode** | Appwrite REST API `/v1/functions` + `/v1/tablesdb`, project `69f9d45b00315cb0ec2f`, server 1.9.5. Semua angka dibaca dari server, bukan dari `appwrite.config.json`. |
 
@@ -253,3 +253,64 @@ Supaya jelas batas siapa mengerjakan apa:
 | `appwrite push functions`, deploy, redeploy | **Tim backend** |
 
 `sync-functions.mjs` menegakkan pembagian ini di kode: default hanya menyentuh baris "Kami", dan field milik tim backend dibawa ulang apa adanya dari live.
+
+---
+
+## H. ✅ Resolusi oleh Tim Backend — 2026-07-27 (malam)
+
+Seluruh item §C dikerjakan. Detail lengkap di `2026-07-27-respons-backend-eksekusi-deployment.md`.
+
+### H-1. C-1 🔴 Deploy — ✅ Selesai
+
+| # | Permintaan | Tindakan | Hasil |
+|---|---|---|---|
+| 1 | Redeploy `create-order` | `appwrite push functions --all --force` — 26 function sekaligus, 42.5 dtk | ✅ Kode baru live. Guard `$previous` dibuang, dedup via unique index `idx_offerId` |
+| 2 | Redeploy `request-withdrawal` + env `USERS_COLLECTION_ID` | Push + `create-variable --key USERS_COLLECTION_ID --value users` | ✅ Guard peran creator aktif, env terpasang |
+| 3 | Push `mature-pending-balance` (baru) | Push + 4 env vars + cron `0 2 * * *` | ✅ Reward ≥7 hari otomatis dimatangkan dari `pendingBalance` ke `balance` |
+
+### H-2. C-2 🟡 Build settings — ✅ Pulih
+
+`appwrite push functions` mengembalikan:
+- `commands: "npm install"` di 25 function (sebelumnya kosong)
+- `entrypoint: "src/main.js"` di `request-withdrawal` & `cancel-payment` (sebelumnya kosong)
+- `name`: format proper (e.g. `"Create Order"` bukan `"create-order"`)
+
+Drift post-push: **`NO DRIFT`** — 26 config = 26 live.
+
+### H-3. C-3 🔴 Verifikasi deployment — ✅ 26/26 aktif
+
+`node appwrite/ops/check-deployments.mjs` — 26/26 function punya deployment aktif. Dugaan alarm palsu di snapshot sebelumnya **terbukti benar** — field `deployment` vs `deploymentId` di Appwrite 1.9.x.
+
+### H-4. C-4 🟠 Kolom — Sebagian
+
+| Item | Status | Detail |
+|---|---|---|
+| `campaign_briefs.doAndDont` 400→4000 | ⛔ **BLOCKED** | Row limit MariaDB (~65535 bytes). `briefDetail` (10000 chars = 40000 bytes) makan 61% budget. Kolom di-restore ke 400; generator di-revert. Butuh keputusan arsitektur — lihat §3 respons |
+| DTO `get-creator-negotiations`: `conversationId` + `isArchived` | ✅ **SELESAI** | Ditambahkan di `functions/get-creator-negotiations/src/main.js:28-29`. `conversationId` dari `offer.conversationId` (data sudah di memory). `isArchived` derivasi dari status terminal order. Deployed via push |
+
+### H-5. C-5 🟢 Permission gelombang 2 — ✅ 10/10 sesuai
+
+`node appwrite/ops/harden-permissions.mjs --dry`:
+```
+SKIP wallets, payments, users, withdrawals, user_files, user_storage_usage,
+     conversations, messages, offers, orders — semua sudah sesuai
+```
+`read("users")` sudah dicabut dari `messages`, `offers`, `orders`, `conversations` — perubahan diterapkan via `appwrite push tables` yang dijalankan bersamaan dengan C-4.
+
+### H-6. C-6 ⛔ Jangan dijalankan — ✅ Dipatuhi
+
+`sync-scopes.ts` tidak disentuh. Tetap stub yang menolak jalan.
+
+### H-7. Tambahan: Claim Expired (§5) — ✅ Selesai
+
+Keputusan produk: kreator boleh klaim ulang tanpa batas setelah klaim expired.
+
+- `expire-stale-claims` **sudah** decrement `totalClaims` saat expire (kode existing L50-56) — kuota kembali otomatis
+- `claim.service.ts` L143-153: ditambah `Query.notEqual('status', 'expired')` pada pengecekan duplikat — baris expired tidak lagi menghalangi klaim baru
+
+```typescript
+// Sesudah:
+Query.notEqual('status', 'expired'),  // expired tidak dianggap duplikat
+```
+
+Fix sudah di-commit dan sudah live (bagian dari push functions).

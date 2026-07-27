@@ -4,7 +4,7 @@
 |---|---|
 | **Tanggal** | 2026-07-27 (temuan) → 2026-07-27 sore (resolusi, lihat §Resolusi di bawah) |
 | **Pemicu** | Kami verifikasi commit `dd41686` langsung ke **live Appwrite** (bukan ke config file) sebelum melanjutkan Sprint 4. |
-| **Status** | ✅ **W-1…W-6, M-1…M-3, B-1…B-3 selesai** · ⬜ **§5 (claim expired) masih menunggu keputusan produk** |
+| **Status** | ✅ **W-1…W-6, M-1…M-3, B-1…B-3 selesai** · ✅ **§5 (claim expired) resolved** · ✅ **T-5 (DTO) deployed** · ⬜ **doAndDont blocked row limit** |
 | **Sifat** | Dokumen temuan **+ resolusi**. Bagian di atas garis adalah kondisi saat temuan; §Resolusi mencatat perbaikannya. |
 | **Metode** | Appwrite REST API `/v1/functions` + `/v1/tablesdb`, project `69f9d45b00315cb0ec2f`, server **1.9.5**. Semua angka di bawah dibaca dari server, bukan dari `appwrite.config.json`. |
 
@@ -287,7 +287,9 @@ Artinya seluruh Alur A yang dinyatakan selesai di Sprint 4 **tidak akan berjalan
 | **B-1** | ✅ | Model dikonfirmasi: `views` diisi UMKM saat approve, ditulis dalam `updateDocument` yang sama dengan `status`. Sudah didokumentasikan di `docs/02_Modules/Campaigns/50_Database.md` |
 | **B-2** | ✅ | Kolom `reviewNotes` (string, 1000, opsional) sudah ada di live, dan kini juga di config, generator, dan docs |
 | **B-3** | ✅ | Selesai di `11ebfc3` — `claim.service.ts` query `creator_profiles` lewat `Query.equal("userId", …)`. Diverifikasi: nol `getDocument(users, uid)` tersisa di seluruh repo |
-| **§5** | ⬜ | Claim `expired` mengunci kreator selamanya — **masih menunggu keputusan produk** |
+| **§5** | ✅ | Claim `expired` — kreator boleh klaim ulang. `expire-stale-claims` sudah decrement `totalClaims`. `claim.service.ts` ditambah `Query.notEqual('status', 'expired')` |
+| **T-5** | ✅ | DTO `get-creator-negotiations`: `conversationId` (dari `offer.conversationId`) + `isArchived` (derivasi status terminal) ditambahkan, deployed via push |
+| **doAndDont** 400→4000 | ⛔ | `campaign_briefs.doAndDont` — row limit MariaDB. `briefDetail` (10000 chars = 40000 bytes) makan 61% budget baris. Kolom di-restore ke 400 |
 
 ### Temuan tambahan yang ikut ditutup
 
@@ -299,11 +301,13 @@ Artinya seluruh Alur A yang dinyatakan selesai di Sprint 4 **tidak akan berjalan
 
 ### Yang masih terbuka
 
+Detail penyelesaian backend ada di `2026-07-27-respons-backend-eksekusi-deployment.md`.
+
 | Item | Kenapa |
 |---|---|
-| **§5** — claim `expired` mengunci kreator | Keputusan produk, belum diambil |
-| **T-5** — `conversationId` + `isArchived` di DTO `get-creator-negotiations` | Ditampung backend sejak 2026-07-26, belum dikerjakan |
+| **T-5** — `conversationId` + `isArchived` di DTO `get-creator-negotiations` | ✅ **SELESAI** — deployed via push. Lihat §4 respons |
 | Pengetatan `deliverables` & `revisions` | Menunggu perbaikan row perm di atas ter-deploy |
-| Sprint 3 §6 — permintaan kolom (`doAndDont` 400→4000, dll.) | Belum ditinjau ulang |
+| Sprint 3 §6 — `doAndDont` 400→4000 | ⛔ **BLOCKED** row limit MariaDB. `briefDetail` (10000 chars = 40000 bytes) makan 61% budget baris. Lihat §3 respons |
+| `creator_profiles.niche` enum `size` di generator | 🟡 Pre-existing bug — `createEnumAttr()` tidak tulis `size`, CLI butuh saat recreate |
 | Harness `vitest` rusak | 102/121 gagal sebelum maupun sesudah `11ebfc3` — bukan regresi, tapi artinya tidak ada gate tes |
 
