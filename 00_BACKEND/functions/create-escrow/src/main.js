@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
 
 export default async ({ req, res, log, error }) => {
@@ -74,22 +75,44 @@ function parseBody(req) {
   return typeof rawBody === "object" ? rawBody : JSON.parse(rawBody);
 }
 
+/**
+ * Top-up (reguler maupun campaign).
+ *
+ * Urutannya sengaja: baris ledger dibuat sebagai `pending` LEBIH DULU dengan id
+ * deterministik, baru dana dikredit, baru ledger ditandai `completed`. Pola ini
+ * mengikuti request-withdrawal:50-99.
+ *
+ * Versi sebelumnya menulis ledger `completed` di awal lalu `return` saat baris
+ * itu sudah ada. Akibatnya kalau kredit gagal di tengah, panggilan ulang webhook
+ * Midtrans akan menemukan baris ledger lama dan berhenti SEBELUM mengkredit —
+ * uang tercatat di ledger tapi tidak pernah masuk ke mana pun, permanen.
+ *
+ * Dengan penanda `pending`, retry justru MENYELESAIKAN kredit yang tertunda.
+ */
 async function completeTopup(databases, env, payment) {
-  const wallet = await findWallet(databases, env, payment.user_id);
-  if (!wallet) throw new Error(`Wallet not found for user ${payment.user_id}`);
+  const isCampaign = payment.purpose === "campaign" && Boolean(payment.campaign_id);
 
-  const isCampaign = payment.purpose === "campaign" && payment.campaign_id;
+  // Wallet hanya relevan untuk top-up reguler. Jalur campaign tidak menyentuh
+  // wallet sama sekali (lihat V-2), jadi jangan gagalkan top-up campaign hanya
+  // karena UMKM belum punya baris wallet.
+  const wallet = isCampaign ? null : await findWallet(databases, env, payment.user_id);
+  if (!isCampaign && !wallet) throw new Error(`Wallet not found for user ${payment.user_id}`);
 
-  const result = await ensureTransaction(databases, env, {
+  const type = isCampaign ? "payment" : "deposit";
+  const ledgerId = deterministicId(payment.$id, type);
+
+  const claim = await claimLedgerRow(databases, env, {
+    id: ledgerId,
     userId: payment.user_id,
     amount: Number(payment.amount),
-    type: isCampaign ? "payment" : "deposit",
+    type,
     referenceId: payment.$id,
-    referenceType: "payment",
-    status: "completed"
+    referenceType: "payment"
   });
 
-  if (!result.created) return { walletId: wallet.$id };
+  if (claim.alreadyCompleted) {
+    return { walletId: wallet?.$id ?? null, status: "already_processed" };
+  }
 
   if (isCampaign) {
     // Campaign top-up: credit remainingBudget only — dana tidak masuk wallet bebas
@@ -101,13 +124,63 @@ async function completeTopup(databases, env, payment) {
       { remainingBudget: Number(campaign.remainingBudget || 0) + Number(payment.amount) }
     );
   } else {
-    // Regular top-up: credit wallet balance
-    await databases.updateDocument(env.databaseId, env.walletsCollectionId, wallet.$id, {
-      balance: Number(wallet.balance || 0) + Number(payment.amount)
+    // Baca ulang tepat sebelum menulis — Appwrite tidak punya compare-and-set.
+    const fresh = await findWallet(databases, env, payment.user_id);
+    if (!fresh) throw new Error(`Wallet not found for user ${payment.user_id}`);
+    await databases.updateDocument(env.databaseId, env.walletsCollectionId, fresh.$id, {
+      balance: Number(fresh.balance || 0) + Number(payment.amount)
     });
   }
 
-  return { walletId: wallet.$id };
+  await databases.updateDocument(env.databaseId, env.transactionsCollectionId, ledgerId, {
+    status: "completed"
+  });
+
+  return { walletId: wallet?.$id ?? null };
+}
+
+/**
+ * Klaim baris ledger sebagai penanda idempotensi.
+ *
+ * `transactions` tidak punya unique index untuk (referenceId, type), jadi id
+ * dokumen deterministik-lah kuncinya: create kedua dengan id sama gagal 409.
+ * Hasil: "tx" + 32 hex = 34 karakter, valid sebagai document id.
+ */
+async function claimLedgerRow(databases, env, tx) {
+  try {
+    await databases.createDocument(
+      env.databaseId,
+      env.transactionsCollectionId,
+      tx.id,
+      {
+        userId: tx.userId,
+        amount: tx.amount,
+        type: tx.type,
+        referenceId: tx.referenceId,
+        referenceType: tx.referenceType,
+        status: "pending"
+      },
+      // `transactions` punya $permissions kosong, jadi permission baris adalah
+      // satu-satunya jalur baca bagi pemiliknya.
+      [Permission.read(Role.user(tx.userId))]
+    );
+    return { alreadyCompleted: false };
+  } catch (err) {
+    if (err?.code !== 409) throw err;
+
+    // Baris sudah ada. `completed` = kredit sudah selesai, aman dilewati.
+    // `pending` = percobaan sebelumnya berhenti sebelum mengkredit, jadi
+    // biarkan pemanggil melanjutkannya.
+    const existing = await databases.getDocument(
+      env.databaseId, env.transactionsCollectionId, tx.id
+    );
+    return { alreadyCompleted: existing.status === "completed" };
+  }
+}
+
+function deterministicId(paymentId, type) {
+  const digest = createHash("sha256").update(`${paymentId}:${type}`).digest("hex");
+  return `tx${digest.slice(0, 32)}`;
 }
 
 async function findWallet(databases, env, userId) {

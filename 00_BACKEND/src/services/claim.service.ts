@@ -87,9 +87,27 @@ export const claimCampaign = async (campaignId: string): Promise<Claim> => {
       throw new ClaimServiceError('validation', 'Campaign tidak aktif.');
     }
 
-    // 2. Validasi profil lengkap (cek field isProfileCompleted di user)
-    const userDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.users, creatorId);
-    if (!userDoc.isProfileCompleted) {
+    // 2. Validasi profil lengkap.
+    //
+    // `isProfileCompleted` ada di `creator_profiles`, BUKAN di `users` — koleksi
+    // `users` hanya punya userId, role, status, email, phone, createdAt.
+    //
+    // Dan dokumen `creator_profiles` dibuat dengan `ID.unique()`
+    // (create-user-profile:129), jadi `$id`-nya acak sementara ID auth disimpan
+    // di kolom `userId`. Karena itu harus di-query lewat `userId`, bukan
+    // `getDocument` dengan creatorId sebagai document id — pola yang sama
+    // dipakai get-creator-profile:72 dan campaign-claimed:37-40.
+    const profileRes = await databases.listDocuments(DATABASE_ID, COLLECTIONS.creatorProfiles, [
+      Query.equal('userId', creatorId),
+      Query.limit(1),
+    ]);
+
+    const creatorProfile = profileRes.documents[0] as Record<string, any> | undefined;
+    if (!creatorProfile) {
+      throw new ClaimServiceError('validation', 'Profil kreator belum tersedia.');
+    }
+
+    if (!creatorProfile.isProfileCompleted) {
       throw new ClaimServiceError('validation', 'Lengkapi profil dulu sebelum claim.');
     }
 

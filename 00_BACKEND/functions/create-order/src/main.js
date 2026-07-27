@@ -1,4 +1,4 @@
-import { Client, Databases, ID } from "node-appwrite";
+import { Client, Databases, ID, Permission, Role } from "node-appwrite";
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -23,7 +23,18 @@ export default async ({ req, res, log, error }) => {
         umkmId: offer.umkmId,
         amount: Number(offer.price),
         status: "pending_payment",
-      }
+      },
+      // Kedua pihak order harus bisa membacanya, dan UMKM memperbarui statusnya
+      // (mis. pembatalan). Tanpa permission baris, order hanya terbaca selama
+      // `orders` masih punya read("users") di level koleksi — dan permission itu
+      // memberi akses ke order SEMUA orang. Baris ini prasyarat untuk
+      // mengetatkannya.
+      [
+        Permission.read(Role.user(offer.umkmId)),
+        Permission.read(Role.user(offer.creatorId)),
+        Permission.update(Role.user(offer.umkmId)),
+        Permission.update(Role.user(offer.creatorId)),
+      ]
     );
 
     log(`Order ${order.$id} created from offer ${offer.$id}`);
