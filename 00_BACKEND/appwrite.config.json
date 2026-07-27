@@ -3322,7 +3322,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.campaigns.documents.*.update"
+        "databases.6a4c8598001da3b0d7f0.tables.campaigns.rows.*.update"
       ],
       "schedule": "",
       "timeout": 15,
@@ -3354,7 +3354,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.campaign_submissions.documents.*.create"
+        "databases.6a4c8598001da3b0d7f0.tables.campaign_submissions.rows.*.create"
       ],
       "schedule": "",
       "timeout": 60,
@@ -3370,7 +3370,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.offers.documents.*.update"
+        "databases.6a4c8598001da3b0d7f0.tables.offers.rows.*.update"
       ],
       "schedule": "",
       "timeout": 15,
@@ -3386,7 +3386,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.campaign_submissions.documents.*.update"
+        "databases.6a4c8598001da3b0d7f0.tables.campaign_submissions.rows.*.update"
       ],
       "schedule": "",
       "timeout": 30,
@@ -3402,7 +3402,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.campaign_claims.documents.*.create"
+        "databases.6a4c8598001da3b0d7f0.tables.campaign_claims.rows.*.create"
       ],
       "schedule": "",
       "timeout": 15,
@@ -3480,7 +3480,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.payments.documents.*.update"
+        "databases.6a4c8598001da3b0d7f0.tables.payments.rows.*.update"
       ],
       "schedule": "",
       "timeout": 15,
@@ -3496,7 +3496,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.deliverables.documents.*.update"
+        "databases.6a4c8598001da3b0d7f0.tables.deliverables.rows.*.update"
       ],
       "schedule": "",
       "timeout": 15,
@@ -3512,7 +3512,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.messages.documents.*.create"
+        "databases.6a4c8598001da3b0d7f0.tables.messages.rows.*.create"
       ],
       "schedule": "",
       "timeout": 15,
