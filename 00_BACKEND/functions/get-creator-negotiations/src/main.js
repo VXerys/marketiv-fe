@@ -147,6 +147,8 @@ function toNegotiation(order, ctx) {
     finalPrice,
     deadline: str(offer?.deadline),
     status: str(order.status),
+    conversationId: str(offer?.conversationId),
+    isArchived: ["completed", "cancelled", "refunded", "disputed"].includes(str(order.status)),
     lastMessage: str(conversation?.last_message),
     lastMessageAt: str(conversation?.last_message_at),
     unreadCount: conversation ? ctx.unreadByConversationId.get(conversation.$id) ?? 0 : 0,

@@ -141,9 +141,12 @@ export const claimCampaign = async (campaignId: string): Promise<Claim> => {
     }
 
     // 5. Validasi unik (sudah claim sebelumnya?)
+    //    Klaim berstatus 'expired' tidak menghalangi klaim ulang — kreator
+    //    boleh mencoba lagi tanpa batas setelah klaim sebelumnya kedaluwarsa.
     const existingClaims = await databases.listDocuments(DATABASE_ID, COLLECTIONS.claims, [
       Query.equal('campaignId', campaignId),
       Query.equal('creatorId', creatorId),
+      Query.notEqual('status', 'expired'),
       Query.limit(1),
     ]);
 
