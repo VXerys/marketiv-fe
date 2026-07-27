@@ -12,9 +12,7 @@
     {
       "$id": "users",
       "name": "Users",
-      "$permissions": [
-        "read(\"users\")"
-      ],
+      "$permissions": [],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
       "rowSecurity": true,
@@ -615,9 +613,7 @@
     {
       "$id": "user_storage_usage",
       "name": "User Storage Usage",
-      "$permissions": [
-        "read(\"users\")"
-      ],
+      "$permissions": [],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
       "rowSecurity": true,
@@ -676,9 +672,7 @@
     {
       "$id": "user_files",
       "name": "User Files",
-      "$permissions": [
-        "read(\"users\")"
-      ],
+      "$permissions": [],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
       "rowSecurity": true,
@@ -1466,6 +1460,15 @@
           "size": 50,
           "default": null,
           "encrypt": false
+        },
+        {
+          "key": "reviewNotes",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 1000,
+          "default": null,
+          "encrypt": false
         }
       ],
       "indexes": [
@@ -1723,9 +1726,7 @@
       "$id": "conversations",
       "name": "Conversations",
       "$permissions": [
-        "read(\"users\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1835,9 +1836,7 @@
       "$id": "messages",
       "name": "Messages",
       "$permissions": [
-        "read(\"users\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1936,9 +1935,7 @@
       "$id": "offers",
       "name": "Offers",
       "$permissions": [
-        "read(\"users\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -2072,11 +2069,7 @@
     {
       "$id": "orders",
       "name": "Orders",
-      "$permissions": [
-        "read(\"users\")",
-        "create(\"users\")",
-        "update(\"users\")"
-      ],
+      "$permissions": [],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
       "rowSecurity": true,
@@ -2447,9 +2440,7 @@
     {
       "$id": "payments",
       "name": "Payments",
-      "$permissions": [
-        "read(\"users\")"
-      ],
+      "$permissions": [],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
       "rowSecurity": true,
@@ -2814,7 +2805,6 @@
       "$id": "withdrawals",
       "name": "Withdrawals",
       "$permissions": [
-        "read(\"users\")",
         "create(\"users\")"
       ],
       "enabled": true,
@@ -3266,7 +3256,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/create-user-profile"
+      "path": "functions/create-user-profile",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "validate-and-upload",
@@ -3282,7 +3276,13 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/validate-and-upload"
+      "path": "functions/validate-and-upload",
+      "scopes": [
+        "documents.read",
+        "documents.write",
+        "files.read",
+        "files.write"
+      ]
     },
     {
       "$id": "delete-file",
@@ -3298,7 +3298,13 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/delete-file"
+      "path": "functions/delete-file",
+      "scopes": [
+        "documents.read",
+        "documents.write",
+        "files.read",
+        "files.write"
+      ]
     },
     {
       "$id": "create-user-wallet",
@@ -3314,7 +3320,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/create-user-wallet"
+      "path": "functions/create-user-wallet",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "campaign-published",
@@ -3330,7 +3340,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/campaign-published"
+      "path": "functions/campaign-published",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "ai-brief",
@@ -3346,7 +3360,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/ai-brief"
+      "path": "functions/ai-brief",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "ai-fraud-precheck",
@@ -3362,7 +3380,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/ai-fraud-precheck"
+      "path": "functions/ai-fraud-precheck",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "create-order",
@@ -3378,7 +3400,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/create-order"
+      "path": "functions/create-order",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "calculate-campaign-reward",
@@ -3394,7 +3420,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/calculate-campaign-reward"
+      "path": "functions/calculate-campaign-reward",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "campaign-claimed",
@@ -3410,7 +3440,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/campaign-claimed"
+      "path": "functions/campaign-claimed",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "expire-stale-claims",
@@ -3424,7 +3458,29 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/expire-stale-claims"
+      "path": "functions/expire-stale-claims",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "mature-pending-balance",
+      "name": "Mature Pending Balance",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [],
+      "schedule": "0 2 * * *",
+      "timeout": 60,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/mature-pending-balance",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "create-payment",
@@ -3440,7 +3496,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/create-payment"
+      "path": "functions/create-payment",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "request-withdrawal",
@@ -3456,7 +3516,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/request-withdrawal"
+      "path": "functions/request-withdrawal",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "midtrans-webhook",
@@ -3472,7 +3536,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/midtrans-webhook"
+      "path": "functions/midtrans-webhook",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "create-escrow",
@@ -3488,7 +3556,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/create-escrow"
+      "path": "functions/create-escrow",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "release-escrow",
@@ -3504,7 +3576,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/release-escrow"
+      "path": "functions/release-escrow",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "send-chat-notification",
@@ -3520,7 +3596,12 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/send-chat-notification"
+      "path": "functions/send-chat-notification",
+      "scopes": [
+        "documents.read",
+        "documents.write",
+        "messages.write"
+      ]
     },
     {
       "$id": "get-umkm-dashboard-summary",
@@ -3536,7 +3617,10 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/get-umkm-dashboard-summary"
+      "path": "functions/get-umkm-dashboard-summary",
+      "scopes": [
+        "documents.read"
+      ]
     },
     {
       "$id": "get-umkm-finance-summary",
@@ -3552,7 +3636,10 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/get-umkm-finance-summary"
+      "path": "functions/get-umkm-finance-summary",
+      "scopes": [
+        "documents.read"
+      ]
     },
     {
       "$id": "get-umkm-profile",
@@ -3568,7 +3655,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/get-umkm-profile"
+      "path": "functions/get-umkm-profile",
+      "scopes": [
+        "documents.read",
+        "users.read"
+      ]
     },
     {
       "$id": "get-creator-directory",
@@ -3584,7 +3675,10 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/get-creator-directory"
+      "path": "functions/get-creator-directory",
+      "scopes": [
+        "documents.read"
+      ]
     },
     {
       "$id": "get-creator-profile",
@@ -3600,7 +3694,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/get-creator-profile"
+      "path": "functions/get-creator-profile",
+      "scopes": [
+        "documents.read",
+        "users.read"
+      ]
     },
     {
       "$id": "get-creator-dashboard-summary",
@@ -3616,7 +3714,10 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/get-creator-dashboard-summary"
+      "path": "functions/get-creator-dashboard-summary",
+      "scopes": [
+        "documents.read"
+      ]
     },
     {
       "$id": "get-creator-negotiations",
@@ -3632,7 +3733,10 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/get-creator-negotiations"
+      "path": "functions/get-creator-negotiations",
+      "scopes": [
+        "documents.read"
+      ]
     },
     {
       "$id": "cancel-payment",
@@ -3648,7 +3752,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/cancel-payment"
+      "path": "functions/cancel-payment",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     }
   ]
 }

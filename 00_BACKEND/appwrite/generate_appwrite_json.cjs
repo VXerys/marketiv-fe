@@ -36,7 +36,10 @@ const collections = [
     {
         $id: "users",
         name: "Users",
-        $permissions: ["read(\"users\")"],
+        // Kosong: read("users") level koleksi membuat email & telepon SEMUA user
+        // terbaca siapa pun yang login — permission Appwrite adalah union, bukan
+        // intersection. Baca hanya lewat permission baris (create-user-profile:96).
+        $permissions: [],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -147,7 +150,9 @@ const collections = [
     {
         $id: "user_storage_usage",
         name: "User Storage Usage",
-        $permissions: ["read(\"users\")"],
+        // Kosong: kuota & pemakaian semua user tidak boleh saling terbaca.
+        // Row perm dipasang create-user-profile:162.
+        $permissions: [],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -163,7 +168,9 @@ const collections = [
     {
         $id: "user_files",
         name: "User Files",
-        $permissions: ["read(\"users\")"],
+        // Kosong: daftar berkas semua user tidak boleh saling terbaca.
+        // Row perm dipasang validate-and-upload:66.
+        $permissions: [],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -306,7 +313,8 @@ const collections = [
             createIntAttr("engagement", false),
             createIntAttr("fraudScore", false),
             createStringAttr("fraudStatus", false, 50),
-            createStringAttr("status", true, 50)
+            createStringAttr("status", true, 50),
+            createStringAttr("reviewNotes", false, 1000)
         ],
         indexes: [
             createIndex("idx_claimId", "unique", ["claimId"]),
@@ -358,7 +366,9 @@ const collections = [
     {
         $id: "conversations",
         name: "Conversations",
-        $permissions: ["read(\"users\")", "create(\"users\")", "update(\"users\")"],
+        // read & update dicabut: daftar lawan bicara semua user terbaca.
+        // Row perm dipasang chat.service.ts:123 untuk kedua pihak.
+        $permissions: ["create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -379,7 +389,10 @@ const collections = [
     {
         $id: "messages",
         name: "Messages",
-        $permissions: ["read(\"users\")", "create(\"users\")", "update(\"users\")"],
+        // read & update dicabut: SELURUH isi chat semua user terbaca kalau
+        // dibiarkan. Row perm (read + update untuk kedua pihak) dipasang
+        // chat.service.ts:160.
+        $permissions: ["create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -399,7 +412,9 @@ const collections = [
     {
         $id: "offers",
         name: "Offers",
-        $permissions: ["read(\"users\")", "create(\"users\")", "update(\"users\")"],
+        // read & update dicabut: nilai & isi penawaran semua user terbaca.
+        // Row perm dipasang offer.service.ts:147-150.
+        $permissions: ["create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -423,7 +438,11 @@ const collections = [
     {
         $id: "orders",
         name: "Orders",
-        $permissions: ["read(\"users\")", "create(\"users\")", "update(\"users\")"],
+        // Kosong: nominal & pihak order semua user terbaca kalau read("users")
+        // dibiarkan. Baris orders HANYA dibuat Function create-order (row perm
+        // di :32-37), tidak pernah dari browser — jadi create("users") pun tidak
+        // diperlukan.
+        $permissions: [],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -505,7 +524,9 @@ const collections = [
     {
         $id: "payments",
         name: "Payments",
-        $permissions: ["read(\"users\")"],
+        // Kosong: snap_token, redirect_url, dan nominal semua user terbaca kalau
+        // read("users") dibiarkan. Row perm dipasang create-payment:74.
+        $permissions: [],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -576,7 +597,10 @@ const collections = [
     {
         $id: "withdrawals",
         name: "Withdrawals",
-        $permissions: ["read(\"users\")", "create(\"users\")"],
+        // read dicabut: nomor rekening & nominal penarikan semua user terbaca.
+        // create dipertahankan untuk jalur klien; row perm dipasang
+        // request-withdrawal:70.
+        $permissions: ["create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -897,6 +921,20 @@ const functions = [
         path: "../functions/expire-stale-claims"
     },
     {
+        $id: "mature-pending-balance",
+        name: "Mature Pending Balance",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "0 2 * * *",
+        timeout: 60,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/mature-pending-balance"
+    },
+    {
         $id: "create-payment",
         name: "Create Payment",
         runtime: "node-22",
@@ -1103,6 +1141,16 @@ const functions = [
 
 const appwriteConfigPath = path.join(__dirname, '..', 'appwrite.config.json');
 
+// Scopes menentukan hak dynamic API key (`x-appwrite-key`) tiap Function. Kalau
+// key ini tidak ikut ditulis ke appwrite.config.json, `appwrite push functions`
+// — yang punya replace-semantics — akan MENGOSONGKAN scopes di Appwrite, dan
+// setiap panggilan `databases.*` di dalam Function balik 401 secara senyap.
+// Itu yang terjadi pada 8 Function event-driven di commit dd41686.
+// function-scopes.json tetap satu-satunya sumber kebenaran; di sini ia hanya
+// disalin ke config supaya push membawanya.
+const functionScopesPath = path.join(__dirname, 'function-scopes.json');
+const functionScopes = JSON.parse(fs.readFileSync(functionScopesPath, 'utf-8'));
+
 const existingProjectId = "69f9d45b00315cb0ec2f";
 const existingProjectName = "Marketiv";
 
@@ -1120,10 +1168,20 @@ const config = {
     buckets,
     functions: functions
         .filter((fn) => fs.existsSync(path.join(__dirname, fn.path)))
-        .map(fn => ({
-            ...fn,
-            path: fn.path.replace('../', '')
-        }))
+        .map(fn => {
+            const scopes = functionScopes[fn.$id];
+            if (!scopes) {
+                throw new Error(
+                    `Function "${fn.$id}" tidak punya entry di function-scopes.json. ` +
+                    `Tambahkan dulu — tanpa scopes, Function tidak bisa memanggil API Appwrite.`
+                );
+            }
+            return {
+                ...fn,
+                scopes,
+                path: fn.path.replace('../', '')
+            };
+        })
 };
 fs.writeFileSync(appwriteConfigPath, JSON.stringify(config, null, 2));
 console.log(`Successfully generated ${appwriteConfigPath}`);
