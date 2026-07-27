@@ -13,6 +13,9 @@ export type {
   TransactionStatus,
   TransactionType,
   OrderStatus,
+  OfferStatus,
+  EscrowStatus,
+  NegotiationStage,
   MessageType,
   RateCardStatus,
 } from "./domain";
@@ -24,6 +27,9 @@ import type {
   TransactionStatus,
   TransactionType,
   OrderStatus,
+  OfferStatus,
+  EscrowStatus,
+  NegotiationStage,
   MessageType,
   RateCardStatus,
 } from "./domain";
@@ -141,32 +147,76 @@ export interface RateCardPackage {
   status: RateCardStatus;
 }
 
+/**
+ * Satu ruang negosiasi dari sisi UMKM — DTO `get-umkm-negotiations`.
+ *
+ * DI-KEY OLEH `conversationId`, BUKAN `orderId`. Di Alur B urutannya
+ * chat → offer → accept → order, jadi order lahir paling akhir dan sebagian
+ * besar hidup ruang ini berjalan tanpa order. Karena itu seluruh field offer
+ * dan order bersifat opsional; `stage` adalah satu-satunya penanda tahap yang
+ * selalu terisi.
+ *
+ * Nama tipe dipertahankan supaya diff-nya tidak menyebar ke seluruh komponen.
+ */
 export interface NegotiationOrder {
+  /** = conversationId. Kunci route `/negosiasi/[id_conversation]`. */
   id: string;
-  umkmId: string;
+  conversationId: string;
+  stage: NegotiationStage;
+
   creatorId: string;
   creatorName: string;
   creatorAvatarUrl: string;
-  projectTitle: string;
-  scope: string;
-  finalPrice: number;
-  deadline: string;
-  /** orders.status kanon */
-  status: OrderStatus;
+
   lastMessage: string;
   lastMessageAt: string;
   unreadCount: number;
+  /** `conversations.is_archived` — keputusan pengguna, bukan turunan status. */
+  isArchived: boolean;
+
+  /** Terisi sejak UMKM mengirim Custom Offer. */
+  offerId?: string;
+  offerStatus?: OfferStatus;
+  projectTitle: string;
+  scope: string;
+  deadline: string;
+  revisionCount?: number;
+
+  /** Terisi setelah kreator accept dan `create-order` selesai (asinkron). */
+  orderId?: string;
+  orderStatus?: OrderStatus;
+  escrowStatus?: EscrowStatus;
+  deliverables?: string;
+  submittedCollabUrl?: string;
+
+  /** Harga order kalau sudah ada, kalau belum harga offer yang ditawar. */
+  finalPrice: number;
+  /**
+   * Selalu 0 untuk UMKM. Rate Card Order adalah seller-side (ADR-008): UMKM
+   * membayar persis harga rate card, potongan 2% ditanggung kreator saat escrow
+   * dirilis. Field ini ada supaya bentuknya sejajar dengan sisi kreator.
+   */
+  platformFee: number;
+  /** = finalPrice. Yang dibayar UMKM. */
+  totalAmount: number;
 }
 
 export interface ChatMessage {
   id: string;
-  orderId: string;
+  /**
+   * `messages.conversation_id`. Dulu bernama `orderId`, dan pembacanya memang
+   * mengirim orderId ke `Query.equal("conversation_id", …)` — kunci yang tidak
+   * akan pernah cocok, sehingga chat UMKM selalu kosong.
+   */
+  conversationId: string;
   senderId: string;
   senderRole: "umkm" | "creator" | "system";
   /** messages.message_type kanon */
   type: MessageType;
   content: string;
+  /** Terisi saat `type === "offer"`. `offerId` dibutuhkan aksi hapus/terima. */
   offerData?: {
+    offerId: string;
     finalPrice: number;
     scope: string;
     deadline: string;

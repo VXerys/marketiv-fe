@@ -1145,6 +1145,23 @@ const functions = [
         path: "../functions/get-creator-negotiations"
     },
     {
+        // Pasangan sisi UMKM dari get-creator-negotiations. Join-nya identik;
+        // yang berbeda hanya filter peserta, profil lawan bicara, dan semantik
+        // fee (seller-side, ADR-008 — UMKM bayar penuh, fee 0).
+        $id: "get-umkm-negotiations",
+        name: "Get Umkm Negotiations",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 30,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/get-umkm-negotiations"
+    },
+    {
         $id: "cancel-payment",
         name: "Cancel Payment",
         runtime: "node-22",

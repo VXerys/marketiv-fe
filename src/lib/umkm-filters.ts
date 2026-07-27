@@ -103,7 +103,7 @@ export function filterNegotiations(
   }
 
   if (filters.status && filters.status !== "all") {
-    result = result.filter((n) => n.status === filters.status);
+    result = result.filter((n) => n.stage === filters.status);
   }
 
   if (filters.sortBy) {

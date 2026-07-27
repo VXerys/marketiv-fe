@@ -23,7 +23,11 @@ export const FUNCTION_IDS = {
   creatorDirectory: "get-creator-directory",
   creatorProfile: "get-creator-profile",
   creatorDashboardSummary: "get-creator-dashboard-summary",
+  // Pasangan DTO ruang negosiasi. Keduanya di-key conversationId dan menjoin
+  // offers → orders → escrows; yang berbeda hanya sisi peserta dan semantik fee
+  // (seller-side, ADR-008). Lihat header masing-masing Function.
   creatorNegotiations: "get-creator-negotiations",
+  umkmNegotiations: "get-umkm-negotiations",
   // ── Tulis / aksi (Sprint 3) ──────────────────────────────────────────────
   aiBrief: "ai-brief",
   createPayment: "create-payment",

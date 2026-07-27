@@ -10,6 +10,8 @@ import type {
   SubmissionStatus,
   FraudStatus,
   OrderStatus,
+  OfferStatus,
+  NegotiationStage,
   EscrowStatus,
   RateCardStatus,
   TransactionStatus,
@@ -24,6 +26,8 @@ export type {
   SubmissionStatus,
   FraudStatus,
   OrderStatus,
+  OfferStatus,
+  NegotiationStage,
   EscrowStatus,
   RateCardStatus,
   TransactionStatus,
@@ -177,27 +181,59 @@ export interface CreatorSubmission {
   earnings: number;
 }
 
+/**
+ * Satu ruang negosiasi dari sisi Kreator — DTO `get-creator-negotiations`.
+ *
+ * DI-KEY OLEH `conversationId`, BUKAN `orderId`. Di Alur B urutannya
+ * chat → offer → accept → order, jadi order lahir paling akhir dan sebagian
+ * besar hidup ruang ini berjalan tanpa order. Karena itu seluruh field offer
+ * dan order bersifat opsional; `stage` adalah satu-satunya penanda tahap yang
+ * selalu terisi.
+ *
+ * Bentuknya sejajar dengan `NegotiationOrder` di umkm-dashboard.types.ts —
+ * yang berbeda hanya identitas lawan bicara dan semantik fee.
+ */
 export interface CreatorNegotiation {
-  id: string; // orderId
+  /** = conversationId. Kunci route `/negosiasi/[id_conversation]`. */
+  id: string;
+  conversationId: string;
+  stage: NegotiationStage;
+
   umkmId: string;
   umkmName: string;
   umkmAvatarUrl: string;
-  projectTitle: string;
-  scope: string;
-  finalPrice: number;
-  deadline: string;
-  /** orders.status kanon */
-  status: OrderStatus;
+
   lastMessage: string;
   lastMessageAt: string;
   unreadCount: number;
-  deliverables?: string;
+  /** `conversations.is_archived` — keputusan pengguna, bukan turunan status. */
+  isArchived: boolean;
+
+  /** Terisi sejak UMKM mengirim Custom Offer. */
+  offerId?: string;
+  offerStatus?: OfferStatus;
+  projectTitle: string;
+  scope: string;
+  deadline: string;
   revisionCount?: number;
-  platformFee?: number;
-  totalAmount?: number;
+
+  /** Terisi setelah kreator accept dan `create-order` selesai (asinkron). */
+  orderId?: string;
+  orderStatus?: OrderStatus;
   /** escrows.status kanon */
   escrowStatus?: EscrowStatus;
+  deliverables?: string;
   submittedCollabUrl?: string;
+
+  /** Harga order kalau sudah ada, kalau belum harga offer yang ditawar. */
+  finalPrice: number;
+  /**
+   * Potongan 2% yang ditanggung kreator. Rate Card Order adalah seller-side
+   * (ADR-008) — UMKM membayar `finalPrice` penuh, kreator menerima sisanya.
+   */
+  platformFee: number;
+  /** = finalPrice - platformFee. Yang DITERIMA kreator. */
+  totalAmount: number;
 }
 
 export interface CreatorRateCardPackage {

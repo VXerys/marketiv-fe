@@ -81,8 +81,8 @@ export function NegotiationRoomCard({
   isArchived = false,
   onToggleArchive,
 }: NegotiationRoomCardProps) {
-  const statusDetail = getStatusDetails(order.status);
-  const style = STATUS_STYLE[order.status] ?? STATUS_STYLE.cancelled;
+  const statusDetail = getStatusDetails(order.stage);
+  const style = STATUS_STYLE[order.stage] ?? STATUS_STYLE.cancelled;
 
   return (
     <div

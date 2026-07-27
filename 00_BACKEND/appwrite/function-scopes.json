@@ -17,6 +17,7 @@
   "get-creator-profile": ["documents.read", "users.read"],
   "get-umkm-dashboard-summary": ["documents.read"],
   "get-umkm-finance-summary": ["documents.read"],
+  "get-umkm-negotiations": ["documents.read"],
   "get-umkm-profile": ["documents.read", "users.read"],
   "mature-pending-balance": ["documents.read", "documents.write"],
   "midtrans-webhook": ["documents.read", "documents.write"],

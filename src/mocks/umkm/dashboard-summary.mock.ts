@@ -14,7 +14,7 @@ export function getCalculatedDashboardSummary(): UmkmDashboardSummary {
   const campaignSpent = mockCampaigns.reduce((sum, c) => sum + c.usedBudget, 0);
   // Spent budget from completed rate card orders
   const rateCardSpent = mockNegotiations
-    .filter((n) => n.status === "completed")
+    .filter((n) => n.stage === "completed")
     .reduce((sum, n) => sum + n.finalPrice, 0);
   const totalSpent = campaignSpent + rateCardSpent;
 
@@ -23,16 +23,17 @@ export function getCalculatedDashboardSummary(): UmkmDashboardSummary {
     .filter((c) => c.status === "active")
     .reduce((sum, c) => sum + (c.totalBudgetEscrow - c.usedBudget), 0);
   const rateCardEscrow = mockNegotiations
-    .filter((n) => n.status === "escrow" || n.status === "in_progress" || n.status === "revision" || n.status === "approved")
+    .filter((n) => ["escrow", "in_progress", "revision", "approved"].includes(n.stage))
     .reduce((sum, n) => sum + n.finalPrice, 0);
   const escrowBalance = campaignEscrow + rateCardEscrow;
 
   const pendingSubmissions = mockSubmissions.filter((s) => s.validationStatus === "pending").length;
-  // Order yang masih berjalan (belum completed/cancelled) dihitung sebagai negosiasi aktif
+  // Ruang yang masih berjalan (belum completed/cancelled) dihitung sebagai negosiasi
+  // aktif — termasuk yang masih tahap chat/offer, karena itu memang negosiasi.
   const activeNegotiations = mockNegotiations.filter(
-    (n) => n.status !== "completed" && n.status !== "cancelled"
+    (n) => n.stage !== "completed" && n.stage !== "cancelled"
   ).length;
-  const pendingPayments = mockNegotiations.filter((n) => n.status === "pending_payment").length;
+  const pendingPayments = mockNegotiations.filter((n) => n.stage === "pending_payment").length;
 
   return {
     activeCampaigns,

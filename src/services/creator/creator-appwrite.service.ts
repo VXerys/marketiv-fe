@@ -87,6 +87,7 @@ const COLLECTIONS = {
   transactions: "transactions",
   notifications: "notifications",
   orders: "orders",
+  offers: "offers",
 } as const;
 
 const PAGE_LIMIT = 100;
@@ -271,7 +272,10 @@ export async function getCreatorMetricsFromAppwrite(): Promise<ServiceResult<Cre
   }
 }
 
-/** Join orders + offers + escrows + conversations + messages + umkm_profiles. */
+/**
+ * Join conversations + offers + orders + escrows + messages + umkm_profiles.
+ * Di-key conversationId — di Alur B order lahir paling akhir.
+ */
 export async function getCreatorNegotiationsFromAppwrite(): Promise<ServiceResult<CreatorNegotiation[]>> {
   try {
     const data = await executeFunction<CreatorNegotiation[]>(FUNCTION_IDS.creatorNegotiations);
@@ -282,11 +286,11 @@ export async function getCreatorNegotiationsFromAppwrite(): Promise<ServiceResul
 }
 
 export async function getCreatorNegotiationByIdFromAppwrite(
-  id: string
+  conversationId: string
 ): Promise<ServiceResult<CreatorNegotiation>> {
   try {
     const data = await executeFunction<CreatorNegotiation>(FUNCTION_IDS.creatorNegotiations, {
-      orderId: id,
+      conversationId,
     });
     return { success: true, data };
   } catch (err) {
@@ -296,6 +300,46 @@ export async function getCreatorNegotiationByIdFromAppwrite(
     return failFromError<CreatorNegotiation>(err, null as unknown as CreatorNegotiation);
   }
 }
+
+/**
+ * Terima / tolak Custom Offer. Ini SATU-SATUNYA aksi kreator terhadap offer —
+ * membuat offer adalah hak UMKM (docs/02_Modules/Offers/30_Business_Rules.md:13),
+ * dan permission baris offer memang hanya memberi kreator `update`.
+ *
+ * ⚠️ ORDER TIDAK DIBUAT DI SINI. `create-order` dipicu event
+ * `offers.rows.*.update` dan berjalan ASINKRON — beberapa detik setelah tulisan
+ * ini masuk. Pemanggil harus mem-poll, bukan menganggap ordernya langsung ada.
+ * Membuat order dari klien juga akan ditolak: `orders` punya `$permissions`
+ * kosong, hanya Function yang bisa menulis ke sana.
+ */
+async function setOfferStatusInAppwrite(
+  offerId: string,
+  status: "accepted" | "rejected"
+): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    const offer = (await databases.getDocument(DB, COLLECTIONS.offers, offerId)) as unknown as Doc;
+
+    if (str(offer.creatorId) !== auth.userId) {
+      return fail("Hanya kreator penerima yang dapat menjawab penawaran ini.", "forbidden", null);
+    }
+    if (str(offer.status) !== "pending") {
+      return fail("Penawaran ini sudah dijawab sebelumnya.", "validation", null);
+    }
+
+    await databases.updateDocument(DB, COLLECTIONS.offers, offerId, { status });
+    return ok(null);
+  } catch (err) {
+    return failFromWriteError<null>(err, null);
+  }
+}
+
+export const acceptOfferInAppwrite = (offerId: string) =>
+  setOfferStatusInAppwrite(offerId, "accepted");
+
+export const rejectOfferInAppwrite = (offerId: string) =>
+  setOfferStatusInAppwrite(offerId, "rejected");
 
 // ── READS query langsung ─────────────────────────────────────────────────────
 

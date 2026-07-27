@@ -45,14 +45,14 @@ interface NegotiationSummaryCardsProps {
 }
 
 export function NegotiationSummaryCards({ negotiations }: NegotiationSummaryCardsProps) {
-  const activeCount = negotiations.filter((n) => n.status === "in_progress").length;
-  const waitingPaymentCount = negotiations.filter((n) => n.status === "pending_payment").length;
+  const activeCount = negotiations.filter((n) => n.stage === "in_progress").length;
+  const waitingPaymentCount = negotiations.filter((n) => n.stage === "pending_payment").length;
   const escrowStatuses = ["escrow", "in_progress", "revision", "approved"];
-  const escrowCount = negotiations.filter((n) => escrowStatuses.includes(n.status)).length;
-  const completedCount = negotiations.filter((n) => n.status === "completed").length;
-  const disputeCount = negotiations.filter((n) => n.status === "cancelled").length;
+  const escrowCount = negotiations.filter((n) => escrowStatuses.includes(n.stage)).length;
+  const completedCount = negotiations.filter((n) => n.stage === "completed").length;
+  const disputeCount = negotiations.filter((n) => n.stage === "cancelled").length;
   const escrowLockedValue = negotiations
-    .filter((n) => escrowStatuses.includes(n.status))
+    .filter((n) => escrowStatuses.includes(n.stage))
     .reduce((sum, n) => sum + n.finalPrice, 0);
 
   return (

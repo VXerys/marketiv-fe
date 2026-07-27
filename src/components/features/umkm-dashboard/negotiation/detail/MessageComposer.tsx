@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import type { OrderStatus } from "@/types/domain";
+import type { NegotiationStage } from "@/types/domain";
 
 interface MessageComposerProps {
   onSendMessage: (content: string) => void;
-  orderStatus?: OrderStatus;
+  /** Tahap ruang — menentukan aksi cepat mana yang masuk akal saat ini. */
+  stage?: NegotiationStage;
   onSendOffer?: () => void;
   onPay?: () => void;
-  onVerify?: () => void;
+  /** Nonaktifkan input selama pesan sedang dikirim. */
+  sending?: boolean;
 }
 
 interface QuickAction {
@@ -19,10 +21,10 @@ interface QuickAction {
 
 export function MessageComposer({
   onSendMessage,
-  orderStatus,
+  stage,
   onSendOffer,
   onPay,
-  onVerify,
+  sending = false,
 }: MessageComposerProps) {
   const [content, setContent] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -58,25 +60,22 @@ export function MessageComposer({
   const buildQuickActions = (): QuickAction[] => {
     const actions: QuickAction[] = [];
 
-    if (orderStatus === "pending_payment" && onSendOffer) {
+    // Custom Offer boleh dikirim selama belum ada offer yang menunggu jawaban:
+    // saat masih ngobrol, atau setelah tawaran sebelumnya ditolak. Versi lama
+    // hanya memunculkannya di `pending_payment` — tahap yang justru sudah
+    // TERLAMBAT untuk menawar, karena ordernya sudah terbentuk.
+    if ((stage === "chatting" || stage === "offer_rejected") && onSendOffer) {
       actions.push({
         icon: "💰",
-        label: "Ajukan Nego Harga",
+        label: "Kirim Custom Offer",
         handler: () => { onSendOffer(); setMenuOpen(false); },
       });
     }
-    if (orderStatus === "pending_payment" && onPay) {
+    if (stage === "pending_payment" && onPay) {
       actions.push({
         icon: "💳",
         label: "Lakukan Pembayaran",
         handler: () => { onPay(); setMenuOpen(false); },
-      });
-    }
-    if (orderStatus === "approved" && onVerify) {
-      actions.push({
-        icon: "✅",
-        label: "Verifikasi Collab Post",
-        handler: () => { onVerify(); setMenuOpen(false); },
       });
     }
 
@@ -98,7 +97,7 @@ export function MessageComposer({
   };
 
   const quickActions = buildQuickActions();
-  const canSend = content.trim().length > 0;
+  const canSend = content.trim().length > 0 && !sending;
 
   return (
     <div

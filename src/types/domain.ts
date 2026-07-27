@@ -59,6 +59,29 @@ export type DeliverableStatus = "submitted" | "revision_requested" | "approved";
 export type DeliverableSource = "storage" | "external_url";
 export type RevisionStatus = "open" | "resolved";
 
+/**
+ * Tahap ruang negosiasi — satu field yang bisa di-switch UI.
+ *
+ * Dibutuhkan karena `OrderStatus` tidak punya nilai untuk "order belum ada",
+ * padahal di Alur B order lahir paling akhir (chat → offer → accept → order).
+ * Tiga nilai pertama menutupi rentang sebelum order muncul; sisanya adalah
+ * `OrderStatus` apa adanya, karena begitu order lahir statusnyalah yang
+ * menentukan.
+ *
+ * Diturunkan di Function (`deriveStage` di get-{umkm,creator}-negotiations),
+ * bukan di klien — supaya kedua dashboard tidak bisa berbeda pendapat.
+ */
+export type NegotiationStage =
+  /** Percakapan sudah ada, belum ada offer sama sekali. */
+  | "chatting"
+  /** UMKM sudah mengirim offer, kreator belum menjawab. */
+  | "offer_pending"
+  /** Kreator menolak; UMKM boleh menawar ulang. */
+  | "offer_rejected"
+  /** Offer diterima, `create-order` belum selesai membuat ordernya (asinkron). */
+  | "awaiting_order"
+  | OrderStatus;
+
 // ---------------------------------------------------------------------------
 // Finansial
 // ---------------------------------------------------------------------------

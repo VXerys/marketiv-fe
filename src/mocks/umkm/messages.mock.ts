@@ -1,10 +1,10 @@
 import { ChatMessage } from "@/types/umkm-dashboard.types";
 
 export const mockChatMessages: Record<string, ChatMessage[]> = {
-  order_001: [
+  conv_001: [
     {
       id: "msg_001_1",
-      orderId: "order_001",
+      conversationId: "conv_001",
       senderId: "umkm_001",
       senderRole: "umkm",
       type: "text",
@@ -14,7 +14,7 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
     },
     {
       id: "msg_001_2",
-      orderId: "order_001",
+      conversationId: "conv_001",
       senderId: "creator_001",
       senderRole: "creator",
       type: "text",
@@ -24,7 +24,7 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
     },
     {
       id: "msg_001_3",
-      orderId: "order_001",
+      conversationId: "conv_001",
       senderId: "umkm_001",
       senderRole: "umkm",
       type: "text",
@@ -34,7 +34,7 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
     },
     {
       id: "msg_001_4",
-      orderId: "order_001",
+      conversationId: "conv_001",
       senderId: "creator_001",
       senderRole: "creator",
       type: "text",
@@ -44,7 +44,7 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
     },
     {
       id: "msg_001_5",
-      orderId: "order_001",
+      conversationId: "conv_001",
       senderId: "umkm_001",
       senderRole: "umkm",
       type: "text",
@@ -54,12 +54,13 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
     },
     {
       id: "msg_001_6",
-      orderId: "order_001",
+      conversationId: "conv_001",
       senderId: "creator_001",
       senderRole: "creator",
       type: "offer",
       content: "Penawaran Khusus: Promosi Sambal Matah Botolan",
       offerData: {
+        offerId: "offer_001",
         finalPrice: 600000,
         scope: "1 video review TikTok durasi 45 detik + Collab Post Instagram Reels, batas 2x revisi.",
         deadline: "2026-06-15T00:00:00.000Z",
@@ -70,7 +71,7 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
     },
     {
       id: "msg_001_7",
-      orderId: "order_001",
+      conversationId: "conv_001",
       senderId: "creator_001",
       senderRole: "creator",
       type: "text",
@@ -79,10 +80,10 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
       createdAt: "2026-06-04T12:00:00.000Z",
     }
   ],
-  order_002: [
+  conv_002: [
     {
       id: "msg_002_1",
-      orderId: "order_002",
+      conversationId: "conv_002",
       senderId: "umkm_001",
       senderRole: "umkm",
       type: "text",
@@ -92,7 +93,7 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
     },
     {
       id: "msg_002_2",
-      orderId: "order_002",
+      conversationId: "conv_002",
       senderId: "creator_002",
       senderRole: "creator",
       type: "text",
@@ -102,12 +103,13 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
     },
     {
       id: "msg_002_3",
-      orderId: "order_002",
+      conversationId: "conv_002",
       senderId: "creator_002",
       senderRole: "creator",
       type: "offer",
       content: "Penawaran Khusus: Ulasan Katering Nasi Kotak Sehat",
       offerData: {
+        offerId: "offer_001",
         finalPrice: 350000,
         scope: "1 video Instagram Reel (Collab Post) ulasan menu makan siang diet, 1x revisi.",
         deadline: "2026-06-12T00:00:00.000Z",
@@ -118,7 +120,7 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
     },
     {
       id: "msg_002_4",
-      orderId: "order_002",
+      conversationId: "conv_002",
       senderId: "system",
       senderRole: "system",
       type: "system",
@@ -127,10 +129,10 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
       createdAt: "2026-06-04T10:30:00.000Z",
     }
   ],
-  order_003: [
+  conv_003: [
     {
       id: "msg_003_1",
-      orderId: "order_003",
+      conversationId: "conv_003",
       senderId: "umkm_001",
       senderRole: "umkm",
       type: "text",
@@ -140,7 +142,7 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
     },
     {
       id: "msg_003_2",
-      orderId: "order_003",
+      conversationId: "conv_003",
       senderId: "creator_003",
       senderRole: "creator",
       type: "text",
@@ -150,12 +152,13 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
     },
     {
       id: "msg_003_3",
-      orderId: "order_003",
+      conversationId: "conv_003",
       senderId: "creator_003",
       senderRole: "creator",
       type: "offer",
       content: "Penawaran Khusus: ASMR Makan Brownies Ubi Cilembu",
       offerData: {
+        offerId: "offer_001",
         finalPrice: 500000,
         scope: "1 TikTok ASMR Video + Raw footage aset promosi",
         deadline: "2026-06-10T00:00:00.000Z",
@@ -166,7 +169,7 @@ export const mockChatMessages: Record<string, ChatMessage[]> = {
     },
     {
       id: "msg_003_4",
-      orderId: "order_003",
+      conversationId: "conv_003",
       senderId: "system",
       senderRole: "system",
       type: "system",

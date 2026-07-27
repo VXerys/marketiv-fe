@@ -1,5 +1,10 @@
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
 import { mockDelay } from "@/lib/mock-delay";
+import type { ChatMessage } from "@/types/umkm-dashboard.types";
+import {
+  sendMessageInAppwrite,
+  getMessagesByConversationIdInAppwrite,
+} from "@/services/shared/conversation-appwrite.service";
 import {
   ServiceResult,
   CreatorProfile,
@@ -36,6 +41,8 @@ import {
   getCreatorSubmissionsFromAppwrite,
   getCreatorNegotiationsFromAppwrite,
   getCreatorNegotiationByIdFromAppwrite,
+  acceptOfferInAppwrite,
+  rejectOfferInAppwrite,
   getCreatorRateCardPackagesFromAppwrite,
   getCreatorTransactionsFromAppwrite,
   getCreatorActivitiesFromAppwrite,
@@ -145,16 +152,78 @@ export async function getCreatorNegotiations(): Promise<ServiceResult<CreatorNeg
   return getCreatorNegotiationsFromAppwrite();
 }
 
-export async function getCreatorNegotiationById(id: string): Promise<ServiceResult<CreatorNegotiation>> {
+/** Satu ruang negosiasi. `conversationId`, bukan orderId. */
+export async function getCreatorNegotiationById(
+  conversationId: string
+): Promise<ServiceResult<CreatorNegotiation>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(300);
-    const order = mockCreatorNegotiations.find((n) => n.id === id);
-    if (!order) {
-      return { success: false, data: null, error: "Negosiasi tidak ditemukan" };
+    const room = mockCreatorNegotiations.find((n) => n.conversationId === conversationId);
+    if (!room) {
+      return { success: false, data: null, error: "Negosiasi tidak ditemukan", code: "not_found" };
     }
-    return { success: true, data: order };
+    return { success: true, data: room };
   }
-  return getCreatorNegotiationByIdFromAppwrite(id);
+  return getCreatorNegotiationByIdFromAppwrite(conversationId);
+}
+
+/**
+ * Terima Custom Offer.
+ *
+ * Order TIDAK langsung ada sesudah ini — `create-order` dipicu event database
+ * dan berjalan asinkron. Pemanggil harus mem-poll DTO negosiasi sampai
+ * `orderId` muncul, bukan menganggapnya sudah terbentuk.
+ */
+export async function acceptOffer(offerId: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return { success: true, data: null };
+  }
+  return acceptOfferInAppwrite(offerId);
+}
+
+/** Tolak Custom Offer. UMKM boleh menawar ulang di percakapan yang sama. */
+export async function rejectOffer(offerId: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return { success: true, data: null };
+  }
+  return rejectOfferInAppwrite(offerId);
+}
+
+/** Pesan satu ruang negosiasi. Argumennya conversationId. */
+export async function getMessagesByConversationId(
+  conversationId: string
+): Promise<ServiceResult<ChatMessage[]>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return { success: true, data: [] };
+  }
+  return getMessagesByConversationIdInAppwrite(conversationId);
+}
+
+/** Kirim pesan teks. Kreator dan UMKM memakai jalur yang sama. */
+export async function sendMessage(
+  conversationId: string,
+  content: string
+): Promise<ServiceResult<ChatMessage>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return {
+      success: true,
+      data: {
+        id: `msg_mock_${Date.now()}`,
+        conversationId,
+        senderId: "creator_001",
+        senderRole: "creator",
+        type: "text",
+        content,
+        isRead: true,
+        createdAt: new Date().toISOString(),
+      },
+    };
+  }
+  return sendMessageInAppwrite(conversationId, content);
 }
 
 export async function getCreatorRateCardPackages(): Promise<ServiceResult<CreatorRateCardPackage[]>> {

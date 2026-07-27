@@ -9,6 +9,11 @@ import {
 import { uploadPublicFile, FileRuleError } from "@/lib/appwrite/storage";
 import { type CampaignType, MINIMUM_CAMPAIGN_BUDGET } from "@/types/domain";
 import {
+  createOfferSchema,
+  type CreateOfferInput,
+} from "@/lib/validations/offer.schema";
+import { appendOfferMessageInAppwrite } from "@/services/shared/conversation-appwrite.service";
+import {
   type Doc,
   str,
   num,
@@ -30,7 +35,6 @@ import {
   CreatorNiche,
   RateCardPackage,
   NegotiationOrder,
-  ChatMessage,
   Transaction,
   UmkmFinanceSummary,
   EscrowOverview,
@@ -38,8 +42,6 @@ import {
   SubmissionStatus,
   FraudStatus,
   RateCardStatus,
-  OrderStatus,
-  MessageType,
   TransactionType,
   TransactionStatus,
 } from "@/types/umkm-dashboard.types";
@@ -77,6 +79,7 @@ const COLLECTIONS = {
   claims: "campaign_claims",
   orders: "orders",
   offers: "offers",
+  conversations: "conversations",
   messages: "messages",
   payments: "payments",
 } as const;
@@ -121,21 +124,11 @@ const mapSubmission = (d: Doc): CampaignSubmission => ({
 // CreatorProfile dipetakan di Function `get-creator-directory` — join lintas
 // collection tidak bisa dilakukan di klien tanpa kehilangan field.
 
-const mapOrder = (d: Doc): NegotiationOrder => ({
-  id: str(d.$id),
-  umkmId: str(d.umkmId),
-  creatorId: str(d.creatorId),
-  creatorName: "", // perlu join creator_profiles
-  creatorAvatarUrl: "",
-  projectTitle: "", // tak ada kolom sumber (ada di rate_card / offer)
-  scope: "",
-  finalPrice: num(d.amount),
-  deadline: "", // tak ada kolom sumber
-  status: str(d.status) as OrderStatus,
-  lastMessage: "", // perlu query messages terakhir
-  lastMessageAt: str(d.createdAt) || str(d.$createdAt),
-  unreadCount: 0,
-});
+// NegotiationOrder dipetakan di Function `get-umkm-negotiations`. Mapper lokal
+// dulu ada di sini dan mengembalikan enam field kosong ("perlu join
+// creator_profiles", "tak ada kolom sumber", …) karena `orders` sendirian
+// memang tidak cukup — dan dua collection yang dibutuhkan (`escrows`, `orders`)
+// bahkan tidak bisa dibaca klien sama sekali.
 
 const mapTransaction = (d: Doc): Transaction => {
   const campaignId = str(d.campaign_id);
@@ -384,68 +377,122 @@ export async function getCreatorRateCardsFromAppwrite(
   }
 }
 
+/**
+ * Daftar ruang negosiasi UMKM → Function `get-umkm-negotiations`.
+ *
+ * Versi sebelumnya beriterasi atas `orders` di klien dan mengembalikan enam
+ * field kosong. Dua alasan kenapa itu tidak bisa ditambal di sini:
+ * 1. Di Alur B order lahir PALING AKHIR (chat → offer → accept → order), jadi
+ *    daftar yang di-key order menyembunyikan seluruh tahap negosiasi.
+ * 2. `escrows` punya `$permissions` kosong + rowSecurity dan tidak pernah
+ *    dipasangi permission baris, jadi status escrow mustahil dibaca klien.
+ */
 export async function getNegotiationsFromAppwrite(): Promise<ServiceResult<NegotiationOrder[]>> {
-  const auth = await requireUserId<NegotiationOrder[]>([]);
-  if (!auth.ok) return auth.result;
   try {
-    const res = await databases.listDocuments(DB, COLLECTIONS.orders, [
-      Query.equal("umkmId", auth.userId),
-      Query.orderDesc("$createdAt"),
-      Query.limit(100),
-    ]);
-    return { success: true, data: res.documents.map((d) => mapOrder(d as unknown as Doc)) };
+    const data = await executeFunction<NegotiationOrder[]>(FUNCTION_IDS.umkmNegotiations);
+    return ok(data);
   } catch (err) {
     return failFromError<NegotiationOrder[]>(err, []);
   }
 }
 
-export async function getNegotiationByIdFromAppwrite(id: string): Promise<ServiceResult<NegotiationOrder>> {
-  const auth = await requireUserId<NegotiationOrder>(null as unknown as NegotiationOrder);
-  if (!auth.ok) return auth.result;
+/** Satu ruang negosiasi. `id` di sini adalah conversationId, bukan orderId. */
+export async function getNegotiationByIdFromAppwrite(
+  conversationId: string
+): Promise<ServiceResult<NegotiationOrder>> {
+  const empty = null as unknown as NegotiationOrder;
   try {
-    const res = await databases.listDocuments(DB, COLLECTIONS.orders, [
-      Query.equal("$id", id),
-      Query.equal("umkmId", auth.userId),
-      Query.limit(1),
-    ]);
-    const doc = res.documents[0];
-    if (!doc) {
-      return { success: false, data: null, error: "Negosiasi tidak ditemukan", code: "not_found" };
-    }
-    return { success: true, data: mapOrder(doc as unknown as Doc) };
+    const data = await executeFunction<NegotiationOrder>(FUNCTION_IDS.umkmNegotiations, {
+      conversationId,
+    });
+    return ok(data);
   } catch (err) {
-    return failFromError<NegotiationOrder>(err, null as unknown as NegotiationOrder);
+    return failFromError<NegotiationOrder>(err, empty);
   }
 }
 
-export async function getMessagesByOrderIdFromAppwrite(orderId: string): Promise<ServiceResult<ChatMessage[]>> {
-  const auth = await requireUserId<ChatMessage[]>([]);
+/**
+ * Kirim Custom Offer. UMKM-ONLY —
+ * docs/02_Modules/Offers/30_Business_Rules.md:13.
+ *
+ * Aturan itu ditegakkan di sini oleh permission baris, bukan hanya oleh
+ * ketiadaan tombol di UI kreator: `update` diberikan ke KREATOR (dia yang
+ * accept/reject) dan `delete` ke UMKM (dia yang membatalkan). UMKM sengaja
+ * TIDAK diberi `update` — mengubah harga offer yang sudah dikirim, setelah
+ * kreator melihatnya, bukan negosiasi yang jujur.
+ *
+ * Mirror 00_BACKEND/src/services/offer.service.ts:147-150.
+ */
+export async function createOfferInAppwrite(
+  input: CreateOfferInput
+): Promise<ServiceResult<string>> {
+  const auth = await requireUserId<string>("");
   if (!auth.ok) return auth.result;
+
+  const parsed = createOfferSchema.safeParse(input);
+  if (!parsed.success) {
+    return failValidation<string>(parsed.error.issues[0]?.message ?? "Data offer tidak valid.", "");
+  }
+  const offer = parsed.data;
+
   try {
-    // Catatan: `messages` di-key oleh conversation_id. Diasumsikan caller mengirim
-    // conversation_id order terkait. senderRole diturunkan via perbandingan sesi.
-    const res = await databases.listDocuments(DB, COLLECTIONS.messages, [
-      Query.equal("conversation_id", orderId),
-      Query.orderAsc("$createdAt"),
-      Query.limit(200),
-    ]);
-    const data: ChatMessage[] = res.documents.map((m) => {
-      const md = m as unknown as Doc;
-      const senderId = str(md.sender_id);
-      return {
-        id: str(md.$id),
-        orderId,
-        senderId,
-        senderRole: senderId === auth.userId ? "umkm" : "creator",
-        type: str(md.message_type) as MessageType,
-        content: str(md.content),
-        isRead: str(md.read_at) !== "",
-        createdAt: str(md.$createdAt),
-      };
-    });
-    return { success: true, data };
+    // Percakapan dimuat lebih dulu supaya permission baris memakai peserta yang
+    // sebenarnya, bukan creatorId yang dikirim klien.
+    const conversation = (await databases.getDocument(
+      DB,
+      COLLECTIONS.conversations,
+      offer.conversationId
+    )) as unknown as Doc;
+
+    const umkmId = str(conversation.umkm_id);
+    const creatorId = str(conversation.creator_id);
+
+    if (umkmId !== auth.userId) {
+      return fail("Hanya UMKM dalam percakapan ini yang dapat mengirim penawaran.", "forbidden", "");
+    }
+    if (creatorId !== offer.creatorId) {
+      return fail("Kreator tidak sesuai dengan percakapan.", "validation", "");
+    }
+
+    const created = await databases.createDocument(
+      DB,
+      COLLECTIONS.offers,
+      ID.unique(),
+      {
+        conversationId: offer.conversationId,
+        umkmId,
+        creatorId,
+        title: offer.title,
+        description: offer.description || "",
+        price: offer.price,
+        deadline: offer.deadline,
+        revisionLimit: offer.revisionLimit,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      },
+      [
+        Permission.read(Role.user(umkmId)),
+        Permission.read(Role.user(creatorId)),
+        Permission.update(Role.user(creatorId)),
+        Permission.delete(Role.user(umkmId)),
+      ]
+    );
+
+    const offerId = str(created.$id);
+
+    // Pesan chat menyusul offer-nya, bukan sebaliknya: kalau createDocument di
+    // atas gagal, tidak ada kartu offer menggantung yang menunjuk ke baris yang
+    // tidak ada. Kalau JUSTRU ini yang gagal, offer tetap sah dan muncul di DTO
+    // negosiasi — jadi kegagalannya tidak dinaikkan sebagai error.
+    await appendOfferMessageInAppwrite(
+      offer.conversationId,
+      offerId,
+      `Penawaran Khusus: ${offer.title}`
+    );
+
+    return ok(offerId);
   } catch (err) {
-    return failFromError<ChatMessage[]>(err, []);
+    return failFromWriteError<string>(err, "", "Data offer tidak valid.");
   }
 }
 
@@ -912,6 +959,37 @@ export async function createCampaignPaymentInAppwrite(input: {
       purpose: "campaign",
       amount: input.budget,
       campaignId: input.campaignId,
+    });
+    return ok(res);
+  } catch (err) {
+    return failFromWriteError<PaymentIntent>(err, empty);
+  }
+}
+
+/**
+ * Buat payment untuk satu order Rate Card lewat Function `create-payment`.
+ *
+ * `amount` HARUS persis `order.amount` — Rate Card Order adalah seller-side
+ * (ADR-008), jadi UMKM membayar harga rate card tanpa tambahan apa pun. Function
+ * menolak 409 kalau nominalnya tidak cocok, dan itu memang yang diinginkan.
+ *
+ * Validasi kepemilikan order, status `pending_payment`, dan kecocokan nominal
+ * sudah dikerjakan Function (create-payment:33-42) — sengaja TIDAK diduplikasi
+ * di sini, karena versi klien tidak bisa dipercaya dan akan menjadi sumber drift
+ * kedua. Yang dikerjakan di sini hanya memetakan errornya ke pesan yang terbaca.
+ */
+export async function createOrderPaymentInAppwrite(input: {
+  orderId: string;
+  amount: number;
+}): Promise<ServiceResult<PaymentIntent>> {
+  const empty = null as unknown as PaymentIntent;
+  const auth = await requireUserId<PaymentIntent>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await executeFunction<PaymentIntent>(FUNCTION_IDS.createPayment, {
+      purpose: "order",
+      amount: input.amount,
+      orderId: input.orderId,
     });
     return ok(res);
   } catch (err) {

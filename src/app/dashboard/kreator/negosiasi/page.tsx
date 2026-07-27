@@ -1,17 +1,12 @@
-import { getCreatorNegotiations } from "@/services/creator/creator-dashboard.service";
 import { NegosiasiView } from "@/components/features/creator-dashboard/NegosiasiView";
 
-export default async function NegosiasiPage() {
-  const res = await getCreatorNegotiations();
-
-  if (!res.success || !res.data) {
-    return (
-      <div className="p-8 text-center flex flex-col items-center justify-center min-h-[50vh]">
-        <h2 className="text-xl font-bold text-red-600">Gagal Memuat Halaman Negosiasi</h2>
-        <p className="text-sm text-neutral-500 mt-2">Terjadi masalah koneksi ke data layer.</p>
-      </div>
-    );
-  }
-
-  return <NegosiasiView initialNegotiations={res.data} />;
+/**
+ * Data diambil di dalam NegosiasiView (klien), bukan di sini. DTO
+ * `get-creator-negotiations` menegakkan kepemilikan lewat header
+ * `x-appwrite-user-id` sesi aktif, dan sesi Appwrite hidup di browser —
+ * memanggilnya dari Server Component akan selalu balik 401
+ * (pelajaran `s3-ssr-session`).
+ */
+export default function NegosiasiPage() {
+  return <NegosiasiView />;
 }

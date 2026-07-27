@@ -30,6 +30,12 @@ import {
   getCalculatedDashboardSummary,
 } from "@/mocks/umkm";
 import type { UmkmOverviewData } from "@/mocks/umkm/overview.mock";
+import type { CreateOfferInput } from "@/lib/validations/offer.schema";
+import {
+  createConversationInAppwrite,
+  sendMessageInAppwrite,
+  getMessagesByConversationIdInAppwrite,
+} from "@/services/shared/conversation-appwrite.service";
 import {
   getUmkmProfileFromAppwrite,
   getDashboardSummaryFromAppwrite,
@@ -42,7 +48,8 @@ import {
   getCreatorRateCardsFromAppwrite,
   getNegotiationsFromAppwrite,
   getNegotiationByIdFromAppwrite,
-  getMessagesByOrderIdFromAppwrite,
+  createOfferInAppwrite,
+  createOrderPaymentInAppwrite,
   getTransactionsFromAppwrite,
   getTransactionByIdFromAppwrite,
   getFinanceSummaryFromAppwrite,
@@ -197,13 +204,89 @@ export async function getNegotiationById(id: string): Promise<ServiceResult<Nego
   return getNegotiationByIdFromAppwrite(id);
 }
 
-export async function getMessagesByOrderId(orderId: string): Promise<ServiceResult<ChatMessage[]>> {
+/**
+ * Pesan satu ruang negosiasi. Argumennya conversationId, bukan orderId —
+ * `messages` memang di-key `conversation_id`, dan versi lama mengirim orderId
+ * ke sana sehingga chat selalu kosong.
+ */
+export async function getMessagesByConversationId(
+  conversationId: string
+): Promise<ServiceResult<ChatMessage[]>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(300);
-    const messages = mockChatMessages[orderId] || [];
-    return { success: true, data: messages };
+    return { success: true, data: mockChatMessages[conversationId] || [] };
   }
-  return getMessagesByOrderIdFromAppwrite(orderId);
+  return getMessagesByConversationIdInAppwrite(conversationId);
+}
+
+/** Mulai (atau lanjutkan) percakapan dengan kreator. Mengembalikan conversationId. */
+export async function createConversation(creatorId: string): Promise<ServiceResult<string>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    const existing = mockNegotiations.find((n) => n.creatorId === creatorId);
+    return { success: true, data: existing?.conversationId ?? "conv_000" };
+  }
+  return createConversationInAppwrite(creatorId);
+}
+
+/** Kirim pesan teks ke dalam percakapan. */
+export async function sendMessage(
+  conversationId: string,
+  content: string
+): Promise<ServiceResult<ChatMessage>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return {
+      success: true,
+      data: {
+        id: `msg_mock_${Date.now()}`,
+        conversationId,
+        senderId: "umkm_001",
+        senderRole: "umkm",
+        type: "text",
+        content,
+        isRead: true,
+        createdAt: new Date().toISOString(),
+      },
+    };
+  }
+  return sendMessageInAppwrite(conversationId, content);
+}
+
+export type { CreateOfferInput };
+
+/**
+ * Bayar satu order Rate Card. `amount` harus persis `order.amount` — UMKM
+ * membayar harga rate card tanpa tambahan (seller-side, ADR-008).
+ */
+export async function createOrderPayment(input: {
+  orderId: string;
+  amount: number;
+}): Promise<ServiceResult<PaymentIntent>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(600);
+    return {
+      success: true,
+      data: {
+        paymentId: `pay_mock_${Date.now()}`,
+        gateway: "midtrans",
+        status: "pending",
+      },
+    };
+  }
+  return createOrderPaymentInAppwrite(input);
+}
+
+/**
+ * Kirim Custom Offer. UMKM-only — docs/02_Modules/Offers/30_Business_Rules.md:13.
+ * Mengembalikan offerId.
+ */
+export async function createOffer(input: CreateOfferInput): Promise<ServiceResult<string>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return { success: true, data: `offer_mock_${Date.now()}` };
+  }
+  return createOfferInAppwrite(input);
 }
 
 export async function getTransactions(): Promise<ServiceResult<Transaction[]>> {
@@ -629,7 +712,7 @@ export async function cancelOrder(orderId: string): Promise<ServiceResult<null>>
     await mockDelay(500);
     const n = mockNegotiations.find((x) => x.id === orderId);
     if (!n) return { success: false, data: null, error: "Pesanan tidak ditemukan.", code: "not_found" };
-    if (n.status !== "pending_payment") {
+    if (n.stage !== "pending_payment") {
       return {
         success: false,
         data: null,

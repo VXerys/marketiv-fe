@@ -130,6 +130,7 @@ export function CreatorDetailPage({ creatorId }: CreatorDetailPageProps) {
         <StartNegotiationModal
           isOpen={!!selectedPackage}
           onClose={() => setSelectedPackage(null)}
+          creatorId={creator.id}
           creatorName={creator.name}
           packageName={selectedPackage.name}
           packagePrice={selectedPackage.price}

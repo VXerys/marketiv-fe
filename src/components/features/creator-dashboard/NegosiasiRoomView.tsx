@@ -1,36 +1,55 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { CreatorNegotiation } from "@/types/creator-dashboard";
+import type { ChatMessage as ServiceChatMessage } from "@/types/umkm-dashboard.types";
+import {
+  getCreatorNegotiationById,
+  getMessagesByConversationId,
+  sendMessage,
+  acceptOffer,
+  rejectOffer,
+} from "@/services/creator/creator-dashboard.service";
 import { toast } from "sonner";
 import { CreatorEmptyState } from "./CreatorEmptyState";
+import { CreatorPageSkeleton } from "./CreatorPageSkeleton";
 import { formatCurrency } from "@/lib/formatters";
-import { PLATFORM_FEE_RATE, calculatePlatformFee, calculateCreatorPayout } from "@/types/domain";
+import { PLATFORM_FEE_RATE, calculatePlatformFee } from "@/types/domain";
 import { getEscrowStatusLabel } from "@/lib/creator-status";
 import { cn } from "@/lib/utils";
 import {
   ArrowLeft,
   Send,
-  FileText,
   Check,
   X,
   Lock,
   AlertTriangle,
   ShieldCheck,
   Sparkles,
-  LinkIcon,
   Clock,
-  RotateCcw,
   CheckCircle2,
 } from "lucide-react";
 
 interface NegosiasiRoomViewProps {
-  negotiation: CreatorNegotiation | null;
+  /**
+   * conversationId, bukan orderId. Ruang negosiasi hidup sejak percakapan
+   * dimulai; order baru lahir setelah kreator menerima Custom Offer.
+   */
+  conversationId: string;
 }
+
+/** Poll `create-order` sesudah accept — Function-nya berjalan asinkron. */
+const ORDER_POLL_ATTEMPTS = 5;
+const ORDER_POLL_INTERVAL_MS = 2000;
 
 type MessageSender = "umkm" | "creator" | "system";
 
+/**
+ * Bentuk tampilan pesan. `deliverables` dan `days` dibuang: keduanya tidak punya
+ * kolom sumber di `offers` (yang ada `deadline` dan `revisionLimit`), jadi
+ * sebelumnya hanya bisa diisi dari data karangan.
+ */
 interface ChatMessage {
   id: string;
   sender: MessageSender;
@@ -38,18 +57,23 @@ interface ChatMessage {
   time: string;
   isCustomOffer?: boolean;
   offerData?: {
+    offerId: string;
     price: number;
     scope: string;
     revisions: number;
-    days: number;
-    deliverables: string;
+    deadline: string;
   };
 }
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
-// Key = orders.status kanon (lihat src/types/domain.ts)
+// Key = NegotiationStage (lihat src/types/domain.ts) — mencakup tahap sebelum
+// order ada, karena di Alur B order lahir paling akhir.
 const STATUS_CONFIG: Record<string, { dot: string; text: string; bg: string; border: string; label: string }> = {
+  chatting:        { dot: "bg-neutral-400", text: "text-neutral-600", bg: "bg-neutral-50", border: "border-neutral-200/60", label: "Negosiasi" },
+  offer_pending:   { dot: "bg-amber-400",   text: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200/60",   label: "Penawaran Masuk" },
+  offer_rejected:  { dot: "bg-red-400",     text: "text-red-700",     bg: "bg-red-50",     border: "border-red-200/60",     label: "Penawaran Ditolak" },
+  awaiting_order:  { dot: "bg-blue-400",    text: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-200/60",    label: "Menyiapkan Pesanan" },
   pending_payment: { dot: "bg-blue-400",    text: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-200/60",    label: "Menunggu Pembayaran" },
   escrow:          { dot: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200/60", label: "Escrow Aktif" },
   in_progress:     { dot: "bg-amber-400",   text: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200/60",   label: "Sedang Dikerjakan" },
@@ -60,7 +84,7 @@ const STATUS_CONFIG: Record<string, { dot: string; text: string; bg: string; bor
 };
 
 function StatusPill({ status }: { status: string }) {
-  const s = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending_payment;
+  const s = STATUS_CONFIG[status] ?? STATUS_CONFIG.chatting;
   return (
     <span className={cn("inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-extrabold border", s.text, s.bg, s.border)}>
       <span className={cn("w-1.5 h-1.5 rounded-full", s.dot)} />
@@ -69,63 +93,65 @@ function StatusPill({ status }: { status: string }) {
   );
 }
 
-// ─── Input field helper ───────────────────────────────────────────────────────
-
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="block text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1.5">{children}</label>;
-}
-
-function FieldInput({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <input
-      className={cn(
-        "w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-[14px] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all font-semibold text-neutral-800 placeholder-neutral-400",
-        className
-      )}
-      {...props}
-    />
-  );
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export function NegosiasiRoomView({ negotiation: initialNeg }: NegosiasiRoomViewProps) {
-  const [neg, setNeg] = useState<CreatorNegotiation | null>(initialNeg);
+export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
+  const [neg, setNeg] = useState<CreatorNegotiation | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
-
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(
-    initialNeg?.id === "order_001"
-      ? [
-          { id: "m1", sender: "umkm", text: "Halo Nadia, kami dari Dapur Sehat Solo ingin memesan paket Batik Outer Cap untuk promosi.", time: "10:00" },
-          { id: "m2", sender: "creator", text: "Halo kak! Tentu saja, outer batik Solo cap sangat cocok dipadukan dengan look kasual jeans maupun dress formal. Pengerjaan biasanya selesai dalam 3–5 hari.", time: "10:05" },
-          { id: "m3", sender: "system", text: "Kesepakatan tercapai. UMKM mendepositkan dana escrow sebesar Rp 750.000.", time: "10:15" },
-          { id: "m4", sender: "umkm", text: "Dana escrow sudah kami bayar ya kak, silakan diproses.", time: "10:20" },
-        ]
-      : initialNeg?.id === "order_002"
-      ? [
-          { id: "m1", sender: "umkm", text: "Halo kak, kami tertarik promosi Serum Herbal Glow. Apakah harganya bisa nego dikit untuk paket hemat ini?", time: "09:30" },
-        ]
-      : []
-  );
-
   const [inputMessage, setInputMessage] = useState("");
-
-  // Offer modal
-  const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
-  const [offerPrice, setOfferPrice] = useState(300000);
-  const [offerScope, setOfferScope] = useState("");
-  const [offerDeliverables, setOfferDeliverables] = useState("");
-  const [offerRevisions, setOfferRevisions] = useState(2);
-  const [offerDays, setOfferDays] = useState(7);
-
-  // Collab modal
-  const [isCollabModalOpen, setIsCollabModalOpen] = useState(false);
-  const [collabUrl, setCollabUrl] = useState("");
-  const [collabError, setCollabError] = useState<string | null>(null);
-
+  const [sending, setSending] = useState(false);
+  const [answering, setAnswering] = useState(false);
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false);
   const quickMenuRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * Pesan nyata dipetakan ke bentuk lokal yang dipakai JSX di bawah.
+   * `time` sengaja diturunkan dari `createdAt`, bukan disimpan sendiri —
+   * seluruh riwayat chat sebelumnya adalah teks hardcode dengan jam palsu.
+   */
+  const toViewMessage = (m: ServiceChatMessage): ChatMessage => ({
+    id: m.id,
+    sender: m.senderRole,
+    text: m.content,
+    time: new Date(m.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+    isCustomOffer: m.type === "offer",
+    offerData: m.offerData
+      ? {
+          offerId: m.offerData.offerId,
+          price: m.offerData.finalPrice,
+          scope: m.offerData.scope,
+          revisions: m.offerData.revisionCount,
+          deadline: m.offerData.deadline,
+        }
+      : undefined,
+  });
+
+  const loadRoom = useCallback(async () => {
+    const [roomRes, msgRes] = await Promise.all([
+      getCreatorNegotiationById(conversationId),
+      getMessagesByConversationId(conversationId),
+    ]);
+    if (roomRes.success && roomRes.data) setNeg(roomRes.data);
+    if (msgRes.success && msgRes.data) setChatMessages(msgRes.data.map(toViewMessage));
+    setLoading(false);
+  }, [conversationId]);
+
+  useEffect(() => {
+    // Dibungkus supaya tidak ada setState yang terlihat sinkron di badan effect
+    // (react-hooks/set-state-in-effect). Flag `active` mencegah penulisan state
+    // setelah komponen di-unmount saat pengguna cepat berpindah ruang.
+    let active = true;
+    void (async () => {
+      await loadRoom();
+      if (!active) return;
+    })();
+    return () => {
+      active = false;
+    };
+  }, [loadRoom]);
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -146,105 +172,88 @@ export function NegosiasiRoomView({ negotiation: initialNeg }: NegosiasiRoomView
     return () => document.removeEventListener("mousedown", handler);
   }, [isQuickMenuOpen]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  /**
+   * Kirim pesan lalu muat ulang riwayatnya.
+   *
+   * Tidak ada balasan otomatis. Versi sebelumnya memunculkan jawaban UMKM palsu
+   * setelah 1,5 detik — kreator mengira pesannya sudah dibaca orang.
+   */
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!neg || !inputMessage.trim()) return;
+    const text = inputMessage.trim();
+    if (!text || sending) return;
 
-    const msg: ChatMessage = {
-      id: `mc_${Date.now()}`,
-      sender: "creator",
-      text: inputMessage.trim(),
-      time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-    };
-
-    setChatMessages(prev => [...prev, msg]);
+    setSending(true);
+    const res = await sendMessage(conversationId, text);
+    setSending(false);
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal mengirim pesan.");
+      return;
+    }
     setInputMessage("");
-    setNeg(prev => prev ? { ...prev, lastMessage: msg.text, lastMessageAt: new Date().toISOString() } : null);
-
-    setTimeout(() => {
-      const reply: ChatMessage = {
-        id: `mu_${Date.now()}`,
-        sender: "umkm",
-        text: "Terima kasih infonya kak Nadia, akan kami sampaikan ke tim internal dulu.",
-        time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-      };
-      setChatMessages(prev => [...prev, reply]);
-    }, 1500);
+    await loadRoom();
   };
 
-  const handleSendCustomOffer = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!neg || !offerScope.trim() || !offerDeliverables.trim()) return;
+  /**
+   * Terima / tolak Custom Offer — SATU-SATUNYA aksi kreator terhadap offer.
+   * Membuat offer adalah hak UMKM (docs/02_Modules/Offers/30_Business_Rules.md:13),
+   * jadi form "kirim Custom Offer" yang dulu ada di sini sudah dibuang.
+   *
+   * Order TIDAK langsung ada setelah accept: `create-order` dipicu event
+   * database dan berjalan asinkron. Karena itu hasilnya di-poll, bukan
+   * diasumsikan. Versi sebelumnya cuma menyetel status lokal jadi
+   * "pending_payment" tanpa ada order yang benar-benar terbentuk.
+   */
+  const answerOffer = async (accept: boolean) => {
+    if (!neg?.offerId || answering) return;
+    setAnswering(true);
 
-    const platFee = calculatePlatformFee(offerPrice);
-    const total = calculateCreatorPayout(offerPrice);
-
-    setNeg(prev => prev ? { ...prev, finalPrice: offerPrice, deliverables: offerDeliverables.trim(), revisionCount: offerRevisions, platformFee: platFee, totalAmount: total } : null);
-
-    const msg: ChatMessage = {
-      id: `offer_${Date.now()}`,
-      sender: "creator",
-      text: `Custom Offer: Rp ${offerPrice.toLocaleString("id-ID")}`,
-      time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-      isCustomOffer: true,
-      offerData: { price: offerPrice, scope: offerScope.trim(), revisions: offerRevisions, days: offerDays, deliverables: offerDeliverables.trim() },
-    };
-
-    setChatMessages(prev => [...prev, msg]);
-    setIsOfferModalOpen(false);
-    toast.success("Custom Offer berhasil dikirim ke chat!");
-  };
-
-  const handleAcceptOrder = () => {
-    if (!neg) return;
-    setNeg(prev => prev ? { ...prev, status: "pending_payment" } : null);
-    setChatMessages(prev => [...prev, {
-      id: `sys_${Date.now()}`,
-      sender: "system",
-      text: "Negosiasi deal. Kontrak dibuat, menunggu pembayaran escrow dari UMKM.",
-      time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-    }]);
-    toast.success("Kontrak disepakati!");
-  };
-
-  const handleSubmitCollabUrl = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = collabUrl.trim();
-    if (!trimmed.startsWith("http://") && !trimmed.startsWith("https://")) {
-      setCollabError("URL wajib diawali dengan http:// atau https://");
-      return;
-    }
-    const lower = trimmed.toLowerCase();
-    if (!lower.includes("tiktok.com") && !lower.includes("instagram.com")) {
-      setCollabError("URL harus memuat domain 'tiktok.com' atau 'instagram.com'");
+    const res = accept ? await acceptOffer(neg.offerId) : await rejectOffer(neg.offerId);
+    if (!res.success) {
+      setAnswering(false);
+      toast.error(res.error ?? "Gagal menjawab penawaran.");
       return;
     }
 
-    setCollabError(null);
-    setNeg(prev => prev ? { ...prev, status: "approved", submittedCollabUrl: trimmed } : null);
-    setChatMessages(prev => [...prev, {
-      id: `sys_collab_${Date.now()}`,
-      sender: "system",
-      text: `Bukti tayang diserahkan. Link Collab Post: ${trimmed}. Menunggu verifikasi admin.`,
-      time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-    }]);
-    setIsCollabModalOpen(false);
-    setCollabUrl("");
-    toast.success("Link Collab Post berhasil dikirim!");
+    if (!accept) {
+      setAnswering(false);
+      toast.success("Penawaran ditolak.");
+      await loadRoom();
+      return;
+    }
+
+    toast.success("Penawaran diterima. Menyiapkan pesanan…");
+
+    // Poll sampai `create-order` selesai. Batasnya sengaja terhingga: kalau
+    // Function gagal, kreator harus tahu — bukan dibiarkan menunggu selamanya.
+    for (let attempt = 0; attempt < ORDER_POLL_ATTEMPTS; attempt++) {
+      await new Promise((r) => setTimeout(r, ORDER_POLL_INTERVAL_MS));
+      const res = await getCreatorNegotiationById(conversationId);
+      if (res.success && res.data) {
+        setNeg(res.data);
+        if (res.data.orderId) {
+          setAnswering(false);
+          toast.success("Pesanan dibuat. Menunggu pembayaran UMKM.");
+          return;
+        }
+      }
+    }
+
+    setAnswering(false);
+    toast.info("Pesanan sedang diproses. Muat ulang halaman sebentar lagi.");
+    await loadRoom();
   };
 
-  const handleMarkRevisionDone = () => {
-    if (!neg) return;
-    setNeg(prev => prev ? { ...prev, status: "approved" } : null);
-    setChatMessages(prev => [...prev, {
-      id: `sys_rev_${Date.now()}`,
-      sender: "system",
-      text: "Kreator menandai revisi selesai. Kontrak menunggu verifikasi ulang.",
-      time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-    }]);
-    toast.success("Revisi ditandai selesai.");
-  };
+  const handleAcceptOrder = () => answerOffer(true);
+  const handleRejectOffer = () => answerOffer(false);
 
+  if (loading) {
+    return (
+      <div className="flex-1 p-4 sm:p-6 lg:p-8">
+        <CreatorPageSkeleton />
+      </div>
+    );
+  }
 
   if (!neg) {
     return (
@@ -262,9 +271,11 @@ export function NegosiasiRoomView({ negotiation: initialNeg }: NegosiasiRoomView
     );
   }
 
-  const isNegoState     = neg.status === "pending_payment";
-  const isEscrowState   = neg.status === "escrow" || neg.status === "in_progress";
-  const isRevisionState = neg.status === "revision";
+  // Offer yang MENUNGGU jawaban kreator. Dulu bernama isNegoState dan
+  // dipatok ke `pending_payment` — tahap yang justru sudah terlambat: begitu
+  // status itu tercapai, ordernya sudah terbentuk dan tidak ada yang bisa
+  // diterima lagi.
+  const hasPendingOffer = neg.stage === "offer_pending" && !!neg.offerId;
 
   const platFee   = neg.platformFee   ?? calculatePlatformFee(neg.finalPrice);
   const totalAmt  = neg.totalAmount   ?? (neg.finalPrice - platFee);
@@ -278,7 +289,7 @@ export function NegosiasiRoomView({ negotiation: initialNeg }: NegosiasiRoomView
     },
     {
       label: "Pembayaran Escrow UMKM",
-      done: neg.status !== "pending_payment",
+      done: neg.stage !== "pending_payment",
     },
     {
       label: "Submit Collab Post URL",
@@ -286,7 +297,7 @@ export function NegosiasiRoomView({ negotiation: initialNeg }: NegosiasiRoomView
     },
     {
       label: "Pelepasan Dana Escrow",
-      done: neg.status === "completed",
+      done: neg.stage === "completed",
     },
   ];
   const doneCount = milestones.filter(m => m.done).length;
@@ -328,7 +339,7 @@ export function NegosiasiRoomView({ negotiation: initialNeg }: NegosiasiRoomView
                     <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mt-0.5">{neg.projectTitle}</p>
                   </div>
                 </div>
-                <StatusPill status={neg.status} />
+                <StatusPill status={neg.stage} />
               </div>
 
               {/* Warning banner */}
@@ -400,8 +411,12 @@ export function NegosiasiRoomView({ negotiation: initialNeg }: NegosiasiRoomView
                               <div className="grid grid-cols-3 gap-2">
                                 {[
                                   { label: "Revisi", val: `${msg.offerData.revisions}×` },
-                                  { label: "Durasi", val: `${msg.offerData.days}h` },
-                                  { label: "Deliverables", val: msg.offerData.deliverables.split(" ").slice(0, 3).join(" ") + (msg.offerData.deliverables.split(" ").length > 3 ? "…" : "") },
+                                  {
+                                    label: "Deadline",
+                                    val: msg.offerData.deadline
+                                      ? new Date(msg.offerData.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short" })
+                                      : "—",
+                                  },
                                 ].map(({ label, val }) => (
                                   <div key={label} className="bg-neutral-50 rounded-[10px] p-2 text-center">
                                     <span className="block text-[7px] font-black text-neutral-400 uppercase tracking-wider">{label}</span>
@@ -411,14 +426,24 @@ export function NegosiasiRoomView({ negotiation: initialNeg }: NegosiasiRoomView
                               </div>
 
                               <div className="border-t border-neutral-100 pt-3">
-                                {neg.status === "pending_payment" ? (
-                                  <button
-                                    onClick={handleAcceptOrder}
-                                    className="w-full py-2.5 rounded-[12px] text-[10px] font-extrabold text-white cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0"
-                                    style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)", boxShadow: "0 4px 12px rgba(124,58,237,.30)" }}
-                                  >
-                                    Terima & Buat Kontrak
-                                  </button>
+                                {hasPendingOffer ? (
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={handleAcceptOrder}
+                                      disabled={answering}
+                                      className="flex-1 py-2.5 rounded-[12px] text-[10px] font-extrabold text-white cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                                      style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)", boxShadow: "0 4px 12px rgba(124,58,237,.30)" }}
+                                    >
+                                      {answering ? "Memproses…" : "Terima"}
+                                    </button>
+                                    <button
+                                      onClick={handleRejectOffer}
+                                      disabled={answering}
+                                      className="px-4 py-2.5 rounded-[12px] text-[10px] font-extrabold text-neutral-600 bg-neutral-100 border border-neutral-200/60 hover:bg-neutral-200/60 cursor-pointer transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                                    >
+                                      Tolak
+                                    </button>
+                                  </div>
                                 ) : (
                                   <span className="flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-600">
                                     <CheckCircle2 className="w-3.5 h-3.5" />
@@ -453,52 +478,34 @@ export function NegosiasiRoomView({ negotiation: initialNeg }: NegosiasiRoomView
               {/* Composer */}
               <div className="p-4 bg-white border-t border-neutral-100 shrink-0 space-y-3">
                 {/* Action toolbar */}
-                {(isNegoState || isEscrowState || isRevisionState) && (
+                {/*
+                  Kreator TIDAK punya tombol "Buat Custom Offer" — membuat offer
+                  adalah hak UMKM (docs/02_Modules/Offers/30_Business_Rules.md:13).
+                  Yang tersedia di sini hanya menjawab penawaran yang masuk.
+
+                  Tombol "Submit Link Collab Post" dan "Tandai Revisi Selesai"
+                  juga dibuang: keduanya hanya menyetel state lokal tanpa menulis
+                  apa pun. Jalur deliverable yang sebenarnya masuk s4-rc-deliverable.
+                */}
+                {hasPendingOffer && (
                   <div className="flex flex-wrap gap-2 pb-3 border-b border-neutral-100">
-                    {isNegoState && (
-                      <>
-                        <button
-                          onClick={() => {
-                            setOfferScope(neg.scope);
-                            setOfferDeliverables(neg.deliverables || "");
-                            setOfferPrice(neg.finalPrice);
-                            setIsOfferModalOpen(true);
-                          }}
-                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-[12px] text-[11px] font-extrabold text-violet-700 bg-violet-50 border border-violet-200/50 hover:bg-violet-100 transition-all cursor-pointer"
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                          Buat Custom Offer
-                        </button>
-                        <button
-                          onClick={handleAcceptOrder}
-                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-[12px] text-[11px] font-extrabold text-white cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0"
-                          style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)", boxShadow: "0 3px 10px rgba(124,58,237,.25)" }}
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                          Terima Penawaran
-                        </button>
-                      </>
-                    )}
-
-                    {(isEscrowState || isRevisionState) && (
-                      <button
-                        onClick={() => { setCollabUrl(""); setCollabError(null); setIsCollabModalOpen(true); }}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-[12px] text-[11px] font-extrabold text-neutral-900 bg-neutral-100 border border-neutral-200/60 hover:bg-neutral-200/60 transition-all cursor-pointer"
-                      >
-                        <LinkIcon className="w-3.5 h-3.5" />
-                        Submit Link Collab Post
-                      </button>
-                    )}
-
-                    {isRevisionState && (
-                      <button
-                        onClick={handleMarkRevisionDone}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-[12px] text-[11px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200/50 hover:bg-emerald-100 transition-all cursor-pointer"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        Tandai Revisi Selesai
-                      </button>
-                    )}
+                    <button
+                      onClick={handleAcceptOrder}
+                      disabled={answering}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-[12px] text-[11px] font-extrabold text-white cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                      style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)", boxShadow: "0 3px 10px rgba(124,58,237,.25)" }}
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      {answering ? "Memproses…" : "Terima Penawaran"}
+                    </button>
+                    <button
+                      onClick={handleRejectOffer}
+                      disabled={answering}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-[12px] text-[11px] font-extrabold text-neutral-700 bg-neutral-100 border border-neutral-200/60 hover:bg-neutral-200/60 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      Tolak
+                    </button>
                   </div>
                 )}
 
@@ -533,22 +540,8 @@ export function NegosiasiRoomView({ negotiation: initialNeg }: NegosiasiRoomView
                           <span className="text-[8px] font-black text-neutral-400 uppercase tracking-widest">Aksi Cepat</span>
                         </div>
 
-                        {isNegoState && (
+                        {hasPendingOffer && (
                           <>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setOfferScope(neg.scope);
-                                setOfferDeliverables(neg.deliverables || "");
-                                setOfferPrice(neg.finalPrice);
-                                setIsOfferModalOpen(true);
-                                setIsQuickMenuOpen(false);
-                              }}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-left text-[11px] font-extrabold text-neutral-800 hover:bg-neutral-50 transition-colors cursor-pointer"
-                            >
-                              <span className="text-sm shrink-0">✨</span>
-                              <span>Buat Custom Offer</span>
-                            </button>
                             <button
                               type="button"
                               onClick={() => { handleAcceptOrder(); setIsQuickMenuOpen(false); }}
@@ -557,29 +550,15 @@ export function NegosiasiRoomView({ negotiation: initialNeg }: NegosiasiRoomView
                               <span className="text-sm shrink-0">✅</span>
                               <span>Terima Penawaran</span>
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => { handleRejectOffer(); setIsQuickMenuOpen(false); }}
+                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-left text-[11px] font-extrabold text-neutral-800 hover:bg-neutral-50 transition-colors cursor-pointer"
+                            >
+                              <span className="text-sm shrink-0">✋</span>
+                              <span>Tolak Penawaran</span>
+                            </button>
                           </>
-                        )}
-
-                        {(isEscrowState || isRevisionState) && (
-                          <button
-                            type="button"
-                            onClick={() => { setCollabUrl(""); setCollabError(null); setIsCollabModalOpen(true); setIsQuickMenuOpen(false); }}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-left text-[11px] font-extrabold text-neutral-800 hover:bg-neutral-50 transition-colors cursor-pointer"
-                          >
-                            <span className="text-sm shrink-0">🔗</span>
-                            <span>Submit Link Collab</span>
-                          </button>
-                        )}
-
-                        {isRevisionState && (
-                          <button
-                            type="button"
-                            onClick={() => { handleMarkRevisionDone(); setIsQuickMenuOpen(false); }}
-                            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-left text-[11px] font-extrabold text-neutral-800 hover:bg-neutral-50 transition-colors cursor-pointer"
-                          >
-                            <span className="text-sm shrink-0">🔄</span>
-                            <span>Tandai Revisi Selesai</span>
-                          </button>
                         )}
 
                         <div className="my-1 mx-2 border-t border-neutral-100" />
@@ -744,137 +723,18 @@ export function NegosiasiRoomView({ negotiation: initialNeg }: NegosiasiRoomView
           </div>
         </div>
 
-      {/* ── Modal: Buat Custom Offer ─────────────────────────────────────── */}
-      {isOfferModalOpen && neg && (
-        <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[24px] border border-neutral-200/50 shadow-[0_32px_80px_rgba(15,23,42,.20)] p-6 sm:p-7 max-w-md w-full animate-in fade-in zoom-in-95 duration-300">
-            <div className="flex justify-between items-start gap-4 mb-6">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Sparkles className="w-4 h-4 text-violet-600" />
-                  <h3 className="text-base font-black text-[#1e1b4b]">Buat Custom Offer</h3>
-                </div>
-                <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">{neg.umkmName}</p>
-              </div>
-              <button onClick={() => setIsOfferModalOpen(false)} className="p-1.5 rounded-[10px] text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer">
-                <X className="w-4.5 h-4.5" />
-              </button>
-            </div>
+      {/*
+        Dua modal dibuang di sini:
 
-            <form onSubmit={handleSendCustomOffer} className="space-y-4">
-              <div>
-                <FieldLabel>Harga Penawaran (Rupiah)</FieldLabel>
-                <FieldInput type="number" required min={50000} value={offerPrice} onChange={(e) => setOfferPrice(Number(e.target.value))} />
-                <p className="text-[10px] text-neutral-400 font-semibold mt-1.5">
-                  Biaya platform {PLATFORM_FEE_RATE * 100}%: <span className="font-bold text-neutral-600">{formatCurrency(calculatePlatformFee(offerPrice))}</span>
-                  {" · "}Anda terima: <span className="font-bold text-violet-700">{formatCurrency(calculateCreatorPayout(offerPrice))}</span>
-                </p>
-              </div>
+        "Buat Custom Offer" — melanggar docs/02_Modules/Offers/30_Business_Rules.md:13,
+        yang menetapkan hanya UMKM yang boleh membuat offer. Permission baris
+        `offers` juga sudah menegakkan itu: kreator hanya diberi `update`.
 
-              <div>
-                <FieldLabel>Deliverables Konten</FieldLabel>
-                <FieldInput type="text" required placeholder="Contoh: 1 Reels Collab Post + 1 Story Link" value={offerDeliverables} onChange={(e) => setOfferDeliverables(e.target.value)} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <FieldLabel>Durasi (Hari)</FieldLabel>
-                  <FieldInput type="number" required min={1} value={offerDays} onChange={(e) => setOfferDays(Number(e.target.value))} />
-                </div>
-                <div>
-                  <FieldLabel>Revisi Maksimal</FieldLabel>
-                  <FieldInput type="number" required min={1} value={offerRevisions} onChange={(e) => setOfferRevisions(Number(e.target.value))} />
-                </div>
-              </div>
-
-              <div>
-                <FieldLabel>Deskripsi Ruang Lingkup (Scope)</FieldLabel>
-                <textarea
-                  required
-                  rows={3}
-                  placeholder="Tulis deskripsi konten, lookbook, angle review, dll..."
-                  value={offerScope}
-                  onChange={(e) => setOfferScope(e.target.value)}
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-[14px] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all font-semibold text-neutral-800 placeholder-neutral-400 resize-none"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setIsOfferModalOpen(false)} className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-extrabold text-xs rounded-full transition-all cursor-pointer">
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-3 text-white font-extrabold text-xs rounded-full border border-transparent transition-all cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
-                  style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)", boxShadow: "0 4px 14px rgba(124,58,237,.30)" }}
-                >
-                  Kirim Offer
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── Modal: Submit Link Collab Post ──────────────────────────────── */}
-      {isCollabModalOpen && neg && (
-        <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[24px] border border-neutral-200/50 shadow-[0_32px_80px_rgba(15,23,42,.20)] p-6 sm:p-7 max-w-md w-full animate-in fade-in zoom-in-95 duration-300">
-            <div className="flex justify-between items-start gap-4 mb-5">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <LinkIcon className="w-4 h-4 text-neutral-700" />
-                  <h3 className="text-base font-black text-[#1e1b4b]">Submit Link Collab Post</h3>
-                </div>
-                <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">{neg.projectTitle}</p>
-              </div>
-              <button onClick={() => setIsCollabModalOpen(false)} className="p-1.5 rounded-[10px] text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer">
-                <X className="w-4.5 h-4.5" />
-              </button>
-            </div>
-
-            {collabError && (
-              <div className="bg-red-50 border border-red-200/60 rounded-[12px] p-3.5 text-red-700 text-xs font-bold mb-4 flex items-start gap-2">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                <span>{collabError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmitCollabUrl} className="space-y-4">
-              <div>
-                <FieldLabel>Link Video Instagram Reels / TikTok</FieldLabel>
-                <FieldInput
-                  type="url"
-                  required
-                  placeholder="https://www.instagram.com/reel/CtO12345/"
-                  value={collabUrl}
-                  onChange={(e) => { setCollabUrl(e.target.value); if (collabError) setCollabError(null); }}
-                />
-              </div>
-
-              <div className="bg-amber-50 border border-amber-200/50 rounded-[12px] p-3.5 flex items-start gap-2.5">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                <p className="text-[10px] font-bold text-amber-700 leading-relaxed">
-                  Pastikan video sudah dipublikasikan secara publik dan menggunakan fitur <span className="font-black">&quot;Collab Post&quot;</span> agar admin dapat memverifikasi performa views.
-                </p>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setIsCollabModalOpen(false)} className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-extrabold text-xs rounded-full transition-all cursor-pointer">
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-3 text-white font-extrabold text-xs rounded-full border border-transparent transition-all cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
-                  style={{ background: "linear-gradient(135deg,#1e1b4b,#4f46e5)", boxShadow: "0 4px 14px rgba(30,27,75,.25)" }}
-                >
-                  Unggah Tautan
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        "Submit Link Collab Post" — hanya menyetel state lokal (`setNeg(status:
+        "approved")`) tanpa menulis baris `deliverables` apa pun, jadi dana escrow
+        tidak akan pernah cair karenanya. Jalur deliverable yang sebenarnya masuk
+        s4-rc-deliverable.
+      */}
     </div>
   );
 }

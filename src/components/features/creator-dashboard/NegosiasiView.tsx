@@ -20,16 +20,17 @@ import {
   Archive,
   ArchiveRestore,
 } from "lucide-react";
-import {
-  getMyConversations,
-  setConversationArchived,
-  type ConversationFlag,
-} from "@/services/shared/conversation.service";
+import { setConversationArchived } from "@/services/shared/conversation.service";
+import { getCreatorNegotiations } from "@/services/creator/creator-dashboard.service";
+import { CreatorPageSkeleton } from "./CreatorPageSkeleton";
 import { toast } from "sonner";
 
-interface NegosiasiViewProps {
-  initialNegotiations: CreatorNegotiation[];
-}
+/**
+ * Tanpa props. Data diambil di klien, BUKAN di Server Component: DTO
+ * `get-creator-negotiations` menegakkan kepemilikan lewat header
+ * `x-appwrite-user-id` sesi aktif, dan sesi Appwrite hidup di browser — memanggil
+ * dari server akan selalu balik 401 (pelajaran `s3-ssr-session`).
+ */
 
 // ─── MetricTile ───────────────────────────────────────────────────────────────
 
@@ -91,7 +92,7 @@ function NegotiationCard({
   isArchived: boolean;
   onToggleArchive: () => void;
 }) {
-  const s = STATUS_STYLES[neg.status] ?? STATUS_STYLES.pending_payment;
+  const s = STATUS_STYLES[neg.stage] ?? STATUS_STYLES.chatting;
   const dateStr = new Date(neg.lastMessageAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
   const hasUrgent = neg.unreadCount > 0;
 
@@ -190,9 +191,10 @@ function NegotiationCard({
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
-  const [negotiations] = useState<CreatorNegotiation[]>(initialNegotiations);
-  const [conversations, setConversations] = useState<ConversationFlag[]>([]);
+export function NegosiasiView() {
+  const [negotiations, setNegotiations] = useState<CreatorNegotiation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
   const [search, setSearch] = useState("");
@@ -202,55 +204,55 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
   const { toolbarRef, isSticky } = useStickyToolbar();
 
   /**
-   * Status arsip tidak ikut di DTO `get-creator-negotiations` (Function-nya
-   * belum memfilter `is_archived` sama sekali), jadi dibaca terpisah dan
-   * dijodohkan di klien. Gagal memuat = semua percakapan dianggap belum
-   * diarsipkan; daftar tetap tampil utuh.
+   * Status arsip kini ikut di DTO `get-creator-negotiations` (`isArchived`
+   * dibaca langsung dari `conversations.is_archived`), jadi query terpisah dan
+   * penjodohan per-umkmId yang dulu ada di sini tidak diperlukan lagi.
    */
-  useEffect(() => {
-    let active = true;
-    getMyConversations().then((res) => {
-      if (active && res.success && res.data) setConversations(res.data);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  /**
-   * Cukup di-key umkmId: getMyConversations hanya mengembalikan percakapan
-   * sesi ini, dan `umkm_id + creator_id` unik — jadi untuk satu kreator,
-   * satu UMKM = satu percakapan.
-   */
-  const conversationByUmkm = new Map(conversations.map((c) => [c.umkmId, c]));
-
   const handleToggleArchive = async (neg: CreatorNegotiation) => {
-    const conv = conversationByUmkm.get(neg.umkmId);
-    if (!conv) {
-      toast.error("Percakapan untuk negosiasi ini belum tersedia.");
-      return;
-    }
-    const next = !conv.isArchived;
-    const res = await setConversationArchived(conv.id, next);
+    const next = !neg.isArchived;
+    const res = await setConversationArchived(neg.conversationId, next);
     if (!res.success) {
       toast.error(res.error ?? "Gagal mengubah status arsip.");
       return;
     }
-    setConversations((prev) =>
-      prev.map((c) => (c.id === conv.id ? { ...c, isArchived: next } : c))
+    setNegotiations((prev) =>
+      prev.map((n) => (n.conversationId === neg.conversationId ? { ...n, isArchived: next } : n))
     );
     toast.success(next ? "Percakapan diarsipkan." : "Percakapan dikembalikan ke inbox.");
   };
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const res = await getCreatorNegotiations();
+      if (!active) return;
+      if (res.success && res.data) {
+        setNegotiations(res.data);
+      } else {
+        setError(res.error ?? "Gagal memuat daftar negosiasi.");
+      }
+      setLoading(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleClearFilters = () => {
     setSearch("");
     setSelectedStatus("all");
   };
 
-  const countNegotiation        = negotiations.filter(n => n.status === "pending_payment").length;
-  const countPendingPayment     = negotiations.filter(n => n.status === "pending_payment").length;
-  const countEscrow             = negotiations.filter(n => ["escrow","in_progress","revision","approved"].includes(n.status)).length;
-  const countCompleted          = negotiations.filter(n => n.status === "completed").length;
+  // "Negosiasi" dan "Menunggu pembayaran" dulu menghitung hal yang PERSIS SAMA
+  // (`pending_payment`) karena tahap sebelum order belum punya nilai status.
+  // Sekarang keduanya benar-benar berbeda.
+  const NEGOTIATING_STAGES = ["chatting", "offer_pending", "offer_rejected", "awaiting_order"];
+  const ESCROW_STAGES = ["escrow", "in_progress", "revision", "approved"];
+
+  const countNegotiation        = negotiations.filter(n => NEGOTIATING_STAGES.includes(n.stage)).length;
+  const countPendingPayment     = negotiations.filter(n => n.stage === "pending_payment").length;
+  const countEscrow             = negotiations.filter(n => ESCROW_STAGES.includes(n.stage)).length;
+  const countCompleted          = negotiations.filter(n => n.stage === "completed").length;
   const totalUnread             = negotiations.reduce((acc, n) => acc + (n.unreadCount || 0), 0);
 
   const filteredNegotiations = negotiations
@@ -262,13 +264,12 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
 
       const matchesStatus =
         selectedStatus === "all" ||
-        (selectedStatus === "negosiasi" && n.status === "pending_payment") ||
-        (selectedStatus === "menunggu-pembayaran" && n.status === "pending_payment") ||
-        (selectedStatus === "escrow" && ["escrow","in_progress","revision","approved"].includes(n.status)) ||
-        (selectedStatus === "selesai" && n.status === "completed");
+        (selectedStatus === "negosiasi" && NEGOTIATING_STAGES.includes(n.stage)) ||
+        (selectedStatus === "menunggu-pembayaran" && n.stage === "pending_payment") ||
+        (selectedStatus === "escrow" && ESCROW_STAGES.includes(n.stage)) ||
+        (selectedStatus === "selesai" && n.stage === "completed");
 
-      // Tanpa baris percakapan, anggap belum diarsipkan — baris tetap terlihat.
-      const isArchived = conversationByUmkm.get(n.umkmId)?.isArchived ?? false;
+      const isArchived = n.isArchived;
 
       return matchesSearch && matchesStatus && isArchived === showArchived;
     })
@@ -276,10 +277,26 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
 
   const hasActiveFilters = search !== "" || selectedStatus !== "all";
 
-  const archivedCount = negotiations.filter(
-    (n) => conversationByUmkm.get(n.umkmId)?.isArchived ?? false
-  ).length;
+  const archivedCount = negotiations.filter((n) => n.isArchived).length;
 
+  if (loading) {
+    return (
+      <div className="flex-1 p-4 sm:p-6 lg:p-8">
+        <CreatorPageSkeleton />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[50vh]">
+        <CreatorEmptyState
+          title="Gagal memuat negosiasi"
+          description={error}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 relative">
@@ -464,7 +481,7 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
                 <NegotiationCard
                   key={neg.id}
                   neg={neg}
-                  isArchived={conversationByUmkm.get(neg.umkmId)?.isArchived ?? false}
+                  isArchived={neg.isArchived}
                   onToggleArchive={() => handleToggleArchive(neg)}
                 />
               ))}

@@ -1,64 +1,46 @@
 import { Client, Databases, Query } from "node-appwrite";
 
 /**
- * get-creator-negotiations
+ * get-umkm-negotiations
  *
- * DTO ruang negosiasi Rate Card Mode dari sisi kreator.
- * Response = `CreatorNegotiation[]`, atau satu objek bila body berisi
+ * DTO ruang negosiasi Rate Card Mode dari sisi UMKM.
+ * Response = `NegotiationOrder[]`, atau satu objek bila body berisi
  * `conversationId`.
  *
  * Body (opsional, JSON):
  *   { conversationId?: string }
  *
+ * CERMIN dari `get-creator-negotiations`. Rantai join, pemilihan offer aktif,
+ * dan derivasi `stage` identik — yang berbeda hanya tiga hal:
+ *   1. filter peserta  : `umkm_id` alih-alih `creator_id`
+ *   2. profil lawan    : `creator_profiles` alih-alih `umkm_profiles`
+ *   3. semantik fee    : lihat blok FEE di bawah
+ * Perubahan skema di salah satunya HARUS diikutkan ke yang lain.
+ *
  * MENGAPA DI-KEY OLEH CONVERSATION, BUKAN ORDER — urutan Alur B adalah
  * chat → offer → accept → order. Order lahir PALING AKHIR, dibuat `create-order`
- * setelah kreator menerima offer. Versi sebelumnya beriterasi atas `orders`,
- * sehingga seluruh tahap negosiasi — justru bagian yang layar ini namai — tidak
- * pernah muncul. `conversations` punya unique index `umkm_id + creator_id`, jadi
- * satu percakapan per pasangan dan id-nya stabil sepanjang hidup relasi.
+ * setelah kreator menerima offer. Meng-key daftar ini oleh order membuat seluruh
+ * tahap negosiasi tidak punya tempat.
  *
- * MENGAPA HARUS FUNCTION — satu baris view-model menjangkau tujuh collection,
- * dan dua di antaranya tidak bisa dibaca klien sama sekali: `escrows` dan
- * `orders` punya `$permissions` kosong + rowSecurity (lihat create-escrow dan
- * create-order).
+ * MENGAPA HARUS FUNCTION — bukan pilihan gaya. `escrows` dan `orders` punya
+ * `$permissions` kosong + rowSecurity; `escrows` bahkan tidak pernah dipasangi
+ * permission baris oleh `create-escrow`, jadi klien tidak bisa membacanya sama
+ * sekali. Versi klien sebelumnya (`getNegotiationsFromAppwrite`) beriterasi atas
+ * `orders` dan mengambil pesan dengan `Query.equal("conversation_id", orderId)` —
+ * memakai orderId sebagai conversation_id, yang tidak akan pernah cocok.
  *
- * Rantai join:
- *   conversations
- *     ← messages.conversation_id        unreadCount
- *     ← offers.conversationId           offer aktif = $createdAt terbaru
- *          ← orders.offerId             0..1, unique idx_offerId
- *               ← escrows.orderId       0..1, unique idx_orderId
- *               ← deliverables.orderId  0..n, version tertinggi
- *     + umkm_profiles.userId            nama & avatar lawan bicara
- *     + rate_card_packages.$id          fallback judul/scope Direct Order
- *
- * ⬜ BELUM TERWAKILI — Direct Order (Jalur A). Order berbasis `packageId` tidak
- * punya offer maupun conversation, jadi tidak muncul di sini. Jalur itu memang
- * belum dibangun (tidak ada satu pun kode yang menulis `orders.packageId`). Saat
- * dibangun nanti, cara paling bersih adalah ikut membuat `conversations` untuk
- * pasangannya — kedua pihak tetap perlu berkomunikasi soal deliverable.
- *
- * PASANGANNYA: `get-umkm-negotiations` menjalankan join yang sama dari sisi
- * UMKM. Perubahan skema di sini HARUS diikutkan ke sana.
- *
- * FEE — SENGAJA BERBEDA DARI SISI UMKM. ADR-008 menetapkan Rate Card Order
- * sebagai seller-side: UMKM membayar persis harga rate card, potongan 2% diambil
- * dari pendapatan kreator saat escrow dirilis. Jadi di sini `totalAmount` =
- * nominal BERSIH yang diterima kreator, sementara di `get-umkm-negotiations`
- * `totalAmount` = nominal yang dibayar UMKM. Keduanya benar untuk pembacanya
- * masing-masing. Mengikuti calculateCreatorPayout() di
- * 00_BACKEND/src/services/wallet.service.ts:129.
+ * FEE — SENGAJA BERBEDA DARI SISI KREATOR. ADR-008 menetapkan Rate Card Order
+ * sebagai seller-side: UMKM membayar PERSIS harga rate card, tanpa tambahan
+ * apa pun, dan potongan 2% diambil dari pendapatan kreator saat escrow dirilis.
+ * Jadi di sini `platformFee` = 0 dan `totalAmount` = `finalPrice`. Angka 2% yang
+ * muncul di `get-creator-negotiations` adalah beban kreator, bukan beban UMKM —
+ * menampilkannya di layar UMKM akan menyesatkan.
+ * (Campaign PPV kebalikannya, buyer-side — ditangani `create-payment`.)
  */
 
 const PAGE_SIZE = 100;
 const MAX_DOCS = 5000;
 const IN_CHUNK = 100;
-
-/**
- * Mirror PLATFORM_FEE_RATE di 00_BACKEND/src/services/wallet.service.ts:6.
- * Jangan menuliskan angka fee di tempat lain dalam fungsi ini.
- */
-const PLATFORM_FEE_RATE = 0.02;
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -76,27 +58,25 @@ export default async ({ req, res, log, error }) => {
     const databases = createDatabasesClient(env);
 
     // Kepemilikan ditegakkan lewat query, bukan lewat pemeriksaan setelah ambil:
-    // creator_id selalu ikut sebagai filter, jadi percakapan orang lain tidak
-    // pernah terbaca walaupun conversationId-nya ditebak.
+    // umkm_id selalu ikut sebagai filter, jadi percakapan UMKM lain tidak pernah
+    // terbaca walaupun conversationId-nya ditebak.
     const conversations = conversationId
       ? await listAll(databases, env.databaseId, env.conversationsCollectionId, [
           Query.equal("$id", conversationId),
-          Query.equal("creator_id", userId),
+          Query.equal("umkm_id", userId),
           Query.limit(1),
         ])
       : await listAll(databases, env.databaseId, env.conversationsCollectionId, [
-          Query.equal("creator_id", userId),
+          Query.equal("umkm_id", userId),
           // SENGAJA $createdAt, bukan last_message_at: `conversations` tidak punya
-          // index untuk kolom itu (indexnya hanya umkm_id, creator_id, pasangan
-          // keduanya, dan offer_id), dan Appwrite menolak order pada kolom tanpa
-          // index. Urutan yang benar-benar diinginkan UI — percakapan dengan
-          // pesan terbaru di atas — dipasang di memori setelah semuanya terkumpul.
+          // index untuk kolom itu, dan Appwrite menolak order pada kolom tanpa
+          // index. Urutan yang diinginkan UI dipasang di memori di bawah.
           Query.orderDesc("$createdAt"),
         ]);
 
     if (conversationId && conversations.length === 0) {
       // 404, bukan 403 — membedakan keduanya membocorkan keberadaan percakapan
-      // milik kreator lain.
+      // milik UMKM lain.
       return json(res, { error: "Negotiation not found" }, 404);
     }
     if (conversations.length === 0) return json(res, []);
@@ -104,11 +84,9 @@ export default async ({ req, res, log, error }) => {
     const context = await loadContext(databases, env, conversations, userId);
     const negotiations = conversations
       .map((conversation) => toNegotiation(conversation, context))
-      // Percakapan tanpa pesan (`last_message_at` kosong) turun ke bawah, bukan
-      // naik ke atas — string kosong akan menang di perbandingan desc.
       .sort((a, b) => (b.lastMessageAt || "").localeCompare(a.lastMessageAt || ""));
 
-    log(`Creator negotiations for ${userId}: ${negotiations.length} conversation(s)`);
+    log(`UMKM negotiations for ${userId}: ${negotiations.length} conversation(s)`);
     return json(res, conversationId ? negotiations[0] : negotiations);
   } catch (err) {
     error(err?.stack || err?.message || String(err));
@@ -119,14 +97,14 @@ export default async ({ req, res, log, error }) => {
 /** Semua join dikumpulkan sekali, lalu dipetakan per percakapan di memori. */
 async function loadContext(databases, env, conversations, userId) {
   const conversationIds = conversations.map((c) => c.$id);
-  const umkmIds = unique(conversations.map((c) => str(c.umkm_id)));
+  const creatorIds = unique(conversations.map((c) => str(c.creator_id)));
 
   // conversations & messages memakai kolom snake_case — satu-satunya collection
   // yang begitu di seluruh skema.
-  const [messages, offers, umkmProfiles] = await Promise.all([
+  const [messages, offers, creatorProfiles] = await Promise.all([
     listByIds(databases, env.databaseId, env.messagesCollectionId, "conversation_id", conversationIds),
     listByIds(databases, env.databaseId, env.offersCollectionId, "conversationId", conversationIds),
-    listByIds(databases, env.databaseId, env.umkmProfilesCollectionId, "userId", umkmIds),
+    listByIds(databases, env.databaseId, env.creatorProfilesCollectionId, "userId", creatorIds),
   ]);
 
   const activeOffers = pickLatestOffers(offers);
@@ -147,7 +125,7 @@ async function loadContext(databases, env, conversations, userId) {
     offerByConversationId: activeOffers,
     orderByOfferId: byKey(orders, (o) => str(o.offerId)),
     packageById: byKey(packages, (p) => p.$id),
-    umkmByUserId: byKey(umkmProfiles, (p) => str(p.userId)),
+    creatorByUserId: byKey(creatorProfiles, (p) => str(p.userId)),
     escrowByOrderId: byKey(escrows, (e) => str(e.orderId)),
     latestDeliverableByOrderId: pickLatestDeliverables(deliverables),
     unreadByConversationId: countUnread(messages, userId),
@@ -158,14 +136,13 @@ function toNegotiation(conversation, ctx) {
   const offer = ctx.offerByConversationId.get(conversation.$id) || null;
   const order = offer ? ctx.orderByOfferId.get(offer.$id) || null : null;
   const pkg = order ? ctx.packageById.get(str(order.packageId)) : null;
-  const umkm = ctx.umkmByUserId.get(str(conversation.umkm_id));
+  const creator = ctx.creatorByUserId.get(str(conversation.creator_id));
   const escrow = order ? ctx.escrowByOrderId.get(order.$id) : null;
   const deliverable = order ? ctx.latestDeliverableByOrderId.get(order.$id) : null;
 
   // Nominal mengikuti order kalau sudah ada (itu yang mengikat), kalau belum
   // pakai harga offer yang sedang ditawar.
   const finalPrice = order ? number(order.amount) : number(offer?.price);
-  const platformFee = Math.floor(finalPrice * PLATFORM_FEE_RATE);
 
   return {
     // Kunci ruang = conversationId. `id` sengaja sama supaya route dan pemetaan
@@ -174,9 +151,9 @@ function toNegotiation(conversation, ctx) {
     conversationId: conversation.$id,
     stage: deriveStage(offer, order),
 
-    umkmId: str(conversation.umkm_id),
-    umkmName: str(umkm?.businessName),
-    umkmAvatarUrl: str(umkm?.logoUrl),
+    creatorId: str(conversation.creator_id),
+    creatorName: str(creator?.displayName),
+    creatorAvatarUrl: str(creator?.avatarUrl),
 
     lastMessage: str(conversation.last_message),
     lastMessageAt: str(conversation.last_message_at),
@@ -200,9 +177,10 @@ function toNegotiation(conversation, ctx) {
     submittedCollabUrl: str(deliverable?.fileUrl) || undefined,
 
     finalPrice,
-    platformFee,
-    // Seller-side: yang DITERIMA kreator, bukan yang dibayar UMKM.
-    totalAmount: finalPrice - platformFee,
+    // Seller-side (ADR-008): UMKM membayar persis harga rate card. Nol, bukan
+    // 2% — lihat blok FEE di header.
+    platformFee: 0,
+    totalAmount: finalPrice,
   };
 }
 
@@ -210,6 +188,8 @@ function toNegotiation(conversation, ctx) {
  * Satu tahap yang bisa di-switch UI, karena `OrderStatus` tidak punya nilai
  * untuk "order belum ada". Urutannya dari yang paling akhir: begitu order lahir,
  * statusnyalah yang menentukan — status offer tidak lagi relevan.
+ *
+ * Sama persis dengan get-creator-negotiations:deriveStage.
  */
 function deriveStage(offer, order) {
   if (order) return str(order.status);
@@ -222,8 +202,7 @@ function deriveStage(offer, order) {
 
 /**
  * Satu percakapan bisa punya beberapa offer (ditolak lalu ditawar ulang) —
- * ambil yang terbaru. `offers` tidak punya index untuk $createdAt per
- * conversation, jadi pemilihannya dilakukan di memori.
+ * ambil yang terbaru.
  */
 function pickLatestOffers(offers) {
   const byConversation = new Map();
@@ -271,7 +250,7 @@ function getEnv(req) {
     ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders",
     offersCollectionId: process.env.OFFERS_COLLECTION_ID || process.env.NEXT_PUBLIC_OFFER_COLLECTION || "offers",
     rateCardPackagesCollectionId: process.env.RATE_CARD_PACKAGES_COLLECTION_ID || "rate_card_packages",
-    umkmProfilesCollectionId: process.env.UMKM_PROFILES_COLLECTION_ID || "umkm_profiles",
+    creatorProfilesCollectionId: process.env.CREATOR_PROFILES_COLLECTION_ID || "creator_profiles",
     conversationsCollectionId:
       process.env.CONVERSATIONS_COLLECTION_ID || process.env.NEXT_PUBLIC_CONVERSATION_COLLECTION || "conversations",
     messagesCollectionId: process.env.MESSAGES_COLLECTION_ID || process.env.NEXT_PUBLIC_MESSAGE_COLLECTION || "messages",

@@ -5,13 +5,15 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   getNegotiationById,
-  getMessagesByOrderId,
+  getMessagesByConversationId,
+  sendMessage,
+  createOffer,
+  createOrderPayment,
   cancelOrder,
 } from "@/services/umkm/umkm-dashboard.service";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import { NegotiationOrder, ChatMessage } from "@/types/umkm-dashboard.types";
-import { formatCurrency } from "@/lib/formatters";
 import { CollabPostWarningBanner } from "./CollabPostWarningBanner";
 import { ChatTimeline } from "./ChatTimeline";
 import { MessageComposer } from "./MessageComposer";
@@ -21,13 +23,18 @@ import { CreatorMiniProfileCard } from "./CreatorMiniProfileCard";
 import { DealChecklistCard } from "./DealChecklistCard";
 import { NegotiationRoomSkeleton } from "./NegotiationRoomSkeleton";
 import { NegotiationNotFoundState } from "./NegotiationNotFoundState";
-import { DashboardModal } from "@/components/features/dashboard/shared";
 
 import { SendCustomOfferModal } from "../modals/SendCustomOfferModal";
 import { PaymentSimulationModal } from "../modals/PaymentSimulationModal";
 import { OrderSuccessModal } from "../modals/OrderSuccessModal";
 
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  // Tiga tahap sebelum order ada — di Alur B order lahir paling akhir, jadi
+  // sebagian besar hidup ruang ini justru berada di sini.
+  chatting:        { label: "Negosiasi",           color: "#687386", bg: "#f8fafc", border: "rgba(148,163,184,.28)" },
+  offer_pending:   { label: "Menunggu Kreator",    color: "#a15b0b", bg: "#fffbeb", border: "rgba(245,158,11,.24)"  },
+  offer_rejected:  { label: "Penawaran Ditolak",   color: "#b4232a", bg: "#fff3f3", border: "rgba(248,113,113,.24)" },
+  awaiting_order:  { label: "Menyiapkan Pesanan",  color: "#2d5bd1", bg: "#f0f6ff", border: "rgba(96,165,250,.25)"  },
   pending_payment: { label: "Menunggu Pembayaran", color: "#a15b0b", bg: "#fffbeb", border: "rgba(245,158,11,.24)"  },
   escrow:          { label: "Dalam Escrow",        color: "#177b42", bg: "#f1fbf5", border: "rgba(74,222,128,.25)"  },
   in_progress:     { label: "Sedang Dikerjakan",   color: "#2d5bd1", bg: "#f0f6ff", border: "rgba(96,165,250,.25)"  },
@@ -37,212 +44,151 @@ const STATUS_CFG: Record<string, { label: string; color: string; bg: string; bor
   cancelled:       { label: "Dibatalkan",          color: "#687386", bg: "#f8fafc", border: "rgba(148,163,184,.28)" },
 };
 interface NegotiationRoomPageProps {
-  orderId: string;
+  /**
+   * conversationId, bukan orderId. Ruang negosiasi hidup sejak percakapan
+   * dimulai; order baru lahir setelah kreator menerima Custom Offer.
+   */
+  conversationId: string;
 }
 
-export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
+export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps) {
   const [order, setOrder] = useState<NegotiationOrder | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [paying, setPaying] = useState(false);
 
   const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [isCancelOrderOpen, setIsCancelOrderOpen] = useState(false);
 
-  /**
-   * Batalkan pesanan yang belum dibayar. Status di-set lokal, bukan reload —
-   * baris tetap ada (soft cancel), jadi cukup memperbarui satu field.
-   * Lempar ulang saat gagal supaya ConfirmDialog tetap terbuka.
-   */
-  const handleCancelOrder = async () => {
-    if (!order) return;
-    const res = await cancelOrder(order.id);
-    if (!res.success) {
-      toast.error(res.error ?? "Gagal membatalkan pesanan.");
-      throw new Error(res.error ?? "Gagal membatalkan pesanan.");
-    }
-    setOrder({ ...order, status: "cancelled" });
-    toast.success("Pesanan dibatalkan.");
-  };
-
   const loadData = useCallback(async () => {
-    setLoading(true);
     setError(null);
     try {
-      const orderRes = await getNegotiationById(orderId);
-      const msgRes = await getMessagesByOrderId(orderId);
-      if (orderRes.success && orderRes.data) {
-        setOrder(orderRes.data);
+      const [roomRes, msgRes] = await Promise.all([
+        getNegotiationById(conversationId),
+        getMessagesByConversationId(conversationId),
+      ]);
+      if (roomRes.success && roomRes.data) {
+        setOrder(roomRes.data);
       } else {
-        setError(orderRes.error || "Gagal memuat detail negosiasi.");
+        setError(roomRes.error || "Gagal memuat detail negosiasi.");
       }
-      if (msgRes.success && msgRes.data) {
-        setMessages(msgRes.data);
-      }
+      if (msgRes.success && msgRes.data) setMessages(msgRes.data);
     } catch {
       setError("Kesalahan memuat data Negosiasi.");
     } finally {
       setLoading(false);
     }
-  }, [orderId]);
+  }, [conversationId]);
 
   useEffect(() => {
-    if (orderId === "rc-offer-simulated") {
-      const mockOrder: NegotiationOrder = {
-        id: "rc-offer-simulated",
-        umkmId: "umkm_001",
-        creatorId: "creator_001",
-        creatorName: "Ahmad Fauzi",
-        creatorAvatarUrl: "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=400&h=300&fit=crop",
-        projectTitle: "Custom Offer: Review Sambal Bawang",
-        scope: "1 video Reels/TikTok Collab Post, durasi minimal 30 hari tayang.",
-        finalPrice: 1500000,
-        deadline: "2026-06-25T00:00:00.000Z",
-        status: "pending_payment",
-        lastMessage: "Penawaran kolaborasi kustom berhasil dibuat. Menunggu persetujuan.",
-        lastMessageAt: new Date().toISOString(),
-        unreadCount: 0,
-      };
-      const mockMsg: ChatMessage[] = [
-        {
-          id: "m_sim_1",
-          orderId: "rc-offer-simulated",
-          senderId: "umkm_001",
-          senderRole: "umkm",
-          type: "text",
-          content: "Halo Ahmad, saya kirim rincian kustom offer negosiasi kita sesuai paket ya. Silakan disetujui kak.",
-          isRead: true,
-          createdAt: new Date(Date.now() - 30000).toISOString(),
-        },
-        {
-          id: "m_sim_2",
-          orderId: "rc-offer-simulated",
-          senderId: "creator_001",
-          senderRole: "creator",
-          type: "offer",
-          content: "Penawaran Khusus: Review Sambal Bawang",
-          offerData: {
-            finalPrice: 1500000,
-            scope: "1 video Reels/TikTok Collab Post, durasi minimal 30 hari tayang.",
-            deadline: "2026-06-25T00:00:00.000Z",
-            revisionCount: 2,
-          },
-          isRead: true,
-          createdAt: new Date(Date.now() - 10000).toISOString(),
-        },
-      ];
-      setOrder(mockOrder);
-      setMessages(mockMsg);
-      setTimeout(() => setLoading(false), 500);
-    } else {
-      loadData();
+    loadData();
+  }, [loadData]);
+
+  /**
+   * Kirim pesan lalu muat ulang riwayatnya.
+   *
+   * Tidak ada balasan otomatis. Versi sebelumnya memunculkan jawaban kreator
+   * palsu setelah 1,5 detik — UMKM mengira pesannya sudah dibaca orang.
+   */
+  const handleSendMessage = async (text: string) => {
+    if (sending) return;
+    setSending(true);
+    const res = await sendMessage(conversationId, text);
+    setSending(false);
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal mengirim pesan.");
+      return;
     }
-  }, [orderId, loadData]);
-
-  const handleSendMessage = (text: string) => {
-    const newMsg: ChatMessage = {
-      id: `msg_local_${Date.now()}`,
-      orderId,
-      senderId: "umkm_001",
-      senderRole: "umkm",
-      type: "text",
-      content: text,
-      isRead: true,
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, newMsg]);
-    if (order) setOrder({ ...order, lastMessage: text, lastMessageAt: new Date().toISOString() });
-
-    setTimeout(() => {
-      const replyMsg: ChatMessage = {
-        id: `msg_reply_${Date.now()}`,
-        orderId,
-        senderId: order?.creatorId || "creator_001",
-        senderRole: "creator",
-        type: "text",
-        content: "Baik kak, pesan Anda diterima. Ada tambahan instruksi lainnya?",
-        isRead: false,
-        createdAt: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, replyMsg]);
-      if (order) {
-        setOrder((prev) =>
-          prev ? { ...prev, lastMessage: replyMsg.content, lastMessageAt: new Date().toISOString() } : null
-        );
-      }
-    }, 1500);
+    await loadData();
   };
 
-  const handleConfirmCustomOffer = (offer: {
+  /**
+   * Kirim Custom Offer. UMKM-only — kreator hanya menerima atau menolak
+   * (docs/02_Modules/Offers/30_Business_Rules.md:13).
+   */
+  const handleConfirmCustomOffer = async (offer: {
     finalPrice: number;
     scope: string;
     deadline: string;
     revisionCount: number;
   }) => {
-    const offerMsg: ChatMessage = {
-      id: `msg_offer_${Date.now()}`,
-      orderId,
-      senderId: "umkm_001",
-      senderRole: "umkm",
-      type: "offer",
-      content: `Penawaran Khusus: ${order?.projectTitle || "Kustom Offer"}`,
-      offerData: offer,
-      isRead: true,
-      createdAt: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, offerMsg]);
-    if (order) {
-      setOrder({
-        ...order,
-        finalPrice: offer.finalPrice,
-        scope: offer.scope,
-        deadline: offer.deadline,
-        lastMessage: `Penawaran Khusus: ${formatCurrency(offer.finalPrice)} diajukan.`,
-        lastMessageAt: new Date().toISOString(),
-      });
+    if (!order) return;
+    const res = await createOffer({
+      conversationId,
+      creatorId: order.creatorId,
+      title: offer.scope.slice(0, 255) || `Kolaborasi dengan ${order.creatorName}`,
+      description: offer.scope,
+      price: offer.finalPrice,
+      deadline: offer.deadline,
+      revisionLimit: offer.revisionCount,
+    });
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal mengirim penawaran.");
+      throw new Error(res.error ?? "Gagal mengirim penawaran.");
     }
+    setIsOfferModalOpen(false);
+    toast.success("Penawaran terkirim. Menunggu jawaban kreator.");
+    await loadData();
   };
 
-  const handleConfirmPayment = () => {
+  /**
+   * Bayar order → Snap Midtrans.
+   *
+   * Escrow TIDAK di-set di sini. Rantainya asinkron: webhook Midtrans menandai
+   * payment `paid`, event itu memicu `create-escrow`, dan barulah order pindah
+   * ke `in_progress`. Versi sebelumnya menyetel status "escrow" secara lokal
+   * setelah 400ms tanpa uang berpindah sama sekali.
+   */
+  const handleConfirmPayment = async () => {
+    if (!order?.orderId || paying) return;
+    setPaying(true);
+    const res = await createOrderPayment({ orderId: order.orderId, amount: order.finalPrice });
+    setPaying(false);
+    if (!res.success || !res.data) {
+      toast.error(res.error ?? "Gagal membuat pembayaran.");
+      return;
+    }
     setIsPaymentModalOpen(false);
-    setTimeout(() => {
-      if (order) {
-        setOrder({
-          ...order,
-          status: "escrow",
-          lastMessage: "Dana pembayaran sudah diamankan di escrow. Kreator sedang mengerjakan konten.",
-          lastMessageAt: new Date().toISOString(),
-        });
-        const systemMsg: ChatMessage = {
-          id: `msg_system_${Date.now()}`,
-          orderId,
-          senderId: "system",
-          senderRole: "system",
-          type: "system",
-          content: "UMKM Nadia Putri menyetujui Custom Offer dan berhasil mengamankan dana di escrow.",
-          isRead: true,
-          createdAt: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, systemMsg]);
-      }
-      setIsSuccessModalOpen(true);
-    }, 400);
+
+    if (res.data.redirectUrl) {
+      window.location.href = res.data.redirectUrl;
+      return;
+    }
+    setIsSuccessModalOpen(true);
+    await loadData();
+  };
+
+  /**
+   * Batalkan pesanan yang belum dibayar. Muat ulang, bukan set status lokal —
+   * `cancelOrder` bisa ditolak backend dan status lokal akan berbohong.
+   * Lempar ulang saat gagal supaya ConfirmDialog tetap terbuka.
+   */
+  const handleCancelOrder = async () => {
+    if (!order?.orderId) return;
+    const res = await cancelOrder(order.orderId);
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal membatalkan pesanan.");
+      throw new Error(res.error ?? "Gagal membatalkan pesanan.");
+    }
+    toast.success("Pesanan dibatalkan.");
+    await loadData();
   };
 
   if (loading) return <div className="p-4 sm:p-6 lg:p-8"><NegotiationRoomSkeleton /></div>;
   if (error || !order) return <div className="p-4 sm:p-6 lg:p-8"><NegotiationNotFoundState /></div>;
 
-  const statusCfg = STATUS_CFG[order.status] ?? STATUS_CFG.pending_payment;
+  const statusCfg = STATUS_CFG[order.stage] ?? STATUS_CFG.chatting;
 
   const renderHeaderCTA = () => {
     const cls =
       "px-3 py-1.5 rounded-[10px] text-white text-[10px] font-extrabold transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer shrink-0 leading-none";
     // Custom Offer dikirim lewat composer chat (tombol +); begitu offer diterima,
     // order lahir dengan status pending_payment dan CTA-nya menjadi "Bayar".
-    if (order.status === "pending_payment") {
+    if (order.stage === "pending_payment") {
       return (
         <button
           type="button"
@@ -257,21 +203,9 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
         </button>
       );
     }
-    if (order.status === "approved") {
-      return (
-        <button
-          type="button"
-          onClick={() => setIsVerificationModalOpen(true)}
-          className={cls}
-          style={{
-            background: "linear-gradient(180deg,#22c55e,#16a34a)",
-            boxShadow: "0 3px 8px rgba(34,197,94,.22)",
-          }}
-        >
-          Verifikasi
-        </button>
-      );
-    }
+    // CTA "Verifikasi" dibuang bersama modalnya: yang lama hanya memanggil
+    // window.location.reload() dan menyebut dirinya "simulasi dashboard ini".
+    // Approve deliverable yang sebenarnya masuk s4-rc-approve.
     return null;
   };
 
@@ -360,16 +294,16 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
           <ChatTimeline
             messages={messages}
             onPayOffer={() => setIsPaymentModalOpen(true)}
-            orderStatus={order.status}
+            orderStatus={order.stage}
           />
 
           {/* Composer with quick-action (+) button */}
           <MessageComposer
             onSendMessage={handleSendMessage}
-            orderStatus={order.status}
+            stage={order.stage}
+            sending={sending}
             onSendOffer={() => setIsOfferModalOpen(true)}
             onPay={() => setIsPaymentModalOpen(true)}
-            onVerify={() => setIsVerificationModalOpen(true)}
           />
         </div>
 
@@ -378,26 +312,12 @@ export function NegotiationRoomPage({ orderId }: NegotiationRoomPageProps) {
           className="flex flex-col gap-3 overflow-y-auto scrollbar-thin min-h-0"
         >
           <OrderSummaryCard order={order} onCancelOrder={() => setIsCancelOrderOpen(true)} />
-          <EscrowStatusCard orderStatus={order.status} />
+          <EscrowStatusCard orderStatus={order.stage} />
           <CreatorMiniProfileCard order={order} />
-          <DealChecklistCard orderStatus={order.status} />
+          <DealChecklistCard orderStatus={order.stage} />
         </div>
       </div>
       </div>
-
-      {/* Verification modal */}
-      <DashboardModal
-        isOpen={isVerificationModalOpen}
-        title="Verifikasi Collab Post"
-        description="Memvalidasi postingan Collab Post. Tautan postingan akan dianggap valid untuk simulasi dashboard ini."
-        confirmLabel="Verifikasi"
-        cancelLabel="Batal"
-        onClose={() => setIsVerificationModalOpen(false)}
-        onConfirm={() => {
-          setIsVerificationModalOpen(false);
-          window.location.reload();
-        }}
-      />
 
       {isOfferModalOpen && (
         <SendCustomOfferModal
