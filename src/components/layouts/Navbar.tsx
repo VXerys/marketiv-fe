@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Logo } from "@/assets/images";
 import { cn } from "@/lib/utils";
 import { NAVBAR_CONTENT } from "@/data/content";
+import { routes } from "@/lib/constants/routes";
 import { Button } from "@/components/ui/button";
 
 export function Navbar() {
@@ -42,8 +43,19 @@ export function Navbar() {
           ))}
         </ul>
 
-        {/* Right side Mobile Toggle */}
+        {/* Right side: CTA auth (desktop) + toggle (mobile) */}
         <div className="flex flex-1 justify-end items-center gap-4">
+          <div className="hidden items-center gap-2 md:flex">
+            <Link
+              href={routes.login}
+              className="text-nav-link rounded-xl px-4 py-2 text-white/90 transition-colors duration-200 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40"
+            >
+              {NAVBAR_CONTENT.cta.masuk}
+            </Link>
+            <Button variant="primary" size="md" href={routes.register}>
+              {NAVBAR_CONTENT.cta.daftar}
+            </Button>
+          </div>
 
           <button
             className="flex cursor-pointer flex-col gap-1.5 p-2 md:hidden"
@@ -91,11 +103,18 @@ export function Navbar() {
             </li>
           ))}
           <li className="w-full px-6 flex flex-col gap-3 mt-2">
-            <Button className="w-full flex justify-center py-3.5" variant="soft" size="md" href="/dashboard/kreator" onClick={() => setIsMobileMenuOpen(false)}>
-              SAYA KONTEN KREATOR
+            <Link
+              href={routes.login}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex min-h-[44px] w-full items-center justify-center rounded-md text-sm font-medium text-white/90 transition-colors duration-200 hover:text-white"
+            >
+              {NAVBAR_CONTENT.cta.masuk}
+            </Link>
+            <Button className="w-full flex justify-center py-3.5" variant="soft" size="md" href={routes.registerWithRole("creator")} onClick={() => setIsMobileMenuOpen(false)}>
+              {NAVBAR_CONTENT.cta.daftarKreator}
             </Button>
-            <Button className="w-full flex justify-center py-3.5" variant="primary" size="md" href="/dashboard/umkm" onClick={() => setIsMobileMenuOpen(false)}>
-              SAYA PEMILIK UMKM
+            <Button className="w-full flex justify-center py-3.5" variant="primary" size="md" href={routes.registerWithRole("umkm")} onClick={() => setIsMobileMenuOpen(false)}>
+              {NAVBAR_CONTENT.cta.daftarUmkm}
             </Button>
           </li>
         </ul>

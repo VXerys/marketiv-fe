@@ -67,6 +67,44 @@ export function getMockSessionUser(role: UserRole): SessionUser {
   return MOCK_USERS[role];
 }
 
+/**
+ * Role efektif mode mock.
+ *
+ * Sebelum Sprint 6, getSession() mock selalu mengembalikan identitas UMKM dan
+ * RoleGuard mem-bypass dirinya sendiri, jadi role tidak pernah berarti apa-apa.
+ * Setelah bypass dicabut (s6-guard-redirect), role mock harus benar-benar ada —
+ * kalau tidak, dashboard Kreator tidak bisa dibuka sama sekali di mode mock.
+ *
+ * Prioritas: pilihan saat login mock (localStorage) > env > "umkm".
+ */
+const MOCK_ROLE_KEY = "marketiv.mock.role";
+
+const isRole = (v: unknown): v is UserRole =>
+  v === "umkm" || v === "creator" || v === "admin";
+
+/**
+ * Guard `typeof window` wajib: getSession() terjangkau dari
+ * service-result.ts:requireUserId yang bisa dipanggil di server.
+ */
+export function getMockRole(): UserRole {
+  if (typeof window !== "undefined") {
+    const stored = window.localStorage.getItem(MOCK_ROLE_KEY);
+    if (isRole(stored)) return stored;
+  }
+  const fromEnv = process.env.NEXT_PUBLIC_MOCK_ROLE;
+  return isRole(fromEnv) ? fromEnv : "umkm";
+}
+
+export function setMockRole(role: UserRole): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(MOCK_ROLE_KEY, role);
+}
+
+export function clearMockRole(): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(MOCK_ROLE_KEY);
+}
+
 const mapErrorCode = (err: unknown): ServiceErrorCode => {
   const code = (err as { code?: number })?.code;
   if (code === 401) return "auth";
@@ -79,13 +117,13 @@ const mapErrorCode = (err: unknown): ServiceErrorCode => {
 /**
  * Mengambil sesi aktif.
  *
- * Mock ON  → identitas sintetis UMKM (RoleGuard yang menentukan role efektif).
+ * Mock ON  → identitas sintetis sesuai getMockRole().
  * Mock OFF → account.get() lalu baca dokumen `users` untuk role & status.
  */
 export async function getSession(): Promise<ServiceResult<SessionUser>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(150);
-    return { success: true, data: MOCK_USERS.umkm };
+    return { success: true, data: MOCK_USERS[getMockRole()] };
   }
 
   try {
@@ -137,11 +175,12 @@ export async function getSession(): Promise<ServiceResult<SessionUser>> {
 /** Mengakhiri sesi Appwrite. No-op di mode mock. */
 export async function logout(): Promise<ServiceResult<null>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
+    clearMockRole();
     return { success: true, data: null };
   }
 
   try {
-    await account.deleteSession("current");
+    await account.deleteSession({ sessionId: "current" });
     return { success: true, data: null };
   } catch (err) {
     return {

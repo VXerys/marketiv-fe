@@ -92,7 +92,7 @@ Function-nya sudah idempoten (`ensureUserMirror`, `ensureUmkmProfile`, `ensureCr
 | `s6-route-group` | Route group `src/app/(auth)/` + layout + `loading.tsx`, redirect ke dashboard bila sudah punya sesi | — |
 | `s6-login` | Halaman `/login` — email + password, "Login dengan Google", tautan lupa password, hormati `?next=` | `s6-auth-service`, `s6-zod-auth`, `s6-route-group` |
 | `s6-register` | Halaman `/register` — form dinamis dari `?role=umkm\|creator`, plus alur sinkron §A-2 | sda |
-| `s6-forgot` | Halaman `/lupa-password` — `createRecovery()` + layar konfirmasi "cek email" | sda |
+| `s6-forgot` | Halaman `/forgot-password` — `createRecovery()` + layar konfirmasi "cek email" | sda |
 | `s6-reset` | Halaman `/reset-password` — baca `userId` & `secret` dari query, `updateRecovery()` | `s6-forgot` |
 | `s6-oauth-google` | `createOAuth2Session` + halaman callback; UMKM diarahkan melengkapi Nama Usaha/Kategori/No. HP, Kreator langsung masuk | `s6-register` |
 | `s6-guard-redirect` | `RoleGuard` redirect ke `/login?next=<path>` (bukan `/`); hapus bypass mock supaya guard benar-benar teruji | `s6-login` |
@@ -128,6 +128,21 @@ Nomor HP wajib untuk UMKM dan tidak untuk Kreator — itu aturan bisnis, bukan p
 ### C-5 Mode mock tetap ada, tapi tidak lagi mem-bypass guard
 
 `s6-guard-redirect` mencabut `if (bypass) return <>{children}</>`. Sesudahnya, mock ON berarti `getSession()` mengembalikan `MOCK_USERS.umkm` dan guard tetap dievaluasi. Dashboard Kreator jadi tidak terbuka di mode mock kecuali `getMockSessionUser` dipilih per-role — konsekuensi yang disengaja: guard yang tidak pernah dieksekusi adalah guard yang tidak pernah teruji, dan Sprint 6 adalah satu-satunya sprint yang benar-benar mengujinya.
+
+### C-7 Route pemulihan dikunci `/forgot-password`, bukan `/lupa-password`
+
+`src/lib/constants/routes.ts` sudah mendeklarasikan `forgotPassword: "/forgot-password"`
+sejak sebelum sprint ini, dan pasangannya `/reset-password` juga sudah di sana.
+`/lupa-password` + `/reset-password` tidak konsisten di dalam satu alur yang sama.
+
+Yang menentukan: URL reset **dikirim Appwrite lewat email** dan harus didaftarkan
+sebagai platform Web oleh tim backend (§D-4). Menamainya sekarang lalu mengganti
+nanti akan membatalkan email pemulihan yang sedang beredar dan memaksa permintaan
+kedua ke tim backend. Nama dikunci di awal.
+
+Tidak ada redirect `/lupa-password` di `next.config.ts`: belum pernah ada tautan
+eksternal ke sana, dan aturan redirect tak terpakai adalah aturan yang tak akan
+diingat siapa pun untuk dihapus.
 
 ### C-6 Google OAuth ikut, tapi belakangan
 

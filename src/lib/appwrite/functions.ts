@@ -34,6 +34,17 @@ export const FUNCTION_IDS = {
   cancelPayment: "cancel-payment",
   requestWithdrawal: "request-withdrawal",
   validateAndUpload: "validate-and-upload",
+  // ── Auth (Sprint 6) ──────────────────────────────────────────────────────
+  /**
+   * Dieksekusi SINKRON dari klien setelah account.updatePrefs, bukan lewat event
+   * users.*.create: Function membaca role dari prefs, dan prefs baru ada setelah
+   * sesi hidup — jadi saat event menyala prefs masih kosong dan Function menolak
+   * 400. Lihat handoff-auth-sprint6.md §A-1.
+   *
+   * Butuh `execute` untuk role `users`; belum diberikan, jadi 401 sampai tim
+   * backend bertindak. Kegagalannya sengaja tidak menggagalkan register.
+   */
+  createUserProfile: "create-user-profile",
 } as const;
 
 export type FunctionId = (typeof FUNCTION_IDS)[keyof typeof FUNCTION_IDS];

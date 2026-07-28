@@ -5,7 +5,7 @@
 | **Tanggal** | 2026-07-28 |
 | **Dari** | Tim frontend/integrasi |
 | **Untuk** | Tim backend — mohon direview bersama `2026-07-28-sprint4-alur-b.md` |
-| **Status** | ⬜ Menunggu review & eksekusi |
+| **Status** | ✅ Sisi frontend SELESAI (14/15 task) · ⬜ Menunggu 3 aksi kalian — lihat §E |
 | **Sifat** | **Hanya berisi item yang wewenangnya di kalian.** Semua perbaikan yang bisa kami kerjakan sendiri sudah kami kerjakan — daftarnya di §D, tidak butuh tindakan kalian. |
 
 ---
@@ -139,3 +139,42 @@ Dicantumkan supaya kalian tahu apa yang berubah di sisi frontend, bukan untuk di
 | 7 | 7 fallback `"Dapur Sehat Sukabumi"` dihapus | Kegagalan baca profil tampil sebagai nama usaha orang lain, bukan sebagai kegagalan |
 
 Kami **tidak** menyentuh: kode Function apa pun, `appwrite.config.json`, `function-scopes.json`, dan skrip di `appwrite/ops/`.
+
+---
+
+## E. Update — Seluruh Sisi Frontend Sprint 6 Sudah Selesai
+
+Ditulis setelah dokumen ini dikirim. Karena kalian belum bisa review hari ini, kami mengerjakan **semua** yang tidak butuh aksi kalian. Sprint 6 kini **14/15 task**; satu-satunya yang tersisa, `s6-e2e-2akun`, memang menunggu kalian.
+
+**Yang sudah naik di frontend:** `auth.service.ts` + skema Zod auth · route group `src/app/(auth)/` · halaman `/login`, `/register`, `/forgot-password`, `/reset-password`, `/auth/callback` · logout kedua sidebar tersambung sungguhan · Navbar & landing CTA diarahkan ke auth · RoleGuard diperketat.
+
+Verifikasi: `npx tsc --noEmit` **0 error**, `npm run lint` **persis baseline** (5 error/18 warning, semuanya di file lama yang tidak kami sentuh), `npm run build` **Compiled successfully** dengan kelima route auth terdaftar.
+
+### E-1. Tiga hal yang kami rancang khusus untuk bertahan tanpa kalian
+
+| Blocker | Perilaku frontend sekarang |
+|---|---|
+| **A-1** execute permission | Register **tidak** gagal. Fase 1 (`account.create` → session → `updatePrefs`) sukses, lalu `create-user-profile` yang 401 dikembalikan sebagai `profileProvisioned: false`, bukan sebagai error. User melihat kartu "Akun kamu sudah dibuat" + tombol **Coba buat profil lagi**. Melaporkannya sebagai gagal akan membuat user mendaftar ulang dengan email yang sama lalu kena 409 `user_already_exists` — jalan buntu tanpa pemulihan. |
+| **A-4** URL recovery | `/forgot-password` menampilkan pesan bernama ("belum aktif di project — hubungi admin"), bukan hang atau error mentah Appwrite. |
+| **A-3** Google OAuth | Tombol Google **tidak dirender sama sekali** selama `NEXT_PUBLIC_ENABLE_GOOGLE_OAUTH` tidak `true` (default mati). Tidak ada tombol rusak di environment mana pun. |
+
+**Begitu kalian memberi izinnya, tidak ada kode frontend yang perlu diubah** — tombol retry dan jalur self-heal langsung bekerja.
+
+### E-2. Satu bug yang wajib kami tutup lebih dulu
+
+`RoleGuard` dulu memperlakukan "sesi valid tapi baris `users` belum ada" **persis sama** dengan "tidak ada sesi", jadi keduanya redirect ke `/login`. Dengan A-1 masih terbuka, itu berarti: login sukses → `getSession()` `not_found` → balik ke `/login` → **loop tak berujung**, dan itu akan dialami setiap akun yang didaftarkan hari ini. Sekarang state itu punya cabangnya sendiri: kartu "Profil Belum Selesai Dibuat" dengan tombol coba-lagi dan keluar.
+
+### E-3. Keputusan yang perlu kalian tahu
+
+- **Route pemulihan dikunci `/forgot-password`** (bukan `/lupa-password` seperti tertulis di rencana awal), mengikuti konstanta yang sudah ada di `src/lib/constants/routes.ts` dan konsisten dengan pasangannya `/reset-password`. **URL yang perlu kalian daftarkan sebagai platform Web adalah `<origin>/reset-password`** — itu tujuan tautan email. Kami mengunci namanya sekarang justru supaya kalian tidak perlu mendaftarkannya dua kali.
+- **Login menyembuhkan diri.** Kalau `getSession()` mengembalikan `not_found`, kami memanggil `create-user-profile` sekali lalu membaca ulang sesinya. Function-nya idempoten, jadi ini aman — sekaligus memulihkan akun yang registernya terputus di tengah dan akun yang dibuat lewat konsol.
+- **Login akun `suspended` menghapus sesinya**, tidak sekadar menampilkan pesan. Membiarkan sesi hidup berarti kartu penangguhan di RoleGuard jadi satu-satunya penghalang ke dashboard.
+- **Mode mock tidak lagi mem-bypass RoleGuard.** Role efektifnya kini dipilih saat login mock atau lewat `NEXT_PUBLIC_MOCK_ROLE`. Tidak berdampak ke kalian, tapi menjelaskan kenapa guard sekarang benar-benar teruji.
+
+### E-4. Yang kami butuhkan, berurut dari yang paling banyak membuka
+
+1. 🔴 **`execute` untuk role `users` pada `create-user-profile`**, plus konfirmasi Function menerima `$id` / `role` / `prefs` dari body eksekusi manual. Ini sendirian membuka §E-1 s/d E-4 dan E-7 di rencana sprint — dan menutup `s6-e2e-2akun`.
+2. 🔴 **Daftarkan `<origin>/reset-password` sebagai platform Web** (lokal `http://localhost:3000` + staging).
+3. 🟡 **Provider Google + callback URL.** Boleh lewat demo — tombolnya sudah tersembunyi.
+
+Plus §B dokumen ini (deploy Alur B) yang masih ⬜ seluruhnya dan tetap memblokir demo.

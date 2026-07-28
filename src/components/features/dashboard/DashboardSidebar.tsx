@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -22,6 +21,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { LogoutConfirmDialog } from "@/components/features/dashboard/shared/LogoutConfirmDialog";
 import {
   Sidebar,
   SidebarContent,
@@ -402,57 +402,11 @@ export function DashboardSidebar({
         </div>
       </SidebarFooter>
 
-      {/* Logout Confirmation Modal */}
-      {showLogoutModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          {/* Backdrop overlay */}
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
-            onClick={() => setShowLogoutModal(false)}
-          />
-          
-          {/* Dialog Card container */}
-          <div className="relative bg-[#0d1527] border border-white/10 rounded-3xl w-full max-w-[340px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col">
-            {/* Top Illustration */}
-            <div className="relative w-full aspect-[16/10] bg-black/40 overflow-hidden border-b border-white/5">
-              <Image
-                src="/logout_exit_door.png"
-                alt="Exit Illustration"
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-            
-            {/* Texts */}
-            <div className="px-6 pt-5 pb-6 text-center space-y-2">
-              <h4 className="text-xl font-extrabold text-white tracking-tight">
-                Logout?
-              </h4>
-              <p className="text-xs text-neutral-400 font-semibold leading-relaxed">
-                Kamu yakin ingin keluar?
-              </p>
-            </div>
-            
-            {/* Actions */}
-            <div className="px-6 pb-6 flex flex-col gap-2.5">
-              <Link
-                href="/"
-                onClick={() => setShowLogoutModal(false)}
-                className="flex items-center justify-center min-h-[44px] px-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-orange-500/10 hover:shadow-lg hover:shadow-orange-500/15 active:scale-[0.98] transition-all duration-150 text-center no-underline cursor-pointer"
-              >
-                Logout
-              </Link>
-              <button
-                onClick={() => setShowLogoutModal(false)}
-                className="flex items-center justify-center min-h-[44px] px-4 bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-white/10 text-white font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150 text-center cursor-pointer outline-none"
-              >
-                Kembali
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <LogoutConfirmDialog
+        open={showLogoutModal}
+        onOpenChange={setShowLogoutModal}
+        accent="orange"
+      />
     </Sidebar>
   );
 }

@@ -5,6 +5,12 @@ export const NAVBAR_CONTENT = {
     { label: "PANDUAN", href: "/panduan" },
     { label: "TENTANG KAMI", href: "/tentang-kami" },
   ],
+  cta: {
+    masuk: "MASUK",
+    daftar: "DAFTAR",
+    daftarKreator: "DAFTAR SEBAGAI KREATOR",
+    daftarUmkm: "DAFTAR SEBAGAI UMKM",
+  },
 };
 
 export const LANDING_CONTENT = {

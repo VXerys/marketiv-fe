@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import landingPageBg from "@/assets/images/landing-page.png";
 import { LANDING_CONTENT } from "@/data/content";
+import { routes } from "@/lib/constants/routes";
 
 export function HeroSection() {
   const { hero } = LANDING_CONTENT;
@@ -28,10 +29,10 @@ export function HeroSection() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 mt-12 sm:mt-16 md:mt-20 lg:mt-24">
-          <Button variant="primary" size="xl" href="/dashboard/umkm">
+          <Button variant="primary" size="xl" href={routes.registerWithRole("umkm")}>
             {hero.ctaUmkm}
           </Button>
-          <Button variant="outline" size="xl" href="/dashboard/kreator">
+          <Button variant="outline" size="xl" href={routes.registerWithRole("creator")}>
             {hero.ctaCreator}
           </Button>
         </div>
