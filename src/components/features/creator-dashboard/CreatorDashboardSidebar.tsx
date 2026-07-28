@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -30,6 +30,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { getCreatorActiveWorks } from "@/services/creator/creator-dashboard.service";
+import type { ClaimStatus } from "@/types/domain";
 
 interface CreatorSidebarItem {
   label: string;
@@ -53,6 +55,15 @@ interface CreatorDashboardSidebarProps {
   onCloseSidebar?: () => void;
 }
 
+/**
+ * Status klaim yang berarti pekerjaan masih berjalan — plus labelnya.
+ * `approved`/`rejected`/`expired` absen: itu pekerjaan yang sudah tutup.
+ */
+const CLAIM_IN_PROGRESS: Partial<Record<ClaimStatus, string>> = {
+  claimed: "Sedang Dikerjakan",
+  submitted: "Menunggu Validasi",
+};
+
 export function CreatorDashboardSidebar({
   creatorName,
   creatorHandle,
@@ -62,25 +73,42 @@ export function CreatorDashboardSidebar({
   const { state, toggleSidebar } = useSidebar();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  /**
+   * Panel "Campaign Aktif".
+   *
+   * Sebelum `s5-sidebar-fabrikasi`, isinya dua baris hardcode di dalam useState
+   * (Dapur Sehat Sukabumi & Sambal Bu Rudi, logo Unsplash) yang tampil di setiap
+   * layar — termasuk pada akun kreator yang belum mengklaim apa pun.
+   *
+   * Sumber nyatanya `campaign_claims` lewat getCreatorActiveWorks().
+   */
   const [activeCampaigns, setActiveCampaigns] = useState<Array<{
     businessName: string;
     logoUrl: string;
     campaignTitle: string;
     status: string;
-  }>>([
-    {
-      businessName: "Dapur Sehat Sukabumi",
-      logoUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=80&h=80&q=80",
-      campaignTitle: "Rasa Nusantara Food Review",
-      status: "Proses Edit Video"
-    },
-    {
-      businessName: "Sambal Bu Rudi",
-      logoUrl: "https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=80&h=80&q=80",
-      campaignTitle: "Glow & Beauty Care",
-      status: "Menunggu Validasi"
-    }
-  ]);
+  }>>([]);
+
+  useEffect(() => {
+    let active = true;
+    void getCreatorActiveWorks().then((res) => {
+      if (!active || !res.success || !res.data) return;
+      setActiveCampaigns(
+        res.data
+          .filter((w) => CLAIM_IN_PROGRESS[w.status] !== undefined)
+          .slice(0, 5)
+          .map((w) => ({
+            businessName: w.brandName,
+            logoUrl: w.brandAvatar,
+            campaignTitle: w.title,
+            status: CLAIM_IN_PROGRESS[w.status] as string,
+          }))
+      );
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <Sidebar className="bg-[#0c172b] text-white border-r border-white/5 shadow-xl" collapsible="icon">

@@ -44,13 +44,9 @@ const TOOLTIP_STYLE = {
 const AXIS_TICK   = { fontSize: 12, fill: "#737f91", fontWeight: 700 } as const;
 const Y_AXIS_TICK = { fontSize: 11, fill: "#737f91", fontWeight: 700 } as const;
 
-interface AnalitikClientProps {
-  businessName: string;
-}
-
-export function AnalitikClient({ businessName }: AnalitikClientProps) {
+export function AnalitikClient() {
   return (
-    <UmkmDashboardChrome businessName={businessName}>
+    <UmkmDashboardChrome>
       <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
         <div className="max-w-[1280px] mx-auto space-y-6 pb-8">
 

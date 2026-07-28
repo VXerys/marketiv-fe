@@ -15,6 +15,7 @@ import {
   UmkmFinanceSummary,
   EscrowOverview,
   UmkmSettingsProfile,
+  UmkmOverviewData,
 } from "@/types/umkm-dashboard.types";
 import {
   mockUmkmProfile,
@@ -29,7 +30,7 @@ import {
   mockUmkmSettingsProfile,
   getCalculatedDashboardSummary,
 } from "@/mocks/umkm";
-import type { UmkmOverviewData } from "@/mocks/umkm/overview.mock";
+
 import type { CreateOfferInput } from "@/lib/validations/offer.schema";
 import {
   createConversationInAppwrite,
@@ -38,6 +39,7 @@ import {
 } from "@/services/shared/conversation-appwrite.service";
 import {
   getUmkmProfileFromAppwrite,
+  getOverviewFromAppwrite,
   getDashboardSummaryFromAppwrite,
   getCampaignsFromAppwrite,
   getCampaignByIdFromAppwrite,
@@ -92,21 +94,18 @@ export async function getUmkmProfile(): Promise<ServiceResult<UmkmProfile>> {
 }
 
 /**
- * View-model kaya untuk halaman Overview (hero, KPI, insights, activities).
- * Mock ON  → mock overview terelokasi. Mock OFF → memerlukan Function DTO
- * `get-umkm-dashboard-summary` (belum ada) — lihat chip task backend.
+ * View-model halaman Overview (hero, KPI, daftar campaign, insights, activities).
+ *
+ * Mengembalikan `campaigns` sekalian supaya halaman cukup satu panggilan —
+ * versi lama memanggil getOverview() + getCampaigns() berdampingan, dan cabang
+ * Appwrite butuh daftar campaign itu juga untuk menghitung `creatorJoined`.
  */
 export async function getOverview(): Promise<ServiceResult<UmkmOverviewData>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(300);
-    return { success: true, data: mockUmkmOverview };
+    return { success: true, data: { ...mockUmkmOverview, campaigns: mockCampaigns } };
   }
-  return {
-    success: false,
-    data: null,
-    error: "Belum tersedia — memerlukan Function DTO backend.",
-    code: "unknown",
-  };
+  return getOverviewFromAppwrite();
 }
 
 export async function getDashboardSummary(): Promise<ServiceResult<UmkmDashboardSummary>> {

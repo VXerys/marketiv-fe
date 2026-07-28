@@ -29,12 +29,15 @@ interface ActiveWorkDetailViewProps {
   work: CreatorActiveWork | null;
 }
 
-const getThumbnailUrl = (campaignId: string): string => {
-  if (campaignId === "campaign_006") return "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800&h=600&fit=crop";
-  if (campaignId === "campaign_007") return "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800&h=600&fit=crop";
-  if (campaignId === "campaign_008") return "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=600&fit=crop";
-  return "https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=800&h=600&fit=crop";
-};
+/**
+ * Thumbnail campaign.
+ *
+ * Versi lama memetakan `campaign_006/007/008` ke tiga foto Unsplash dan sisanya
+ * ke foto keempat — id-id itu hanya ada di mock, jadi dengan data nyata SEMUA
+ * campaign memakai foto makanan yang sama. `campaigns` tidak punya kolom
+ * thumbnail (lihat mapCampaign di umkm-appwrite.service.ts), jadi sampai kolom
+ * itu ada, yang jujur adalah tidak menampilkan foto sama sekali.
+ */
 
 // ─── Stat chip used in hero ───────────────────────────────────────────────────
 
@@ -162,7 +165,6 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
   // angka ini yang dipakai kreator untuk memperkirakan bayaran.
   const auditedViews = work.actualViews ?? 0;
   const earningsEstimate = work.earnings ?? (work.ratePerThousandViews * auditedViews) / 1000;
-  const thumbnailUrl = getThumbnailUrl(work.campaignId);
 
   const { text: deadlineText, days } = (() => {
     const diffDays = Math.ceil(
@@ -191,13 +193,13 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
           <div className="relative overflow-hidden" style={{ minHeight: 320 }}>
             {/* Blurred background image */}
             <div className="absolute inset-0 scale-110">
-              <Image
-                src={thumbnailUrl}
-                alt=""
-                fill
-                className="object-cover"
-                priority
-                sizes="100vw"
+              <div
+                aria-hidden="true"
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4c1d95 100%)",
+                }}
               />
             </div>
 
@@ -318,15 +320,15 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                   </div>
                 </div>
 
-                {/* Right: product image */}
+                {/* Right: placeholder — `campaigns` belum punya kolom thumbnail */}
                 <div className="relative w-full lg:w-[320px] xl:w-[360px] aspect-[4/3] rounded-2xl overflow-hidden border border-white/10 shadow-2xl shrink-0 bg-white/5 hidden lg:block">
-                  <Image
-                    src={thumbnailUrl}
-                    alt={work.title}
-                    fill
-                    sizes="360px"
-                    className="object-cover"
-                    priority
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4c1d95 100%)",
+                    }}
                   />
                 </div>
               </div>

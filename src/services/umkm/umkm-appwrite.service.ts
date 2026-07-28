@@ -13,6 +13,8 @@ import {
   type CreateOfferInput,
 } from "@/lib/validations/offer.schema";
 import { appendOfferMessageInAppwrite } from "@/services/shared/conversation-appwrite.service";
+import { getNotificationsFromAppwrite } from "@/services/shared/notification-appwrite.service";
+import type { NotifType } from "@/types/notification.types";
 import {
   type Doc,
   str,
@@ -23,12 +25,14 @@ import {
   failFromError,
   failFromWriteError,
   requireUserId,
+  noData,
 } from "@/services/shared/service-result";
 import {
   ServiceResult,
   UmkmProfile,
   UmkmSettingsProfile,
   UmkmDashboardSummary,
+  UmkmOverviewData,
   Campaign,
   CampaignSubmission,
   CreatorProfile,
@@ -171,6 +175,91 @@ export async function getDashboardSummaryFromAppwrite(): Promise<ServiceResult<U
     return failFromError<UmkmDashboardSummary>(err, null as unknown as UmkmDashboardSummary);
   }
 }
+
+/**
+ * View-model Overview (s5-overview-dto).
+ *
+ * Sebelumnya `getOverview()` tidak punya cabang Appwrite sama sekali — ia
+ * mengembalikan `success: false` harfiah saat mock OFF, sehingga halaman
+ * pertama yang dilihat UMKM setelah login adalah kotak error. Function
+ * `get-umkm-dashboard-summary` sudah ada sejak Sprint 1; yang belum ada hanya
+ * perakitannya jadi bentuk yang dirender halaman.
+ *
+ * Tiga sumber, satu perjalanan:
+ * - profil ...... Function `get-umkm-profile` (nama usaha untuk header & chrome)
+ * - metrik ...... Function `get-umkm-dashboard-summary` (agregasi, termasuk uang)
+ * - campaign .... query langsung; juga sumber `creatorJoined`
+ *
+ * `creatorJoined` dihitung di klien sebagai Σ `usedQuota`. Ini pencacahan klaim,
+ * BUKAN perhitungan uang, jadi tidak melanggar §26 yang melarang klien
+ * menjumlahkan escrow/wallet sendiri.
+ *
+ * `insights` dibiarkan undefined: tidak ada mesin insight di backend, dan
+ * kalimat "Campaign Kuliner 28% lebih tinggi" di mock tidak punya sumber data.
+ */
+export async function getOverviewFromAppwrite(): Promise<ServiceResult<UmkmOverviewData>> {
+  const [profileRes, summaryRes, campaignsRes, activitiesRes] = await Promise.all([
+    getUmkmProfileFromAppwrite(),
+    getDashboardSummaryFromAppwrite(),
+    getCampaignsFromAppwrite(),
+    getNotificationsFromAppwrite("umkm"),
+  ]);
+
+  // Profil & metrik adalah isi halaman; tanpa keduanya tidak ada yang bisa
+  // ditampilkan selain angka kosong yang menyesatkan.
+  if (!profileRes.success || !profileRes.data) {
+    return fail<UmkmOverviewData>(
+      profileRes.error ?? "Gagal memuat profil usaha.",
+      profileRes.code ?? "unknown",
+      noData<UmkmOverviewData>()
+    );
+  }
+  if (!summaryRes.success || !summaryRes.data) {
+    return fail<UmkmOverviewData>(
+      summaryRes.error ?? "Gagal memuat ringkasan dashboard.",
+      summaryRes.code ?? "unknown",
+      noData<UmkmOverviewData>()
+    );
+  }
+
+  const campaigns = campaignsRes.data ?? [];
+  const summary = summaryRes.data;
+
+  return ok<UmkmOverviewData>({
+    businessName: profileRes.data.businessName,
+    campaigns,
+    kpis: {
+      campaignActive: summary.activeCampaigns,
+      totalSpend: summary.totalSpent,
+      escrowBalance: summary.escrowBalance,
+      creatorJoined: campaigns.reduce((n, c) => n + c.usedQuota, 0),
+      viewsValid: summary.totalViews,
+      pendingSubmissions: summary.pendingSubmissions,
+    },
+    // Notifikasi gagal/kosong bukan alasan menggagalkan halaman — timeline
+    // tinggal kosong. Sampai permission baris Function penulis diperbaiki
+    // (§B handoff Alur B), daftar ini memang bisa pulang kosong.
+    activities: (activitiesRes.data ?? []).slice(0, 8).map((n) => ({
+      id: n.id,
+      title: n.title,
+      description: n.message,
+      type: ACTIVITY_TYPE_BY_NOTIF[n.type],
+      time: n.timestamp,
+    })),
+  });
+}
+
+/** Kategori notifikasi → ikon timeline aktivitas. */
+const ACTIVITY_TYPE_BY_NOTIF: Record<
+  NotifType,
+  NonNullable<UmkmOverviewData["activities"]>[number]["type"]
+> = {
+  campaign: "campaign",
+  keuangan: "payment",
+  negosiasi: "progress",
+  rate_card: "progress",
+  sistem: "progress",
+};
 
 /**
  * `get-umkm-finance-summary` mengembalikan finance + escrow sekali jalan supaya

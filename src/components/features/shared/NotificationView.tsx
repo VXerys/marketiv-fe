@@ -5,33 +5,26 @@ import Link from "next/link";
 import {
   BellOff,
   CheckCheck,
-  Trash2,
   Megaphone,
   Wallet,
   MessageSquare,
   Settings2,
   Tag,
   ChevronRight,
-  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { AppNotification, NotifType } from "@/types/notification.types";
+import type { UserRole } from "@/types/domain";
+import {
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+} from "@/services/shared/notification.service";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type NotifType = "campaign" | "keuangan" | "negosiasi" | "sistem" | "rate_card";
 type ThemeVariant = "kreator" | "umkm";
 type FilterTab = "all" | "unread" | NotifType;
-
-interface AppNotification {
-  id: string;
-  type: NotifType;
-  title: string;
-  message: string;
-  timestamp: string;
-  isRead: boolean;
-  actionLabel?: string;
-  actionHref?: string;
-}
 
 export interface NotificationViewProps {
   theme: ThemeVariant;
@@ -119,34 +112,6 @@ const NOTIF_CFG: Record<
   },
 };
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-
-const KREATOR_NOTIFS: AppNotification[] = [
-  { id: "k1", type: "campaign", title: "Campaign Baru Tersedia", message: "Dapur Sehat Sukabumi membuka campaign 'Rasa Nusantara Food Review' dengan budget Rp 500.000 per kreator.", timestamp: new Date(Date.now() - 5 * 60000).toISOString(), isRead: false, actionLabel: "Lihat Campaign", actionHref: "/dashboard/kreator/job-pool" },
-  { id: "k2", type: "keuangan", title: "Pembayaran Diterima", message: "Dana Rp 350.000 dari campaign 'Kopi Nusantara Reels' berhasil masuk ke dompet Anda.", timestamp: new Date(Date.now() - 30 * 60000).toISOString(), isRead: false, actionLabel: "Lihat Dompet", actionHref: "/dashboard/kreator/keuangan" },
-  { id: "k3", type: "campaign", title: "Proof of Work Disetujui", message: "UMKM 'Sambal Bu Rudi' menyetujui konten Anda untuk campaign 'Glow & Beauty Care'. Saldo segera dicairkan.", timestamp: new Date(Date.now() - 2 * 3600000).toISOString(), isRead: false },
-  { id: "k4", type: "negosiasi", title: "Penawaran Rate Card Baru", message: "UMKM 'Batik Tulis Nusantara' mengirim penawaran untuk paket Standard Instagram Anda senilai Rp 800.000.", timestamp: new Date(Date.now() - 4 * 3600000).toISOString(), isRead: false, actionLabel: "Lihat Negosiasi", actionHref: "/dashboard/kreator/negosiasi" },
-  { id: "k5", type: "rate_card", title: "Paket Rate Card Dilihat", message: "5 UMKM melihat paket Rate Card 'Premium TikTok Review' Anda hari ini. Pastikan deskripsi sudah menarik.", timestamp: new Date(Date.now() - 6 * 3600000).toISOString(), isRead: true },
-  { id: "k6", type: "keuangan", title: "Penarikan Saldo Berhasil", message: "Penarikan Rp 250.000 ke rekening BCA ****4521 telah berhasil diproses.", timestamp: new Date(Date.now() - 86400000).toISOString(), isRead: true },
-  { id: "k7", type: "sistem", title: "Verifikasi Akun Berhasil", message: "Akun kreator Anda telah terverifikasi. Kini Anda dapat menerima campaign berbayar.", timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), isRead: true },
-  { id: "k8", type: "campaign", title: "Campaign Hampir Berakhir", message: "Campaign 'Warung Digital Pak Budi' berakhir dalam 3 hari. Segera upload proof of work Anda.", timestamp: new Date(Date.now() - 3 * 86400000).toISOString(), isRead: true, actionLabel: "Upload Sekarang", actionHref: "/dashboard/kreator/pekerjaan-aktif" },
-  { id: "k9", type: "sistem", title: "Kebijakan Platform Diperbarui", message: "Marketiv memperbarui ketentuan penggunaan. Mohon baca dan setujui perubahan ini.", timestamp: new Date(Date.now() - 5 * 86400000).toISOString(), isRead: true, actionLabel: "Baca Perubahan", actionHref: "/dashboard/kreator/panduan" },
-  { id: "k10", type: "negosiasi", title: "Counter Offer Diterima", message: "UMKM 'Madu Asli Flores' menerima counter offer Anda untuk paket YouTube Review. Negosiasi selesai!", timestamp: new Date(Date.now() - 7 * 86400000).toISOString(), isRead: true },
-];
-
-const UMKM_NOTIFS: AppNotification[] = [
-  { id: "u1", type: "campaign", title: "3 Kreator Baru Mendaftar", message: "3 kreator baru mendaftar ke campaign 'Rasa Nusantara Food Review'. Review dan setujui segera.", timestamp: new Date(Date.now() - 10 * 60000).toISOString(), isRead: false, actionLabel: "Review Kreator", actionHref: "/dashboard/umkm/campaign" },
-  { id: "u2", type: "keuangan", title: "Escrow Berhasil Dikunci", message: "Dana escrow Rp 1.500.000 untuk campaign 'Glow & Beauty Care' berhasil dikunci. Campaign siap dimulai.", timestamp: new Date(Date.now() - 45 * 60000).toISOString(), isRead: false, actionLabel: "Lihat Keuangan", actionHref: "/dashboard/umkm/keuangan" },
-  { id: "u3", type: "campaign", title: "Konten Kreator Perlu Direview", message: "Sulianto Indria Putra mengunggah proof of work untuk campaign 'Kopi Nusantara'. Segera review.", timestamp: new Date(Date.now() - 2 * 3600000).toISOString(), isRead: false, actionLabel: "Review Konten", actionHref: "/dashboard/umkm/campaign" },
-  { id: "u4", type: "negosiasi", title: "Counter Offer dari Kreator", message: "Kreator 'Rina Dewi' mengajukan counter offer Rp 750.000 untuk paket Rate Card Instagram.", timestamp: new Date(Date.now() - 3 * 3600000).toISOString(), isRead: false, actionLabel: "Lihat Negosiasi", actionHref: "/dashboard/umkm/negosiasi" },
-  { id: "u5", type: "sistem", title: "Campaign Disetujui Admin", message: "Campaign 'Warung Digital Pak Budi' telah diverifikasi dan mulai tampil di marketplace kreator.", timestamp: new Date(Date.now() - 5 * 3600000).toISOString(), isRead: true },
-  { id: "u6", type: "keuangan", title: "Pembayaran Kreator Berhasil", message: "Pembayaran Rp 350.000 ke kreator 'Andi Wijaya' untuk campaign 'Sambal Nusantara' berhasil diproses.", timestamp: new Date(Date.now() - 86400000).toISOString(), isRead: true },
-  { id: "u7", type: "campaign", title: "Campaign Mendekati Kuota", message: "Campaign 'Glow & Beauty Care' mencapai 85% kuota kreator. Pertimbangkan untuk menambah budget.", timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), isRead: true, actionLabel: "Kelola Campaign", actionHref: "/dashboard/umkm/campaign" },
-  { id: "u8", type: "negosiasi", title: "Negosiasi Rate Card Selesai", message: "Negosiasi dengan kreator 'Budi Santoso' untuk paket TikTok Review berhasil mencapai kesepakatan.", timestamp: new Date(Date.now() - 3 * 86400000).toISOString(), isRead: true },
-  { id: "u9", type: "sistem", title: "Laporan Bulanan Tersedia", message: "Laporan performa campaign bulan Desember 2024 siap diunduh. Total views: 125.430.", timestamp: new Date(Date.now() - 5 * 86400000).toISOString(), isRead: true, actionLabel: "Lihat Laporan", actionHref: "/dashboard/umkm/analitik" },
-  { id: "u10", type: "sistem", title: "Verifikasi Bisnis Berhasil", message: "Profil bisnis Anda telah terverifikasi. Badge 'UMKM Terverifikasi' kini tampil di profil.", timestamp: new Date(Date.now() - 7 * 86400000).toISOString(), isRead: true },
-];
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function relativeTime(iso: string): string {
@@ -188,52 +153,61 @@ const PAGE_SIZE = 7;
 
 export function NotificationView({ theme }: NotificationViewProps) {
   const t = THEME[theme];
-  const baseData = theme === "kreator" ? KREATOR_NOTIFS : UMKM_NOTIFS;
+  const role: UserRole = theme === "kreator" ? "creator" : "umkm";
 
-  const [notifs, setNotifs] = useState<AppNotification[]>(baseData);
-  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [notifs, setNotifs] = useState<AppNotification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [totalLoaded, setTotalLoaded] = useState(baseData.length);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = notifs.filter(n => !n.isRead && !deletingIds.has(n.id)).length;
+  /**
+   * State hanya disentuh SETELAH promise selesai — tidak ada setState sinkron di
+   * body effect (pola yang sama dengan AuthProvider). `setIsLoading(true)` jadi
+   * urusan pemanggil ulang, bukan fungsi ini; nilai awalnya sudah `true`.
+   */
+  const load = useCallback(
+    () =>
+      getNotifications(role).then((res) => {
+        if (res.success && res.data) {
+          setNotifs(res.data);
+          setLoadError(null);
+        } else {
+          setNotifs([]);
+          setLoadError(res.error ?? "Gagal memuat notifikasi.");
+        }
+        setIsLoading(false);
+      }),
+    [role]
+  );
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const retry = () => {
+    setIsLoading(true);
+    void load();
+  };
+
+  const unreadCount = notifs.filter(n => !n.isRead).length;
 
   const filtered = notifs.filter(n => {
-    if (deletingIds.has(n.id)) return false;
     if (activeTab === "all") return true;
     if (activeTab === "unread") return !n.isRead;
     return n.type === activeTab;
   });
 
   const visible = filtered.slice(0, visibleCount);
-  const canLoadMore = visibleCount < filtered.length || totalLoaded < 30;
+  const canLoadMore = visibleCount < filtered.length;
 
+  // Paginasi lokal atas satu halaman server (100 baris). Versi lama "memuat
+  // lebih banyak" dengan mendaur ulang data yang sama memakai id baru — halaman
+  // server palsu. Kalau nanti butuh >100, tambahkan cursor di service.
   const loadMore = useCallback(() => {
-    if (isLoadingMore || !canLoadMore) return;
-    setIsLoadingMore(true);
-    setTimeout(() => {
-      if (visibleCount < filtered.length) {
-        setVisibleCount(c => c + PAGE_SIZE);
-      } else {
-        // Simulate server page: cycle through base data with new IDs
-        const extra: AppNotification[] = Array.from({ length: 5 }, (_, i) => {
-          const src = baseData[i % baseData.length];
-          return {
-            ...src,
-            id: `ext_${totalLoaded + i}`,
-            isRead: true,
-            timestamp: new Date(Date.now() - (totalLoaded + i) * 43200000).toISOString(),
-          };
-        });
-        setNotifs(prev => [...prev, ...extra]);
-        setTotalLoaded(c => c + extra.length);
-        setVisibleCount(c => c + PAGE_SIZE);
-      }
-      setIsLoadingMore(false);
-    }, 800);
-  }, [isLoadingMore, canLoadMore, visibleCount, filtered.length, totalLoaded, baseData]);
+    setVisibleCount(c => c + PAGE_SIZE);
+  }, []);
 
   // Auto-load on scroll via intersection observer
   useEffect(() => {
@@ -245,33 +219,32 @@ export function NotificationView({ theme }: NotificationViewProps) {
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [loadMore]);
+  }, [loadMore, canLoadMore]);
 
-  // Reset page on tab switch
-  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [activeTab]);
-
-  const markAsRead = (id: string) =>
-    setNotifs(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
-
-  const markAllAsRead = () =>
-    setNotifs(prev => prev.map(n => ({ ...n, isRead: true })));
-
-  const deleteOne = (id: string) => {
-    setDeletingIds(prev => new Set([...prev, id]));
-    setTimeout(() => {
-      setNotifs(prev => prev.filter(n => n.id !== id));
-      setDeletingIds(prev => { const s = new Set(prev); s.delete(id); return s; });
-    }, 280);
+  /** Ganti tab sekaligus reset paginasi — bukan lewat effect turunan. */
+  const selectTab = (id: FilterTab) => {
+    setActiveTab(id);
+    setVisibleCount(PAGE_SIZE);
   };
 
-  const deleteAllRead = () => {
-    const readIds = notifs.filter(n => n.isRead && !deletingIds.has(n.id)).map(n => n.id);
-    if (!readIds.length) return;
-    setDeletingIds(prev => new Set([...prev, ...readIds]));
-    setTimeout(() => {
-      setNotifs(prev => prev.filter(n => !readIds.includes(n.id)));
-      setDeletingIds(new Set());
-    }, 280);
+  /**
+   * Optimistis, lalu dikonfirmasi server. Kalau update gagal, daftar dimuat
+   * ulang supaya centang di layar tidak mengklaim lebih dari yang tersimpan.
+   */
+  const markAsRead = async (id: string) => {
+    const target = notifs.find(n => n.id === id);
+    if (!target || target.isRead) return;
+    setNotifs(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    const res = await markNotificationRead(id);
+    if (!res.success) void load();
+  };
+
+  const markAllAsRead = async () => {
+    const unreadIds = notifs.filter(n => !n.isRead).map(n => n.id);
+    if (!unreadIds.length) return;
+    setNotifs(prev => prev.map(n => ({ ...n, isRead: true })));
+    const res = await markAllNotificationsRead(unreadIds);
+    if (!res.success) void load();
   };
 
   const tabs: { id: FilterTab; label: string }[] = [
@@ -322,14 +295,11 @@ export function NotificationView({ theme }: NotificationViewProps) {
                 Tandai Semua Dibaca
               </button>
             )}
-            <button
-              onClick={deleteAllRead}
-              disabled={!notifs.some(n => n.isRead)}
-              className="inline-flex items-center gap-1.5 min-h-[38px] px-3.5 rounded-xl text-xs font-bold border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              <Trash2 size={14} />
-              Hapus Sudah Dibaca
-            </button>
+            {/*
+              Tidak ada aksi hapus. Baris `notifications` ditulis Function dengan
+              read + update untuk pemiliknya, tanpa Permission.delete — tombol
+              hapus akan selalu 401. Lihat notification-appwrite.service.ts.
+            */}
           </div>
         </div>
 
@@ -338,7 +308,7 @@ export function NotificationView({ theme }: NotificationViewProps) {
           {tabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => selectTab(tab.id)}
               className={cn(
                 "relative inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-full text-[11px] font-bold border transition-all duration-200 cursor-pointer select-none",
                 activeTab === tab.id
@@ -361,8 +331,31 @@ export function NotificationView({ theme }: NotificationViewProps) {
           ))}
         </div>
 
-        {/* ── Notification list or Empty state ── */}
-        {visible.length === 0 && !isLoadingMore ? (
+        {/* ── Loading / Error / List / Empty ── */}
+        {isLoading ? (
+          <div className="bg-white border border-neutral-200/80 rounded-[26px] shadow-[0_4px_16px_rgba(15,23,42,.05)] overflow-hidden divide-y divide-neutral-100/80">
+            <SkeletonItem />
+            <SkeletonItem />
+            <SkeletonItem />
+          </div>
+        ) : loadError ? (
+          <div className="bg-white border border-red-200/80 rounded-[26px] shadow-[0_4px_16px_rgba(15,23,42,.05)] p-12 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-red-50 border border-red-200 grid place-items-center mx-auto mb-4 text-red-400">
+              <BellOff size={26} />
+            </div>
+            <h3 className="font-display font-black text-neutral-800 text-base mb-1.5 tracking-tight">
+              Gagal memuat notifikasi
+            </h3>
+            <p className="text-xs text-neutral-400 font-semibold leading-relaxed">{loadError}</p>
+            <button
+              onClick={retry}
+              className="mt-4 text-xs font-bold underline underline-offset-2 cursor-pointer"
+              style={{ color: t.accent }}
+            >
+              Coba lagi
+            </button>
+          </div>
+        ) : visible.length === 0 ? (
           <div className="bg-white border border-neutral-200/80 rounded-[26px] shadow-[0_4px_16px_rgba(15,23,42,.05)] p-12 text-center">
             <div className="w-14 h-14 rounded-2xl bg-neutral-50 border border-neutral-200 grid place-items-center mx-auto mb-4 text-neutral-300">
               <BellOff size={26} />
@@ -377,7 +370,7 @@ export function NotificationView({ theme }: NotificationViewProps) {
             </p>
             {activeTab !== "all" && (
               <button
-                onClick={() => setActiveTab("all")}
+                onClick={() => selectTab("all")}
                 className="mt-4 text-xs font-bold underline underline-offset-2 cursor-pointer"
                 style={{ color: t.accent }}
               >
@@ -390,16 +383,12 @@ export function NotificationView({ theme }: NotificationViewProps) {
             {visible.map(notif => {
               const cfg = NOTIF_CFG[notif.type];
               const Icon = cfg.icon;
-              const isDeleting = deletingIds.has(notif.id);
 
               return (
                 <div
                   key={notif.id}
                   className={cn(
                     "relative flex gap-3 p-4 sm:p-5 transition-all duration-[280ms] group",
-                    isDeleting
-                      ? "opacity-0 scale-[0.98] pointer-events-none"
-                      : "opacity-100 scale-100",
                     !notif.isRead ? "bg-neutral-50/70" : "bg-white hover:bg-neutral-50/40"
                   )}
                 >
@@ -490,25 +479,9 @@ export function NotificationView({ theme }: NotificationViewProps) {
                     )}
                   </div>
 
-                  {/* Delete button (appears on hover) */}
-                  <button
-                    onClick={() => deleteOne(notif.id)}
-                    className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-lg text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-all duration-150 cursor-pointer opacity-0 group-hover:opacity-100"
-                    aria-label="Hapus notifikasi"
-                  >
-                    <X size={14} />
-                  </button>
                 </div>
               );
             })}
-
-            {/* Loading skeletons */}
-            {isLoadingMore && (
-              <>
-                <SkeletonItem />
-                <SkeletonItem />
-              </>
-            )}
 
             {/* Intersection observer sentinel (triggers auto-load) */}
             {canLoadMore && (
@@ -516,7 +489,7 @@ export function NotificationView({ theme }: NotificationViewProps) {
             )}
 
             {/* End of list indicator */}
-            {!canLoadMore && !isLoadingMore && (
+            {!canLoadMore && (
               <div className="py-5 text-center text-[11px] font-semibold text-neutral-400">
                 Semua notifikasi telah dimuat
               </div>

@@ -28,7 +28,14 @@ export interface SessionUser {
   avatarUrl?: string;
 }
 
-/** Collection `users` — mirror Appwrite Auth, berisi role & status. */
+/**
+ * Collection `users` — mirror Appwrite Auth, berisi role & status.
+ *
+ * Barisnya di-key `ID.unique()`, BUKAN id akun Auth: `create-user-profile`
+ * menyimpan id Auth di kolom `userId` dan mencarinya lewat kolom itu juga
+ * (`findByUserId`). Mencari lewat `$id` tidak akan pernah cocok, dan gejalanya
+ * menyesatkan — login berhasil tapi berakhir `not_found` lalu ditendang guard.
+ */
 const USERS_COLLECTION = "users";
 
 /** Identitas sintetis untuk mode mock. Role ditentukan oleh RoleGuard terdekat. */
@@ -87,7 +94,7 @@ export async function getSession(): Promise<ServiceResult<SessionUser>> {
     const userDocs = await databases.listDocuments(
       appwriteConfig.databaseId,
       USERS_COLLECTION,
-      [Query.equal("$id", authUser.$id), Query.limit(1)]
+      [Query.equal("userId", authUser.$id), Query.limit(1)]
     );
 
     const doc = userDocs.documents[0] as Record<string, unknown> | undefined;
@@ -100,6 +107,9 @@ export async function getSession(): Promise<ServiceResult<SessionUser>> {
       };
     }
 
+    // `users` hanya menyimpan userId/role/status/email/phone/createdAt — tidak
+    // ada `name` maupun `avatarUrl` di sana. Nama tampilan datang dari akun Auth;
+    // avatar tinggal di umkm_profiles/creator_profiles dan dibaca service profil.
     return {
       success: true,
       data: {
@@ -107,8 +117,7 @@ export async function getSession(): Promise<ServiceResult<SessionUser>> {
         email: authUser.email,
         role: doc.role as UserRole,
         status: doc.status as UserStatus,
-        name: (doc.name as string) ?? authUser.name,
-        avatarUrl: (doc.avatarUrl as string) ?? undefined,
+        name: authUser.name || undefined,
       },
     };
   } catch (err) {

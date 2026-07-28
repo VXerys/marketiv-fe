@@ -18,7 +18,7 @@ from paths import PROGRESS_FILE, MEMORY_INDEX_FILE, MEMORY_DIR
 
 Status = Literal["pending", "in_progress", "done", "blocked"]
 
-# ── definisi lengkap 6 sprint ───────────────────────────────────────────────
+# ── definisi lengkap 7 sprint ───────────────────────────────────────────────
 
 PHASE_DEFINITIONS: list[dict] = [
     {
@@ -126,17 +126,51 @@ PHASE_DEFINITIONS: list[dict] = [
     {
         "phase_no": 5,
         "name": "Hardening",
+        # Prefiks [FE]/[BE] menandai siapa yang mengeksekusi. [BE] = wewenang tim
+        # backend (push/deploy/permission/scopes); frontend hanya menyiapkan
+        # handoff-nya. Lihat memori feedback_function_deploy_is_backend_team.
         "tasks": [
-            ("s5-realtime", "Aktifkan realtime chat & badge notifikasi via src/lib/appwrite/realtime.ts"),
-            ("s5-primitive-umkm", "Migrasi 5 fork umkm-dashboard/shared/* → src/components/ui/*"),
-            ("s5-primitive-kreator", "Hapus Creator* lokal (EmptyState/ErrorState/Skeleton/StatusBadge/MetricCard) → ui/*"),
-            ("s5-metric-unify", "Satukan 3 implementasi metric card kreator"),
-            ("s5-modal-unify", "Ganti modal hand-roll (RateCardView, SettingsView) → DashboardModal"),
-            ("s5-theme-tokens", "Tokenisasi tema kreator (gradien biru-violet vs orange vs violet #7c3aed)"),
-            ("s5-xlsx-fix", "Perbaiki export .xlsx yang menghasilkan bytes CSV"),
-            ("s5-skill-update", "Update skill marketiv-data-contracts: RateCard, DeliverableStatus, OfferStatus"),
-            ("s5-backend-confirm", "Konfirmasi ke pemilik backend: AdminWithdrawReview, state funded, notify-client-review"),
-            ("s5-mock-off", "Set NEXT_PUBLIC_USE_MOCK_DATA=false sebagai default staging"),
+            # ── temuan validasi 2026-07-28 (docs/audits/2026-07-28-validasi-sidebar-integrasi.md)
+            ("s5-ssr-to-client", "[FE] Pindahkan 8 route Server Component ke klien — sesi Appwrite hidup di browser"),
+            ("s5-overview-dto", "[FE] Sambungkan getOverview() ke Function get-umkm-dashboard-summary"),
+            ("s5-sidebar-fabrikasi", "[FE] Buang 2 panel hardcode di DashboardSidebar & CreatorDashboardSidebar"),
+            ("s5-notifikasi-wire", "[FE] Sambungkan /notifikasi kedua role ke collection notifications"),
+            ("s5-businessname-hardcode", "[FE] Hapus 7 fallback 'Dapur Sehat Sukabumi' — kegagalan baca harus tampil sebagai kegagalan"),
+            ("s5-deploy-alur-b", "[BE] Deploy §B handoff Alur B: 2 Function baru, 6 diperbarui, harden-permissions gel. 3 & 4"),
+            # ── rencana Sprint 5 semula
+            ("s5-realtime", "[FE] Aktifkan realtime chat & badge notifikasi via src/lib/appwrite/realtime.ts"),
+            ("s5-primitive-umkm", "[FE] Migrasi 5 fork umkm-dashboard/shared/* → src/components/ui/*"),
+            ("s5-primitive-kreator", "[FE] Hapus Creator* lokal (EmptyState/ErrorState/Skeleton/StatusBadge/MetricCard) → ui/*"),
+            ("s5-metric-unify", "[FE] Satukan 3 implementasi metric card kreator"),
+            ("s5-modal-unify", "[FE] Ganti modal hand-roll (RateCardView, SettingsView) → DashboardModal"),
+            ("s5-theme-tokens", "[FE] Tokenisasi tema kreator (gradien biru-violet vs orange vs violet #7c3aed)"),
+            ("s5-xlsx-fix", "[FE] Perbaiki export .xlsx yang menghasilkan bytes CSV"),
+            ("s5-skill-update", "[FE] Update skill marketiv-data-contracts: RateCard, DeliverableStatus, OfferStatus"),
+            ("s5-backend-confirm", "[BE] Konfirmasi ke pemilik backend: AdminWithdrawReview, state funded, notify-client-review"),
+            ("s5-mock-off", "[FE] Set NEXT_PUBLIC_USE_MOCK_DATA=false sebagai default staging"),
+        ],
+    },
+    {
+        "phase_no": 6,
+        "name": "Autentikasi",
+        # Rencana lengkap: docs/audits/2026-07-28-sprint-6-auth-plan.md
+        # Prasyarat demo 2 akun — bukan lanjutannya. Lihat §B1 dokumen validasi.
+        "tasks": [
+            ("s6-session-fix", "[FE] Perbaiki getSession(): query users lewat kolom userId, bukan $id"),
+            ("s6-auth-service", "[FE] Buat auth.service.ts — register/login/OAuth/recovery dengan pola ServiceResult"),
+            ("s6-zod-auth", "[FE] Skema Zod src/lib/validations/auth.schema.ts (login, register 2 role, forgot, reset)"),
+            ("s6-route-group", "[FE] Route group src/app/(auth)/ + layout + redirect bila sesi sudah ada"),
+            ("s6-login", "[FE] Halaman /login — email+password, tombol Google, hormati ?next="),
+            ("s6-register", "[FE] Halaman /register — form dinamis ?role=, alur sinkron create-user-profile"),
+            ("s6-forgot", "[FE] Halaman /lupa-password — createRecovery() + layar konfirmasi"),
+            ("s6-reset", "[FE] Halaman /reset-password — updateRecovery() dari userId & secret di query"),
+            ("s6-oauth-google", "[FE] Google OAuth + halaman callback; UMKM lengkapi data tambahan"),
+            ("s6-guard-redirect", "[FE] RoleGuard redirect ke /login?next=; cabut bypass mode mock"),
+            ("s6-logout", "[FE] Sambungkan modal logout kedua sidebar ke logout() + redirect /login"),
+            ("s6-navbar-cta", "[FE] Navbar & landing: Masuk → /login, Daftar → /register?role="),
+            ("s6-status-suspended", "[FE] Tolak login akun suspended dengan pesan eksplisit"),
+            ("s6-backend-handoff", "[BE] Handoff backend: execute permission create-user-profile, OAuth Google, URL recovery"),
+            ("s6-e2e-2akun", "[FE] E2E: daftar + login 1 akun UMKM & 1 akun Kreator dengan mock OFF"),
         ],
     },
 ]

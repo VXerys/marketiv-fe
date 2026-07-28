@@ -6,124 +6,20 @@
  * getOverview() di umkm-dashboard.service.ts — komponen tidak import file ini
  * langsung.
  *
+ * Tipe `UmkmOverviewData` kini tinggal di src/types/umkm-dashboard.types.ts
+ * (s5-overview-dto); file ini hanya menyediakan datanya. `campaigns` tidak ada
+ * di sini — facade menyuntikkan mockCampaigns supaya satu daftar campaign saja
+ * yang jadi sumber, baik mock ON maupun OFF.
+ *
  * Label Bahasa Indonesia di sini adalah teks tampilan, bukan nilai status
  * kanon. Nilai status kanon ada di src/types/domain.ts.
  */
 
-export interface CampaignSummary {
-  title: string;
-  status: "Aktif" | "Draft" | "Penuh" | "Selesai" | "Dibatalkan";
-  description: string;
-  totalViews: number;
-  viewsTrend: string;
-  budgetUsed: number;
-  budgetTotal: number;
-  activeCreatorsCount: number;
-  targetCreatorsCount: number;
-  progressPercent: number;
-  imageUrl: string;
-}
+import type { UmkmOverviewData } from "@/types/umkm-dashboard.types";
 
-export interface EscrowBalance {
-  totalAmount: number;
-  infoText: string;
-}
-
-export interface SubmissionPending {
-  id: string;
-  creatorName: string;
-  campaignTitle: string;
-  platform: "tiktok" | "instagram";
-  status: "Pending" | "Valid" | "Invalid";
-  timeAgo: string;
-}
-
-export interface ChartBarData {
-  day: string;
-  value: string;
-  percent: number;
-  active: boolean;
-}
-
-export interface UmkmOverviewData {
-  businessName: string;
-  greeting: string;
-  subtitle: string;
-  campaign: CampaignSummary;
-  escrow: EscrowBalance;
-  submissions: SubmissionPending[];
-  chartData: ChartBarData[];
-  kpis?: {
-    campaignActive: number;
-    totalSpend: number;
-    escrowBalance: number;
-    creatorJoined: number;
-    viewsValid: number;
-    pendingSubmissions: number;
-  };
-  insights?: {
-    id: string;
-    text: string;
-    type: "success" | "warning" | "info" | "purple";
-  }[];
-  activities?: {
-    id: string;
-    title: string;
-    description: string;
-    type: "submission" | "campaign" | "payment" | "progress";
-    time: string;
-  }[];
-}
-
-export const mockUmkmOverview: UmkmOverviewData = {
+/** `campaigns` disuntikkan facade, jadi tidak ada di objek mock ini. */
+export const mockUmkmOverview: Omit<UmkmOverviewData, "campaigns"> = {
   businessName: "Dapur Sehat Sukabumi",
-  greeting: "Selamat pagi, Dapur Sehat",
-  subtitle: "Berikut ringkasan performa campaign Anda hari ini.",
-  campaign: {
-    title: "Sambal Matah Dapur Sehat",
-    status: "Aktif",
-    description: "Campaign prioritas bulan ini",
-    totalViews: 184200,
-    viewsTrend: "+12% mg lalu",
-    budgetUsed: 1500000, // Rp 1.5 Jt
-    budgetTotal: 3300000, // Rp 3.3 Jt
-    activeCreatorsCount: 8,
-    targetCreatorsCount: 12,
-    progressPercent: 45,
-    imageUrl:
-      "https://images.unsplash.com/photo-1626132647523-66f5bf380027?q=80&w=200&auto=format&fit=crop",
-  },
-  escrow: {
-    totalAmount: 3250000, // Rp 3.250.000
-    infoText: "Dana sedang ditahan aman. Akan dilepas setelah bukti tayang diverifikasi.",
-  },
-  submissions: [
-    {
-      id: "sub-1",
-      creatorName: "Nadia Foodie",
-      campaignTitle: "Sambal Matah Dapur Sehat",
-      platform: "tiktok",
-      status: "Pending",
-      timeAgo: "2 jam lalu",
-    },
-    {
-      id: "sub-2",
-      creatorName: "Chef Budi",
-      campaignTitle: "Paket Nasi Sehat",
-      platform: "instagram",
-      status: "Pending",
-      timeAgo: "5 jam lalu",
-    },
-  ],
-  chartData: [
-    { day: "Sen", value: "12k", percent: 30, active: false },
-    { day: "Sel", value: "15k", percent: 40, active: false },
-    { day: "Rab", value: "22k", percent: 60, active: false },
-    { day: "Kam", value: "45k", percent: 90, active: false },
-    { day: "Jum", value: "38k", percent: 75, active: false },
-    { day: "Sab", value: "52k", percent: 100, active: true },
-    { day: "Min", value: "28k", percent: 55, active: false },
-  ],
   kpis: {
     campaignActive: 1,
     totalSpend: 4800000,

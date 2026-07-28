@@ -28,12 +28,15 @@ interface PekerjaanAktifViewProps {
   initialWorks: CreatorActiveWork[];
 }
 
-const getThumbnailUrl = (campaignId: string): string => {
-  if (campaignId === "campaign_006") return "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=400&h=300&fit=crop";
-  if (campaignId === "campaign_007") return "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=400&h=300&fit=crop";
-  if (campaignId === "campaign_008") return "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=300&fit=crop";
-  return "https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=400&h=300&fit=crop";
-};
+/**
+ * Thumbnail campaign.
+ *
+ * Versi lama memetakan `campaign_006/007/008` ke tiga foto Unsplash dan sisanya
+ * ke foto keempat — id-id itu hanya ada di mock, jadi dengan data nyata SEMUA
+ * campaign memakai foto makanan yang sama. `campaigns` tidak punya kolom
+ * thumbnail (lihat mapCampaign di umkm-appwrite.service.ts), jadi sampai kolom
+ * itu ada, yang jujur adalah tidak menampilkan foto sama sekali.
+ */
 
 // ─── MetricTile ──────────────────────────────────────────────────────────────
 
@@ -119,7 +122,6 @@ function ActiveJobCard({
   const subStatus    = getSubStatusLabel(work);
   const hasSubmitted = !!work.contentUrl;
   const { text: deadlineText, days } = getDaysRemaining(work.deadline);
-  const thumbnailUrl = getThumbnailUrl(work.campaignId);
   const isFraud   = work.submissionStatus === "rejected" || work.status === "rejected" || work.fraudStatus === "rejected";
   const isValid   = work.submissionStatus === "approved" || work.status === "approved";
   const isPending = work.submissionStatus === "pending";
@@ -166,12 +168,13 @@ function ActiveJobCard({
     >
       {/* Cover image — same 4:3 as Job Pool */}
       <div className="relative w-full overflow-hidden shrink-0" style={{ aspectRatio: "4/3" }}>
-        <Image
-          src={thumbnailUrl}
-          alt={work.title}
-          fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4c1d95 100%)",
+          }}
         />
         <div
           className="absolute inset-0 pointer-events-none"

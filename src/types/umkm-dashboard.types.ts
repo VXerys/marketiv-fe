@@ -292,6 +292,55 @@ export interface UmkmDashboardSummary {
   pendingPayments: number;
 }
 
+/**
+ * View-model halaman Overview UMKM.
+ *
+ * Direlokasi dari src/mocks/umkm/overview.mock.ts (s5-overview-dto) — tipe
+ * kembalian service tidak boleh didefinisikan di file mock.
+ *
+ * Bentuknya sengaja hanya berisi apa yang benar-benar dirender
+ * UmkmOverviewClient. Versi lama membawa `campaign`, `escrow`, `submissions`,
+ * `chartData`, `greeting`, dan `subtitle` yang tidak pernah dibaca komponen
+ * mana pun — field mati yang memaksa cabang Appwrite mengarang isinya.
+ */
+export interface UmkmOverviewKpis {
+  campaignActive: number;
+  totalSpend: number;
+  escrowBalance: number;
+  /** Σ klaim terpakai lintas campaign — jumlah kreator yang sudah bergabung. */
+  creatorJoined: number;
+  viewsValid: number;
+  pendingSubmissions: number;
+}
+
+export interface UmkmOverviewInsight {
+  id: string;
+  text: string;
+  type: "success" | "warning" | "info" | "purple";
+}
+
+export interface UmkmOverviewActivity {
+  id: string;
+  title: string;
+  description: string;
+  type: "submission" | "campaign" | "payment" | "progress";
+  time: string;
+}
+
+export interface UmkmOverviewData {
+  businessName: string;
+  /** Dibawa di sini supaya Overview cukup satu perjalanan, bukan dua. */
+  campaigns: Campaign[];
+  kpis?: UmkmOverviewKpis;
+  /**
+   * Belum ada sumbernya di Appwrite — tidak ada mesin insight di backend.
+   * Dibiarkan undefined saat mock OFF, bukan diisi kalimat karangan.
+   */
+  insights?: UmkmOverviewInsight[];
+  /** Dari `notifications`; kosong sampai permission baris Function diperbaiki. */
+  activities?: UmkmOverviewActivity[];
+}
+
 export interface UmkmFinanceSummary {
   totalExpenses: number;
   escrowBalance: number;

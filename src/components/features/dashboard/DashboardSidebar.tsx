@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -32,7 +32,20 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { getNegotiations } from "@/services/umkm/umkm-dashboard.service";
+import type { NegotiationStage } from "@/types/domain";
 
+
+/**
+ * Tahap yang berarti kreator memang sedang mengerjakan sesuatu — plus labelnya.
+ * Tahap negosiasi (chatting/offer_*) dan tahap selesai/batal sengaja absen:
+ * panel ini tentang pekerjaan berjalan, bukan tentang percakapan.
+ */
+const STAGE_IN_PROGRESS: Partial<Record<NegotiationStage, string>> = {
+  in_progress: "Sedang Dikerjakan",
+  revision: "Revisi Diminta",
+  approved: "Menunggu Pencairan",
+};
 
 interface SidebarNavItem {
   label: string;
@@ -66,31 +79,44 @@ export function DashboardSidebar({
   
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  /**
+   * Panel "Kreator Sedang Bekerja".
+   *
+   * Sebelum `s5-sidebar-fabrikasi`, isinya tiga baris hardcode di dalam
+   * useState — Sulianto/Nadia/Budi dengan foto Unsplash, semuanya di campaign
+   * "Rasa Nusantara Food Review". Karena melekat di sidebar, data karangan itu
+   * tampil di SETIAP layar, termasuk pada akun yang belum punya campaign apa pun.
+   *
+   * Sumber nyatanya adalah order yang sedang berjalan (`get-umkm-negotiations`).
+   * Kalau kosong, panel tidak dirender sama sekali.
+   */
   const [activeCreators, setActiveCreators] = useState<Array<{
     name: string;
     avatar: string;
     campaignTitle: string;
     status: string;
-  }>>([
-    {
-      name: "Sulianto Indria Putra",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80&q=80",
-      campaignTitle: "Rasa Nusantara Food Review",
-      status: "Proses Edit Video"
-    },
-    {
-      name: "Nadia Visuals",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80&q=80",
-      campaignTitle: "Rasa Nusantara Food Review",
-      status: "Menunggu Validasi"
-    },
-    {
-      name: "Budi Santoso",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&h=80&q=80",
-      campaignTitle: "Rasa Nusantara Food Review",
-      status: "Klaim Disetujui"
-    }
-  ]);
+  }>>([]);
+
+  useEffect(() => {
+    let active = true;
+    void getNegotiations().then((res) => {
+      if (!active || !res.success || !res.data) return;
+      setActiveCreators(
+        res.data
+          .filter((n) => STAGE_IN_PROGRESS[n.stage] !== undefined)
+          .slice(0, 5)
+          .map((n) => ({
+            name: n.creatorName,
+            avatar: n.creatorAvatarUrl,
+            campaignTitle: n.projectTitle,
+            status: STAGE_IN_PROGRESS[n.stage] as string,
+          }))
+      );
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <Sidebar

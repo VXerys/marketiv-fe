@@ -222,10 +222,8 @@ export function CampaignsPage() {
     }
   };
 
-  const businessName = profile?.businessName || "Dapur Sehat Sukabumi";
-
   return (
-    <UmkmDashboardChrome businessName={businessName}>
+    <UmkmDashboardChrome businessName={profile?.businessName}>
       {/* UmkmPageWrapper: responsive padding, 26px gap, 1440px max-width for campaign list */}
       <UmkmPageWrapper maxWidth={1440}>
         {/* Header */}
