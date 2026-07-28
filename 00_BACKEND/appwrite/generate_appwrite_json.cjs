@@ -772,7 +772,14 @@ const buckets = [
     {
         $id: "user-files",
         name: "User Files",
-        $permissions: ["read(\"users\")", "create(\"users\")"],
+        // Sengaja TANPA read("users"): permission Appwrite adalah union, jadi
+        // itu membuat setiap user login bisa mengunduh berkas siapa pun —
+        // termasuk deliverable order orang lain dan dokumen pribadi. Bucket ini
+        // punya fileSecurity, dan validate-and-upload sudah memasang permission
+        // per-berkas (pemilik, plus pihak lawan order bila `shareWithOrderId`
+        // dikirim). Itulah satu-satunya jalur baca yang benar.
+        // JANGAN kembalikan read("users") di sini.
+        $permissions: ["create(\"users\")"],
         fileSecurity: true,
         enabled: true,
         maximumFileSize: 20971520, // 20 MB
@@ -1160,6 +1167,27 @@ const functions = [
         entrypoint: "src/main.js",
         commands: "npm install",
         path: "../functions/get-umkm-negotiations"
+    },
+    {
+        // Satu Function, dua event: keduanya butuh join yang sama (baris →
+        // orders → pihak lawan) dan menulis ke tabel yang sama. Memecahnya jadi
+        // dua Function berarti dua deployment dan dua tempat yang harus diingat
+        // saat skema berubah.
+        $id: "notify-order-activity",
+        name: "Notify Order Activity",
+        runtime: "node-22",
+        execute: [],
+        events: [
+            `databases.${databaseId}.tables.deliverables.rows.*.create`,
+            `databases.${databaseId}.tables.revisions.rows.*.create`
+        ],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/notify-order-activity"
     },
     {
         $id: "cancel-payment",

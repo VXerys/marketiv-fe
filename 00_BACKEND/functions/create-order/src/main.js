@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Client, Databases, ID, Permission, Role } from "node-appwrite";
 
 export default async ({ req, res, log, error }) => {
@@ -5,6 +6,23 @@ export default async ({ req, res, log, error }) => {
     const env = getEnv(req);
     const offer = parseBody(req);
     if (!offer?.$id) return json(res, { error: "Missing offer payload" }, 400);
+
+    // Penolakan tidak membuat order, tapi UMKM tetap harus tahu. Ditangani di
+    // sini, bukan di Function terpisah: event `offers.*.update` sudah terpasang
+    // ke Function ini, jadi menambah Function kedua untuk event yang sama cuma
+    // menggandakan hal yang harus di-deploy dan dijaga tetap sinkron.
+    if (offer.status === "rejected") {
+      const databases = createDatabasesClient(env);
+      await notify(databases, env, {
+        userId: offer.umkmId,
+        sourceId: offer.$id,
+        kind: "offer_rejected",
+        title: "Penawaran Ditolak",
+        message: `Kreator menolak penawaran "${str(offer.title)}". Kamu bisa menawar ulang di ruang negosiasi.`,
+        type: "offer_rejected",
+      }, log);
+      return json(res, { status: "notified", reason: "offer rejected" });
+    }
 
     // Sengaja HANYA memeriksa status akhir, bukan transisi pending->accepted.
     // Event dokumen Appwrite tidak mengirim `$previous`, jadi guard lama
@@ -53,6 +71,15 @@ export default async ({ req, res, log, error }) => {
       throw err;
     }
 
+    await notify(databases, env, {
+      userId: offer.umkmId,
+      sourceId: order.$id,
+      kind: "order_created",
+      title: "Penawaran Diterima",
+      message: `Kreator menerima penawaran "${str(offer.title)}". Selesaikan pembayaran agar pengerjaan bisa dimulai.`,
+      type: "order_created",
+    }, log);
+
     log(`Order ${order.$id} created from offer ${offer.$id}`);
     return json(res, { success: true, orderId: order.$id });
   } catch (err) {
@@ -61,6 +88,51 @@ export default async ({ req, res, log, error }) => {
   }
 };
 
+/**
+ * Tulis satu baris notifikasi.
+ *
+ * Id dokumennya deterministik dari (sourceId, kind), jadi event yang terkirim
+ * ulang tidak menghasilkan notifikasi ganda — 409 dari server justru hasil yang
+ * benar. Pola ini sama dengan penanda ledger di create-escrow.
+ *
+ * Kegagalan menulis notifikasi TIDAK PERNAH menggagalkan pemanggilnya:
+ * ordernya sudah terbentuk, dan membatalkan itu karena notifikasi gagal jauh
+ * lebih merugikan daripada notifikasi yang hilang.
+ */
+async function notify(databases, env, payload, log) {
+  try {
+    await databases.createDocument(
+      env.databaseId,
+      env.notificationsCollectionId,
+      deterministicId(payload.sourceId, payload.kind),
+      {
+        userId: payload.userId,
+        title: payload.title,
+        message: payload.message,
+        type: payload.type,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+      // `notifications` punya $permissions kosong + rowSecurity — tanpa
+      // permission baris, notifikasi tidak akan pernah terbaca pemiliknya.
+      [Permission.read(Role.user(payload.userId)), Permission.update(Role.user(payload.userId))]
+    );
+  } catch (err) {
+    if (err?.code === 409) return;
+    log(`Notifikasi ${payload.kind} gagal untuk ${payload.userId}: ${err?.message || String(err)}`);
+  }
+}
+
+/** "ntf" + 29 hex = 32 karakter, valid sebagai document id Appwrite. */
+function deterministicId(sourceId, kind) {
+  const digest = createHash("sha256").update(`${sourceId}:${kind}`).digest("hex");
+  return `ntf${digest.slice(0, 29)}`;
+}
+
+function str(value) {
+  return typeof value === "string" ? value : "";
+}
+
 function getEnv(req) {
   const env = {
     appwriteEndpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT || process.env.APPWRITE_ENDPOINT,
@@ -68,6 +140,7 @@ function getEnv(req) {
     appwriteApiKey: req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY,
     databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
     ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders",
+    notificationsCollectionId: process.env.NOTIFICATIONS_COLLECTION_ID || "notifications",
   };
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);

@@ -55,7 +55,7 @@ export async function uploadDeliverable(
       data: {
         id: `dlv_mock_${Date.now()}`,
         orderId: input.orderId,
-        source: "external_url",
+        source: input.source,
         fileUrl: input.fileUrl,
         notes: input.notes || undefined,
         version: 1,

@@ -15,6 +15,10 @@
 // Row perm keduanya sudah dipasang order.service.ts dan sudah ter-deploy lewat
 // push tim backend 2026-07-27 — pengecualian gelombang 2 tidak berlaku lagi.
 //
+// Gelombang 4 (2026-07-28): bucket `user-files`. Bukan tabel — endpoint dan
+// bentuk payloadnya berbeda, jadi ditangani blok BUCKET_TARGETS terpisah di
+// bawah.
+//
 // Jalankan dengan --dry untuk melihat rencana tanpa menulis.
 import { aw, DB } from "./client.mjs";
 
@@ -103,6 +107,21 @@ const TARGETS = [
   },
 ];
 
+/**
+ * Bucket storage. Dipisah dari TARGETS karena endpointnya `/storage/buckets/{id}`
+ * dan payload PUT-nya butuh `fileSecurity` + `enabled`, bukan `rowSecurity`.
+ */
+const BUCKET_TARGETS = [
+  {
+    id: "user-files",
+    permissions: ['create("users")'],
+    fileSecurity: true,
+    why:
+      'read("users") level bucket = SIAPA PUN yang login bisa mengunduh berkas siapa pun, ' +
+      "termasuk deliverable order orang lain; permission per-berkas dipasang validate-and-upload:44",
+  },
+];
+
 for (const t of TARGETS) {
   const live = await aw(`/tablesdb/${DB}/tables/${t.id}`);
   const before = `perms=${JSON.stringify(live.$permissions)} rowSecurity=${live.rowSecurity}`;
@@ -136,5 +155,51 @@ for (const t of TARGETS) {
     );
   } catch (e) {
     console.log(`ERR  ${t.id.padEnd(20)} ${e.message.slice(0, 300)}`);
+  }
+}
+
+for (const t of BUCKET_TARGETS) {
+  const live = await aw(`/storage/buckets/${t.id}`);
+  const before = `perms=${JSON.stringify(live.$permissions)} fileSecurity=${live.fileSecurity}`;
+  const after = `perms=${JSON.stringify(t.permissions)} fileSecurity=${t.fileSecurity}`;
+
+  if (
+    JSON.stringify(live.$permissions) === JSON.stringify(t.permissions) &&
+    live.fileSecurity === t.fileSecurity
+  ) {
+    console.log(`SKIP bucket:${t.id.padEnd(13)} sudah sesuai`);
+    continue;
+  }
+
+  if (DRY) {
+    console.log(`WOULD bucket:${t.id.padEnd(13)} ${before}  ->  ${after}
+      alasan: ${t.why}`);
+    continue;
+  }
+
+  try {
+    // PUT bersifat replace — field yang tidak dikirim akan di-reset ke default.
+    // Karena itu seluruh setelan bucket dibawa ulang dari live apa adanya,
+    // kecuali dua yang memang sedang diubah. Pelajaran yang sama dengan
+    // insiden `appwrite push functions` 2026-07-27.
+    const r = await aw(`/storage/buckets/${t.id}`, {
+      method: "PUT",
+      body: {
+        name: live.name,
+        permissions: t.permissions,
+        fileSecurity: t.fileSecurity,
+        enabled: live.enabled,
+        maximumFileSize: live.maximumFileSize,
+        allowedFileExtensions: live.allowedFileExtensions,
+        compression: live.compression,
+        encryption: live.encryption,
+        antivirus: live.antivirus,
+      },
+    });
+    console.log(
+      `OK   bucket:${t.id.padEnd(13)} perms=${JSON.stringify(r.$permissions)} fileSecurity=${r.fileSecurity}`
+    );
+  } catch (e) {
+    console.log(`ERR  bucket:${t.id.padEnd(13)} ${e.message.slice(0, 300)}`);
   }
 }

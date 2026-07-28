@@ -102,10 +102,10 @@ UMKM buka `Creator Discovery` → profil creator → lihat rate card → pilih j
 ## Tahap Bersama: Deliverable & Review
 
 14. **Orders** — Creator `uploadDeliverable()`:
-    - **Internal (storage)**: upload file via File Manager (`uploadFile({ file })`). File Manager hanya menyimpan file umum dan metadata storage; relasi ke order dicatat di `deliverables.fileId`. File terikat kuota creator (100 MB).
+    - **Internal (storage)**: upload via Function `validate-and-upload` dengan `shareWithOrderId` — Function menurunkan pihak lawan dari baris `orders` dan memberinya `Permission.read`. **Tanpa parameter itu UMKM tidak akan bisa membuka berkasnya.** Relasi ke order dicatat di `deliverables.fileId`. Terikat kuota creator.
     - **External URL**: link Google Drive/Dropbox/CDN (`https` saja). Bebas kuota.
     - Deliverable tersimpan: `{ orderId, source, fileUrl, version: n+1, status: 'submitted' }`.
-15. **Event `deliverables.create`** memicu function **`notify-client-review`**. ⬜ **Function ini BELUM ADA** — tidak ada di `functions/` maupun di `appwrite.config.json`. Sampai dibuat, UMKM tidak menerima notifikasi otomatis saat deliverable masuk. Dilacak sebagai `s5-backend-confirm`.
+15. **Event `deliverables.rows.*.create`** memicu function **`notify-order-activity`**.
 16. **Notifications** — Notifikasi ke UMKM: "Deliverable sudah diupload — review sekarang".
 17. **Orders** — UMKM review deliverable:
     - **Approve**: `deliverables.status: submitted → approved`.
@@ -157,7 +157,8 @@ DELIVERABLE STATUS: submitted → approved | revision_requested
 |---|---|---|---|
 | `offers.rows.*.update` (status `accepted`) | `create-order` | Buat order dari offer (Jalur B) | ✅ live |
 | `payments.rows.*.update` (status `paid`) | `create-escrow` | Buat escrow, hold dana | ✅ live |
-| `deliverables.create` | `notify-client-review` | Notifikasi UMKM untuk review | ⬜ **belum ada** |
+| `deliverables.rows.*.create` | `notify-order-activity` | Notifikasi UMKM: hasil kerja masuk | ✅ live |
+| `revisions.rows.*.create` | `notify-order-activity` | Notifikasi Kreator: UMKM minta revisi | ✅ live |
 | `deliverables.rows.*.update` (status `approved`) | `release-escrow` | Release escrow ke wallet creator, potong fee 2% | ✅ live |
 
 Event Appwrite **tidak mengirim `$previous`**, jadi Function tidak bisa memagari transisi (`pending→accepted`); yang diperiksa hanya status akhir. Perlindungan terhadap eksekusi ganda datang dari tempat lain: unique index `orders.idx_offerId` untuk `create-order`, dan guard `escrow.status = held` untuk `release-escrow`.
@@ -182,20 +183,19 @@ Event Appwrite **tidak mengirim `$previous`**, jadi Function tidak bisa memagari
 
 ## Notifikasi
 
-⚠️ **Belum satu pun dari daftar di bawah terkirim di jalur Rate Card.** `create-order`, `create-escrow`, dan `release-escrow` tidak menulis ke `notifications` sama sekali, dan `notify-client-review` belum dibuat. Daftar ini adalah target, bukan keadaan sekarang. Dilacak sebagai `s5-backend-confirm`.
+Semua notifikasi memakai document id deterministik dari `(sourceId, kind)`, jadi event yang terkirim ulang menghasilkan 409 — bukan notifikasi ganda. Kegagalannya tidak pernah menggagalkan Function pemanggil: dana sudah berpindah, dan membatalkan itu karena notifikasi gagal jauh lebih merugikan daripada notifikasi yang hilang.
 
-| Titik | Notifikasi | Penerima |
-|---|---|---|
-| Order created (Direct) | "Order menunggu pembayaran" | UMKM |
-| Order created (Custom Offer) | "Offer diterima — lakukan pembayaran" | UMKM |
-| Offer created | "Offer baru masuk" | Creator |
-| Offer rejected | "Offer ditolak" | UMKM |
-| Payment success | "Pembayaran berhasil — escrow terkunci" | UMKM + Creator |
-| Deliverable uploaded | "Deliverable sudah diupload — review" | UMKM |
-| Revision requested | "UMKM minta revisi: {message}" | Creator |
-| Deliverable approved | "Deliverable disetujui" | Creator |
-| Escrow released | "Order selesai — dana dirilis" | Creator + UMKM |
-| Fee deducted | "Fee platform 2% ({amount}) telah dipotong dari order ini" | Creator |
+| Titik | Notifikasi | Penerima | Ditulis oleh |
+|---|---|---|---|
+| Order created (Direct) | "Order menunggu pembayaran" | UMKM | ⬜ Jalur A belum dibangun |
+| Order created (Custom Offer) | "Offer diterima — lakukan pembayaran" | UMKM | `create-order` |
+| Offer created | "Offer baru masuk" | Creator | `send-chat-notification` |
+| Offer rejected | "Offer ditolak" | UMKM | `create-order` |
+| Payment success | "Pembayaran berhasil — escrow terkunci" | UMKM + Creator | `create-escrow` |
+| Deliverable uploaded | "Deliverable sudah diupload — review" | UMKM | `notify-order-activity` |
+| Revision requested | "UMKM minta revisi: {message}" | Creator | `notify-order-activity` |
+| Escrow released | "Dana Sudah Cair" — nominal bersih + potongan fee 2% dalam satu pesan | Creator | `release-escrow` |
+| Order completed | "Pesanan Selesai" | UMKM | `release-escrow` |
 
 ## Edge Cases
 

@@ -38,6 +38,8 @@ export default async ({ req, res, log, error }) => {
     });
 
     await updateOrderAfterEscrow(databases, env, payment.order_id);
+    await notifyEscrowHeld(databases, env, payment, escrow, log);
+
     log(`Escrow ${escrow.$id} held for order ${payment.order_id}`);
     return json(res, { status: "ok", escrowId: escrow.$id });
   } catch (err) {
@@ -57,7 +59,8 @@ function getEnv(req) {
     transactionsCollectionId: process.env.TRANSACTIONS_COLLECTION_ID || process.env.NEXT_PUBLIC_TRANSACTION_COLLECTION || "transactions",
     escrowsCollectionId: process.env.ESCROWS_COLLECTION_ID || process.env.NEXT_PUBLIC_ESCROW_COLLECTION || "escrows",
     ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders",
-    campaignsCollectionId: process.env.CAMPAIGNS_COLLECTION_ID || process.env.NEXT_PUBLIC_CAMPAIGN_COLLECTION || "campaigns"
+    campaignsCollectionId: process.env.CAMPAIGNS_COLLECTION_ID || process.env.NEXT_PUBLIC_CAMPAIGN_COLLECTION || "campaigns",
+    notificationsCollectionId: process.env.NOTIFICATIONS_COLLECTION_ID || "notifications"
   };
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
@@ -217,6 +220,89 @@ async function updateOrderAfterEscrow(databases, env, orderId) {
   await databases.updateDocument(env.databaseId, env.ordersCollectionId, orderId, {
     status: "in_progress"
   });
+}
+
+/**
+ * Kedua pihak diberi tahu, dengan kalimat yang berbeda: UMKM perlu tahu dananya
+ * aman, kreator perlu tahu ia boleh mulai bekerja. Order dimuat ulang di sini
+ * karena `payments` hanya menyimpan `user_id` pembayarnya — creatorId ada di
+ * `orders`.
+ */
+async function notifyEscrowHeld(databases, env, payment, escrow, log) {
+  let order;
+  try {
+    order = await databases.getDocument(env.databaseId, env.ordersCollectionId, payment.order_id);
+  } catch (err) {
+    log(`Notifikasi escrow dilewati, order ${payment.order_id} tidak terbaca: ${err?.message || String(err)}`);
+    return;
+  }
+
+  const amount = rupiah(escrow.amount);
+
+  await notify(databases, env, {
+    userId: payment.user_id,
+    sourceId: escrow.$id,
+    kind: "escrow_held_umkm",
+    title: "Pembayaran Berhasil",
+    message: `Dana ${amount} sudah ditahan di escrow. Kreator bisa mulai mengerjakan pesananmu.`,
+    type: "escrow_held",
+  }, log);
+
+  if (order.creatorId) {
+    await notify(databases, env, {
+      userId: order.creatorId,
+      sourceId: escrow.$id,
+      kind: "escrow_held_creator",
+      title: "Pesanan Siap Dikerjakan",
+      message: `UMKM sudah membayar ${amount} ke escrow. Silakan mulai mengerjakan dan kirim hasilnya lewat ruang negosiasi.`,
+      type: "escrow_held",
+    }, log);
+  }
+}
+
+/**
+ * Tulis satu baris notifikasi.
+ *
+ * Id dokumennya deterministik dari (sourceId, kind), jadi event yang terkirim
+ * ulang tidak menghasilkan notifikasi ganda — 409 dari server justru hasil yang
+ * benar. Pola ini sama dengan penanda ledger di file ini.
+ *
+ * Kegagalan menulis notifikasi TIDAK PERNAH menggagalkan pemanggilnya: dana
+ * sudah berpindah, dan membatalkan itu karena notifikasi gagal jauh lebih
+ * merugikan daripada notifikasi yang hilang.
+ */
+async function notify(databases, env, payload, log) {
+  try {
+    await databases.createDocument(
+      env.databaseId,
+      env.notificationsCollectionId,
+      deterministicNotificationId(payload.sourceId, payload.kind),
+      {
+        userId: payload.userId,
+        title: payload.title,
+        message: payload.message,
+        type: payload.type,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+      // `notifications` punya $permissions kosong + rowSecurity — tanpa
+      // permission baris, notifikasi tidak akan pernah terbaca pemiliknya.
+      [Permission.read(Role.user(payload.userId)), Permission.update(Role.user(payload.userId))]
+    );
+  } catch (err) {
+    if (err?.code === 409) return;
+    log(`Notifikasi ${payload.kind} gagal untuk ${payload.userId}: ${err?.message || String(err)}`);
+  }
+}
+
+/** "ntf" + 29 hex = 32 karakter, valid sebagai document id Appwrite. */
+function deterministicNotificationId(sourceId, kind) {
+  const digest = createHash("sha256").update(`${sourceId}:${kind}`).digest("hex");
+  return `ntf${digest.slice(0, 29)}`;
+}
+
+function rupiah(value) {
+  return `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 }
 
 function json(res, body, statusCode = 200) {

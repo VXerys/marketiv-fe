@@ -3210,7 +3210,6 @@
       "$id": "user-files",
       "name": "User Files",
       "$permissions": [
-        "read(\"users\")",
         "create(\"users\")"
       ],
       "fileSecurity": true,
@@ -3755,6 +3754,27 @@
       "path": "functions/get-umkm-negotiations",
       "scopes": [
         "documents.read"
+      ]
+    },
+    {
+      "$id": "notify-order-activity",
+      "name": "Notify Order Activity",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [
+        "databases.6a4c8598001da3b0d7f0.tables.deliverables.rows.*.create",
+        "databases.6a4c8598001da3b0d7f0.tables.revisions.rows.*.create"
+      ],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/notify-order-activity",
+      "scopes": [
+        "documents.read",
+        "documents.write"
       ]
     },
     {

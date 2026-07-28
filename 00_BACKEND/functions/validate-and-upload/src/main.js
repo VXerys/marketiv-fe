@@ -40,12 +40,30 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Storage quota exceeded" }, 409);
     }
 
+    // Pihak lawan pada satu order boleh ikut membaca berkasnya.
+    //
+    // Tanpa ini, deliverable yang diunggah kreator HANYA bisa dibuka kreator
+    // sendiri — UMKM yang harus mereview tidak punya izin baca, dan tidak ada
+    // pesan error yang menjelaskan kenapa.
+    //
+    // Yang dikirim klien adalah `shareWithOrderId`, BUKAN userId. Function-lah
+    // yang menurunkan siapa pihak lawannya dari baris `orders`, setelah
+    // memastikan pengunggah memang peserta order itu. Menerima userId mentah
+    // berarti mempercayai klien menentukan siapa yang boleh membaca.
+    const shareWith = await resolveCounterpart(databases, env, payload.shareWithOrderId, userId, log);
+
+    const filePermissions = [
+      Permission.read(Role.user(userId)),
+      Permission.delete(Role.user(userId)),
+    ];
+    if (shareWith) filePermissions.push(Permission.read(Role.user(shareWith)));
+
     const bucketId = env.defaultBucketId;
     const uploaded = await storage.createFile(
       bucketId,
       ID.unique(),
       InputFile.fromBuffer(fileBuffer, payload.fileName),
-      [Permission.read(Role.user(userId)), Permission.delete(Role.user(userId))]
+      filePermissions
     );
 
     const metadata = await databases.createDocument(
@@ -63,7 +81,9 @@ export default async ({ req, res, log, error }) => {
         createdAt: new Date().toISOString(),
         deletedAt: null
       },
-      [Permission.read(Role.user(userId))]
+      shareWith
+        ? [Permission.read(Role.user(userId)), Permission.read(Role.user(shareWith))]
+        : [Permission.read(Role.user(userId))]
     );
 
     await databases.updateDocument(env.databaseId, env.storageUsageCollectionId, usage.$id, {
@@ -79,6 +99,33 @@ export default async ({ req, res, log, error }) => {
   }
 };
 
+/**
+ * Siapa pihak lawan pengunggah pada satu order.
+ *
+ * Mengembalikan null (bukan melempar) kalau `orderId` tidak dikirim, ordernya
+ * tidak terbaca, atau pengunggah ternyata bukan pesertanya. Unggahan tetap
+ * berhasil dengan izin baca hanya untuk pemiliknya — gagal terbuka, bukan gagal
+ * tertutup: berkas yang tidak jadi dibagikan lebih aman daripada unggahan yang
+ * gagal total di tengah alur kerja.
+ */
+async function resolveCounterpart(databases, env, orderId, uploaderId, log) {
+  if (!orderId || typeof orderId !== "string") return null;
+  try {
+    const order = await databases.getDocument(env.databaseId, env.ordersCollectionId, orderId);
+    const umkmId = typeof order.umkmId === "string" ? order.umkmId : "";
+    const creatorId = typeof order.creatorId === "string" ? order.creatorId : "";
+
+    if (uploaderId === creatorId) return umkmId || null;
+    if (uploaderId === umkmId) return creatorId || null;
+
+    log(`Uploader ${uploaderId} bukan peserta order ${orderId}; berkas tidak dibagikan.`);
+    return null;
+  } catch (err) {
+    log(`Order ${orderId} tidak terbaca, berkas tidak dibagikan: ${err?.message || String(err)}`);
+    return null;
+  }
+}
+
 function getEnv(req) {
   const env = {
     appwriteEndpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT || process.env.APPWRITE_ENDPOINT,
@@ -87,6 +134,7 @@ function getEnv(req) {
     databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
     userFilesCollectionId: process.env.USER_FILES_COLLECTION_ID || "user_files",
     storageUsageCollectionId: process.env.USER_STORAGE_USAGE_COLLECTION_ID || "user_storage_usage",
+    ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders",
     defaultBucketId: process.env.DEFAULT_STORAGE_BUCKET_ID || process.env.NEXT_PUBLIC_STORAGE_BUCKET,
   };
 

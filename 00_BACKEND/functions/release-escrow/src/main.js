@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
 
 /**
@@ -94,6 +95,28 @@ export default async ({ req, res, log, error }) => {
 
     await updateOrderCompleted(databases, env, orderId);
 
+    await notify(databases, env, {
+      userId: creatorId,
+      sourceId: escrow.$id,
+      kind: "escrow_released_creator",
+      title: "Dana Sudah Cair",
+      message:
+        `Pesanan selesai. ${rupiah(creatorAmount)} masuk ke saldomu` +
+        (feeAmount > 0 ? ` setelah dipotong fee platform 2% (${rupiah(feeAmount)}).` : "."),
+      type: "escrow_released",
+    }, log);
+
+    if (order.umkmId) {
+      await notify(databases, env, {
+        userId: order.umkmId,
+        sourceId: escrow.$id,
+        kind: "escrow_released_umkm",
+        title: "Pesanan Selesai",
+        message: `Kamu menyetujui hasil kerjanya dan dana ${rupiah(escrowAmount)} sudah dilepaskan ke kreator.`,
+        type: "order_completed",
+      }, log);
+    }
+
     log(`Escrow ${escrow.$id} released to creator ${creatorId}: ${creatorAmount} net, ${feeAmount} fee`);
     return json(res, {
       status: "ok",
@@ -117,7 +140,8 @@ function getEnv(req) {
     walletsCollectionId: process.env.WALLETS_COLLECTION_ID || process.env.NEXT_PUBLIC_WALLET_COLLECTION || "wallets",
     transactionsCollectionId: process.env.TRANSACTIONS_COLLECTION_ID || process.env.NEXT_PUBLIC_TRANSACTION_COLLECTION || "transactions",
     escrowsCollectionId: process.env.ESCROWS_COLLECTION_ID || process.env.NEXT_PUBLIC_ESCROW_COLLECTION || "escrows",
-    ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders"
+    ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders",
+    notificationsCollectionId: process.env.NOTIFICATIONS_COLLECTION_ID || "notifications"
   };
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
@@ -178,6 +202,51 @@ async function updateOrderCompleted(databases, env, orderId) {
   await databases.updateDocument(env.databaseId, env.ordersCollectionId, orderId, {
     status: "completed"
   });
+}
+
+/**
+ * Tulis satu baris notifikasi.
+ *
+ * Id dokumennya deterministik dari (sourceId, kind), jadi event yang terkirim
+ * ulang tidak menghasilkan notifikasi ganda — 409 dari server justru hasil yang
+ * benar. Pola ini sama dengan dedup ledger di file ini.
+ *
+ * Kegagalan menulis notifikasi TIDAK PERNAH menggagalkan pemanggilnya: dana
+ * sudah berpindah, dan membatalkan itu karena notifikasi gagal jauh lebih
+ * merugikan daripada notifikasi yang hilang.
+ */
+async function notify(databases, env, payload, log) {
+  try {
+    await databases.createDocument(
+      env.databaseId,
+      env.notificationsCollectionId,
+      deterministicNotificationId(payload.sourceId, payload.kind),
+      {
+        userId: payload.userId,
+        title: payload.title,
+        message: payload.message,
+        type: payload.type,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+      // `notifications` punya $permissions kosong + rowSecurity — tanpa
+      // permission baris, notifikasi tidak akan pernah terbaca pemiliknya.
+      [Permission.read(Role.user(payload.userId)), Permission.update(Role.user(payload.userId))]
+    );
+  } catch (err) {
+    if (err?.code === 409) return;
+    log(`Notifikasi ${payload.kind} gagal untuk ${payload.userId}: ${err?.message || String(err)}`);
+  }
+}
+
+/** "ntf" + 29 hex = 32 karakter, valid sebagai document id Appwrite. */
+function deterministicNotificationId(sourceId, kind) {
+  const digest = createHash("sha256").update(`${sourceId}:${kind}`).digest("hex");
+  return `ntf${digest.slice(0, 29)}`;
+}
+
+function rupiah(value) {
+  return `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 }
 
 function json(res, body, statusCode = 200) {

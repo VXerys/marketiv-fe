@@ -192,7 +192,8 @@ export async function uploadDeliverableInAppwrite(
         orderId: payload.orderId,
         source: payload.source,
         fileUrl: payload.fileUrl,
-        fileId: null,
+        // Hanya jalur storage yang punya baris `user_files` untuk ditautkan.
+        fileId: payload.source === "storage" ? payload.fileId || null : null,
         notes: payload.notes || null,
         version: currentVersion + 1,
         status: "submitted",

@@ -36,18 +36,53 @@ export const externalDeliverableUrl = requiredString("Link deliverable")
     }
   }, { message: "Format link tidak valid." });
 
-export const uploadDeliverableSchema = z.object({
-  orderId: requiredString("Order"),
-  /**
-   * `storage` sengaja belum diterima. Jalur unggah berkas masih terblokir:
-   * `validate-and-upload` hanya memberi izin baca kepada pengunggah, jadi UMKM
-   * tidak akan bisa membuka berkas yang harus ia review — lihat §F handoff
-   * 2026-07-28. Sampai itu diputuskan, hanya URL eksternal yang sah.
-   */
-  source: z.literal("external_url", { error: "Sumber deliverable tidak valid." }),
-  fileUrl: externalDeliverableUrl,
-  notes: optionalString(MAX_NOTES, "Catatan"),
-});
+/**
+ * Dua sumber deliverable.
+ *
+ * `external_url` — tautan https ke postingan atau penyimpanan pihak ketiga.
+ * `storage` — berkas diunggah ke File Manager lewat `validate-and-upload`,
+ *   yang kini bisa membagikan izin baca ke pihak lawan order lewat
+ *   `shareWithOrderId`. Tanpa itu UMKM tidak bisa membuka berkas yang harus ia
+ *   review, dan jalur ini memang tertutup sampai 2026-07-28.
+ *
+ * Keduanya sama-sama menyimpan `fileUrl`; yang membedakan adalah `fileId` —
+ * hanya jalur storage yang punya baris `user_files` untuk ditautkan.
+ */
+export const uploadDeliverableSchema = z
+  .object({
+    orderId: requiredString("Order"),
+    source: z.enum(["external_url", "storage"], {
+      error: "Sumber deliverable tidak valid.",
+    }),
+    fileUrl: requiredString("Link deliverable").max(
+      MAX_FILE_URL,
+      `Link deliverable maksimal ${MAX_FILE_URL} karakter.`
+    ),
+    /** Wajib untuk `storage` — `$id` baris `user_files`. */
+    fileId: optionalString(255, "File ID"),
+    notes: optionalString(MAX_NOTES, "Catatan"),
+  })
+  .superRefine((value, ctx) => {
+    if (value.source === "external_url") {
+      const result = externalDeliverableUrl.safeParse(value.fileUrl);
+      if (!result.success) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["fileUrl"],
+          message: result.error.issues[0]?.message ?? "Link deliverable tidak valid.",
+        });
+      }
+      return;
+    }
+
+    if (!value.fileId) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["fileId"],
+        message: "Berkas belum terunggah.",
+      });
+    }
+  });
 
 export const requestRevisionSchema = z.object({
   orderId: requiredString("Order"),

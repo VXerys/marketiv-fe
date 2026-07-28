@@ -12,6 +12,7 @@ import {
   rejectOffer,
 } from "@/services/creator/creator-dashboard.service";
 import { getDeliverables, uploadDeliverable } from "@/services/shared/deliverable.service";
+import { uploadUserFile, MAX_USER_FILE_BYTES } from "@/services/shared/user-file.service";
 import type { Deliverable } from "@/types/umkm-dashboard.types";
 import { toast } from "sonner";
 import { CreatorEmptyState } from "./CreatorEmptyState";
@@ -111,7 +112,9 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
 
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [isDeliverableModalOpen, setIsDeliverableModalOpen] = useState(false);
+  const [deliverableMode, setDeliverableMode] = useState<"external_url" | "storage">("external_url");
   const [deliverableUrl, setDeliverableUrl] = useState("");
+  const [deliverableFile, setDeliverableFile] = useState<File | null>(null);
   const [deliverableNotes, setDeliverableNotes] = useState("");
   const [deliverableError, setDeliverableError] = useState<string | null>(null);
   const [submittingDeliverable, setSubmittingDeliverable] = useState(false);
@@ -268,11 +271,11 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
   const handleRejectOffer = () => answerOffer(false);
 
   /**
-   * Kirim hasil kerja sebagai URL eksternal.
+   * Kirim hasil kerja — tautan https atau berkas terunggah.
    *
-   * HANYA URL, belum unggah berkas. Jalur storage masih terblokir: Function
-   * `validate-and-upload` memasang izin baca untuk pengunggah saja, jadi UMKM
-   * tidak akan bisa membuka berkas yang harus ia review (§F handoff 2026-07-28).
+   * Untuk jalur berkas, `shareWithOrderId` WAJIB dikirim: tanpa itu
+   * `validate-and-upload` hanya memberi izin baca kepada pengunggah, dan UMKM
+   * yang harus mereview tidak akan bisa membukanya.
    *
    * Setiap kiriman jadi versi baru, bukan menimpa yang lama — riwayat revisi
    * harus utuh.
@@ -284,10 +287,33 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
     setSubmittingDeliverable(true);
     setDeliverableError(null);
 
+    let fileUrl = deliverableUrl.trim();
+    let fileId: string | undefined;
+
+    if (deliverableMode === "storage") {
+      if (!deliverableFile) {
+        setSubmittingDeliverable(false);
+        setDeliverableError("Pilih berkas yang mau dikirim.");
+        return;
+      }
+      const uploaded = await uploadUserFile({
+        file: deliverableFile,
+        shareWithOrderId: neg.orderId,
+      });
+      if (!uploaded.success || !uploaded.data) {
+        setSubmittingDeliverable(false);
+        setDeliverableError(uploaded.error ?? "Gagal mengunggah berkas.");
+        return;
+      }
+      fileUrl = uploaded.data.fileUrl;
+      fileId = uploaded.data.fileId;
+    }
+
     const res = await uploadDeliverable({
       orderId: neg.orderId,
-      source: "external_url",
-      fileUrl: deliverableUrl.trim(),
+      source: deliverableMode,
+      fileUrl,
+      fileId,
       notes: deliverableNotes.trim(),
     });
     setSubmittingDeliverable(false);
@@ -299,6 +325,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
 
     setIsDeliverableModalOpen(false);
     setDeliverableUrl("");
+    setDeliverableFile(null);
     setDeliverableNotes("");
     toast.success("Deliverable terkirim. Menunggu review UMKM.");
     await loadRoom();
@@ -844,24 +871,69 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
             )}
 
             <form onSubmit={handleSubmitDeliverable} className="space-y-4">
-              <div>
-                <label htmlFor="deliverable-url" className="block text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1.5">
-                  Link Hasil Kerja
-                </label>
-                <input
-                  id="deliverable-url"
-                  type="url"
-                  required
-                  placeholder="https://www.instagram.com/reel/CtO12345/"
-                  value={deliverableUrl}
-                  onChange={(e) => { setDeliverableUrl(e.target.value); if (deliverableError) setDeliverableError(null); }}
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-[14px] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all font-semibold text-neutral-800 placeholder-neutral-400"
-                />
-                <p className="text-[9px] text-neutral-400 font-bold mt-1.5 leading-relaxed">
-                  Wajib https://. Bisa tautan postingan, Google Drive, atau penyimpanan lain
-                  yang bisa dibuka UMKM.
-                </p>
+              {/* Pilih sumber. Keduanya sah — tautan untuk postingan yang sudah
+                  tayang, unggahan untuk berkas mentah yang belum dipublikasikan. */}
+              <div className="flex gap-2">
+                {([
+                  { id: "external_url" as const, label: "Kirim Tautan" },
+                  { id: "storage" as const, label: "Unggah Berkas" },
+                ]).map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => { setDeliverableMode(opt.id); setDeliverableError(null); }}
+                    className={cn(
+                      "flex-1 py-2.5 rounded-[12px] text-[11px] font-extrabold border transition-all cursor-pointer",
+                      deliverableMode === opt.id
+                        ? "bg-violet-50 border-violet-300 text-violet-700"
+                        : "bg-white border-neutral-200 text-neutral-500 hover:bg-neutral-50"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
+
+              {deliverableMode === "external_url" ? (
+                <div>
+                  <label htmlFor="deliverable-url" className="block text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1.5">
+                    Link Hasil Kerja
+                  </label>
+                  <input
+                    id="deliverable-url"
+                    type="url"
+                    required
+                    placeholder="https://www.instagram.com/reel/CtO12345/"
+                    value={deliverableUrl}
+                    onChange={(e) => { setDeliverableUrl(e.target.value); if (deliverableError) setDeliverableError(null); }}
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-[14px] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all font-semibold text-neutral-800 placeholder-neutral-400"
+                  />
+                  <p className="text-[9px] text-neutral-400 font-bold mt-1.5 leading-relaxed">
+                    Wajib https://. Bisa tautan postingan, Google Drive, atau penyimpanan lain
+                    yang bisa dibuka UMKM.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label htmlFor="deliverable-file" className="block text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1.5">
+                    Berkas Hasil Kerja
+                  </label>
+                  <input
+                    id="deliverable-file"
+                    type="file"
+                    required
+                    onChange={(e) => {
+                      setDeliverableFile(e.target.files?.[0] ?? null);
+                      if (deliverableError) setDeliverableError(null);
+                    }}
+                    className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-[14px] text-xs font-semibold text-neutral-700 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-[11px] file:font-extrabold file:bg-violet-50 file:text-violet-700 cursor-pointer"
+                  />
+                  <p className="text-[9px] text-neutral-400 font-bold mt-1.5 leading-relaxed">
+                    Maksimal {Math.floor(MAX_USER_FILE_BYTES / 1024 / 1024)} MB dan memakai kuota
+                    penyimpananmu. UMKM otomatis diberi izin membuka berkas ini.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label htmlFor="deliverable-notes" className="block text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1.5">

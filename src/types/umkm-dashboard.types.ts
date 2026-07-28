@@ -242,10 +242,7 @@ export interface ChatMessage {
 export interface Deliverable {
   id: string;
   orderId: string;
-  /**
-   * `storage` ada di skema tapi belum bisa dipakai — lihat §F handoff
-   * 2026-07-28. Sampai itu selesai, semua baris bersumber `external_url`.
-   */
+  /** `external_url` = tautan https; `storage` = berkas di File Manager. */
   source: DeliverableSource;
   fileUrl: string;
   fileId?: string;
