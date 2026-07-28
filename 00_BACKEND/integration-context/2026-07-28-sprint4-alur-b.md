@@ -197,6 +197,9 @@ Namanya `notify-order-activity`, bukan `notify-client-review` seperti di dokumen
 | Halaman list negosiasi kreator fetch di Server Component | Selalu 401 dengan data nyata — sesi Appwrite hidup di klien |
 | `NegotiationRoomHeader.tsx` orphan | Tidak pernah dirender; berisi modal verifikasi palsu. Dihapus |
 | `wallets.escrowBalance` di dokumen workflow | Kolom itu tidak ada. Dana tertahan dilacak tabel `escrows` |
+| "Estimasi Target Views" = `creatorQuota × 15000` di detail campaign | 15000 tidak berasal dari kolom mana pun — fabrikasi yang sama yang sudah dibuang dari `CampaignDetailPage` dan `reviewSubmission`, tapi selamat di sini. Diganti turunan jujur dari `totalBudgetEscrow ÷ pricePerThousandViews × 1000` |
+| Grafik tren harian di detail campaign | Tujuh baris angka hardcode ("Senin 12000, Selasa 18000, …") yang **sama untuk setiap campaign**. Tidak ada sumber datanya: `campaign_submissions` hanya menyimpan `views` kumulatif, tanpa dimensi waktu. Diganti penanda "Segera Hadir", sejalan dengan `s1-analytics-soon` |
+| `CampaignBriefCard.tsx` & `CampaignPerformanceCard.tsx` orphan | Tidak pernah dirender — yang aktif `CampaignWorkspaceCard`, yang memuat fabrikasi yang sama. Keduanya dihapus |
 
 ### D-4. Fabrikasi yang dibuang
 
@@ -242,3 +245,4 @@ Harness `vitest` (102/121 gagal) rusak sejak sebelum sprint ini dan **bukan** ga
 | 2 | Direct Order (Jalur A) belum terwakili di daftar negosiasi. Order berbasis `packageId` tidak punya conversation. Jalur itu memang belum dibangun — saat dibangun, cara paling bersih adalah ikut membuat `conversations` untuk pasangannya | Frontend, sprint berikutnya |
 | 3 | Bucket `deliverables` di config tidak pernah dipakai — semua berkas ke `user-files` karena di situ kuota ditegakkan. Perlu diputuskan: dipakai, atau dihapus dari config | Bersama |
 | 4 | Harness `vitest` rusak — tidak ada gate tes | Bersama |
+| 5 | **Tren harian campaign** — `campaign_submissions` hanya menyimpan `views` kumulatif per submission, tanpa dimensi waktu, jadi grafik pertumbuhan tidak bisa dibuat dari data yang ada. Butuh kolom snapshot bertanggal atau tabel `submission_view_history` kalau fitur ini mau dihidupkan | Bersama, Sprint 5 |

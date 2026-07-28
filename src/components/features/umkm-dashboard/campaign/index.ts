@@ -17,7 +17,6 @@ export * from "./detail/CampaignWorkspaceCard";
 export * from "./detail/CampaignQuickActionsCard";
 export * from "./detail/CampaignHealthChecklistCard";
 export * from "./detail/CampaignBudgetCard";
-export * from "./detail/CampaignPerformanceCard";
 export * from "./detail/CampaignSubmissionSection";
 export * from "./detail/CampaignSubmissionCard";
 export * from "./detail/CampaignActivityTimeline";

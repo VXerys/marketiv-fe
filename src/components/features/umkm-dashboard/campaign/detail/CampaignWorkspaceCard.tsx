@@ -12,7 +12,6 @@ interface CampaignWorkspaceCardProps {
 
 export function CampaignWorkspaceCard({ campaign, submissions }: CampaignWorkspaceCardProps) {
   const [activeTab, setActiveTab] = useState<"brief" | "assets" | "performance">("brief");
-  const [chartTab, setChartTab] = useState<"views" | "budget">("views");
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -34,27 +33,19 @@ export function CampaignWorkspaceCard({ campaign, submissions }: CampaignWorkspa
       ? [...submissions].sort((a, b) => b.actualViews - a.actualViews)[0]
       : null;
 
-  const viewsTrendData = [
-    { day: "Senin", val: 12000, percent: 35 },
-    { day: "Selasa", val: 18000, percent: 55 },
-    { day: "Rabu", val: 24000, percent: 75 },
-    { day: "Kamis", val: 32000, percent: 95 },
-    { day: "Jumat", val: 28000, percent: 85 },
-    { day: "Sabtu", val: 45000, percent: 100 },
-    { day: "Minggu", val: 40000, percent: 90 },
-  ];
-
-  const budgetTrendData = [
-    { day: "Senin", val: 150000, percent: 25 },
-    { day: "Selasa", val: 300000, percent: 45 },
-    { day: "Rabu", val: 450000, percent: 65 },
-    { day: "Kamis", val: 600000, percent: 80 },
-    { day: "Jumat", val: 750000, percent: 90 },
-    { day: "Sabtu", val: 900000, percent: 100 },
-    { day: "Minggu", val: 900000, percent: 100 },
-  ];
-
-  const trendData = chartTab === "views" ? viewsTrendData : budgetTrendData;
+  /**
+   * Estimasi views diturunkan dari anggaran dan tarifnya, bukan dari angka
+   * ajaib. Sebelumnya `creatorQuota * 15000` — 15000 tidak berasal dari kolom
+   * mana pun; ia fabrikasi yang sama yang sudah dibuang dari CampaignDetailPage
+   * dan reviewSubmission, tapi selamat di sini.
+   *
+   * `null` saat tarifnya belum diisi, supaya UI menampilkan "—" alih-alih
+   * angka yang dikarang dari pembagian nol.
+   */
+  const estimatedViews =
+    campaign.pricePerThousandViews > 0
+      ? Math.floor((campaign.totalBudgetEscrow / campaign.pricePerThousandViews) * 1000)
+      : null;
 
   // Tabs configuration
   const workspaceTabs = [
@@ -172,7 +163,7 @@ export function CampaignWorkspaceCard({ campaign, submissions }: CampaignWorkspa
                       Estimasi Target Views
                     </span>
                     <span className="text-xs font-bold text-text-primary truncate">
-                      {formatCompactNumber(campaign.creatorQuota * 15000)} Views
+                      {estimatedViews !== null ? `${formatCompactNumber(estimatedViews)} Views` : "—"}
                     </span>
                   </div>
                 </div>
@@ -246,51 +237,33 @@ export function CampaignWorkspaceCard({ campaign, submissions }: CampaignWorkspa
                   Analitik Kinerja
                 </span>
                 <span className="text-[10px] text-text-muted mt-0.5 block">
-                  Grafik pertumbuhan penayangan dan pemakaian budget.
+                  Ringkasan performa dari submission yang sudah masuk.
                 </span>
               </div>
-              <div className="flex bg-neutral-100 p-0.5 rounded-full border border-border-soft/60 shrink-0">
-                <button
-                  onClick={() => setChartTab("views")}
-                  className={`px-3.5 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
-                    chartTab === "views"
-                      ? "bg-white text-primary shadow-xs"
-                      : "text-text-muted hover:text-text-secondary"
-                  }`}
-                >
-                  Views
-                </button>
-                <button
-                  onClick={() => setChartTab("budget")}
-                  className={`px-3.5 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer ${
-                    chartTab === "budget"
-                      ? "bg-white text-primary shadow-xs"
-                      : "text-text-muted hover:text-text-secondary"
-                  }`}
-                >
-                  Budget
-                </button>
-              </div>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200/70 text-amber-700 text-[.7rem] font-[800] tracking-tight uppercase shrink-0">
+                Segera Hadir
+              </span>
             </div>
 
-            {/* Visual mock chart */}
-            <div className="pt-2">
-              <div className="h-32 flex items-end gap-4 px-2 relative border-b border-border-soft">
-                {trendData.map((data, i) => (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
-                    <div
-                      className="w-full bg-primary/25 hover:bg-primary/45 rounded-t-md transition-all duration-300 cursor-pointer shadow-inner relative overflow-hidden"
-                      style={{ height: `${data.percent}%` }}
-                      title={`${data.val} ${chartTab === "views" ? "Views" : "Rupiah"}`}
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-t from-primary/10 to-transparent" />
-                    </div>
-                    <span className="text-[9px] text-text-muted font-bold group-hover:text-text-secondary transition-colors mt-1 select-none">
-                      {data.day.slice(0, 3)}
-                    </span>
-                  </div>
-                ))}
-              </div>
+            {/*
+              Grafik tren harian dibuang, bukan disembunyikan di balik flag.
+              Isinya tujuh baris angka hardcode ("Senin 12000, Selasa 18000, …")
+              yang sama untuk SETIAP campaign — tidak ada sumber datanya:
+              `campaign_submissions` hanya menyimpan `views` kumulatif per
+              submission, tanpa dimensi waktu. Sejalan dengan s1-analytics-soon,
+              yang lebih dulu menandai halaman Analitik sebagai "Segera Hadir".
+
+              Tiga kartu di bawah TETAP: ketiganya dihitung dari submission dan
+              budget yang nyata.
+            */}
+            <div className="rounded-xl border border-dashed border-border-soft bg-neutral-50/40 p-5 text-center">
+              <span className="block text-xs font-extrabold text-text-secondary">
+                Tren harian belum tersedia
+              </span>
+              <span className="block text-[10px] text-text-muted font-semibold mt-1 leading-relaxed">
+                Submission baru mencatat total views, belum per tanggal. Grafik aktif setelah
+                pipeline data campaign siap.
+              </span>
             </div>
 
             {/* Analytics Breakdown Grid */}
