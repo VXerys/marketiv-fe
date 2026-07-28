@@ -16,6 +16,9 @@ export type {
   OfferStatus,
   EscrowStatus,
   NegotiationStage,
+  DeliverableSource,
+  DeliverableStatus,
+  RevisionStatus,
   MessageType,
   RateCardStatus,
 } from "./domain";
@@ -30,6 +33,9 @@ import type {
   OfferStatus,
   EscrowStatus,
   NegotiationStage,
+  DeliverableSource,
+  DeliverableStatus,
+  RevisionStatus,
   MessageType,
   RateCardStatus,
 } from "./domain";
@@ -226,6 +232,39 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+/**
+ * Satu versi hasil kerja kreator. Kirim ulang membuat BARIS BARU dengan
+ * `version + 1`, bukan memperbarui baris lama — riwayat revisi harus utuh.
+ *
+ * Dipakai kedua peran, jadi ditaruh di sini dan diimpor ulang oleh service
+ * kreator (pola yang sama seperti `ChatMessage`).
+ */
+export interface Deliverable {
+  id: string;
+  orderId: string;
+  /**
+   * `storage` ada di skema tapi belum bisa dipakai — lihat §F handoff
+   * 2026-07-28. Sampai itu selesai, semua baris bersumber `external_url`.
+   */
+  source: DeliverableSource;
+  fileUrl: string;
+  fileId?: string;
+  notes?: string;
+  version: number;
+  status: DeliverableStatus;
+  createdAt: string;
+}
+
+/** Satu permintaan revisi dari UMKM. Dibatasi `offers.revisionLimit`. */
+export interface Revision {
+  id: string;
+  orderId: string;
+  requestedBy: string;
+  message: string;
+  status: RevisionStatus;
+  createdAt: string;
+}
+
 export interface Transaction {
   id: string;
   userId: string;
@@ -236,6 +275,12 @@ export interface Transaction {
   status: TransactionStatus;
   description: string;
   midtransOrderId?: string;
+  /**
+   * `payments.redirect_url` dari Midtrans Snap. Ada selama payment masih
+   * `pending` — inilah satu-satunya cara sah melanjutkan pembayaran yang
+   * tertunda. Tanpa field ini, UI cuma bisa berpura-pura membayar.
+   */
+  redirectUrl?: string;
   createdAt: string;
 }
 

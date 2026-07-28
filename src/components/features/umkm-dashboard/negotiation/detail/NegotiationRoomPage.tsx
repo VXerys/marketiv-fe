@@ -10,10 +10,18 @@ import {
   createOffer,
   createOrderPayment,
   cancelOrder,
+  deleteOffer,
 } from "@/services/umkm/umkm-dashboard.service";
+import {
+  getDeliverables,
+  approveDeliverable,
+  requestRevision,
+} from "@/services/shared/deliverable.service";
+import type { Deliverable } from "@/types/umkm-dashboard.types";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import { NegotiationOrder, ChatMessage } from "@/types/umkm-dashboard.types";
+import { formatCurrency } from "@/lib/formatters";
 import { CollabPostWarningBanner } from "./CollabPostWarningBanner";
 import { ChatTimeline } from "./ChatTimeline";
 import { MessageComposer } from "./MessageComposer";
@@ -21,6 +29,7 @@ import { OrderSummaryCard } from "./OrderSummaryCard";
 import { EscrowStatusCard } from "./EscrowStatusCard";
 import { CreatorMiniProfileCard } from "./CreatorMiniProfileCard";
 import { DealChecklistCard } from "./DealChecklistCard";
+import { DeliverableReviewCard } from "./DeliverableReviewCard";
 import { NegotiationRoomSkeleton } from "./NegotiationRoomSkeleton";
 import { NegotiationNotFoundState } from "./NegotiationNotFoundState";
 
@@ -64,6 +73,12 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isCancelOrderOpen, setIsCancelOrderOpen] = useState(false);
 
+  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
+  const [isApproveOpen, setIsApproveOpen] = useState(false);
+  const [isRevisionOpen, setIsRevisionOpen] = useState(false);
+  const [revisionMessage, setRevisionMessage] = useState("");
+  const [reviewing, setReviewing] = useState(false);
+
   const loadData = useCallback(async () => {
     setError(null);
     try {
@@ -77,6 +92,16 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
         setError(roomRes.error || "Gagal memuat detail negosiasi.");
       }
       if (msgRes.success && msgRes.data) setMessages(msgRes.data);
+
+      // Deliverable hanya ada setelah order terbentuk — sebelum itu tidak ada
+      // orderId untuk di-query, dan memanggilnya cuma menghasilkan 404.
+      const orderId = roomRes.success ? roomRes.data?.orderId : undefined;
+      if (orderId) {
+        const dlvRes = await getDeliverables(orderId);
+        setDeliverables(dlvRes.success && dlvRes.data ? dlvRes.data : []);
+      } else {
+        setDeliverables([]);
+      }
     } catch {
       setError("Kesalahan memuat data Negosiasi.");
     } finally {
@@ -159,6 +184,72 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
       return;
     }
     setIsSuccessModalOpen(true);
+    await loadData();
+  };
+
+  /**
+   * Tarik kembali penawaran yang belum dijawab kreator (s35-ui-offer).
+   *
+   * Dulu ditunda karena `ChatMessage.offerData` tidak membawa `offerId`.
+   * Sekarang membawanya — kartu offer di chat di-join ke baris `offers`.
+   */
+  const handleDeleteOffer = async (offerId: string) => {
+    const res = await deleteOffer(offerId);
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal menarik penawaran.");
+      return;
+    }
+    toast.success("Penawaran ditarik.");
+    await loadData();
+  };
+
+  /**
+   * Setujui hasil kerja.
+   *
+   * ⚠️ INI YANG MENCAIRKAN DANA. Tulisan `status: "approved"` memicu
+   * `release-escrow`, yang memindahkan escrow ke wallet kreator dikurangi fee
+   * 2% dan menandai order `completed` — semuanya ASINKRON lewat event database.
+   * Karena itu hasilnya dimuat ulang, bukan diasumsikan.
+   */
+  const handleApproveDeliverable = async () => {
+    const latest = deliverables[deliverables.length - 1];
+    if (!order?.orderId || !latest || reviewing) return;
+
+    setReviewing(true);
+    const res = await approveDeliverable(order.orderId, latest.id);
+    setReviewing(false);
+
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal menyetujui deliverable.");
+      throw new Error(res.error ?? "Gagal menyetujui deliverable.");
+    }
+    setIsApproveOpen(false);
+    toast.success("Deliverable disetujui. Dana escrow sedang dilepaskan ke kreator.");
+    await loadData();
+  };
+
+  /** Minta revisi. Jumlahnya dibatasi `revisionLimit` dari offer. */
+  const handleRequestRevision = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!order?.orderId || reviewing) return;
+
+    const message = revisionMessage.trim();
+    if (!message) {
+      toast.error("Jelaskan dulu apa yang perlu diperbaiki.");
+      return;
+    }
+
+    setReviewing(true);
+    const res = await requestRevision({ orderId: order.orderId, message });
+    setReviewing(false);
+
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal meminta revisi.");
+      return;
+    }
+    setIsRevisionOpen(false);
+    setRevisionMessage("");
+    toast.success("Permintaan revisi terkirim ke kreator.");
     await loadData();
   };
 
@@ -294,7 +385,9 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
           <ChatTimeline
             messages={messages}
             onPayOffer={() => setIsPaymentModalOpen(true)}
-            orderStatus={order.stage}
+            onDeleteOffer={handleDeleteOffer}
+            stage={order.stage}
+            activeOfferId={order.offerId}
           />
 
           {/* Composer with quick-action (+) button */}
@@ -312,6 +405,13 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
           className="flex flex-col gap-3 overflow-y-auto scrollbar-thin min-h-0"
         >
           <OrderSummaryCard order={order} onCancelOrder={() => setIsCancelOrderOpen(true)} />
+          <DeliverableReviewCard
+            deliverables={deliverables}
+            canReview={order.stage === "in_progress" || order.stage === "revision"}
+            busy={reviewing}
+            onApprove={() => setIsApproveOpen(true)}
+            onRequestRevision={() => setIsRevisionOpen(true)}
+          />
           <EscrowStatusCard orderStatus={order.stage} />
           <CreatorMiniProfileCard order={order} />
           <DealChecklistCard orderStatus={order.stage} />
@@ -364,6 +464,90 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
           tone="warning"
           onConfirm={handleCancelOrder}
         />
+      )}
+
+      {isApproveOpen && (
+        <ConfirmDialog
+          open={isApproveOpen}
+          onClose={() => setIsApproveOpen(false)}
+          title="Setujui Hasil Kerja Ini?"
+          description={
+            <>
+              Versi {deliverables[deliverables.length - 1]?.version} dari{" "}
+              <span className="font-semibold text-text-primary">{order.creatorName}</span> akan
+              ditandai disetujui.
+            </>
+          }
+          note={`Dana escrow ${formatCurrency(order.finalPrice)} akan dilepaskan ke kreator dan pesanan ditandai selesai. Langkah ini TIDAK bisa dibatalkan — setelah dana pindah, pengembaliannya hanya lewat sengketa.`}
+          acknowledgement="Saya sudah memeriksa hasil kerjanya dan setuju dana dilepaskan."
+          confirmLabel="Setujui & Lepaskan Dana"
+          tone="warning"
+          onConfirm={handleApproveDeliverable}
+        />
+      )}
+
+      {isRevisionOpen && (
+        <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[24px] border border-neutral-200/50 shadow-[0_32px_80px_rgba(15,23,42,.20)] p-6 max-w-md w-full">
+            <div className="flex justify-between items-start gap-4 mb-4">
+              <div>
+                <h3 className="text-base font-black text-[#182033]">Minta Revisi</h3>
+                <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider mt-0.5">
+                  {order.projectTitle}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsRevisionOpen(false)}
+                className="p-1.5 rounded-[10px] text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleRequestRevision} className="space-y-4">
+              <div>
+                <label htmlFor="revision-message" className="block text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1.5">
+                  Apa yang perlu diperbaiki?
+                </label>
+                <textarea
+                  id="revision-message"
+                  rows={4}
+                  required
+                  placeholder="Contoh: Logo brand belum terlihat jelas di bagian akhir video. Mohon diperbesar."
+                  value={revisionMessage}
+                  onChange={(e) => setRevisionMessage(e.target.value)}
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-[14px] text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 transition-all font-semibold text-neutral-800 placeholder-neutral-400 resize-none leading-relaxed"
+                />
+                <p className="text-[9px] text-neutral-400 font-bold mt-1.5 leading-relaxed">
+                  Sespesifik mungkin — jumlah revisi dibatasi kesepakatan awal
+                  {order.revisionCount ? ` (maksimal ${order.revisionCount}×)` : ""}.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsRevisionOpen(false)}
+                  disabled={reviewing}
+                  className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-extrabold text-xs rounded-full transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={reviewing}
+                  className="flex-1 py-3 text-white font-extrabold text-xs rounded-full transition-all cursor-pointer hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: "linear-gradient(180deg,#f97316,#ea580c)", boxShadow: "0 4px 14px rgba(249,115,22,.28)" }}
+                >
+                  {reviewing ? "Mengirim…" : "Kirim Permintaan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -142,6 +142,7 @@ const mapTransaction = (d: Doc): Transaction => {
     status: str(d.status) as TransactionStatus,
     description: str(d.purpose),
     midtransOrderId: str(d.gateway_reference) || undefined,
+    redirectUrl: str(d.redirect_url) || undefined,
     createdAt: str(d.paid_at) || str(d.$createdAt),
   };
 };

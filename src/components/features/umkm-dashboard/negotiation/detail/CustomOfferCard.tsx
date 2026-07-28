@@ -1,6 +1,6 @@
 "use client";
 
-import { ChatMessage } from "@/types/umkm-dashboard.types";
+import { ChatMessage, NegotiationStage } from "@/types/umkm-dashboard.types";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { deadlineTime } from "../negotiation.utils";
@@ -8,14 +8,42 @@ import { deadlineTime } from "../negotiation.utils";
 interface CustomOfferCardProps {
   message: ChatMessage;
   onPay: () => void;
-  orderStatus: string;
+  /** Tarik kembali penawaran yang belum dijawab. Hanya untuk offer aktif. */
+  onDeleteOffer?: (offerId: string) => void;
+  stage: NegotiationStage;
+  /** offerId yang sedang aktif di ruang ini — kartu lama tidak dapat aksi. */
+  activeOfferId?: string;
 }
 
-export function CustomOfferCard({ message, onPay, orderStatus }: CustomOfferCardProps) {
+export function CustomOfferCard({
+  message,
+  onPay,
+  onDeleteOffer,
+  stage,
+  activeOfferId,
+}: CustomOfferCardProps) {
   const offer = message.offerData;
   if (!offer) return null;
 
-  const showPayAction = orderStatus === "negotiation" || orderStatus === "waiting_payment";
+  // Kartu ini hanya bisa ditindaklanjuti kalau ia MEMANG penawaran yang sedang
+  // berlaku. Satu percakapan bisa punya beberapa offer (ditolak lalu ditawar
+  // ulang), dan kartu lama tetap terlihat sebagai riwayat.
+  const isActive = !!activeOfferId && offer.offerId === activeOfferId;
+
+  // Sebelumnya dicek terhadap "negotiation" / "waiting_payment" — dua nilai yang
+  // tidak ada di union stage mana pun, jadi tombolnya tidak pernah muncul dan
+  // badge-nya selalu berbunyi "Tawaran Disetujui" bahkan saat belum dijawab.
+  const showPayAction = isActive && stage === "pending_payment";
+  const isPending = isActive && stage === "offer_pending";
+  const canWithdraw = isPending && !!onDeleteOffer;
+
+  const badge = isPending
+    ? { text: "Menunggu Kreator", className: "bg-warning-soft/30 border-warning-soft text-warning-strong" }
+    : showPayAction
+      ? { text: "Diterima — Menunggu Bayar", className: "bg-warning-soft/30 border-warning-soft text-warning-strong" }
+      : stage === "offer_rejected" && isActive
+        ? { text: "Ditolak Kreator", className: "bg-neutral-100 border-neutral-200 text-neutral-600" }
+        : { text: "Tawaran Disetujui", className: "bg-success-soft/30 border-success-soft text-success-strong" };
 
 
   return (
@@ -34,11 +62,9 @@ export function CustomOfferCard({ message, onPay, orderStatus }: CustomOfferCard
           </div>
           <span className={cn(
             "px-2.5 py-0.5 rounded-full border text-[8px] font-extrabold uppercase tracking-wider",
-            showPayAction 
-              ? "bg-warning-soft/30 border-warning-soft text-warning-strong" 
-              : "bg-success-soft/30 border-success-soft text-success-strong"
+            badge.className
           )}>
-            {showPayAction ? "Menunggu Persetujuan" : "Tawaran Disetujui"}
+            {badge.text}
           </span>
         </div>
 
@@ -93,10 +119,11 @@ export function CustomOfferCard({ message, onPay, orderStatus }: CustomOfferCard
 
         {/* Escrow note */}
         <div className="text-[9px] text-text-muted leading-relaxed font-semibold">
-          * Dana pembayaran Anda akan diamankan dengan aman di sistem rekening <strong>escrow Marketiv</strong>, dan hanya akan dilepaskan ke kreator setelah Collab Post Instagram/TikTok tayang dan terverifikasi admin.
+          * Dana pembayaran Anda ditahan di rekening <strong>escrow Marketiv</strong> dan baru
+          dilepaskan ke kreator setelah Anda menyetujui hasil kerjanya. Nominal yang Anda bayar
+          persis sebesar harga di atas — fee platform ditanggung kreator.
         </div>
 
-        {/* Action button */}
         {showPayAction && (
           <button
             type="button"
@@ -104,6 +131,19 @@ export function CustomOfferCard({ message, onPay, orderStatus }: CustomOfferCard
             className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary-600 text-white text-xs font-bold transition-all duration-200 cursor-pointer shadow-xs border border-primary hover:border-primary-600 text-center"
           >
             Lanjut ke Pembayaran Escrow
+          </button>
+        )}
+
+        {/* s35-ui-offer — dulu ditunda karena ChatMessage.offerData tidak membawa
+            offerId. Sekarang membawanya, jadi penawaran yang belum dijawab bisa
+            ditarik kembali. */}
+        {canWithdraw && (
+          <button
+            type="button"
+            onClick={() => onDeleteOffer?.(offer.offerId)}
+            className="w-full py-2.5 rounded-xl border border-neutral-200 text-text-secondary hover:bg-neutral-50 text-xs font-bold transition-all duration-200 cursor-pointer text-center"
+          >
+            Tarik Penawaran
           </button>
         )}
       </div>

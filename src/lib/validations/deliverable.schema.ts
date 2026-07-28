@@ -1,0 +1,61 @@
+import { z } from "zod";
+import { optionalString, requiredString } from "./common";
+
+/**
+ * Deliverable & permintaan revisi — Rate Card Mode, Alur B.
+ *
+ * BATAS PANJANG DISAMAKAN DENGAN KOLOM di 00_BACKEND/appwrite.config.json:
+ *   deliverables.fileUrl  string(2048) wajib
+ *   deliverables.notes    string(2000) opsional
+ *   revisions.message     string(2000) wajib
+ */
+
+const MAX_FILE_URL = 2048;
+const MAX_NOTES = 2000;
+const MAX_REVISION_MESSAGE = 2000;
+
+/**
+ * URL eksternal deliverable.
+ *
+ * HTTPS saja — `docs/03_Workflows/30_RateCard_Order.md` menyebutnya eksplisit,
+ * dan mirror `order.service.ts:216` menolak apa pun selain `https://`. Menerima
+ * `http://` berarti bukti kerja bisa dikirim lewat kanal yang bisa disadap dan
+ * diubah di tengah jalan.
+ */
+export const externalDeliverableUrl = requiredString("Link deliverable")
+  .max(MAX_FILE_URL, `Link deliverable maksimal ${MAX_FILE_URL} karakter.`)
+  .refine((value) => value.startsWith("https://"), {
+    message: "Link harus diawali https:// — http biasa tidak diterima.",
+  })
+  .refine((value) => {
+    try {
+      new URL(value);
+      return true;
+    } catch {
+      return false;
+    }
+  }, { message: "Format link tidak valid." });
+
+export const uploadDeliverableSchema = z.object({
+  orderId: requiredString("Order"),
+  /**
+   * `storage` sengaja belum diterima. Jalur unggah berkas masih terblokir:
+   * `validate-and-upload` hanya memberi izin baca kepada pengunggah, jadi UMKM
+   * tidak akan bisa membuka berkas yang harus ia review — lihat §F handoff
+   * 2026-07-28. Sampai itu diputuskan, hanya URL eksternal yang sah.
+   */
+  source: z.literal("external_url", { error: "Sumber deliverable tidak valid." }),
+  fileUrl: externalDeliverableUrl,
+  notes: optionalString(MAX_NOTES, "Catatan"),
+});
+
+export const requestRevisionSchema = z.object({
+  orderId: requiredString("Order"),
+  message: requiredString("Alasan revisi").max(
+    MAX_REVISION_MESSAGE,
+    `Alasan revisi maksimal ${MAX_REVISION_MESSAGE} karakter.`
+  ),
+});
+
+export type UploadDeliverableInput = z.infer<typeof uploadDeliverableSchema>;
+export type RequestRevisionInput = z.infer<typeof requestRevisionSchema>;

@@ -11,6 +11,8 @@ import {
   acceptOffer,
   rejectOffer,
 } from "@/services/creator/creator-dashboard.service";
+import { getDeliverables, uploadDeliverable } from "@/services/shared/deliverable.service";
+import type { Deliverable } from "@/types/umkm-dashboard.types";
 import { toast } from "sonner";
 import { CreatorEmptyState } from "./CreatorEmptyState";
 import { CreatorPageSkeleton } from "./CreatorPageSkeleton";
@@ -107,6 +109,13 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false);
   const quickMenuRef = useRef<HTMLDivElement>(null);
 
+  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
+  const [isDeliverableModalOpen, setIsDeliverableModalOpen] = useState(false);
+  const [deliverableUrl, setDeliverableUrl] = useState("");
+  const [deliverableNotes, setDeliverableNotes] = useState("");
+  const [deliverableError, setDeliverableError] = useState<string | null>(null);
+  const [submittingDeliverable, setSubmittingDeliverable] = useState(false);
+
   /**
    * Pesan nyata dipetakan ke bentuk lokal yang dipakai JSX di bawah.
    * `time` sengaja diturunkan dari `createdAt`, bukan disimpan sendiri —
@@ -136,6 +145,17 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
     ]);
     if (roomRes.success && roomRes.data) setNeg(roomRes.data);
     if (msgRes.success && msgRes.data) setChatMessages(msgRes.data.map(toViewMessage));
+
+    // Deliverable hanya ada setelah order terbentuk — sebelum itu tidak ada
+    // orderId untuk di-query, dan memanggilnya cuma menghasilkan 404.
+    const orderId = roomRes.success ? roomRes.data?.orderId : undefined;
+    if (orderId) {
+      const dlvRes = await getDeliverables(orderId);
+      if (dlvRes.success && dlvRes.data) setDeliverables(dlvRes.data);
+    } else {
+      setDeliverables([]);
+    }
+
     setLoading(false);
   }, [conversationId]);
 
@@ -247,6 +267,43 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
   const handleAcceptOrder = () => answerOffer(true);
   const handleRejectOffer = () => answerOffer(false);
 
+  /**
+   * Kirim hasil kerja sebagai URL eksternal.
+   *
+   * HANYA URL, belum unggah berkas. Jalur storage masih terblokir: Function
+   * `validate-and-upload` memasang izin baca untuk pengunggah saja, jadi UMKM
+   * tidak akan bisa membuka berkas yang harus ia review (§F handoff 2026-07-28).
+   *
+   * Setiap kiriman jadi versi baru, bukan menimpa yang lama — riwayat revisi
+   * harus utuh.
+   */
+  const handleSubmitDeliverable = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!neg?.orderId || submittingDeliverable) return;
+
+    setSubmittingDeliverable(true);
+    setDeliverableError(null);
+
+    const res = await uploadDeliverable({
+      orderId: neg.orderId,
+      source: "external_url",
+      fileUrl: deliverableUrl.trim(),
+      notes: deliverableNotes.trim(),
+    });
+    setSubmittingDeliverable(false);
+
+    if (!res.success) {
+      setDeliverableError(res.error ?? "Gagal mengirim deliverable.");
+      return;
+    }
+
+    setIsDeliverableModalOpen(false);
+    setDeliverableUrl("");
+    setDeliverableNotes("");
+    toast.success("Deliverable terkirim. Menunggu review UMKM.");
+    await loadRoom();
+  };
+
   if (loading) {
     return (
       <div className="flex-1 p-4 sm:p-6 lg:p-8">
@@ -276,6 +333,14 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
   // status itu tercapai, ordernya sudah terbentuk dan tidak ada yang bisa
   // diterima lagi.
   const hasPendingOffer = neg.stage === "offer_pending" && !!neg.offerId;
+
+  // Kreator boleh mengirim hasil kerja hanya saat pesanan berjalan. `escrow`
+  // ikut karena create-escrow memindahkan order ke in_progress secara asinkron —
+  // ada jendela beberapa detik di mana UI masih melihat status lama.
+  const canSubmitDeliverable =
+    !!neg.orderId && (neg.stage === "in_progress" || neg.stage === "revision");
+  const latestDeliverable = deliverables.length > 0 ? deliverables[deliverables.length - 1] : null;
+  const awaitingReview = latestDeliverable?.status === "submitted";
 
   const platFee   = neg.platformFee   ?? calculatePlatformFee(neg.finalPrice);
   const totalAmt  = neg.totalAmount   ?? (neg.finalPrice - platFee);
@@ -483,9 +548,9 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                   adalah hak UMKM (docs/02_Modules/Offers/30_Business_Rules.md:13).
                   Yang tersedia di sini hanya menjawab penawaran yang masuk.
 
-                  Tombol "Submit Link Collab Post" dan "Tandai Revisi Selesai"
-                  juga dibuang: keduanya hanya menyetel state lokal tanpa menulis
-                  apa pun. Jalur deliverable yang sebenarnya masuk s4-rc-deliverable.
+                  "Tandai Revisi Selesai" juga dibuang — ia hanya menyetel state
+                  lokal. Menyelesaikan revisi caranya adalah MENGIRIM versi baru,
+                  yang tombol di bawah lakukan dengan benar.
                 */}
                 {hasPendingOffer && (
                   <div className="flex flex-wrap gap-2 pb-3 border-b border-neutral-100">
@@ -506,6 +571,31 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                       <X className="w-3.5 h-3.5" />
                       Tolak
                     </button>
+                  </div>
+                )}
+
+                {canSubmitDeliverable && (
+                  <div className="flex flex-wrap items-center gap-2 pb-3 border-b border-neutral-100">
+                    <button
+                      onClick={() => { setDeliverableError(null); setIsDeliverableModalOpen(true); }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-[12px] text-[11px] font-extrabold text-white cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0"
+                      style={{ background: "linear-gradient(135deg,#1e1b4b,#4f46e5)", boxShadow: "0 3px 10px rgba(30,27,75,.22)" }}
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      {latestDeliverable ? `Kirim Ulang (v${latestDeliverable.version + 1})` : "Kirim Deliverable"}
+                    </button>
+                    {awaitingReview && (
+                      <span className="flex items-center gap-1.5 text-[10px] font-extrabold text-amber-600">
+                        <Clock className="w-3.5 h-3.5" />
+                        v{latestDeliverable?.version} menunggu review UMKM
+                      </span>
+                    )}
+                    {latestDeliverable?.status === "revision_requested" && (
+                      <span className="flex items-center gap-1.5 text-[10px] font-extrabold text-orange-600">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        UMKM minta revisi pada v{latestDeliverable.version}
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -722,6 +812,101 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
 
           </div>
         </div>
+
+      {/* ── Modal: Kirim Deliverable ─────────────────────────────────────── */}
+      {isDeliverableModalOpen && (
+        <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[24px] border border-neutral-200/50 shadow-[0_32px_80px_rgba(15,23,42,.20)] p-6 sm:p-7 max-w-md w-full animate-in fade-in zoom-in-95 duration-300">
+            <div className="flex justify-between items-start gap-4 mb-5">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Send className="w-4 h-4 text-neutral-700" />
+                  <h3 className="text-base font-black text-[#1e1b4b]">
+                    {latestDeliverable ? `Kirim Ulang — versi ${latestDeliverable.version + 1}` : "Kirim Deliverable"}
+                  </h3>
+                </div>
+                <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">{neg.projectTitle}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDeliverableModalOpen(false)}
+                className="p-1.5 rounded-[10px] text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer"
+              >
+                <X className="w-4.5 h-4.5" />
+              </button>
+            </div>
+
+            {deliverableError && (
+              <div className="bg-red-50 border border-red-200/60 rounded-[12px] p-3.5 text-red-700 text-xs font-bold mb-4 flex items-start gap-2">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>{deliverableError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitDeliverable} className="space-y-4">
+              <div>
+                <label htmlFor="deliverable-url" className="block text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1.5">
+                  Link Hasil Kerja
+                </label>
+                <input
+                  id="deliverable-url"
+                  type="url"
+                  required
+                  placeholder="https://www.instagram.com/reel/CtO12345/"
+                  value={deliverableUrl}
+                  onChange={(e) => { setDeliverableUrl(e.target.value); if (deliverableError) setDeliverableError(null); }}
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-[14px] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all font-semibold text-neutral-800 placeholder-neutral-400"
+                />
+                <p className="text-[9px] text-neutral-400 font-bold mt-1.5 leading-relaxed">
+                  Wajib https://. Bisa tautan postingan, Google Drive, atau penyimpanan lain
+                  yang bisa dibuka UMKM.
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="deliverable-notes" className="block text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1.5">
+                  Catatan untuk UMKM <span className="text-neutral-300">(opsional)</span>
+                </label>
+                <textarea
+                  id="deliverable-notes"
+                  rows={3}
+                  placeholder="Contoh: Bagian logo sudah saya perbesar di detik 0:12 sesuai permintaan."
+                  value={deliverableNotes}
+                  onChange={(e) => setDeliverableNotes(e.target.value)}
+                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-[14px] text-xs focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all font-semibold text-neutral-800 placeholder-neutral-400 resize-none leading-relaxed"
+                />
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200/50 rounded-[12px] p-3.5 flex items-start gap-2.5">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[10px] font-bold text-amber-700 leading-relaxed">
+                  Pastikan tautannya bisa dibuka UMKM. Setelah UMKM menyetujui, dana escrow
+                  dilepaskan ke saldo kamu dikurangi fee platform 2%.
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsDeliverableModalOpen(false)}
+                  disabled={submittingDeliverable}
+                  className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-extrabold text-xs rounded-full transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingDeliverable}
+                  className="flex-1 py-3 text-white font-extrabold text-xs rounded-full border border-transparent transition-all cursor-pointer hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: "linear-gradient(135deg,#1e1b4b,#4f46e5)", boxShadow: "0 4px 14px rgba(30,27,75,.25)" }}
+                >
+                  {submittingDeliverable ? "Mengirim…" : "Kirim"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/*
         Dua modal dibuang di sini:

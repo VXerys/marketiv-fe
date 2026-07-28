@@ -1,12 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { formatCurrency } from "@/lib/formatters";
-import {
-  PLATFORM_FEE_RATE,
-  calculatePlatformFee,
-  calculateTotalPayment,
-} from "@/types/domain";
+
 import {
   ResponsiveModal,
   ResponsiveModalContent,
@@ -29,16 +24,6 @@ export function PaymentSimulationModal({
   onConfirm,
   finalPrice,
 }: PaymentSimulationModalProps) {
-  const [selectedMethod, setSelectedMethod] = useState<string>("va");
-
-  const platformFee = calculatePlatformFee(finalPrice);
-  const totalPayment = calculateTotalPayment(finalPrice);
-
-  const paymentMethods = [
-    { id: "va", name: "Bank Transfer Virtual Account", desc: "BNI, Mandiri, BCA, BRI" },
-    { id: "qris", name: "QRIS Cashback", desc: "Gopay, OVO, Dana, LinkAja, ShopeePay" },
-    { id: "wallet", name: "Saldo Dompet Marketiv", desc: "Bayar instan via saldo platform" },
-  ];
 
   return (
     <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -54,73 +39,43 @@ export function PaymentSimulationModal({
               Deposit Dana Escrow
             </ResponsiveModalTitle>
             <ResponsiveModalDescription className="text-[10px] text-text-muted mt-1 block">
-              Simulasi deposit dana untuk mengaktifkan order pengerjaan kreator.
+              Dana ditahan Marketiv sampai kamu menyetujui hasil kerjanya.
             </ResponsiveModalDescription>
           </div>
         </ResponsiveModalHeader>
 
-        {/* Pricing breakdown */}
+        {/*
+          TANPA BARIS FEE. Rate Card Order adalah seller-side (ADR-008): UMKM
+          membayar PERSIS harga yang disepakati, potongan 2% ditanggung kreator
+          saat escrow dirilis. Versi sebelumnya menambahkan 2% ke tagihan UMKM —
+          bukan cuma salah menurut ADR, tapi juga akan ditolak `create-payment`,
+          yang mensyaratkan nominalnya sama persis dengan `order.amount` (409).
+        */}
         <div className="bg-neutral-50/70 p-4.5 rounded-2xl border border-border-soft/60 space-y-2.5 text-xs font-semibold text-text-secondary mt-4">
           <div className="flex items-center justify-between text-text-muted">
-            <span>Harga Negosiasi Final</span>
+            <span>Harga Kesepakatan</span>
             <span className="font-extrabold text-text-primary">{formatCurrency(finalPrice)}</span>
-          </div>
-          <div className="flex items-center justify-between text-text-muted">
-            <span>Biaya Rekening Escrow ({PLATFORM_FEE_RATE * 100}%)</span>
-            <span className="font-extrabold text-text-primary">{formatCurrency(platformFee)}</span>
           </div>
           <div className="flex items-center justify-between pt-3 border-t border-dashed border-border-soft text-text-primary">
             <span className="font-extrabold">Total Pembayaran Anda</span>
-            <span className="text-sm sm:text-base font-extrabold text-primary">{formatCurrency(totalPayment)}</span>
+            <span className="text-sm sm:text-base font-extrabold text-primary">{formatCurrency(finalPrice)}</span>
           </div>
+          <p className="text-[9px] text-text-muted font-semibold leading-relaxed pt-1">
+            Tanpa biaya tambahan. Fee platform 2% dipotong dari pendapatan kreator, bukan dari
+            pembayaran kamu.
+          </p>
         </div>
 
-        {/* Disclaimer alert */}
+        {/* Metode pembayaran dipilih di halaman Midtrans, bukan di sini — daftar
+            statis yang dulu ada tidak pernah dikirim ke gateway. */}
         <div className="rounded-xl bg-primary-50/15 border border-primary-100/35 p-3 flex gap-2 items-start text-[9px] text-text-muted leading-relaxed font-semibold my-4">
           <span className="h-4.5 w-4.5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-bold">
             i
           </span>
           <span>
-            <strong>Simulasi Demo:</strong> Integrasi gateway Midtrans Snap SDK dan Appwrite Webhook akan digunakan di tahap integrasi backend riil.
+            Setelah lanjut, kamu diarahkan ke halaman pembayaran Midtrans untuk memilih metode
+            (Virtual Account, QRIS, atau e-wallet).
           </span>
-        </div>
-
-        {/* Methods */}
-        <div className="space-y-3 mb-6">
-          <span className="block text-[10px] font-extrabold text-text-muted uppercase tracking-wider">
-            Pilih Metode Pembayaran
-          </span>
-          <div className="space-y-2">
-            {paymentMethods.map((pm) => {
-              const isSelected = selectedMethod === pm.id;
-              return (
-                <button
-                  key={pm.id}
-                  type="button"
-                  onClick={() => setSelectedMethod(pm.id)}
-                  className={`w-full text-left p-3 rounded-xl border flex items-center justify-between gap-3 transition-all duration-200 cursor-pointer ${
-                    isSelected
-                      ? "bg-primary-50/40 border-primary shadow-2xs"
-                      : "bg-white border-neutral-200/60 hover:bg-neutral-50"
-                  }`}
-                >
-                  <div className="min-w-0">
-                    <span className={`block text-xs font-bold ${isSelected ? "text-primary" : "text-text-primary"}`}>
-                      {pm.name}
-                    </span>
-                    <span className="block text-[10px] text-text-muted truncate mt-0.5 font-semibold">
-                      {pm.desc}
-                    </span>
-                  </div>
-                  <span className={`h-4.5 w-4.5 rounded-full border flex items-center justify-center shrink-0 ${
-                    isSelected ? "border-primary bg-primary text-white" : "border-neutral-300 bg-white"
-                  }`}>
-                    {isSelected && <span className="h-1.5 w-1.5 bg-white rounded-full" />}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
         </div>
 
         {/* Actions */}
