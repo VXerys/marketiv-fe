@@ -123,12 +123,18 @@ export async function provisionUserProfile(): Promise<ServiceResult<null>> {
   try {
     const authUser = await account.get();
     const prefs = authUser.prefs as Record<string, unknown> | undefined;
-    // `role` dikirim di level atas DAN di dalam prefs: getEventUser() di Function
-    // membaca `user.role || user.prefs?.role`, dan kita tidak mengontrol versi
-    // Function yang sedang live.
+    // Bentuk payload meniru objek user event Appwrite, karena Function membaca
+    // keduanya lewat jalur yang sama (`getEventUser`):
+    //   - `role` di level atas DAN di prefs — `user.role || user.prefs?.role`
+    //   - `email` → ditulis apa adanya ke kolom `users.email`
+    //   - `name`  → fallback `displayName` creator_profiles saat prefs kosong
+    // Tanpa email & name, kedua kolom itu tersimpan sebagai string kosong.
     await executeFunction(FUNCTION_IDS.createUserProfile, {
       $id: authUser.$id,
       role: prefs?.role,
+      email: authUser.email,
+      name: authUser.name,
+      phone: authUser.phone,
       prefs,
     });
     return ok(null);

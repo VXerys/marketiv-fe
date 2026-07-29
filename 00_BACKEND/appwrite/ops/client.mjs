@@ -101,14 +101,16 @@ export const SAFE_FIELDS = [
 ];
 
 /**
- * Wewenang TIM BACKEND — jangan diubah dari sini.
+ * Field yang BARU BERLAKU SETELAH DEPLOY ULANG.
  *
- * `scopes` = hak akses/key Function. `entrypoint`, `commands`, `runtime` adalah
- * setelan build yang baru berlaku saat deploy berikutnya. `name` kosmetik tapi
- * ikut dititipkan ke tim backend supaya batasnya satu garis, bukan dua.
+ * `scopes` menentukan hak kunci dinamis yang di-inject ke eksekusi; `entrypoint`,
+ * `commands`, `runtime` adalah setelan build. Mengubahnya lewat API saja tidak
+ * mengubah perilaku Function sampai `appwrite push functions` berikutnya —
+ * itulah sebabnya dipisah dari SAFE_FIELDS, supaya "sudah saya set kok" tidak
+ * disalahartikan sebagai "sudah berlaku".
  *
- * Ditetapkan user 2026-07-27: kita boleh edit kode Function dan rules
- * collection, tapi push/redeploy dan penambahan key bukan porsi kita.
+ * Nama variabelnya dipertahankan supaya tidak memecah pemanggil; sampai
+ * 2026-07-29 pemisahan ini soal wewenang tim backend, sekarang murni teknis.
  */
 export const BACKEND_FIELDS = ["scopes", "entrypoint", "commands", "runtime", "name"];
 

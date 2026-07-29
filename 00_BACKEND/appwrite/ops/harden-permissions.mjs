@@ -159,7 +159,21 @@ for (const t of TARGETS) {
 }
 
 for (const t of BUCKET_TARGETS) {
-  const live = await aw(`/storage/buckets/${t.id}`);
+  // Bucket bisa saja belum ada di live sekalipun dideklarasikan config — persis
+  // kasus `user-files` (2026-07-29). Dulu 404-nya melempar dan mematikan seluruh
+  // script SETELAH blok tabel selesai menulis, jadi keluarannya stacktrace dan
+  // bukan laporan. Laporkan lalu lanjut; pembuatannya urusan ensure-buckets.mjs.
+  let live;
+  try {
+    live = await aw(`/storage/buckets/${t.id}`);
+  } catch (e) {
+    if (String(e.message).startsWith("404")) {
+      console.log(`MISS bucket:${t.id.padEnd(13)} belum ada di live — jalankan 'node appwrite/ops/ensure-buckets.mjs' dulu`);
+      continue;
+    }
+    throw e;
+  }
+
   const before = `perms=${JSON.stringify(live.$permissions)} fileSecurity=${live.fileSecurity}`;
   const after = `perms=${JSON.stringify(t.permissions)} fileSecurity=${t.fileSecurity}`;
 

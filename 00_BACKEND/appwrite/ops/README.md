@@ -9,31 +9,45 @@ Kredensial diambil dari env (`APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`,
 
 | Script | Tulis? | Perintah |
 | --- | --- | --- |
+| `audit-live.mjs` | tidak | `node appwrite/ops/audit-live.mjs` |
 | `drift.mjs` | tidak | `npm run fn:drift` |
-| `sync-functions.mjs` | ya | `npm run fn:sync:dry` lalu `npm run fn:sync` |
 | `check-deployments.mjs` | tidak | `node appwrite/ops/check-deployments.mjs` |
+| `ensure-buckets.mjs` | ya | `node appwrite/ops/ensure-buckets.mjs --dry` |
+| `ensure-columns.mjs` | ya | `node appwrite/ops/ensure-columns.mjs --dry` |
+| `fix-function-vars.mjs` | ya | `node appwrite/ops/fix-function-vars.mjs --dry` |
 | `harden-permissions.mjs` | ya | `node appwrite/ops/harden-permissions.mjs --dry` |
+| `sync-functions.mjs` | ya | `npm run fn:sync:dry` lalu `npm run fn:sync` |
 
-## Batas wewenang
+Yang menulis selalu punya `--dry`. Jalankan kering dulu, baca rencananya, baru
+tanpa flag.
 
-Ditetapkan 2026-07-27. Akses kita berhenti di lapisan konfigurasi dan kode;
-lapisan deployment dan kredensial milik tim backend.
+**Mulai dari `audit-live.mjs`.** `drift.mjs` hanya membandingkan field runtime
+Function dan buta terhadap bucket, tabel, dan kolom — pada 2026-07-29 justru di
+kategori itulah empat dari enam blocker bersembunyi, termasuk bucket yang tidak
+pernah dibuat dan kolom yang hilang sejak migrasi gagal.
 
-**Boleh kita ubah** — setelan runtime, berlaku langsung tanpa deploy:
+## Kapan perubahan berlaku
+
+Sejak 2026-07-29 tidak ada pembagian wewenang frontend/backend — seluruh lapisan
+Appwrite milik tim ini. Yang tersisa perbedaan **teknis**, dan itu tetap penting:
+
+**Berlaku langsung**, tanpa deploy ulang:
 
 `events` · `schedule` · `execute` · `timeout` · `enabled` · `logging`
+· permission tabel & bucket · variabel Function
 
-Plus kode Function di `functions/<id>/src/` dan rules/permissions collection.
+**Baru berlaku setelah `appwrite push functions`:**
 
-**Wewenang tim backend** — jangan diubah sendiri:
+`scopes` · `entrypoint` · `commands` · `runtime` · `name` · kode Function
 
-`scopes` (key & hak akses) · `entrypoint` · `commands` · `runtime` · `name`
+Menyetel `scopes` lewat API lalu menganggapnya aktif adalah kesalahan yang mudah
+dibuat. `sync-functions.mjs` default hanya menyentuh kelompok pertama; kelompok
+kedua butuh flag `--backend-fields` eksplisit. `drift.mjs` memisahkan laporannya
+mengikuti pembagian yang sama.
 
-Plus `appwrite push functions`, deploy, dan redeploy.
-
-`sync-functions.mjs` default hanya menyentuh kelompok pertama; sisanya dibawa
-ulang apa adanya dari live. `drift.mjs` memisahkan laporannya jadi blok A
-(bisa kita perbaiki) dan blok B (serahkan ke tim backend).
+> Catatan lingkungan: perintah yang **menulis** ke Appwrite production diblokir
+> classifier saat dijalankan lewat asisten. Baca lolos. Jadi skrip disiapkan di
+> repo dan dijalankan manusia di terminal — itu batas harness, bukan wewenang.
 
 ## Aturan yang lahir dari insiden
 

@@ -4,9 +4,14 @@
  *
  *   node appwrite/ops/drift.mjs
  *
- * Laporan dipisah dua blok sesuai wewenang:
- *   A. Bisa kita perbaiki  → `npm run fn:sync`
- *   B. Wewenang tim backend → serahkan, jangan dikerjakan sendiri
+ * Laporan dipisah dua blok sesuai KAPAN perubahannya berlaku:
+ *   A. Berlaku langsung        → `npm run fn:sync`
+ *   B. Baru berlaku saat deploy → butuh `appwrite push functions`
+ *
+ * Sampai 2026-07-29 pemisahan ini soal wewenang (blok B milik tim backend).
+ * Sejak kita mengambil alih peran itu, keduanya wewenang kita — yang tersisa
+ * adalah perbedaan teknisnya, dan itu justru yang perlu diingat: menyetel
+ * `scopes` atau `entrypoint` tanpa deploy ulang tidak mengubah apa pun.
  *
  * Riwayat kenapa file ini ada:
  *   v1 membandingkan scopes di balik `if (c.scopes && ...)`. Karena generator
@@ -58,21 +63,21 @@ function report(title, rows, hint) {
 }
 
 report(
-  `A. BISA KITA PERBAIKI (${safe.length} field)`,
+  `A. BERLAKU LANGSUNG (${safe.length} field)`,
   safe,
   "npm run fn:sync:dry lalu npm run fn:sync"
 );
 
 report(
-  `B. WEWENANG TIM BACKEND (${backend.length} field)`,
+  `B. BARU BERLAKU SAAT DEPLOY (${backend.length} field)`,
   backend,
-  "Serahkan ke tim backend — ini ranah push/deploy dan key Function."
+  "Perbaiki di config lalu `appwrite push functions` — tanpa deploy ulang tidak berpengaruh."
 );
 
 if (missing.length) {
   console.log("\nBELUM DI-PUSH (ada di config, tidak ada di live):");
   for (const id of missing) console.log(`  - ${id}`);
-  console.log("\n  → Tim backend yang push.");
+  console.log("\n  → Jalankan: appwrite push functions");
 }
 
 if (orphan.length) {
@@ -85,7 +90,7 @@ if (!safe.length && !backend.length && !missing.length && !orphan.length) {
 }
 
 console.log(
-  `\nRingkasan: ${safe.length} field bisa kita perbaiki, ${backend.length} field ranah tim backend, ` +
+  `\nRingkasan: ${safe.length} field berlaku langsung, ${backend.length} field butuh deploy, ` +
     `${missing.length} belum di-push, ${orphan.length} yatim ` +
     `(${cfg.functions.length} di config, ${live.functions.length} di live)`
 );
