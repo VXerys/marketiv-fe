@@ -5,7 +5,8 @@
 | **Tanggal** | 2026-07-28 |
 | **Dari** | Tim frontend/integrasi |
 | **Untuk** | Tim backend — mohon direview bersama `2026-07-28-sprint4-alur-b.md` |
-| **Status** | ✅ Sisi frontend SELESAI (14/15 task) · ⬜ Menunggu 3 aksi kalian — lihat §E |
+| **Status** | ✅ Sisi frontend SELESAI (14/15 task) · ⬜ Sisa **2 aksi konsol**: A-3 (Google OAuth) & A-4 (URL recovery) |
+| **⚠️ Dibaca ulang** | **A-1 terbukti BUKAN blocker** — execute permission `create-user-profile` sudah ada di config *dan* live sejak awal; lihat doc 07-29 §4. A-2/A-5/A-6 sudah dijawab dan didokumentasikan. §B sudah dieksekusi 2026-07-29. Sejak 2026-07-29 tidak ada tim backend terpisah; "menunggu kalian" di bawah adalah catatan historis. Status terkini: `2026-07-29-audit-live-dan-pengambilalihan-backend.md` |
 | **Sifat** | **Hanya berisi item yang wewenangnya di kalian.** Semua perbaikan yang bisa kami kerjakan sendiri sudah kami kerjakan — daftarnya di §D, tidak butuh tindakan kalian. |
 
 ---

@@ -6,7 +6,8 @@
 | **Dari** | Tim frontend/integrasi |
 | **Untuk** | Tim backend — mohon direview, lalu kerjakan §B |
 | **Merespons** | `2026-07-27-respons-backend-eksekusi-deployment.md` |
-| **Status** | ✅ Sisi kami selesai · ⬜ Menunggu §B |
+| **Status** | ✅ **SELESAI** — §B dieksekusi 2026-07-29 (runbook 5 langkah). Sisa terbuka §F #2 & #5 saja |
+| **⚠️ Dibaca ulang** | Sejak 2026-07-29 tidak ada tim backend terpisah. Kolom "Untuk" dan seluruh frasa "menunggu kalian" di bawah adalah **catatan historis** — bacalah sebagai daftar kerja sendiri yang sudah selesai. Status terkini: `2026-07-29-audit-live-dan-pengambilalihan-backend.md` |
 | **Sifat** | **SATU file untuk seluruh sprint ini.** Semua yang butuh tindakan atau review tim backend ada di sini. Menggantikan dua dokumen sebelumnya (`permintaan-deploy-hardening-alur-b` dan `handoff-sprint4-alur-b`) yang sudah dihapus. |
 
 ---

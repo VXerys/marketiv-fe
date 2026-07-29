@@ -30,21 +30,27 @@ Catatan: rujukan `§5` di dalam §7 dokumen `2026-07-27` menunjuk **§5 dokumen 
 
 ## 👉 Mulai dari sini
 
-**[`2026-07-27-handoff-pemulihan-function-settings.md`](2026-07-27-handoff-pemulihan-function-settings.md)** — dokumen terbaru dan titik masuk untuk tim backend. Berisi laporan insiden `scopes`/`events`, daftar yang sudah kami kerjakan untuk direview, dan daftar tugas tim backend (§C).
+**[`2026-07-29-audit-live-dan-pengambilalihan-backend.md`](2026-07-29-audit-live-dan-pengambilalihan-backend.md)** — dokumen terbaru dan satu-satunya titik masuk yang akurat. Berisi audit live 2026-07-29, runbook 5 langkah beserta hasil eksekusinya, dan §Resolusi yang menutup blocker deployment basi.
 
-## Yang masih terbuka per 2026-07-27
+Sejak 2026-07-29 **tidak ada tim backend terpisah** — seluruh lapisan Appwrite milik tim ini. Dokumen lama yang ditulis sebagai serah-terima dibaca ulang sebagai daftar kerja sendiri, bukan permintaan ke pihak lain.
 
-| Item | Dokumen | Butuh |
+> ⚠️ Dokumen di folder ini adalah **catatan kronologis, bukan status terkini**. Header status di dokumen tertanggal 2026-07-27 dan 07-28 mencerminkan keadaan saat ditulis. Jangan menyimpulkan ada pekerjaan terbuka dari dokumen selain yang terdaftar di bawah.
+
+## Yang masih terbuka per 2026-07-29
+
+| Item | Sumber | Butuh |
 |---|---|---|
-| **Redeploy `create-order` & `request-withdrawal`, push `mature-pending-balance`** | Handoff pemulihan §C-1 | Tim backend — perbaikan kode belum berdampak sampai ini jalan |
-| **`commands`/`entrypoint` kosong di 25 Function** | Handoff pemulihan §C-2 | Tim backend — `appwrite push functions` |
-| **Status deployment belum terverifikasi** (`deployment=NONE` 25/25) | Handoff pemulihan §C-3 | Tim backend — jalankan `check-deployments.mjs` |
+| **Nol bukti runtime** — 0 eksekusi Function setelah deploy 2026-07-29 | Doc 07-29 §6b | E2E setelah sprint UI selesai |
+| **Build tersangkut** di `delete-file`, `create-order`, `campaign-claimed` | `audit-live.mjs` warn | Tidak ada — sumbernya identik dengan deployment aktif (tidak ada commit ke `functions/*/src/` setelah 2026-07-28). Hapus di konsol kalau mengganggu |
+| Provider Google OAuth + URL callback | Doc 07-29 §7 #1 | Aksi konsol — tidak memblokir (tombol di balik flag) |
+| URL recovery `<origin>/reset-password` sebagai platform Web | Doc 07-29 §7 #2 | Aksi konsol — `/forgot-password` gagal tanpa ini |
+| Cabut API key `ai-brief` lama di konsol | Doc 07-29 §5 | Aksi konsol — key sudah pernah terekspos |
+| Atomicity `release-escrow` | Doc 07-29 §7 #3 | Risiko diterima sengaja; kebalikannya = bayar ganda |
+| Variabel Function tidak terversion (`.env` gitignored) | Doc 07-29 §5 | Sebagian tertutup `sync-function-vars.mjs` |
+| Harness `vitest` 103/121 gagal | Doc 07-29 §5 | Workstream sendiri; sebagian ekspektasi usang vs ADR-008 |
+| Bucket `deliverables` di config tidak dipakai | Doc 07-29 §7 #6 | Keputusan: pakai atau hapus |
 | Claim `expired` mengunci kreator selamanya | Sprint 4 Alur A §5 | Keputusan produk |
-| **B-3 Sprint 3** — `campaign_briefs.doAndDont` masih 400 char | Sprint 3 write layer §Resolusi | Naikkan ke 4000, atau potong di sisi penulis |
-| `conversationId` + `isArchived` di DTO `get-creator-negotiations` (T-5) | Review delete layer §7 | Backend, ditampung sejak 2026-07-26 |
-| Permintaan kolom Sprint 3 §6 (`doAndDont` 400→4000, dll.) | Sprint 3 write layer | Tinjauan ulang |
-| Pengetatan permission `deliverables` & `revisions` | Verifikasi wiring §Resolusi | Menunggu row perm ter-deploy |
-| Harness `vitest` rusak (102/121 gagal) | Sprint 3 §8 | Perbaikan harness |
+| Tren harian campaign mustahil dari `campaign_submissions` | Sprint 4 Alur B §F #5 | Butuh kolom snapshot bertanggal |
 
 ## ⛔ Jangan dijalankan
 

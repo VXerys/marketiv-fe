@@ -220,3 +220,93 @@ Smoke test adalah langkah berikutnya.
 | 4 | Variabel Function belum terlacak di repo | Lihat §5 |
 | 5 | Harness `vitest` 103/121 gagal | Lihat §5 |
 | 6 | Bucket `deliverables` di config tidak dipakai | Putuskan: pakai atau hapus dari config |
+
+---
+
+## ✅ Resolusi — Audit Kedua, 2026-07-29 sore
+
+Laporan **"0 blocker"** di §6b ternyata terlalu percaya diri. `audit-live.mjs`
+saat itu hanya membandingkan **konfigurasi**; ia tidak memeriksa *deployment mana
+yang aktif* dan tidak memeriksa *apakah Function pernah benar-benar jalan*. Kedua
+hal itu diperiksa langsung ke API live pada audit kedua, dan di sana ada blocker
+yang lolos.
+
+### B-1 — `create-order` menjalankan kode 2026-07-27 (BLOCKER)
+
+Deployment aktifnya `6a67756c489cb4025284`, dibuat **2026-07-27T15:12:44**,
+padahal `create-order/src/main.js` terakhir berubah di commit `b8f976c`
+(2026-07-28 02:50 UTC).
+
+Ada **5 deployment `ready` dari 2026-07-29** (02:47, 02:52, 02:57, 02:59, 03:04)
+yang tidak pernah diaktifkan, plus satu yang tersangkut `building` sejak 03:06:14
+— padahal build log-nya sendiri sudah menulis `Build finished.` pada 03:06:19.
+Build-nya selesai; status-nya yang tidak pernah dibalik, dan pointer deployment
+aktif tidak pernah maju.
+
+Yang tidak pernah hidup di live akibatnya (+73 baris dari `b8f976c`):
+
+1. Cabang `offer.status === "rejected"` — notifikasi **"Penawaran Ditolak"** ke UMKM.
+2. Notifikasi **"Penawaran Diterima — selesaikan pembayaran"** setelah order dibuat.
+
+Pembuatan order-nya sendiri tetap jalan; perbaikan itu dari `24ede86` dan sudah
+masuk deployment 07-27. Jadi bukan alur uang yang putus, tapi dua titik notifikasi
+Alur B mati — dan yang lebih penting, **isi repo ≠ isi live** untuk Function ini,
+asumsi yang dipakai seluruh dokumen di folder ini.
+
+`create-escrow` juga tertinggal (aktif 02:37:15, ada `ready` 03:06:07), tapi kode
+di antara keduanya identik — yang berubah hanya `.env.example`. Kosmetik, tetap
+diselaraskan.
+
+**Ditutup** oleh `appwrite/ops/activate-latest-deployment.mjs`.
+
+### B-2 — `audit-live.mjs` buta terhadap kesegaran deployment (lubang perkakas)
+
+Blok Function-nya hanya memeriksa **apakah `deploymentId` ada**, bukan apakah itu
+`ready` terbaru. Persis lubang yang meloloskan B-1 — dan alasan kenapa laporan
+"0 blocker" di §6b terasa lebih meyakinkan daripada kenyataannya.
+
+**Ditutup:** `audit-live.mjs` sekarang menandai `STALE-DEP` sebagai blocker,
+lengkap dengan tanggal kedua deployment dan perintah perbaikannya.
+
+### B-3 — Build tersangkut sebagai gejala push tidak tuntas
+
+Build yang menggantung inilah yang menghentikan `appwrite push` di tengah dan
+menyebabkan B-1. Appwrite Cloud tidak pernah membersihkannya sendiri: project ini
+punya sisa build `building` dari 2026-07-26 s/d 07-28 di 16 dari 28 Function.
+
+**Ditutup sebagai warning yang terfilter.** Hanya build yang **lebih baru dari
+deployment aktif** yang dilaporkan — build lebih tua berarti push sesudahnya sudah
+berhasil dan tidak ada yang perlu dikerjakan. Tanpa filter itu peringatannya muncul
+di 16 Function dan berhenti dibaca orang. Setelah difilter tersisa 3:
+`delete-file`, `create-order`, `campaign-claimed`.
+
+### B-4 — Akun sisa tanpa wallet
+
+1 akun Auth `testing@gmail.com` (dibuat 2026-07-26) dengan `prefs` **kosong**
+— tanpa role, jadi resolusi role di frontend tidak akan jalan untuknya. Punya baris
+di `users`, `creator_profiles`, `user_storage_usage`, tapi `wallets` **0 baris**,
+dan `create-user-wallet` **belum pernah tereksekusi sekali pun** (`total=0`) meski
+event `users.*.create`-nya terpasang benar di live.
+
+**Keputusan:** hapus akun beserta tiga baris yatimnya, mulai dari nol. Registrasi
+ulang nanti sekaligus jadi bukti pertama bahwa trigger `users.*.create` menyala.
+
+### Yang tetap terbuka: nol bukti runtime
+
+**0 eksekusi di seluruh 28 Function setelah deploy 02:37.** Ke-40 eksekusi
+historis berasal dari 2026-07-25 s/d 07-29 pagi, sebelum perbaikan. Kegagalannya
+(`missing scopes ["documents.read"]`, `Cannot find package 'node-appwrite'`,
+`Missing required environment variables: appwriteApiKey`) semuanya pre-deploy dan
+secara kode sudah ditutup — tapi belum satu pun terbukti sembuh.
+
+E2E penuh Alur A + B **sengaja ditunda sampai sprint UI selesai**. Sampai itu
+dijalankan, kalimat yang jujur tentang backend ini adalah *"konfigurasinya benar
+dan terverifikasi"*, bukan *"backend-nya jalan"*.
+
+### Pelajaran
+
+Dua kali berturut-turut laporan bersih datang dari perkakas yang tidak memeriksa
+kategori tempat kerusakannya berada — 07-29 pagi `drift.mjs` buta terhadap bucket
+dan kolom, 07-29 sore `audit-live.mjs` buta terhadap deployment. Polanya sama:
+**"tidak ada temuan" hanya sekuat daftar hal yang diperiksa.** Saat sebuah audit
+melaporkan nol, yang pertama diperiksa sebaiknya daftar cek-nya, bukan hasilnya.
