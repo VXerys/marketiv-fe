@@ -49,7 +49,13 @@ export function StartNegotiationModal({
     setIsSubmitting(false);
 
     if (!res.success || !res.data) {
-      toast.error(res.error ?? "Gagal membuka ruang negosiasi.");
+      const message = res.error ?? "Gagal membuka ruang negosiasi.";
+      // Kode error ikut ditampilkan di luar production supaya satu screenshot
+      // sudah cukup untuk membedakan validation/forbidden/auth — pesan yang
+      // sampai ke pengguna sengaja generik dan ketiganya terlihat sama.
+      toast.error(
+        process.env.NODE_ENV === "production" ? message : `${message} [${res.code ?? "?"}]`
+      );
       return;
     }
 
