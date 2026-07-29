@@ -19,6 +19,13 @@
 // bentuk payloadnya berbeda, jadi ditangani blok BUCKET_TARGETS terpisah di
 // bawah.
 //
+// Gelombang 5 (2026-07-29, audit Sprint 8): koleksi Alur A + rate card/profil.
+// Semuanya masih punya `update("users")` — lubang yang identik dengan yang
+// ditutup gelombang 3 untuk `deliverables`, tapi sisi Campaign Mode terlewat.
+// Yang dicabut HANYA `update("users")`; `read("any")` sengaja DIPERTAHANKAN
+// karena Job Pool, direktori kreator, dan katalog rate card memang bergantung
+// padanya. Kebocoran baca draft campaign adalah pekerjaan terpisah.
+//
 // Jalankan dengan --dry untuk melihat rencana tanpa menulis.
 import { aw, DB } from "./client.mjs";
 
@@ -104,6 +111,94 @@ const TARGETS = [
     permissions: ['create("users")'],
     rowSecurity: true,
     why: "isi & riwayat revisi semua order terbaca dan bisa diubah siapa pun; row perm dipasang order.service.ts:337",
+  },
+
+  // ── Gelombang 5 ────────────────────────────────────────────────────────
+  //
+  // read("any") DIPERTAHANKAN di semua entri di bawah — itu memang kontraknya
+  // (Job Pool, direktori kreator, katalog rate card publik). Yang dicabut hanya
+  // update("users").
+  {
+    id: "campaign_submissions",
+    permissions: ['read("any")', 'create("users")'],
+    rowSecurity: true,
+    why:
+      'update("users") = SIAPA PUN yang login bisa menulis status:"approved" + views besar ke submission siapa pun, ' +
+      "dan update itulah yang memicu calculate-campaign-reward menambah pendingBalance kreator lalu bisa ditarik. " +
+      "Kembaran persis lubang deliverables gelombang 3; row perm dipasang creator-appwrite.service.ts:submitProof",
+  },
+  {
+    id: "campaigns",
+    permissions: ['read("any")', 'create("users")'],
+    rowSecurity: true,
+    why:
+      'update("users") = siapa pun bisa menulis status:"active" + remainingBudget ke campaign siapa pun, ' +
+      "melewati Midtrans, create-escrow, dan guard remainingBudget>0 di publishCampaign sekaligus. " +
+      "Row perm read(any)/update+delete(owner) dipasang umkm-appwrite.service.ts:createCampaignDraft",
+  },
+  {
+    id: "campaign_claims",
+    permissions: ['read("any")', 'create("users")'],
+    rowSecurity: true,
+    why:
+      'update("users") = siapa pun bisa mengubah status klaim siapa pun (mis. membebaskan kuota atau ' +
+      "menandai klaim orang lain expired); row perm kreator+UMKM dipasang creator-appwrite.service.ts:claimCampaign",
+  },
+  {
+    id: "campaign_briefs",
+    permissions: ['read("any")', 'create("users")'],
+    rowSecurity: true,
+    why: 'update("users") = siapa pun bisa mengubah brief campaign orang lain setelah kreator mengklaimnya; row perm sama dengan campaigns',
+  },
+  {
+    id: "campaign_assets",
+    permissions: ['read("any")', 'create("users")'],
+    rowSecurity: true,
+    why: 'update("users") = siapa pun bisa mengganti tautan materi campaign orang lain; row perm sama dengan campaigns',
+  },
+  {
+    id: "rate_cards",
+    permissions: ['read("any")', 'create("users")'],
+    rowSecurity: true,
+    why:
+      'update("users") = siapa pun bisa menerbitkan/menarik rate card kreator lain, atau mengubah judulnya; ' +
+      "row perm dipasang creator-appwrite.service.ts:createCreatorRateCardPackage",
+  },
+  {
+    id: "rate_card_packages",
+    permissions: ['read("any")', 'create("users")'],
+    rowSecurity: true,
+    why: 'update("users") = siapa pun bisa mengubah HARGA paket kreator lain; row perm sama dengan rate_cards',
+  },
+  {
+    id: "creator_profiles",
+    permissions: ['read("any")', 'create("users")'],
+    rowSecurity: true,
+    why:
+      'update("users") = siapa pun bisa mengubah profil kreator lain, termasuk menyetel isProfileCompleted ' +
+      "(gerbang direktori & klaim campaign); row perm dipasang create-user-profile:publicOwnerPermissions",
+  },
+  {
+    id: "creator_portfolios",
+    permissions: ['read("any")', 'create("users")'],
+    rowSecurity: true,
+    why: 'update("users") = siapa pun bisa mengubah portofolio kreator lain; row perm dipasang creator-appwrite.service.ts:1038',
+  },
+  {
+    id: "creator_social_accounts",
+    permissions: ['read("any")', 'create("users")'],
+    rowSecurity: true,
+    why:
+      'update("users") = siapa pun bisa mengganti username TikTok kreator lain, dan username itulah yang ' +
+      "ditampilkan get-creator-directory ke UMKM; row perm dipasang creator-appwrite.service.ts:988",
+  },
+  {
+    id: "umkm_profiles",
+    permissions: ['read("any")', 'create("users")'],
+    rowSecurity: true,
+    why:
+      'update("users") = siapa pun bisa mengubah nama usaha/kategori UMKM lain, atau menyetel isProfileCompleted-nya; ' +
+      "row perm dipasang create-user-profile:publicOwnerPermissions",
   },
 ];
 

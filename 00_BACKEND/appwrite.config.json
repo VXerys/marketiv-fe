@@ -122,8 +122,7 @@
       "name": "UMKM Profiles",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -261,8 +260,7 @@
       "name": "Creator Profiles",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -451,8 +449,7 @@
       "name": "Creator Social Accounts",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -545,8 +542,7 @@
       "name": "Creator Portfolios",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -802,8 +798,7 @@
       "name": "Campaigns",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1006,8 +1001,7 @@
       "name": "Campaign Assets",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1166,8 +1160,7 @@
       "name": "Campaign Briefs",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1263,8 +1256,7 @@
       "name": "Campaign Claims",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1357,8 +1349,7 @@
       "name": "Campaign Submissions",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1536,8 +1527,7 @@
       "name": "Rate Cards",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1628,8 +1618,7 @@
       "name": "Rate Card Packages",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",

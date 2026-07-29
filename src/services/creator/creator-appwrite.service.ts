@@ -1262,17 +1262,35 @@ export async function claimCampaignInAppwrite(
         status: "claimed",
         claimedAt: new Date().toISOString(),
       },
+      // Kreator: baca, submit bukti (status → submitted), batalkan klaim.
+      // UMKM pemilik campaign: baca + update, karena reviewSubmission
+      // menyinkronkan status claim mengikuti hasil review. Tanpa itu, review
+      // akan gagal begitu `campaign_claims` kehilangan update("users") di level
+      // koleksi (gelombang 5 harden-permissions).
       [
         Permission.read(Role.user(auth.userId)),
         Permission.update(Role.user(auth.userId)),
         Permission.delete(Role.user(auth.userId)),
+        Permission.read(Role.user(str(campaign.umkmId))),
+        Permission.update(Role.user(str(campaign.umkmId))),
       ]
     );
 
     // Counter denormalisasi — lihat catatan di atas, Function tidak melakukannya.
+    //
+    // Increment ATOMIK, bukan `totalClaims + 1` hasil bacaan di awal fungsi:
+    // dua kreator yang mengklaim bersamaan sama-sama membaca angka lama lalu
+    // menuliskan hasil yang sama, sehingga kuota bisa terlampaui. `max`
+    // membuat SERVER yang menolak klaim ke-(claimLimit+1) — bukan pembacaan
+    // klien yang sudah basi saat dipakai.
     try {
-      await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
-        totalClaims: totalClaims + 1,
+      await databases.incrementDocumentAttribute({
+        databaseId: DB,
+        collectionId: COLLECTIONS.campaigns,
+        documentId: campaignId,
+        attribute: "totalClaims",
+        value: 1,
+        max: num(campaign.claimLimit),
       });
     } catch {
       // Claim sudah sah; counter yang tertinggal bisa direkonsiliasi, dan
@@ -1302,6 +1320,20 @@ export type SubmitProofInput = {
  * `ai-fraud-precheck` menyala pada create dan menulis balik `fraudScore` /
  * `fraudStatus` beberapa saat kemudian — UI harus menampilkan "sedang
  * diperiksa", bukan menganggap aman.
+ *
+ * ⚠️ INI JALUR UANG, dan permission barisnya mencerminkan itu — sama persis
+ * dengan alasan di header deliverable-appwrite.service.ts:
+ *
+ * - `update` diberikan HANYA ke UMKM. Menulis `status: "approved"` di baris ini
+ *   memicu `calculate-campaign-reward`, yang langsung menambah
+ *   `wallets.pendingBalance` kreator. Memberi kreator `update` sama dengan
+ *   mengizinkannya menyetujui pekerjaannya sendiri lalu mencairkan dananya.
+ *   Guard peran di service TIDAK cukup — penyerang cukup memanggil
+ *   `updateDocument` langsung dari konsol browser.
+ * - `read` diberikan ke KEDUANYA. Sebelumnya UMKM tidak diberi read sama sekali,
+ *   dan layar review hidup semata karena `read("any")` di level koleksi. Begitu
+ *   koleksi diketatkan (gelombang 5), layar itu akan kosong tanpa baris ini.
+ * - `ai-fraud-precheck` memakai API key, jadi tetap bisa menulis fraudScore.
  */
 export async function submitProofInAppwrite(
   input: SubmitProofInput
@@ -1324,6 +1356,16 @@ export async function submitProofInAppwrite(
       );
     }
 
+    // `campaign_submissions` tidak menyimpan umkmId, jadi pemiliknya diambil dari
+    // campaign induk — dialah yang berhak membaca & mereview baris ini.
+    const campaign = (await databases.getDocument(
+      DB,
+      COLLECTIONS.campaigns,
+      input.campaignId
+    )) as unknown as Doc;
+    const umkmId = str(campaign.umkmId);
+    if (!umkmId) return fail("Campaign tidak valid.", "not_found", null);
+
     await databases.createDocument(
       DB,
       COLLECTIONS.submissions,
@@ -1338,9 +1380,12 @@ export async function submitProofInAppwrite(
         views: 0,
         status: "pending",
       },
+      // Lihat catatan jalur uang di header fungsi ini: keduanya membaca, HANYA
+      // UMKM yang boleh update.
       [
         Permission.read(Role.user(auth.userId)),
-        Permission.update(Role.user(auth.userId)),
+        Permission.read(Role.user(umkmId)),
+        Permission.update(Role.user(umkmId)),
       ]
     );
 
@@ -1411,18 +1456,19 @@ export async function unclaimCampaignInAppwrite(claimId: string): Promise<Servic
       throw err;
     }
 
+    // Decrement ATOMIK dengan `min: 0`. Versi lama membaca `totalClaims` lalu
+    // menulis `total - 1`; dua pembatalan bersamaan sama-sama membaca angka yang
+    // sama sehingga hanya satu slot yang benar-benar kembali. `min` juga
+    // menggantikan guard `total > 0` yang ikut basi karena berdasar bacaan.
     try {
-      const campaign = (await databases.getDocument(
-        DB,
-        COLLECTIONS.campaigns,
-        campaignId
-      )) as unknown as Doc;
-      const total = num(campaign.totalClaims);
-      if (total > 0) {
-        await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
-          totalClaims: total - 1,
-        });
-      }
+      await databases.decrementDocumentAttribute({
+        databaseId: DB,
+        collectionId: COLLECTIONS.campaigns,
+        documentId: campaignId,
+        attribute: "totalClaims",
+        value: 1,
+        min: 0,
+      });
     } catch {
       // Slot yang telat kembali bisa direkonsiliasi; claim menggantung tidak.
     }

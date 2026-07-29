@@ -1,6 +1,26 @@
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * ⚠️ JANGAN menambahkan kembali `update("users")` ke level tabel.
+ *
+ * Permission Appwrite bersifat union: dengan documentSecurity aktif, akses
+ * diberikan bila ada izin di level TABEL **atau** level baris. Jadi
+ * `update("users")` di level tabel berarti *setiap user yang login bisa mengubah
+ * baris siapa pun*, dan permission per-baris yang sudah dipasang service menjadi
+ * tidak berarti.
+ *
+ * Dicabut dari 11 tabel pada 2026-07-29 (gelombang 5 harden-permissions) setelah
+ * audit menemukan dua jalur eksploitasi nyata:
+ *   - `campaign_submissions` → tulis status:"approved" ke submission siapa pun,
+ *     memicu calculate-campaign-reward mencetak saldo kreator.
+ *   - `campaigns` → tulis status:"active" + remainingBudget, melewati Midtrans
+ *     dan seluruh mekanisme escrow.
+ *
+ * `read("any")` sengaja DIPERTAHANKAN — Job Pool, direktori kreator, dan katalog
+ * rate card memang publik. Bucket di bawah punya model izin sendiri (fileSecurity)
+ * dan belum ikut gelombang ini.
+ */
 
 const databaseId = "6a4c8598001da3b0d7f0";
 const databaseName = "prod_marketiv_db";
@@ -72,7 +92,7 @@ const collections = [
     {
         $id: "umkm_profiles",
         name: "UMKM Profiles",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -96,7 +116,7 @@ const collections = [
     {
         $id: "creator_profiles",
         name: "Creator Profiles",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -126,7 +146,7 @@ const collections = [
     {
         $id: "creator_social_accounts",
         name: "Creator Social Accounts",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -145,7 +165,7 @@ const collections = [
     {
         $id: "creator_portfolios",
         name: "Creator Portfolios",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -205,7 +225,7 @@ const collections = [
     {
         $id: "campaigns",
         name: "Campaigns",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -236,7 +256,7 @@ const collections = [
     {
         $id: "campaign_assets",
         name: "Campaign Assets",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -272,7 +292,7 @@ const collections = [
     {
         $id: "campaign_briefs",
         name: "Campaign Briefs",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -292,7 +312,7 @@ const collections = [
     {
         $id: "campaign_claims",
         name: "Campaign Claims",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -311,7 +331,7 @@ const collections = [
     {
         $id: "campaign_submissions",
         name: "Campaign Submissions",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -339,7 +359,7 @@ const collections = [
     {
         $id: "rate_cards",
         name: "Rate Cards",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -358,7 +378,7 @@ const collections = [
     {
         $id: "rate_card_packages",
         name: "Rate Card Packages",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
