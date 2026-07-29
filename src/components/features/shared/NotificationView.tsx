@@ -21,7 +21,7 @@ import {
   markAllNotificationsRead,
 } from "@/services/shared/notification.service";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
-import { realtimeClient } from "@/lib/appwrite/realtime";
+import { realtimeClient, tableChannels } from "@/lib/appwrite/realtime";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -191,13 +191,10 @@ export function NotificationView({ theme }: NotificationViewProps) {
   useEffect(() => {
     if (DATA_SOURCE_CONFIG.useMockData) return;
 
-    const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
-    if (!databaseId) return;
+    const channels = tableChannels("notifications");
+    if (channels.length === 0) return;
 
-    return realtimeClient.subscribe(
-      `databases.${databaseId}.collections.notifications.documents`,
-      () => { void load(); }
-    );
+    return realtimeClient.subscribe(channels, () => { void load(); });
   }, [load]);
 
   const retry = () => {

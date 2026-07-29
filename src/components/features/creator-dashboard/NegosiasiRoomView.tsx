@@ -12,6 +12,7 @@ import {
   rejectOffer,
 } from "@/services/creator/creator-dashboard.service";
 import { getDeliverables, uploadDeliverable } from "@/services/shared/deliverable.service";
+import { markConversationRead } from "@/services/shared/conversation.service";
 import { uploadUserFile, MAX_USER_FILE_BYTES } from "@/services/shared/user-file.service";
 import type { Deliverable } from "@/types/umkm-dashboard.types";
 import { toast } from "sonner";
@@ -22,7 +23,7 @@ import { PLATFORM_FEE_RATE, calculatePlatformFee } from "@/types/domain";
 import { getEscrowStatusLabel } from "@/lib/creator-status";
 import { cn } from "@/lib/utils";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
-import { realtimeClient } from "@/lib/appwrite/realtime";
+import { realtimeClient, tableChannels } from "@/lib/appwrite/realtime";
 import {
   ArrowLeft,
   Send,
@@ -178,24 +179,25 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
     void (async () => {
       await loadRoom();
       if (!active) return;
+      // Membuka ruang = pesannya terbaca. Tanpa ini `messages.read_at` tetap
+      // kosong selamanya dan badge belum-dibaca tidak pernah turun. Sengaja
+      // TIDAK di-await bersama loadRoom: kegagalannya tidak boleh menahan chat.
+      void markConversationRead(conversationId);
     })();
     return () => {
       active = false;
     };
-  }, [loadRoom]);
+  }, [loadRoom, conversationId]);
 
   useEffect(() => {
     if (DATA_SOURCE_CONFIG.useMockData) return;
-    const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
-    if (!databaseId) return;
+    const channels = tableChannels("messages");
+    if (channels.length === 0) return;
 
-    return realtimeClient.subscribe(
-      `databases.${databaseId}.collections.messages.documents`,
-      (event) => {
-        const payload = event.payload as { conversation_id?: string };
-        if (payload.conversation_id === conversationId) void loadRoom();
-      }
-    );
+    return realtimeClient.subscribe(channels, (event) => {
+      const payload = event.payload as { conversation_id?: string };
+      if (payload.conversation_id === conversationId) void loadRoom();
+    });
   }, [conversationId, loadRoom]);
 
   const scrollToBottom = () => {

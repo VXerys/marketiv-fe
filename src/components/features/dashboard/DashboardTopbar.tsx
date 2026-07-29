@@ -8,7 +8,7 @@ import { Bell, Menu } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { getNotifications } from "@/services/shared/notification.service";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
-import { realtimeClient } from "@/lib/appwrite/realtime";
+import { realtimeClient, tableChannels } from "@/lib/appwrite/realtime";
 
 const PROFILE_AVATAR_IMAGE_URL =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCDJh8BEYVCLcj-BjHUl0GKUwUU0yp9_SB65sdKYxzbuAY-yJMGqbV0NTcoy03pdf7Gq7G3fCt8XLHyNCLfcN3ONcIaSvcJia5eLMQI8_5P9bt9bLx1k-PYinTGRB5RY7ZoL6AzYLgTXS8P7LumfH-nfAwAtWUF5bDgFn5Kio2Vk1NthhmuSRHYqV_bhFB2-KxjJxJ716MpYQqTL5KX76AFPKsUXks7Q-BM5PlUYMSUDzj_2_y1uGXTXvL4yRg4NHCy_Pj6j6rZSIzX";
@@ -123,13 +123,10 @@ export function DashboardTopbar({}: DashboardTopbarProps) {
 
   useEffect(() => {
     if (DATA_SOURCE_CONFIG.useMockData) return;
-    const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
-    if (!databaseId) return;
+    const channels = tableChannels("notifications");
+    if (channels.length === 0) return;
 
-    return realtimeClient.subscribe(
-      `databases.${databaseId}.collections.notifications.documents`,
-      () => loadUnreadCount()
-    );
+    return realtimeClient.subscribe(channels, () => loadUnreadCount());
   }, [loadUnreadCount]);
   const breadcrumbs = getBreadcrumbs(pathname);
 

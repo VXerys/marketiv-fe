@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 import { useSidebar } from "@/components/ui/sidebar";
 import { getNotifications } from "@/services/shared/notification.service";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
-import { realtimeClient } from "@/lib/appwrite/realtime";
+import { realtimeClient, tableChannels } from "@/lib/appwrite/realtime";
 
 interface BreadcrumbItem {
   label: string;
@@ -83,13 +83,10 @@ export function CreatorDashboardTopbar({
 
   useEffect(() => {
     if (DATA_SOURCE_CONFIG.useMockData) return;
-    const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
-    if (!databaseId) return;
+    const channels = tableChannels("notifications");
+    if (channels.length === 0) return;
 
-    return realtimeClient.subscribe(
-      `databases.${databaseId}.collections.notifications.documents`,
-      () => loadUnreadCount()
-    );
+    return realtimeClient.subscribe(channels, () => loadUnreadCount());
   }, [loadUnreadCount]);
 
   return (

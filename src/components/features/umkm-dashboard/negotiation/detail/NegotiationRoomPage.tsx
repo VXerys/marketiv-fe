@@ -17,6 +17,7 @@ import {
   approveDeliverable,
   requestRevision,
 } from "@/services/shared/deliverable.service";
+import { markConversationRead } from "@/services/shared/conversation.service";
 import type { Deliverable } from "@/types/umkm-dashboard.types";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
@@ -33,7 +34,7 @@ import { DeliverableReviewCard } from "./DeliverableReviewCard";
 import { NegotiationRoomSkeleton } from "./NegotiationRoomSkeleton";
 import { NegotiationNotFoundState } from "./NegotiationNotFoundState";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
-import { realtimeClient } from "@/lib/appwrite/realtime";
+import { realtimeClient, tableChannels } from "@/lib/appwrite/realtime";
 
 import { SendCustomOfferModal } from "../modals/SendCustomOfferModal";
 import { PaymentSimulationModal } from "../modals/PaymentSimulationModal";
@@ -112,21 +113,24 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   }, [conversationId]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    void (async () => {
+      await loadData();
+      // Membuka ruang = pesannya terbaca. Tanpa ini `messages.read_at` tetap
+      // kosong selamanya dan badge belum-dibaca tidak pernah turun. Kegagalannya
+      // tidak boleh menahan chat, jadi hasilnya sengaja diabaikan.
+      void markConversationRead(conversationId);
+    })();
+  }, [loadData, conversationId]);
 
   useEffect(() => {
     if (DATA_SOURCE_CONFIG.useMockData) return;
-    const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
-    if (!databaseId) return;
+    const channels = tableChannels("messages");
+    if (channels.length === 0) return;
 
-    return realtimeClient.subscribe(
-      `databases.${databaseId}.collections.messages.documents`,
-      (event) => {
-        const payload = event.payload as { conversation_id?: string };
-        if (payload.conversation_id === conversationId) void loadData();
-      }
-    );
+    return realtimeClient.subscribe(channels, (event) => {
+      const payload = event.payload as { conversation_id?: string };
+      if (payload.conversation_id === conversationId) void loadData();
+    });
   }, [conversationId, loadData]);
 
   /**

@@ -374,6 +374,54 @@ export async function getMessagesByConversationIdInAppwrite(
 }
 
 /**
+ * Tandai pesan lawan bicara sebagai sudah dibaca.
+ *
+ * `messages.read_at` selalu ditulis `null` saat kirim dan TIDAK PERNAH diisi
+ * oleh siapa pun — sementara `get-umkm-negotiations` dan
+ * `get-creator-negotiations` menghitung `unreadCount` justru dari kolom itu.
+ * Akibatnya badge belum-dibaca naik monoton dan tidak pernah turun walau
+ * percakapannya sudah dibuka berkali-kali. Index `idx_read_at` sudah ada sejak
+ * awal; yang hilang hanya penulisnya.
+ *
+ * Hanya pesan LAWAN BICARA yang ditandai — pesan sendiri tidak pernah dihitung
+ * unread oleh kedua Function, jadi menandainya hanya menambah tulisan sia-sia.
+ *
+ * Kegagalan sebagian tidak dinaikkan sebagai error: badge yang telat turun jauh
+ * lebih ringan daripada ruang chat yang menolak terbuka. Pemanggil boleh
+ * mengabaikan hasilnya.
+ */
+export async function markConversationReadInAppwrite(
+  conversationId: string
+): Promise<ServiceResult<number>> {
+  const auth = await requireUserId<number>(0);
+  if (!auth.ok) return auth.result;
+  try {
+    const participation = await loadParticipation(conversationId, auth.userId);
+    if (!participation) return fail("Percakapan tidak ditemukan.", "not_found", 0);
+
+    const unread = await databases.listDocuments(DB, MESSAGES, [
+      Query.equal("conversation_id", conversationId),
+      Query.notEqual("sender_id", auth.userId),
+      Query.isNull("read_at"),
+      Query.limit(200),
+    ]);
+    if (unread.documents.length === 0) return ok(0);
+
+    const readAt = new Date().toISOString();
+    const results = await Promise.allSettled(
+      unread.documents.map((m) =>
+        databases.updateDocument(DB, MESSAGES, str((m as unknown as Doc).$id), {
+          read_at: readAt,
+        })
+      )
+    );
+    return ok(results.filter((r) => r.status === "fulfilled").length);
+  } catch (err) {
+    return failFromError<number>(err, 0);
+  }
+}
+
+/**
  * Arsipkan / batal arsip. BUKAN hapus — pesan di dalamnya tetap utuh sebagai
  * riwayat negosiasi; yang berubah hanya visibilitas di inbox.
  */
