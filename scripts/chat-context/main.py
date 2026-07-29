@@ -206,6 +206,15 @@ def cmd_sync_progress() -> None:
     print(f"[OK] integration_progress.md diperbarui → {PROGRESS_FILE}")
 
 
+def cmd_bootstrap_progress() -> None:
+    """Pulihkan tracker kosong dari integration_progress.md lalu sync kembali."""
+    if not phases.bootstrap_from_progress_snapshot():
+        print("[INFO] Tracker sudah berisi data; bootstrap dibatalkan agar snapshot lama tidak menimpa status aktif.")
+        return
+    cmd_sync_progress()
+    print("[OK] Tracker dipulihkan dari snapshot memory dan migrasi Sprint 5 diterapkan.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Chat Context Manager untuk proyek Marketiv"
@@ -265,6 +274,8 @@ def main() -> None:
         cmd_task_block(sys.argv[idx + 1], sys.argv[idx + 2])
     elif "--sync-progress" in sys.argv:
         cmd_sync_progress()
+    elif "--bootstrap-progress" in sys.argv:
+        cmd_bootstrap_progress()
 
     else:
         parser.print_help()

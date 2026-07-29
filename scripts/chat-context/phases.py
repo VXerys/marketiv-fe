@@ -12,11 +12,12 @@ Status values:
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
+import re
 
 import db
 from paths import PROGRESS_FILE, MEMORY_INDEX_FILE, MEMORY_DIR
 
-Status = Literal["pending", "in_progress", "done", "blocked"]
+Status = Literal["pending", "in_progress", "done", "blocked", "superseded"]
 
 # ── definisi lengkap 7 sprint ───────────────────────────────────────────────
 
@@ -139,15 +140,33 @@ PHASE_DEFINITIONS: list[dict] = [
             ("s5-deploy-alur-b", "[BE] Deploy §B handoff Alur B: 2 Function baru, 6 diperbarui, harden-permissions gel. 3 & 4"),
             # ── rencana Sprint 5 semula
             ("s5-realtime", "[FE] Aktifkan realtime chat & badge notifikasi via src/lib/appwrite/realtime.ts"),
-            ("s5-primitive-umkm", "[FE] Migrasi 5 fork umkm-dashboard/shared/* → src/components/ui/*"),
+            # Breakdown 2026-07-29. Parent lama di bawah dimigrasikan menjadi
+            # `superseded`: komponen bukan lima fork yang setara, sehingga satu
+            # task "migrasi" memaksa redesign yang tidak diperlukan.
+            ("s5-umkm-shared-map", "[FE] Petakan penggunaan primitive UMKM; tetapkan batas API ResponsiveDataRow yang tidak ekuivalen"),
+            ("s5-umkm-progress-canonical", "[FE] Jadikan DashboardProgress bertoken sebagai implementasi kanonik; hapus versi deprecated bergradien mentah"),
+            ("s5-umkm-barrel-consolidate", "[FE] Verifikasi dan pertahankan DashboardButton/DashboardCard sebagai re-export tipis ke shared"),
+            ("s5-umkm-responsive-row-contract", "[FE] Pertahankan dua kontrak ResponsiveDataRow; ekstrak hanya primitive rendah yang benar-benar sama"),
             ("s5-primitive-kreator", "[FE] Hapus Creator* lokal (EmptyState/ErrorState/Skeleton/StatusBadge/MetricCard) → ui/*"),
             ("s5-metric-unify", "[FE] Satukan 3 implementasi metric card kreator"),
             ("s5-modal-unify", "[FE] Ganti modal hand-roll (RateCardView, SettingsView) → DashboardModal"),
-            ("s5-theme-tokens", "[FE] Tokenisasi tema kreator (gradien biru-violet vs orange vs violet #7c3aed)"),
+            # Breakdown 2026-07-29. Baseline 139 hex di 12 file: pekerjaan ini
+            # perlu kontrak token, batch per surface, lalu verifikasi residual.
+            ("s5-theme-inventory", "[FE] Catat baseline hex kreator dan peta setiap warna ke token semantik"),
+            ("s5-theme-token-contract", "[FE] Lengkapi kontrak token tema kreator di globals.css sebelum mengganti pemakaian"),
+            ("s5-theme-dashboard", "[FE] Tokenisasi surface dashboard kreator tanpa mengubah makna status"),
+            ("s5-theme-workspace", "[FE] Tokenisasi Pekerjaan Aktif dan Keuangan kreator"),
+            ("s5-theme-settings-modals", "[FE] Tokenisasi Settings, Rate Card, dan modal kreator"),
+            ("s5-theme-residual", "[FE] Bersihkan hex kreator tersisa; kecualikan nilai yang memang data/asset"),
+            ("s5-theme-verify", "[FE] Verifikasi scan hex, typecheck, dan lint file per batch tokenisasi"),
             ("s5-xlsx-fix", "[FE] Perbaiki export .xlsx yang menghasilkan bytes CSV"),
             ("s5-skill-update", "[FE] Update skill marketiv-data-contracts: RateCard, DeliverableStatus, OfferStatus"),
             ("s5-backend-confirm", "[BE] Konfirmasi ke pemilik backend: AdminWithdrawReview, state funded, notify-client-review"),
-            ("s5-mock-off", "[FE] Set NEXT_PUBLIC_USE_MOCK_DATA=false sebagai default staging"),
+            # Mock tidak boleh dimatikan saat database live kosong: dashboard
+            # berubah menjadi empty state dan mengaburkan review UI. Gate ini
+            # sengaja mengikuti E2E dua akun Sprint 6.
+            ("s5-mock-off-prerequisites", "[FE] Siapkan gate data nyata dan E2E dua akun; mock tetap ON selama review UI"),
+            ("s5-mock-off-staging", "[FE] Set NEXT_PUBLIC_USE_MOCK_DATA=false di staging setelah gate E2E lulus"),
         ],
     },
     {
@@ -176,6 +195,32 @@ PHASE_DEFINITIONS: list[dict] = [
 ]
 
 
+LEGACY_SPRINT5_TASKS = {
+    "s5-primitive-umkm": (
+        "[FE] Migrasi 5 fork umkm-dashboard/shared/* → src/components/ui/*",
+        "Dipecah menjadi s5-umkm-shared-map, s5-umkm-progress-canonical, "
+        "s5-umkm-barrel-consolidate, dan s5-umkm-responsive-row-contract.",
+    ),
+    "s5-theme-tokens": (
+        "[FE] Tokenisasi tema kreator (gradien biru-violet vs orange vs violet #7c3aed)",
+        "Dipecah menjadi s5-theme-inventory, s5-theme-token-contract, s5-theme-dashboard, "
+        "s5-theme-workspace, s5-theme-settings-modals, s5-theme-residual, dan s5-theme-verify.",
+    ),
+    "s5-mock-off": (
+        "[FE] Set NEXT_PUBLIC_USE_MOCK_DATA=false sebagai default staging",
+        "Dipecah menjadi s5-mock-off-prerequisites dan s5-mock-off-staging; "
+        "menunggu E2E dua akun karena data live masih kosong.",
+    ),
+}
+
+MIGRATION_DONE_TASKS = {
+    "s5-umkm-shared-map": "Audit sudah selesai: ResponsiveDataRow punya kontrak berbeda dan tidak boleh dipaksa menyatu.",
+    "s5-umkm-barrel-consolidate": "Sudah diverifikasi: DashboardButton dan DashboardCard adalah re-export tipis.",
+    "s5-umkm-responsive-row-contract": "Keputusan arsitektur sudah dibuat: dua API dipertahankan; bukan target rename/redesign.",
+    "s5-theme-inventory": "Baseline sudah tercatat: 139 hex mentah di 12 file kreator.",
+}
+
+
 # ── helpers ──────────────────────────────────────────────────────────────────
 
 def _now() -> str:
@@ -196,6 +241,52 @@ def seed_phases() -> None:
                     "INSERT OR IGNORE INTO phase_tasks (key, phase_no, title, status) VALUES (?, ?, ?, 'pending')",
                     (key, phase["phase_no"], title),
                 )
+    _migrate_sprint5_breakdown()
+
+
+def _migrate_sprint5_breakdown() -> None:
+    """Preserve parent history while replacing oversized Sprint 5 tasks."""
+    with db.get_connection() as conn:
+        for key, (title, note) in LEGACY_SPRINT5_TASKS.items():
+            conn.execute(
+                "INSERT OR IGNORE INTO phase_tasks (key, phase_no, title, status, note) VALUES (?, 5, ?, 'superseded', ?)",
+                (key, title, note),
+            )
+            conn.execute(
+                "UPDATE phase_tasks SET status='superseded', note=?, updated_at=? "
+                "WHERE key=? AND phase_no=5 AND status NOT IN ('done', 'superseded')",
+                (note, _now(), key),
+            )
+        for key, note in MIGRATION_DONE_TASKS.items():
+            conn.execute(
+                "UPDATE phase_tasks SET status='done', note=?, updated_at=? "
+                "WHERE key=? AND phase_no=5 AND status!='done'",
+                (note, _now(), key),
+            )
+
+
+def bootstrap_from_progress_snapshot() -> bool:
+    """Restore an empty local tracker from memory without overwriting live state."""
+    db.init_db()
+    with db.get_connection() as conn:
+        if conn.execute("SELECT COUNT(*) FROM phase_tasks").fetchone()[0]:
+            return False
+    if not PROGRESS_FILE.exists():
+        raise FileNotFoundError(f"Progress snapshot tidak ditemukan: {PROGRESS_FILE}")
+
+    seed_phases()
+    text = PROGRESS_FILE.read_text(encoding="utf-8")
+    icon_status = {"✅": "done", "🔄": "in_progress", "🚫": "blocked", "⬜": "pending"}
+    phase_re = re.compile(r"^##\s+([✅🔄🚫⬜])\s+Sprint\s+(\d+)", re.MULTILINE)
+    task_re = re.compile(r"^-\s+([✅🔄🚫⬜])\s+`([^`]+)`", re.MULTILINE)
+    with db.get_connection() as conn:
+        for icon, phase_no in phase_re.findall(text):
+            conn.execute("UPDATE phases SET status=? WHERE phase_no=?", (icon_status[icon], int(phase_no)))
+        for icon, key in task_re.findall(text):
+            conn.execute("UPDATE phase_tasks SET status=?, updated_at=? WHERE key=?", (icon_status[icon], _now(), key))
+
+    _migrate_sprint5_breakdown()
+    return True
 
 
 def set_phase_status(phase_no: int, status: Status, note: str = "") -> None:
@@ -250,7 +341,7 @@ def get_progress() -> list[dict]:
 
 
 def _status_icon(status: str) -> str:
-    return {"done": "✅", "in_progress": "🔄", "blocked": "🚫", "pending": "⬜"}.get(status, "⬜")
+    return {"done": "✅", "in_progress": "🔄", "blocked": "🚫", "pending": "⬜", "superseded": "⏭️"}.get(status, "⬜")
 
 
 def render_markdown() -> str:
@@ -274,8 +365,9 @@ def render_markdown() -> str:
     ]
 
     for phase in progress:
-        total = len(phase["tasks"])
-        done = sum(1 for t in phase["tasks"] if t["status"] == "done")
+        active_tasks = [t for t in phase["tasks"] if t["status"] != "superseded"]
+        total = len(active_tasks)
+        done = sum(1 for t in active_tasks if t["status"] == "done")
         pct = int(done / total * 100) if total else 0
         icon = _status_icon(phase["status"])
         lines.append(f"## {icon} Sprint {phase['phase_no']} — {phase['name']} ({done}/{total} · {pct}%)")
@@ -310,8 +402,9 @@ def print_status_table() -> None:
     print("  Sprint Integrasi Appwrite — Marketiv")
     print("=" * 65)
     for phase in progress:
-        total = len(phase["tasks"])
-        done = sum(1 for t in phase["tasks"] if t["status"] == "done")
+        active_tasks = [t for t in phase["tasks"] if t["status"] != "superseded"]
+        total = len(active_tasks)
+        done = sum(1 for t in active_tasks if t["status"] == "done")
         blocked = sum(1 for t in phase["tasks"] if t["status"] == "blocked")
         pct = int(done / total * 100) if total else 0
         icon = _status_icon(phase["status"])
