@@ -166,6 +166,24 @@ for (const f of configFns) {
     console.log(`  DISABLED    ${f.$id}`);
     note("warn", "function", `Function "${f.$id}" dalam keadaan disabled.`);
   }
+
+  // Function tanpa variabel sama sekali hampir pasti rusak: `getEnv()` di
+  // seluruh Function fail-fast saat `databaseId` kosong, dan APPWRITE_DATABASE_ID
+  // tidak punya nilai default di kode. Ketahuan 2026-07-29 pada dua Function baru
+  // yang berhasil di-deploy tapi akan melempar di setiap eksekusi.
+  try {
+    const vars = await aw(`/functions/${f.$id}/variables`);
+    const keys = (vars.variables || []).map((v) => v.key);
+    if (keys.length === 0) {
+      console.log(`  NO-VARS     ${f.$id}`);
+      note("blocker", "function", `Function "${f.$id}" tidak punya variabel sama sekali — getEnv() akan melempar "Missing required environment variables: databaseId".`);
+    } else if (!keys.includes("APPWRITE_DATABASE_ID")) {
+      console.log(`  NO-DB-ID    ${f.$id}`);
+      note("warn", "function", `Function "${f.$id}" tidak punya APPWRITE_DATABASE_ID — hanya aman bila NEXT_PUBLIC_DB_ID diset.`);
+    }
+  } catch {
+    note("warn", "function", `Gagal membaca variabel "${f.$id}".`);
+  }
 }
 
 // ── Ringkasan ──────────────────────────────────────────────────────────────
