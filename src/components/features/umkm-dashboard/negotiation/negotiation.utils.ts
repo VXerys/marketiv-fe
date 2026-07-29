@@ -5,6 +5,33 @@ import { StatusDetail, EscrowStepStatus } from "./negotiation.types";
  */
 export function getStatusDetails(status: string): StatusDetail {
   switch (status) {
+    // Empat tahap sebelum order lahir. Tanpa ini keduanya jatuh ke `default`
+    // dan badge-nya menampilkan slug mentah ("chatting", "offer_pending") ke
+    // pengguna — lihat NegotiationRoomPage.STATUS_CFG untuk label yang sama.
+    case "chatting":
+      return {
+        label: "Negosiasi",
+        textClass: "text-neutral-600",
+        bgClass: "bg-neutral-100 border-neutral-200",
+      };
+    case "offer_pending":
+      return {
+        label: "Menunggu Kreator",
+        textClass: "text-warning-strong",
+        bgClass: "bg-warning-soft/30 border-warning-soft",
+      };
+    case "offer_rejected":
+      return {
+        label: "Penawaran Ditolak",
+        textClass: "text-danger-strong",
+        bgClass: "bg-danger-soft/30 border-danger-soft",
+      };
+    case "awaiting_order":
+      return {
+        label: "Menyiapkan Pesanan",
+        textClass: "text-info-strong",
+        bgClass: "bg-info-soft/30 border-info-soft",
+      };
     case "pending_payment":
       return {
         label: "Menunggu Pembayaran",

@@ -75,8 +75,23 @@ function MetricTile({ label, value, helper, icon, iconClass, cardClass, badge, b
 
 // ─── NegotiationCard ─────────────────────────────────────────────────────────
 
-// Key = orders.status kanon (lihat src/types/domain.ts)
-const STATUS_STYLES: Record<string, { dot: string; text: string; bg: string; border: string; label: string }> = {
+type StageStyle = { dot: string; text: string; bg: string; border: string; label: string };
+
+/**
+ * Key = `NegotiationStage` (src/types/domain.ts), BUKAN `OrderStatus`.
+ *
+ * Empat tahap teratas terjadi SEBELUM order lahir, dan di Alur B order lahir
+ * paling akhir — jadi justru di sanalah sebagian besar ruang negosiasi berada.
+ * Versi sebelumnya hanya memetakan tujuh `OrderStatus` dan mem-fallback ke
+ * `STATUS_STYLES.chatting` yang tidak pernah ada, sehingga percakapan baru
+ * (stage `chatting`) membuat `s` bernilai undefined dan seluruh halaman
+ * Negosiasi kreator crash ke error boundary.
+ */
+const STATUS_STYLES: Record<string, StageStyle> = {
+  chatting:        { dot: "bg-neutral-400", text: "text-neutral-600", bg: "bg-neutral-50", border: "border-neutral-200/50", label: "Diskusi" },
+  offer_pending:   { dot: "bg-violet-400",  text: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200/50",  label: "Penawaran Masuk" },
+  offer_rejected:  { dot: "bg-rose-400",    text: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-200/50",    label: "Penawaran Ditolak" },
+  awaiting_order:  { dot: "bg-indigo-400",  text: "text-indigo-700",  bg: "bg-indigo-50",  border: "border-indigo-200/50",  label: "Menyiapkan Pesanan" },
   pending_payment: { dot: "bg-blue-400",   text: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-200/50",   label: "Menunggu Bayar" },
   escrow:          { dot: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200/50", label: "Escrow Aktif" },
   in_progress:     { dot: "bg-amber-400",  text: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-200/50",  label: "Dikerjakan" },
@@ -84,6 +99,15 @@ const STATUS_STYLES: Record<string, { dot: string; text: string; bg: string; bor
   approved:        { dot: "bg-violet-400",  text: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200/50",  label: "Disetujui" },
   completed:       { dot: "bg-neutral-400", text: "text-neutral-600", bg: "bg-neutral-50", border: "border-neutral-200/50", label: "Selesai" },
   cancelled:       { dot: "bg-neutral-400", text: "text-neutral-600", bg: "bg-neutral-50", border: "border-neutral-200/50", label: "Dibatalkan" },
+};
+
+/** Dipakai bila `stage` tidak dikenali — selalu ada, jadi tidak pernah undefined. */
+const UNKNOWN_STAGE_STYLE: StageStyle = {
+  dot: "bg-neutral-300",
+  text: "text-neutral-500",
+  bg: "bg-neutral-50",
+  border: "border-neutral-200/50",
+  label: "Negosiasi",
 };
 
 function NegotiationCard({
@@ -95,7 +119,9 @@ function NegotiationCard({
   isArchived: boolean;
   onToggleArchive: () => void;
 }) {
-  const s = STATUS_STYLES[neg.stage] ?? STATUS_STYLES.chatting;
+  // Fallback ke konstanta, bukan ke entri lain di peta — kalau kuncinya salah
+  // ketik, `s` diam-diam jadi undefined dan seluruh daftar ikut mati.
+  const s = STATUS_STYLES[neg.stage] ?? UNKNOWN_STAGE_STYLE;
   const dateStr = new Date(neg.lastMessageAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
   const hasUrgent = neg.unreadCount > 0;
 
