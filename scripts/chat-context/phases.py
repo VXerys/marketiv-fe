@@ -192,6 +192,24 @@ PHASE_DEFINITIONS: list[dict] = [
             ("s6-e2e-2akun", "[FE] E2E: daftar + login 1 akun UMKM & 1 akun Kreator dengan mock OFF"),
         ],
     },
+    {
+        "phase_no": 7,
+        "name": "E2E Live & Blocker Alur",
+        # Dibuka 2026-07-29 setelah NEXT_PUBLIC_USE_MOCK_DATA dimatikan dan uji
+        # browser pertama menemukan dua kegagalan yang menghentikan seluruh flow.
+        # Sprint ini melacak perbaikannya sampai Alur A & B terbukti jalan.
+        "tasks": [
+            ("s7-order-id-length", "[BE] create-payment: gateway_reference muat batas 50 karakter order_id Midtrans"),
+            ("s7-payment-campaign-guard", "[BE] create-payment: validasi pemilik/status/nominal untuk purpose=campaign"),
+            ("s7-deploy-create-payment", "[BE] Deploy create-payment + verifikasi pointer deployment benar-benar maju"),
+            ("s7-session-profile-flag", "[FE] SessionUser.isProfileCompleted dibaca dari tabel profil + gate di RoleGuard"),
+            ("s7-onboarding-wizard", "[FE] Wizard /onboarding 3 langkah kedua role — satu-satunya penulis isProfileCompleted"),
+            ("s7-midtrans-webhook-url", "[BE] Domain Function midtrans-webhook + daftarkan Payment Notification URL di Midtrans"),
+            ("s7-e2e-alur-a", "[FE] E2E Alur A: publish campaign → klaim → submit bukti → approve → reward kreator"),
+            ("s7-e2e-alur-b", "[FE] E2E Alur B: browse kreator → offer → order → escrow → deliverable → release → withdraw"),
+            ("s7-auth-best-practices", "[FE] Rapikan login/register sesuai best practices (prioritas rendah, ditunda user)"),
+        ],
+    },
 ]
 
 
