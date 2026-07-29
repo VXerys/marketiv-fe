@@ -16,8 +16,6 @@ export type { DashboardProgressProps } from "./DashboardProgress";
 export { ResponsiveDataRow, ResponsiveDataCell } from "./ResponsiveDataRow";
 export type { ResponsiveDataRowProps, ResponsiveDataCellProps } from "./ResponsiveDataRow";
 
-export { DashboardMetricCard } from "./DashboardMetricCard";
-export type { DashboardMetricCardProps } from "./DashboardMetricCard";
 
 export { UmkmPageWrapper } from "./UmkmPageWrapper";
 export type { UmkmPageWrapperProps } from "./UmkmPageWrapper";

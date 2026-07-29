@@ -7,6 +7,7 @@ import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { CreatorActiveWork } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { DashboardStateCard } from "@/components/features/dashboard/shared";
+import { MetricCard } from "@/components/ui/metric-card";
 import { formatCurrency } from "@/lib/formatters";
 import { getClaimStatusLabel, getFraudStatusLabel, getSubmissionStatusLabel } from "@/lib/creator-status";
 import { cn } from "@/lib/utils";
@@ -37,61 +38,6 @@ interface PekerjaanAktifViewProps {
  * thumbnail (lihat mapCampaign di umkm-appwrite.service.ts), jadi sampai kolom
  * itu ada, yang jujur adalah tidak menampilkan foto sama sekali.
  */
-
-// ─── MetricTile ──────────────────────────────────────────────────────────────
-
-interface MetricTileProps {
-  label: string;
-  value: string | number;
-  helper?: string;
-  icon: React.ReactNode;
-  iconBg: string;
-  accent?: "default" | "blue" | "green" | "red" | "amber";
-}
-
-const ACCENT_STYLES: Record<string, { card: string; badge: string }> = {
-  default: {
-    card: "border-neutral-200/60 shadow-[0_2px_12px_rgba(15,23,42,.03)]",
-    badge: "",
-  },
-  blue: {
-    card: "border-blue-200/40 shadow-[0_4px_20px_rgba(37,99,235,.06)] bg-gradient-to-br from-blue-50/30 to-white",
-    badge: "bg-blue-50 border-blue-200/30 text-blue-600",
-  },
-  green: {
-    card: "border-emerald-200/40 shadow-[0_4px_20px_rgba(22,163,74,.06)] bg-gradient-to-br from-emerald-50/30 to-white",
-    badge: "bg-emerald-50 border-emerald-200/30 text-emerald-600",
-  },
-  red: {
-    card: "border-red-200/40 shadow-[0_4px_20px_rgba(220,38,38,.06)] bg-gradient-to-br from-red-50/30 to-white",
-    badge: "bg-red-50 border-red-200/30 text-red-600",
-  },
-  amber: {
-    card: "border-amber-200/40 shadow-[0_4px_20px_rgba(217,119,6,.06)] bg-gradient-to-br from-amber-50/30 to-white",
-    badge: "bg-amber-50 border-amber-200/30 text-amber-600",
-  },
-};
-
-function MetricTile({ label, value, helper, icon, iconBg, accent = "default" }: MetricTileProps) {
-  const styles = ACCENT_STYLES[accent];
-  return (
-    <div
-      className={cn(
-        "group relative p-4 sm:p-5 rounded-[22px] border bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_36px_rgba(15,23,42,.08)] select-none cursor-default",
-        styles.card
-      )}
-    >
-      <div className={cn("h-9 w-9 rounded-[12px] flex items-center justify-center mb-3.5 border transition-transform duration-300 group-hover:scale-105", iconBg)}>
-        {icon}
-      </div>
-      <div className="text-[.67rem] font-extrabold text-neutral-400 uppercase tracking-widest leading-none">{label}</div>
-      <div className="font-display text-[1.3rem] sm:text-[1.4rem] font-black text-[#1e1b4b] tracking-tight leading-none mt-1.5">{value}</div>
-      {helper && (
-        <div className="text-[.7rem] text-neutral-400 font-semibold mt-1 leading-none">{helper}</div>
-      )}
-    </div>
-  );
-}
 
 // ─── ActiveJobCard ────────────────────────────────────────────────────────────
 
@@ -442,37 +388,33 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
 
           {/* Summary tiles */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-7">
-            <MetricTile
+            <MetricCard
               label="Belum Submit"
               value={countBelumSubmit}
               helper="Butuh posting bukti"
-              accent="default"
-              iconBg="bg-neutral-50 border-neutral-200/60"
-              icon={<Clock className="w-4.5 h-4.5 text-neutral-500" />}
+              tone="default"
+              icon={<Clock />}
             />
-            <MetricTile
+            <MetricCard
               label="Menunggu Validasi"
               value={countPending}
               helper="Sedang diaudit"
-              accent="blue"
-              iconBg="bg-blue-50 border-blue-200/40"
-              icon={<PlayCircle className="w-4.5 h-4.5 text-blue-500" />}
+              tone="info"
+              icon={<PlayCircle />}
             />
-            <MetricTile
+            <MetricCard
               label="Valid"
               value={countValid}
               helper="Reward siap cair"
-              accent="green"
-              iconBg="bg-emerald-50 border-emerald-200/40"
-              icon={<CheckCircle2 className="w-4.5 h-4.5 text-emerald-500" />}
+              tone="success"
+              icon={<CheckCircle2 />}
             />
-            <MetricTile
+            <MetricCard
               label="Perlu Review / Fraud"
               value={countReviewFraud}
               helper="Ada kendala konten"
-              accent="red"
-              iconBg="bg-red-50 border-red-200/40"
-              icon={<AlertTriangle className="w-4.5 h-4.5 text-red-500" />}
+              tone="danger"
+              icon={<AlertTriangle />}
             />
           </div>
 

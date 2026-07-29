@@ -39,6 +39,7 @@ import {
   DashboardButton,
   DashboardStateCard,
 } from "@/components/features/dashboard/shared";
+import { MetricCard } from "@/components/ui/metric-card";
 import { formatCurrency, formatCompactCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
@@ -69,46 +70,6 @@ const formatCount = (n: number): string => {
   if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
   return n.toString();
 };
-
-// ─── MetricTile ──────────────────────────────────────────────────────────────
-
-interface MetricTileProps {
-  label: string;
-  value: string | number;
-  helper?: string;
-  icon: React.ReactNode;
-  iconClass: string;
-  highlight?: boolean;
-}
-
-function MetricTile({ label, value, helper, icon, iconClass, highlight }: MetricTileProps) {
-  return (
-    <div
-      className={cn(
-        "group relative p-4 sm:p-5 rounded-[22px] border bg-white/70 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_36px_rgba(37,99,235,.06)] hover:border-blue-400/30 select-none cursor-default",
-        highlight 
-          ? "border-blue-200/50 shadow-[0_10px_30px_-10px_rgba(37,99,235,0.15)] bg-gradient-to-br from-blue-50/20 to-white/95" 
-          : "border-neutral-200/60 shadow-[0_2px_12px_rgba(15,23,42,.03)]"
-      )}
-    >
-      {highlight && (
-        <div className="absolute top-3.5 right-3.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200/30 text-[8px] font-extrabold text-blue-600 uppercase tracking-wider shadow-3xs">
-            Utama
-          </span>
-        </div>
-      )}
-      <div className={cn("h-9.5 w-9.5 rounded-[12px] flex items-center justify-center mb-3.5 border transition-transform duration-300 group-hover:scale-105", iconClass)}>
-        {icon}
-      </div>
-      <div className="text-[.67rem] font-extrabold text-neutral-400 uppercase tracking-widest leading-none">{label}</div>
-      <div className="font-display text-[1.3rem] sm:text-[1.4rem] font-black text-[#1e1b4b] tracking-tight leading-none mt-1.5 break-all">{value}</div>
-      {helper && (
-        <div className="text-[.7rem] text-neutral-400 font-semibold mt-1 leading-none">{helper}</div>
-      )}
-    </div>
-  );
-}
 
 // ─── CampaignCard ────────────────────────────────────────────────────────────
 
@@ -536,14 +497,14 @@ export function CreatorDashboardView({
 
           {/* 2 ── KPI Tiles */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            <MetricTile label="Job Tersedia"        value={currentMetrics.availableJobsCount}               helper="Kampanye pool"         iconClass="text-violet-600 bg-violet-50 border-violet-200/50"   icon={<Briefcase       className="w-4 h-4" />} />
-            <MetricTile label="Pekerjaan Aktif"     value={currentMetrics.activeJobsCount}                  helper="Sedang dikerjakan"      iconClass="text-indigo-600 bg-indigo-50 border-indigo-200/50"   icon={<FileCheck       className="w-4 h-4" />} />
-            <MetricTile label="Submission Pending"  value={currentMetrics.pendingSubmissionsCount}           helper="Menunggu audit admin"   iconClass="text-amber-600 bg-amber-50 border-amber-200/50"       icon={<Clock           className="w-4 h-4" />} />
-            <MetricTile label="Saldo Tersedia"      value={formatCompactCurrency(currentMetrics.balance)}    helper="Tarik ke rekening bank" iconClass="text-violet-600 bg-violet-50 border-violet-200/50"   icon={<Wallet          className="w-4 h-4" />} highlight />
-            <MetricTile label="Pending Payout"      value={formatCompactCurrency(currentMetrics.pendingPayouts)} helper="Proses verifikasi"  iconClass="text-slate-500 bg-slate-50 border-slate-200/50"       icon={<ArrowDownToLine className="w-4 h-4" />} />
-            <MetricTile label="Views Tervalidasi"   value={formatCount(currentMetrics.validatedViewsCount)}  helper="Total views valid"     iconClass="text-blue-600 bg-blue-50 border-blue-200/50"         icon={<Eye             className="w-4 h-4" />} />
-            <MetricTile label="Rate Card Aktif"     value={currentMetrics.activeRateCardsCount}              helper="Paket penawaran"        iconClass="text-emerald-600 bg-emerald-50 border-emerald-200/50" icon={<Tag             className="w-4 h-4" />} />
-            <MetricTile label="Order Negosiasi"     value={currentMetrics.negotiationOrdersCount}            helper="Rate Card orders"       iconClass="text-purple-600 bg-purple-50 border-purple-200/50"   icon={<MessageCircle   className="w-4 h-4" />} />
+            <MetricCard label="Job Tersedia"        value={currentMetrics.availableJobsCount}                helper="Kampanye pool"          tone="kreator" icon={<Briefcase       className="w-4 h-4" />} />
+            <MetricCard label="Pekerjaan Aktif"     value={currentMetrics.activeJobsCount}                   helper="Sedang dikerjakan"      tone="info"    icon={<FileCheck       className="w-4 h-4" />} />
+            <MetricCard label="Submission Pending"  value={currentMetrics.pendingSubmissionsCount}           helper="Menunggu audit admin"   tone="warning" icon={<Clock           className="w-4 h-4" />} />
+            <MetricCard label="Saldo Tersedia"      value={formatCompactCurrency(currentMetrics.balance)}    helper="Tarik ke rekening bank" tone="success" icon={<Wallet          className="w-4 h-4" />} badge="Utama" highlight />
+            <MetricCard label="Pending Payout"      value={formatCompactCurrency(currentMetrics.pendingPayouts)} helper="Proses verifikasi"  tone="default" icon={<ArrowDownToLine className="w-4 h-4" />} />
+            <MetricCard label="Views Tervalidasi"   value={formatCount(currentMetrics.validatedViewsCount)}  helper="Total views valid"      tone="info"    icon={<Eye             className="w-4 h-4" />} />
+            <MetricCard label="Rate Card Aktif"     value={currentMetrics.activeRateCardsCount}              helper="Paket penawaran"        tone="success" icon={<Tag             className="w-4 h-4" />} />
+            <MetricCard label="Order Negosiasi"     value={currentMetrics.negotiationOrdersCount}            helper="Rate Card orders"       tone="accent"  icon={<MessageCircle   className="w-4 h-4" />} />
           </div>
 
           {/* 3 ── Quick Actions */}

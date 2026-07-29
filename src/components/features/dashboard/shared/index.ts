@@ -20,7 +20,6 @@ export { DashboardButton } from "./DashboardButton";
  */
 export { DashboardCard } from "./DashboardCard";
 
-export { DashboardMetricCard } from "./DashboardMetricCard";
 
 /**
  * @deprecated Use Dialog from @/components/ui/dialog instead.
