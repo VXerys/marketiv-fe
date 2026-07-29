@@ -54,6 +54,11 @@ const PLATFORM_ICON = {
   ),
 };
 
+const CREATOR_DARK_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-ink) 0%, var(--color-kreator-ink-mid) 45%, var(--color-kreator-900) 100%)";
+const CREATOR_ACTION_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-600), var(--color-kreator-action-end))";
+
 function ActiveJobCard({
   work,
   getSubStatusLabel,
@@ -83,11 +88,6 @@ function ActiveJobCard({
     : (work.ratePerThousandViews * auditedViews) / 1000;
   const earningLabel = isValid ? "Pendapatan Dirilis" : "Estimasi Reward";
 
-  // Claimed date
-  const claimedDate = new Date(work.claimedAt).toLocaleDateString("id-ID", {
-    day: "numeric", month: "short",
-  });
-
   const platform = work.platform;
 
   // Key = label hasil getSubStatusLabel (lihat src/lib/creator-status.ts)
@@ -109,7 +109,7 @@ function ActiveJobCard({
           ? "border-red-200/60 shadow-[0_4px_20px_rgba(220,38,38,.07)] hover:shadow-[0_16px_48px_rgba(220,38,38,.12)] hover:-translate-y-1.5 hover:border-red-300/40"
           : isValid
           ? "border-emerald-200/50 shadow-[0_4px_20px_rgba(22,163,74,.07)] hover:shadow-[0_16px_48px_rgba(22,163,74,.12)] hover:-translate-y-1.5 hover:border-emerald-300/40"
-          : "border-neutral-200/50 shadow-[0_2px_16px_rgba(15,23,42,.05)] hover:shadow-[0_16px_48px_rgba(109,40,217,.12)] hover:-translate-y-1.5 hover:border-violet-400/20"
+          : "border-neutral-200/50 shadow-1 hover:shadow-kreator-avatar hover:-translate-y-1.5 hover:border-kreator-400/20"
       )}
     >
       {/* Cover image — same 4:3 as Job Pool */}
@@ -118,8 +118,7 @@ function ActiveJobCard({
           aria-hidden="true"
           className="absolute inset-0"
           style={{
-            background:
-              "linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4c1d95 100%)",
+            background: CREATOR_DARK_GRADIENT,
           }}
         />
         <div
@@ -163,12 +162,12 @@ function ActiveJobCard({
 
       {/* Card body — same compact density as Job Pool */}
       <div className="p-4 flex flex-col gap-3 flex-1">
-        <h4 className="text-sm font-extrabold text-[#1e1b4b] leading-snug line-clamp-2">{work.title}</h4>
+        <h4 className="text-sm font-extrabold text-kreator-ink leading-snug line-clamp-2">{work.title}</h4>
 
         {/* CPM Rate row */}
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-1">
-            <span className="font-display text-[1.1rem] font-black text-[#7c3aed] tracking-tight leading-none">
+            <span className="font-display text-[1.1rem] font-black text-kreator-600 tracking-tight leading-none">
               {formatCurrency(work.ratePerThousandViews)}
             </span>
             <span className="text-[10px] text-neutral-400 font-semibold">/ 1K views</span>
@@ -206,7 +205,7 @@ function ActiveJobCard({
         {/* Earnings row */}
         <div className="flex items-center justify-between bg-neutral-50 border border-neutral-200/30 rounded-[10px] px-3 py-2">
           <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider">{earningLabel}</span>
-          <span className={cn("text-[11px] font-black", isValid ? "text-emerald-700" : "text-[#7c3aed]")}>
+          <span className={cn("text-[11px] font-black", isValid ? "text-emerald-700" : "text-kreator-600")}>
             {formatCurrency(earningVal)}
           </span>
         </div>
@@ -219,7 +218,7 @@ function ActiveJobCard({
               href={work.contentUrl}
               target="_blank"
               rel="noreferrer"
-              className="font-bold text-[#7c3aed] truncate hover:underline"
+              className="font-bold text-kreator-600 truncate hover:underline"
             >
               {work.contentUrl}
             </a>
@@ -248,8 +247,8 @@ function ActiveJobCard({
               href={`/dashboard/kreator/pekerjaan-aktif/${work.id}`}
               className="flex-[2] text-center py-2.5 rounded-[12px] text-[10px] font-extrabold text-white hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
               style={{
-                background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-                boxShadow: "0 4px 14px rgba(124,58,237,.30)",
+                background: CREATOR_ACTION_GRADIENT,
+                boxShadow: "var(--shadow-kreator)",
               }}
             >
               Submit Bukti

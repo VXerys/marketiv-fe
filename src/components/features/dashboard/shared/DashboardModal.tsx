@@ -27,6 +27,8 @@ interface DashboardModalProps {
   onClose: () => void;
   variant?: "default" | "danger";
   className?: string;
+  titleClassName?: string;
+  hideFooter?: boolean;
 }
 
 /**
@@ -44,12 +46,14 @@ export function DashboardModal({
   onClose,
   variant = "default",
   className,
+  titleClassName,
+  hideFooter = false,
 }: DashboardModalProps) {
   return (
     <ResponsiveModal open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <ResponsiveModalContent className={cn("max-w-lg rounded-t-3xl sm:rounded-3xl", className)}>
         <ResponsiveModalHeader className="space-y-2 text-left">
-          <ResponsiveModalTitle className="text-xl font-bold text-neutral-950">{title}</ResponsiveModalTitle>
+          <ResponsiveModalTitle className={cn("text-xl font-bold text-neutral-950", titleClassName)}>{title}</ResponsiveModalTitle>
           {description ? (
             <ResponsiveModalDescription className="text-sm leading-6 text-neutral-500">
               {description}
@@ -59,25 +63,27 @@ export function DashboardModal({
 
         {children ? <div className="mt-2">{children}</div> : null}
 
-        <ResponsiveModalFooter className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          {footer ?? (
-            <>
-              <DashboardButton type="button" variant="outline" onClick={onClose} fullWidthOnMobile>
-                {cancelLabel}
-              </DashboardButton>
-              {confirmLabel && onConfirm ? (
-                <DashboardButton
-                  type="button"
-                  variant={variant === "danger" ? "danger" : "primary"}
-                  onClick={onConfirm}
-                  fullWidthOnMobile
-                >
-                  {confirmLabel}
+        {!hideFooter ? (
+          <ResponsiveModalFooter className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            {footer ?? (
+              <>
+                <DashboardButton type="button" variant="outline" onClick={onClose} fullWidthOnMobile>
+                  {cancelLabel}
                 </DashboardButton>
-              ) : null}
-            </>
-          )}
-        </ResponsiveModalFooter>
+                {confirmLabel && onConfirm ? (
+                  <DashboardButton
+                    type="button"
+                    variant={variant === "danger" ? "danger" : "primary"}
+                    onClick={onConfirm}
+                    fullWidthOnMobile
+                  >
+                    {confirmLabel}
+                  </DashboardButton>
+                ) : null}
+              </>
+            )}
+          </ResponsiveModalFooter>
+        ) : null}
       </ResponsiveModalContent>
     </ResponsiveModal>
   );

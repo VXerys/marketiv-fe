@@ -236,6 +236,58 @@
   --color-role-admin-text: #7e22ce;
   --color-role-admin-border: #e9d5ff;
 
+  /* Creator dashboard palette.
+     Keep role-kreator-* blue: those tokens identify an account role. These
+     tokens style the creator workspace itself and replace its raw violet/ink
+     literals in small, reviewable batches. */
+  --color-kreator-50: #f5f3ff;
+  --color-kreator-100: #ede9fe;
+  --color-kreator-200: #ddd6fe;
+  --color-kreator-300: #c4b5fd;
+  --color-kreator-400: #a78bfa;
+  --color-kreator-500: #8b5cf6;
+  --color-kreator-600: #7c3aed;
+  --color-kreator-700: #6d28d9;
+  --color-kreator-800: #5b21b6;
+  --color-kreator-900: #4c1d95;
+  --color-kreator-950: #2e1065;
+  --color-kreator-soft: #f3e8ff;
+  --color-kreator-page: #eef2ff;
+  --color-kreator-ink: #1e1b4b;
+  --color-kreator-ink-mid: #312e81;
+  --color-kreator-ink-deep: #0c172b;
+  --color-kreator-gradient-start: #2563eb;
+  --color-kreator-gradient-end: #7c3aed;
+  --color-kreator-gradient-muted-start: #93c5fd;
+  --color-kreator-action-end: #4f46e5;
+  --shadow-kreator-sm: 0 3px 10px rgb(124 58 237 / 0.25);
+  --shadow-kreator: 0 4px 14px rgb(124 58 237 / 0.3);
+  --shadow-kreator-lg: 0 6px 16px rgb(124 58 237 / 0.25);
+  --shadow-kreator-brand: 0 8px 24px rgb(37 99 235 / 0.32), 0 2px 6px rgb(0 0 0 / 0.2);
+  --shadow-kreator-brand-sm: 0 4px 12px rgb(37 99 235 / 0.2);
+  --shadow-kreator-avatar: 0 12px 36px rgb(109 40 217 / 0.18);
+  --shadow-kreator-hero: 0 20px 40px -15px rgb(109 40 217 / 0.08), inset 0 1px 0 rgb(255 255 255 / 0.95);
+  --shadow-kreator-cta: 0 6px 20px rgb(124 58 237 / 0.4);
+  --shadow-kreator-ink: 0 4px 14px rgb(30 27 75 / 0.25);
+
+  /* Finance actions retain their orange identity without borrowing the creator
+     workspace palette. */
+  --color-finance-action: #fb7a18;
+  --shadow-finance-action: 0 14px 34px rgb(234 88 12 / 0.22), inset 0 1px 0 rgb(255 255 255 / 0.22);
+  --shadow-finance-action-hover: 0 18px 40px rgb(234 88 12 / 0.3);
+  --shadow-finance-action-sm: 0 10px 24px rgb(234 88 12 / 0.22);
+  --shadow-finance-action-sm-hover: 0 14px 30px rgb(234 88 12 / 0.3);
+
+  /* Shared settings controls preserve their existing neutral contrast. */
+  --color-control-off: #e2e8f0;
+  --color-control-disabled: #94a3b8;
+  --color-surface-subtle: #f3f4f6;
+  --color-info-surface: #f0f6ff;
+  --color-info: #2563eb;
+  --color-info-border: #bfdbfe;
+  --color-success-surface: #f1fbf5;
+  --color-success-border: #bbf7d0;
+
   /* Premium Warm Neutral Color Mappings */
   --color-bg-main: var(--bg-main);
   --color-bg-main-soft: var(--bg-main-soft);

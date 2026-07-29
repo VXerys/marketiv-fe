@@ -286,7 +286,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                 "inline-flex items-center gap-2 min-h-[46px] px-[22px] rounded-xl font-[800] text-[.9rem] tracking-[-0.012em] transition-all duration-200 cursor-pointer whitespace-nowrap",
                 isWithdrawDisabled
                   ? "bg-neutral-100 text-neutral-400 border border-neutral-200 cursor-not-allowed"
-                  : "border border-orange-900/20 bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white shadow-[0_14px_34px_rgba(234,88,12,.22),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_18px_40px_rgba(234,88,12,.30)] hover:-translate-y-px"
+                  : "border border-orange-900/20 bg-gradient-to-b from-finance-action to-primary-600 text-white shadow-finance-action hover:shadow-finance-action-hover hover:-translate-y-px"
               )}
             >
               <ArrowDownToLine size={17} />
@@ -299,7 +299,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                 <>
                   {/* Saldo Tersedia — hero card, full width on mobile */}
-                  <div className="col-span-2 sm:col-span-1 relative overflow-hidden rounded-2xl sm:rounded-[22px] border border-orange-900/20 bg-gradient-to-br from-[#fb7a18] to-primary-600 p-5 sm:p-6 text-white shadow-[0_14px_34px_rgba(234,88,12,.22)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(234,88,12,.30)] group">
+                  <div className="col-span-2 sm:col-span-1 relative overflow-hidden rounded-2xl sm:rounded-[22px] border border-orange-900/20 bg-gradient-to-br from-finance-action to-primary-600 p-5 sm:p-6 text-white shadow-finance-action transition-all duration-300 hover:-translate-y-1 hover:shadow-finance-action-hover group">
                     <div
                       className="absolute inset-0 pointer-events-none opacity-70"
                       style={{
@@ -770,7 +770,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                           "flex-1 min-h-[44px] font-[800] text-xs rounded-xl transition-all duration-200 cursor-pointer",
                           !isAmountValid
                             ? "bg-neutral-100 text-neutral-400 border border-neutral-200 cursor-not-allowed"
-                            : "border border-orange-900/20 bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white shadow-[0_10px_24px_rgba(234,88,12,.22)] hover:shadow-[0_14px_30px_rgba(234,88,12,.30)] hover:-translate-y-px"
+                            : "border border-orange-900/20 bg-gradient-to-b from-finance-action to-primary-600 text-white shadow-finance-action-sm hover:shadow-finance-action-sm-hover hover:-translate-y-px"
                         )}
                       >
                         Lanjutkan
@@ -844,7 +844,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                     <button
                       onClick={handleConfirmWithdrawal}
                       disabled={isSubmittingWithdraw}
-                      className="flex-1 min-h-[44px] border border-orange-900/20 bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-[0_10px_24px_rgba(234,88,12,.22)] hover:shadow-[0_14px_30px_rgba(234,88,12,.30)] hover:-translate-y-px cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
+                      className="flex-1 min-h-[44px] border border-orange-900/20 bg-gradient-to-b from-finance-action to-primary-600 text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-finance-action-sm hover:shadow-finance-action-sm-hover hover:-translate-y-px cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
                     >
                       {isSubmittingWithdraw ? "Memproses…" : "Konfirmasi & Tarik"}
                     </button>
@@ -898,7 +898,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
 
                   <button
                     onClick={resetWithdrawForm}
-                    className="w-full min-h-[44px] bg-ink-950 hover:bg-primary text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-md hover:shadow-[0_10px_24px_rgba(234,88,12,.22)] hover:-translate-y-px cursor-pointer text-center"
+                    className="w-full min-h-[44px] bg-ink-950 hover:bg-primary text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-md hover:shadow-finance-action-sm hover:-translate-y-px cursor-pointer text-center"
                   >
                     Selesai
                   </button>
@@ -1004,7 +1004,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                 <div className="pt-4">
                   <button
                     onClick={() => setSelectedTx(null)}
-                    className="w-full min-h-[44px] bg-ink-950 hover:bg-primary text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-md hover:shadow-[0_10px_24px_rgba(234,88,12,.22)] hover:-translate-y-px cursor-pointer text-center"
+                    className="w-full min-h-[44px] bg-ink-950 hover:bg-primary text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-md hover:shadow-finance-action-sm hover:-translate-y-px cursor-pointer text-center"
                   >
                     Tutup Rincian
                   </button>

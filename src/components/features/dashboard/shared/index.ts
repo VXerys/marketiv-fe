@@ -26,10 +26,9 @@ export { DashboardCard } from "./DashboardCard";
  */
 export { DashboardModal } from "./DashboardModal";
 
-/**
- * @deprecated Use Progress from @/components/ui/progress instead.
- */
+/** Semantic progress primitive shared by dashboard feature surfaces. */
 export { DashboardProgress } from "./DashboardProgress";
+export type { DashboardProgressProps } from "./DashboardProgress";
 
 export { DashboardStateCard } from "./DashboardStateCard";
 export { MarketplaceCard } from "./MarketplaceCard";

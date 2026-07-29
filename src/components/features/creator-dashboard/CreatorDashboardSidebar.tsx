@@ -111,11 +111,11 @@ export function CreatorDashboardSidebar({
   }, []);
 
   return (
-    <Sidebar className="bg-[#0c172b] text-white border-r border-white/5 shadow-xl" collapsible="icon">
+    <Sidebar className="bg-kreator-ink-deep text-white border-r border-white/5 shadow-xl" collapsible="icon">
       {/* Protruding Tab Toggle Button (Shopeers/Dashify Style) — centered vertically on viewport */}
       <button
         onClick={toggleSidebar}
-        className="absolute z-50 flex items-center justify-center rounded-r-md cursor-pointer transition-all duration-250 bg-[#0c172b] text-white/60 hover:text-white border border-l-0 border-white/5 shadow-[2px_0_8px_rgba(0,0,0,0.15)]"
+        className="absolute z-50 flex items-center justify-center rounded-r-md cursor-pointer transition-all duration-250 bg-kreator-ink-deep text-white/60 hover:text-white border border-l-0 border-white/5 shadow-[2px_0_8px_rgb(0_0_0_/_0.15)]"
         style={{
           right: "-22px",
           top: "50%",
@@ -143,8 +143,8 @@ export function CreatorDashboardSidebar({
             className="w-9 h-9 rounded-[11px] shrink-0 flex items-center justify-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:rounded-[13px] transition-all duration-300"
             style={{
               background:
-                "radial-gradient(circle at 35% 25%, rgba(255,255,255,.92) 0 10%, transparent 11%), linear-gradient(135deg, #2563eb, #7c3aed)",
-              boxShadow: "0 8px 24px rgba(37,99,235,.32), 0 2px 6px rgba(0,0,0,.2)",
+                "radial-gradient(circle at 35% 25%, rgb(255 255 255 / 0.92) 0 10%, transparent 11%), linear-gradient(135deg, var(--color-kreator-gradient-start), var(--color-kreator-gradient-end))",
+              boxShadow: "var(--shadow-kreator-brand)",
             }}
           >
             <span className="font-extrabold text-[.88rem] text-white font-display group-data-[collapsible=icon]:text-[1rem]">
@@ -191,9 +191,9 @@ export function CreatorDashboardSidebar({
                       : "hover:text-white/90 hover:bg-white/5"
                   )}
                   style={isActive ? {
-                    background: "linear-gradient(135deg, rgba(37,99,235,.22) 0%, rgba(147,51,234,.14) 100%)",
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,.08), 0 4px 16px rgba(37,99,235,.12)",
-                    border: "1px solid rgba(37,99,235,.22)",
+                    background: "linear-gradient(135deg, color-mix(in srgb, var(--color-kreator-gradient-start) 22%, transparent) 0%, color-mix(in srgb, var(--color-kreator-600) 14%, transparent) 100%)",
+                    boxShadow: "inset 0 1px 0 rgb(255 255 255 / 0.08), 0 4px 16px color-mix(in srgb, var(--color-kreator-gradient-start) 12%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--color-kreator-gradient-start) 22%, transparent)",
                   } : {
                     border: "1px solid transparent",
                   }}
@@ -210,7 +210,7 @@ export function CreatorDashboardSidebar({
                     {isActive && (
                       <span
                         className="absolute left-0 top-[20%] bottom-[20%] w-[3px] rounded-r-full group-data-[collapsible=icon]:hidden"
-                        style={{ background: "linear-gradient(180deg, #2563eb, #7c3aed)" }}
+                        style={{ background: "linear-gradient(180deg, var(--color-kreator-gradient-start), var(--color-kreator-gradient-end))" }}
                         aria-hidden="true"
                       />
                     )}
@@ -257,7 +257,7 @@ export function CreatorDashboardSidebar({
                       alt={campaign.businessName}
                       className="w-full h-full object-cover"
                     />
-                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-[#0d1b2e] animate-pulse" />
+                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-kreator-ink-deep animate-pulse" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <span className="block text-[0.82rem] font-bold text-white/85 truncate group-hover:text-white transition-colors duration-150">
@@ -361,8 +361,8 @@ export function CreatorDashboardSidebar({
           className="w-9 h-9 shrink-0 rounded-[10px] flex items-center justify-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:rounded-[13px] transition-all duration-300"
           style={{
             background:
-              "radial-gradient(circle at 36% 28%, rgba(255,255,255,.82) 0 12%, transparent 13%), linear-gradient(135deg, #93c5fd, #2563eb)",
-            boxShadow: "0 4px 12px rgba(37,99,235,.20)",
+              "radial-gradient(circle at 36% 28%, rgb(255 255 255 / 0.82) 0 12%, transparent 13%), linear-gradient(135deg, var(--color-kreator-gradient-muted-start), var(--color-kreator-gradient-start))",
+            boxShadow: "var(--shadow-kreator-brand-sm)",
           }}
         >
           <span className="font-extrabold text-[.82rem] text-white/90 font-display leading-none group-data-[collapsible=icon]:text-[.88rem]">

@@ -25,6 +25,9 @@ import { getCreatorNegotiations } from "@/services/creator/creator-dashboard.ser
 import { CreatorPageSkeleton } from "./CreatorPageSkeleton";
 import { toast } from "sonner";
 
+const CREATOR_ACTION_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-600), var(--color-kreator-action-end))";
+
 /**
  * Tanpa props. Data diambil di klien, BUKAN di Server Component: DTO
  * `get-creator-negotiations` menegakkan kepemilikan lewat header
@@ -64,7 +67,7 @@ function MetricTile({ label, value, helper, icon, iconClass, cardClass, badge, b
         {icon}
       </div>
       <div className="text-[.67rem] font-extrabold text-neutral-400 uppercase tracking-widest leading-none">{label}</div>
-      <div className="font-display text-[1.3rem] sm:text-[1.4rem] font-black text-[#1e1b4b] tracking-tight leading-none mt-1.5">{value}</div>
+      <div className="font-display text-[1.3rem] sm:text-[1.4rem] font-black text-kreator-ink tracking-tight leading-none mt-1.5">{value}</div>
       <div className="text-[.7rem] text-neutral-400 font-semibold mt-1 leading-none">{helper}</div>
     </div>
   );
@@ -100,7 +103,7 @@ function NegotiationCard({
     <div
       className={cn(
         "group relative bg-white rounded-[20px] border-l-4 border overflow-hidden",
-        "shadow-[0_2px_10px_rgba(15,23,42,.04)] hover:shadow-[0_10px_32px_rgba(109,40,217,.09)] hover:-translate-y-0.5",
+        "shadow-1 hover:shadow-kreator-avatar hover:-translate-y-0.5",
         "transition-all duration-300 flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4",
         hasUrgent
           ? "border-l-violet-500 border-violet-200/50"
@@ -131,7 +134,7 @@ function NegotiationCard({
       {/* Main content */}
       <div className="flex-1 min-w-0 space-y-1.5">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-extrabold text-[#1e1b4b] text-sm group-hover:text-violet-700 transition-colors">
+          <span className="font-extrabold text-kreator-ink text-sm group-hover:text-violet-700 transition-colors">
             {neg.umkmName}
           </span>
           <span className={cn(
@@ -143,7 +146,7 @@ function NegotiationCard({
           </span>
         </div>
 
-        <h4 className="font-extrabold text-sm text-[#1e1b4b] truncate leading-tight flex items-center gap-1.5">
+        <h4 className="font-extrabold text-sm text-kreator-ink truncate leading-tight flex items-center gap-1.5">
           <Tag className="w-3 h-3 text-neutral-400 shrink-0" />
           {neg.projectTitle}
         </h4>
@@ -157,7 +160,7 @@ function NegotiationCard({
             <Clock3 className="w-2.5 h-2.5 shrink-0" />
             {dateStr}
           </span>
-          <span className="font-display text-xs font-black text-[#1e1b4b] tracking-tight">
+          <span className="font-display text-xs font-black text-kreator-ink tracking-tight">
             {formatCurrency(neg.finalPrice)}
           </span>
         </div>
@@ -169,7 +172,7 @@ function NegotiationCard({
           onClick={onToggleArchive}
           title={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
           aria-label={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
-          className="flex items-center justify-center h-9 w-9 rounded-[12px] border border-neutral-200 text-neutral-400 hover:text-[#7c3aed] hover:border-violet-200 transition-colors cursor-pointer"
+          className="flex items-center justify-center h-9 w-9 rounded-[12px] border border-neutral-200 text-neutral-400 hover:text-kreator-600 hover:border-violet-200 transition-colors cursor-pointer"
         >
           {isArchived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
         </button>
@@ -177,8 +180,8 @@ function NegotiationCard({
           href={`/dashboard/kreator/negosiasi/${neg.id}`}
           className="flex items-center gap-1.5 px-4 py-2.5 rounded-[12px] text-[11px] font-extrabold text-white transition-all hover:-translate-y-0.5 active:translate-y-0"
           style={{
-            background: "linear-gradient(135deg,#7c3aed,#4f46e5)",
-            boxShadow: "0 4px 14px rgba(124,58,237,.25)",
+            background: CREATOR_ACTION_GRADIENT,
+            boxShadow: "var(--shadow-kreator)",
           }}
         >
           <MessageSquare className="w-3.5 h-3.5" />
@@ -324,7 +327,7 @@ export function NegosiasiView() {
               helper="Tawaran kamu disetujui"
               iconClass="text-blue-600 bg-blue-50 border-blue-200/50"
               icon={<Hourglass className="w-4 h-4" />}
-              cardClass="border-blue-200/40 shadow-[0_4px_20px_rgba(37,99,235,.06)] bg-gradient-to-br from-blue-50/20 to-white"
+              cardClass="border-blue-200/40 shadow-kreator-brand-sm bg-gradient-to-br from-blue-50/20 to-white"
             />
             <MetricTile
               label="Escrow Aktif"
@@ -340,7 +343,7 @@ export function NegosiasiView() {
               helper="Reward siap dicairkan"
               iconClass="text-violet-600 bg-violet-50 border-violet-200/50"
               icon={<ClipboardCheck className="w-4 h-4" />}
-              cardClass="border-violet-200/40 shadow-[0_4px_20px_rgba(124,58,237,.06)] bg-gradient-to-br from-violet-50/20 to-white"
+              cardClass="border-violet-200/40 shadow-kreator-brand-sm bg-gradient-to-br from-violet-50/20 to-white"
             />
           </div>
 
@@ -434,7 +437,7 @@ export function NegosiasiView() {
                 "px-3.5 py-1.5 rounded-full text-[11px] font-extrabold transition-colors cursor-pointer border",
                 showArchived
                   ? "border-neutral-200/60 text-neutral-500 hover:bg-neutral-50"
-                  : "border-transparent bg-[#7c3aed] text-white"
+                  : "border-transparent bg-kreator-600 text-white"
               )}
             >
               Inbox
@@ -444,7 +447,7 @@ export function NegosiasiView() {
               className={cn(
                 "px-3.5 py-1.5 rounded-full text-[11px] font-extrabold transition-colors cursor-pointer border",
                 showArchived
-                  ? "border-transparent bg-[#7c3aed] text-white"
+                  ? "border-transparent bg-kreator-600 text-white"
                   : "border-neutral-200/60 text-neutral-500 hover:bg-neutral-50"
               )}
             >
@@ -468,7 +471,7 @@ export function NegosiasiView() {
                   <button
                     onClick={handleClearFilters}
                     className="text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow border border-transparent cursor-pointer"
-                    style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)", boxShadow: "0 4px 14px rgba(124,58,237,.28)" }}
+                    style={{ background: CREATOR_ACTION_GRADIENT, boxShadow: "var(--shadow-kreator)" }}
                   >
                     Reset Filter
                   </button>

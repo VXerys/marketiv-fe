@@ -1,10 +1,14 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Bell, Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useSidebar } from "@/components/ui/sidebar";
+import { getNotifications } from "@/services/shared/notification.service";
+import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
+import { realtimeClient } from "@/lib/appwrite/realtime";
 
 interface BreadcrumbItem {
   label: string;
@@ -63,6 +67,30 @@ export function CreatorDashboardTopbar({
   const breadcrumbs = getBreadcrumbs(pathname);
   const { toggleSidebar } = useSidebar();
   const activeTitle = breadcrumbs[breadcrumbs.length - 1]?.label || "Dashboard";
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const loadUnreadCount = useCallback(() => {
+    void getNotifications("creator").then((result) => {
+      if (result.success && result.data) {
+        setUnreadCount(result.data.filter((notification) => !notification.isRead).length);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    loadUnreadCount();
+  }, [loadUnreadCount]);
+
+  useEffect(() => {
+    if (DATA_SOURCE_CONFIG.useMockData) return;
+    const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
+    if (!databaseId) return;
+
+    return realtimeClient.subscribe(
+      `databases.${databaseId}.collections.notifications.documents`,
+      () => loadUnreadCount()
+    );
+  }, [loadUnreadCount]);
 
   return (
     <header
@@ -89,10 +117,11 @@ export function CreatorDashboardTopbar({
         {/* Mobile: Marketiv brand mark (blue/purple) */}
         <div className="flex items-center gap-2.5 md:hidden min-w-0">
           <div
-            className="w-9 h-9 rounded-[11px] shrink-0 flex items-center justify-center shadow-[0_6px_16px_rgba(37,99,235,.24)]"
+            className="w-9 h-9 rounded-[11px] shrink-0 flex items-center justify-center shadow-kreator-brand-sm"
             style={{
               background:
-                "radial-gradient(circle at 35% 25%, rgba(255,255,255,.9) 0 9%, transparent 10%), linear-gradient(135deg, #2563eb, #7c3aed)",
+                "radial-gradient(circle at 35% 25%, rgb(255 255 255 / 0.9) 0 9%, transparent 10%), linear-gradient(135deg, var(--color-kreator-gradient-start), var(--color-kreator-gradient-end))",
+              boxShadow: "var(--shadow-kreator-brand-sm)",
             }}
           >
             <span className="font-extrabold text-[.85rem] text-white font-display">M</span>
@@ -137,7 +166,7 @@ export function CreatorDashboardTopbar({
         {/* Active job quick check button */}
         <Link
           href="/dashboard/kreator/job-pool"
-          className="hidden md:inline-flex bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-xs px-5 py-2.5 rounded-full hover:shadow-[0_8px_20px_rgba(37,99,235,0.25)] hover:-translate-y-0.5 active:translate-y-0 transition-all border border-white/20 shadow-sm"
+          className="hidden md:inline-flex bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-xs px-5 py-2.5 rounded-full hover:shadow-kreator-brand hover:-translate-y-0.5 active:translate-y-0 transition-all border border-white/20 shadow-sm"
         >
           Cari Pekerjaan Baru
         </Link>
@@ -146,20 +175,22 @@ export function CreatorDashboardTopbar({
         <Link
           href="/dashboard/kreator/notifikasi"
           className="relative w-11 h-11 flex items-center justify-center rounded-xl text-ink-500 hover:bg-neutral-100 hover:text-ink-800 active:scale-95 transition-all duration-150 cursor-pointer border border-neutral-200/60 bg-white/70 shadow-3xs hover:shadow-2xs"
-          aria-label="Notifikasi"
+          aria-label={unreadCount > 0 ? `Notifikasi, ${unreadCount} belum dibaca` : "Notifikasi"}
         >
           <Bell size={20} strokeWidth={2} />
           {/* Unread dot */}
-          <span
-            className="absolute top-[12px] right-[12px] w-[8px] h-[8px] rounded-full border-[1.5px] border-white bg-blue-600 shadow-[0_0_0_1px_rgba(37,99,235,.25)]"
-            aria-hidden="true"
-          />
+          {unreadCount > 0 && (
+            <span
+              className="absolute top-[12px] right-[12px] w-[8px] h-[8px] rounded-full border-[1.5px] border-white bg-blue-600 shadow-kreator-brand-sm"
+              aria-hidden="true"
+            />
+          )}
         </Link>
 
         {/* Creator profile photo */}
         <Link
           href="/dashboard/kreator/settings"
-          className="w-11 h-11 rounded-xl border border-neutral-200/70 shadow-3xs overflow-hidden hover:scale-105 hover:shadow-[0_4px_12px_rgba(37,99,235,.18)] active:scale-95 transition-all duration-200 relative block shrink-0 cursor-pointer"
+          className="w-11 h-11 rounded-xl border border-neutral-200/70 shadow-3xs overflow-hidden hover:scale-105 hover:shadow-kreator-brand-sm active:scale-95 transition-all duration-200 relative block shrink-0 cursor-pointer"
           aria-label="Pengaturan akun"
         >
           <Image

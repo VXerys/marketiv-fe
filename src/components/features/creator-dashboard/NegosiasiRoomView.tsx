@@ -21,6 +21,8 @@ import { formatCurrency } from "@/lib/formatters";
 import { PLATFORM_FEE_RATE, calculatePlatformFee } from "@/types/domain";
 import { getEscrowStatusLabel } from "@/lib/creator-status";
 import { cn } from "@/lib/utils";
+import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
+import { realtimeClient } from "@/lib/appwrite/realtime";
 import {
   ArrowLeft,
   Send,
@@ -45,6 +47,12 @@ interface NegosiasiRoomViewProps {
 /** Poll `create-order` sesudah accept — Function-nya berjalan asinkron. */
 const ORDER_POLL_ATTEMPTS = 5;
 const ORDER_POLL_INTERVAL_MS = 2000;
+const CREATOR_ACTION_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-600), var(--color-kreator-action-end))";
+const CREATOR_INK_ACTION_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-ink), var(--color-kreator-action-end))";
+const CREATOR_PROGRESS_GRADIENT =
+  "linear-gradient(90deg, var(--color-kreator-600), var(--color-kreator-action-end))";
 
 type MessageSender = "umkm" | "creator" | "system";
 
@@ -175,6 +183,20 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
       active = false;
     };
   }, [loadRoom]);
+
+  useEffect(() => {
+    if (DATA_SOURCE_CONFIG.useMockData) return;
+    const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
+    if (!databaseId) return;
+
+    return realtimeClient.subscribe(
+      `databases.${databaseId}.collections.messages.documents`,
+      (event) => {
+        const payload = event.payload as { conversation_id?: string };
+        if (payload.conversation_id === conversationId) void loadRoom();
+      }
+    );
+  }, [conversationId, loadRoom]);
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -346,7 +368,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
           title="Percakapan tidak ditemukan"
           description="ID order negosiasi tidak terdaftar atau order telah dibatalkan."
           actionButton={
-            <Link href="/dashboard/kreator/negosiasi" className="text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow cursor-pointer" style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)" }}>
+            <Link href="/dashboard/kreator/negosiasi" className="text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow cursor-pointer" style={{ background: CREATOR_ACTION_GRADIENT }}>
               Kembali ke Negosiasi
             </Link>
           }
@@ -427,7 +449,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                     <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-white" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-black text-[#1e1b4b] leading-tight">{neg.umkmName}</h4>
+                    <h4 className="text-sm font-black text-kreator-ink leading-tight">{neg.umkmName}</h4>
                     <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mt-0.5">{neg.projectTitle}</p>
                   </div>
                 </div>
@@ -443,7 +465,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
               </div>
 
               {/* Messages feed */}
-              <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-[#fafafa] premium-scrollbar">
+              <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-neutral-50 premium-scrollbar">
                 {chatMessages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center gap-3 py-12">
                     <div className="w-12 h-12 rounded-2xl bg-neutral-100 flex items-center justify-center">
@@ -482,14 +504,14 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                         <div className="space-y-1 min-w-0">
                           {msg.isCustomOffer && msg.offerData ? (
                             /* Custom Offer card bubble */
-                            <div className="bg-white border border-violet-200/50 shadow-[0_4px_20px_rgba(109,40,217,.10)] rounded-[18px] rounded-br-[6px] p-5 max-w-xs space-y-4">
+                            <div className="bg-white border border-violet-200/50 shadow-kreator-avatar rounded-[18px] rounded-br-[6px] p-5 max-w-xs space-y-4">
                               <div className="flex items-start justify-between gap-2">
                                 <div>
                                   <span className="flex items-center gap-1.5 text-[8px] font-black text-violet-600 uppercase tracking-widest mb-1">
                                     <Sparkles className="w-3 h-3" />
                                     Custom Offer
                                   </span>
-                                  <h5 className="font-extrabold text-[#1e1b4b] text-xs leading-tight">{neg.projectTitle}</h5>
+                                  <h5 className="font-extrabold text-kreator-ink text-xs leading-tight">{neg.projectTitle}</h5>
                                 </div>
                                 <span className="text-lg font-black text-violet-700 shrink-0 leading-none">
                                   {formatCurrency(msg.offerData.price)}
@@ -524,7 +546,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                                       onClick={handleAcceptOrder}
                                       disabled={answering}
                                       className="flex-1 py-2.5 rounded-[12px] text-[10px] font-extrabold text-white cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed"
-                                      style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)", boxShadow: "0 4px 12px rgba(124,58,237,.30)" }}
+                                      style={{ background: CREATOR_ACTION_GRADIENT, boxShadow: "var(--shadow-kreator)" }}
                                     >
                                       {answering ? "Memproses…" : "Terima"}
                                     </button>
@@ -549,7 +571,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                               className={cn(
                                 "px-4 py-3 text-xs font-semibold leading-relaxed shadow-sm",
                                 isCreator
-                                  ? "bg-[#1e1b4b] text-white rounded-[18px] rounded-br-[6px]"
+                                  ? "bg-kreator-ink text-white rounded-[18px] rounded-br-[6px]"
                                   : "bg-white text-neutral-800 border border-neutral-200/50 rounded-[18px] rounded-bl-[6px]"
                               )}
                             >
@@ -585,7 +607,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                       onClick={handleAcceptOrder}
                       disabled={answering}
                       className="flex items-center gap-1.5 px-3.5 py-2 rounded-[12px] text-[11px] font-extrabold text-white cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed"
-                      style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)", boxShadow: "0 3px 10px rgba(124,58,237,.25)" }}
+                      style={{ background: CREATOR_ACTION_GRADIENT, boxShadow: "var(--shadow-kreator)" }}
                     >
                       <Check className="w-3.5 h-3.5" />
                       {answering ? "Memproses…" : "Terima Penawaran"}
@@ -606,7 +628,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                     <button
                       onClick={() => { setDeliverableError(null); setIsDeliverableModalOpen(true); }}
                       className="flex items-center gap-1.5 px-3.5 py-2 rounded-[12px] text-[11px] font-extrabold text-white cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0"
-                      style={{ background: "linear-gradient(135deg,#1e1b4b,#4f46e5)", boxShadow: "0 3px 10px rgba(30,27,75,.22)" }}
+                      style={{ background: CREATOR_INK_ACTION_GRADIENT, boxShadow: "var(--shadow-kreator-ink)" }}
                     >
                       <Send className="w-3.5 h-3.5" />
                       {latestDeliverable ? `Kirim Ulang (v${latestDeliverable.version + 1})` : "Kirim Deliverable"}
@@ -636,8 +658,11 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                       className="w-10 h-10 rounded-[13px] flex items-center justify-center transition-all duration-150 cursor-pointer"
                       style={
                         isQuickMenuOpen
-                          ? { background: "rgba(124,58,237,.08)", color: "#7c3aed" }
-                          : { color: "#9ca3af" }
+                          ? {
+                              background: "color-mix(in srgb, var(--color-kreator-600) 8%, transparent)",
+                              color: "var(--color-kreator-600)",
+                            }
+                          : { color: "var(--color-neutral-400)" }
                       }
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -707,7 +732,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                   <button
                     type="submit"
                     className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0 cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0"
-                    style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)", boxShadow: "0 4px 14px rgba(124,58,237,.30)" }}
+                    style={{ background: CREATOR_ACTION_GRADIENT, boxShadow: "var(--shadow-kreator)" }}
                   >
                     <Send className="w-4 h-4 text-white" />
                   </button>
@@ -727,7 +752,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                 <div className="space-y-3">
                   <div>
                     <span className="block text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Nama Paket</span>
-                    <span className="block font-extrabold text-[#1e1b4b] text-sm leading-tight">{neg.projectTitle}</span>
+                    <span className="block font-extrabold text-kreator-ink text-sm leading-tight">{neg.projectTitle}</span>
                   </div>
 
                   <div>
@@ -765,7 +790,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                       <span>Biaya Platform ({PLATFORM_FEE_RATE * 100}%)</span>
                       <span>-{formatCurrency(platFee)}</span>
                     </div>
-                    <div className="flex justify-between text-sm font-black text-[#1e1b4b] border-t border-violet-100 pt-2">
+                    <div className="flex justify-between text-sm font-black text-kreator-ink border-t border-violet-100 pt-2">
                       <span>Total Diterima</span>
                       <span>{formatCurrency(totalAmt)}</span>
                     </div>
@@ -810,7 +835,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                     className="h-full rounded-full transition-all duration-500"
                     style={{
                       width: `${(doneCount / milestones.length) * 100}%`,
-                      background: "linear-gradient(90deg, #7c3aed, #4f46e5)",
+                      background: CREATOR_PROGRESS_GRADIENT,
                     }}
                   />
                 </div>
@@ -824,7 +849,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                           ? "text-white"
                           : "bg-white border-2 border-neutral-200"
                       )}
-                        style={m.done ? { background: "linear-gradient(135deg,#7c3aed,#4f46e5)" } : undefined}
+                        style={m.done ? { background: CREATOR_ACTION_GRADIENT } : undefined}
                       >
                         {m.done && <Check className="w-3 h-3" />}
                       </div>
@@ -848,7 +873,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Send className="w-4 h-4 text-neutral-700" />
-                  <h3 className="text-base font-black text-[#1e1b4b]">
+                  <h3 className="text-base font-black text-kreator-ink">
                     {latestDeliverable ? `Kirim Ulang — versi ${latestDeliverable.version + 1}` : "Kirim Deliverable"}
                   </h3>
                 </div>
@@ -970,7 +995,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                   type="submit"
                   disabled={submittingDeliverable}
                   className="flex-1 py-3 text-white font-extrabold text-xs rounded-full border border-transparent transition-all cursor-pointer hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ background: "linear-gradient(135deg,#1e1b4b,#4f46e5)", boxShadow: "0 4px 14px rgba(30,27,75,.25)" }}
+                  style={{ background: CREATOR_INK_ACTION_GRADIENT, boxShadow: "var(--shadow-kreator-ink)" }}
                 >
                   {submittingDeliverable ? "Mengirim…" : "Kirim"}
                 </button>

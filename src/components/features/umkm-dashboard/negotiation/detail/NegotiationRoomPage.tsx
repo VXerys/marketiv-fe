@@ -32,6 +32,8 @@ import { DealChecklistCard } from "./DealChecklistCard";
 import { DeliverableReviewCard } from "./DeliverableReviewCard";
 import { NegotiationRoomSkeleton } from "./NegotiationRoomSkeleton";
 import { NegotiationNotFoundState } from "./NegotiationNotFoundState";
+import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
+import { realtimeClient } from "@/lib/appwrite/realtime";
 
 import { SendCustomOfferModal } from "../modals/SendCustomOfferModal";
 import { PaymentSimulationModal } from "../modals/PaymentSimulationModal";
@@ -112,6 +114,20 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (DATA_SOURCE_CONFIG.useMockData) return;
+    const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
+    if (!databaseId) return;
+
+    return realtimeClient.subscribe(
+      `databases.${databaseId}.collections.messages.documents`,
+      (event) => {
+        const payload = event.payload as { conversation_id?: string };
+        if (payload.conversation_id === conversationId) void loadData();
+      }
+    );
+  }, [conversationId, loadData]);
 
   /**
    * Kirim pesan lalu muat ulang riwayatnya.

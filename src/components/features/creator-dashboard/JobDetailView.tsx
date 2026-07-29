@@ -37,6 +37,14 @@ interface JobDetailViewProps {
 }
 
 const VIDEO_SUB_TABS = ["Semua", "Pending", "Approved", "Rejected", "Need Action", "Deleted"];
+const CREATOR_ACTION_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-600), var(--color-kreator-action-end))";
+const CREATOR_DARK_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-ink), var(--color-kreator-ink-deep))";
+const CREATOR_PLACEHOLDER_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-700), var(--color-indigo-800))";
+const CREATOR_PROGRESS_GRADIENT =
+  "linear-gradient(90deg, var(--color-kreator-600), var(--color-kreator-action-end))";
 // "Syarat akun" dihapus: minimum followers & niche yang diperbolehkan tidak punya
 // kolom apa pun di campaigns/campaign_briefs — sebelumnya diisi konstanta.
 const BRIEF_PILLS = ["Aturan", "Narasi", "Caption", "Tentang"] as const;
@@ -146,7 +154,7 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
             <Image src={job.thumbnailUrl} alt="" fill className="object-cover" priority sizes="100vw" />
           </div>
         ) : (
-          <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, #1e1b4b, #0c172b)" }} />
+          <div className="absolute inset-0" style={{ background: CREATOR_DARK_GRADIENT }} />
         )}
 
         {/* Main dark overlay */}
@@ -229,7 +237,7 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
                   onClick={() => { setIsRulesChecked({ brief: false, privacy: false, retention: false, views: false }); setIsClaimOpen(true); }}
                   className={cn("min-h-[44px] px-7 font-black text-sm rounded-xl transition-all duration-200",
                     isFull ? "bg-white/10 text-white/30 cursor-not-allowed" : "text-white hover:-translate-y-0.5 active:translate-y-0 cursor-pointer shadow-lg")}
-                  style={!isFull ? { background: "linear-gradient(135deg, #7c3aed, #4f46e5)", boxShadow: "0 4px 20px rgba(124,58,237,.40)" } : undefined}
+                  style={!isFull ? { background: CREATOR_ACTION_GRADIENT, boxShadow: "var(--shadow-kreator-cta)" } : undefined}
                 >
                   {isFull ? "Kuota Penuh" : "Join Campaign"}
                 </button>
@@ -248,7 +256,7 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
               {job.thumbnailUrl ? (
                 <Image src={job.thumbnailUrl} alt={job.title} fill sizes="(max-width: 1024px) 100vw, 440px" className="object-cover" priority />
               ) : (
-                <div className="absolute inset-0 flex items-center justify-center font-black text-8xl text-white/10 select-none" style={{ background: "linear-gradient(135deg, #6d28d9, #3730a3)" }}>
+                <div className="absolute inset-0 flex items-center justify-center font-black text-8xl text-white/10 select-none" style={{ background: CREATOR_PLACEHOLDER_GRADIENT }}>
                   {job.brandName?.charAt(0) ?? "M"}
                 </div>
               )}
@@ -326,7 +334,7 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
                       <span className="text-sm font-black text-neutral-900">{budgetRemaining}%</span>
                     </div>
                     <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${budgetRemaining}%`, background: "linear-gradient(90deg, #7c3aed, #4f46e5)" }} />
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${budgetRemaining}%`, background: CREATOR_PROGRESS_GRADIENT }} />
                     </div>
                     <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-neutral-100">
                       <div className="bg-neutral-50 border border-neutral-200/40 rounded-xl p-3.5">
@@ -613,7 +621,7 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
             <button type="button" onClick={handleClaimSubmit} disabled={!allChecked || isClaiming}
               className={cn("flex-1 sm:flex-none py-2.5 px-5 font-bold text-xs rounded-full border transition-all cursor-pointer",
                 !allChecked || isClaiming ? "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed" : "text-white border-transparent hover:-translate-y-0.5 active:translate-y-0")}
-              style={allChecked && !isClaiming ? { background: "linear-gradient(135deg, #7c3aed, #4f46e5)", boxShadow: "0 4px 14px rgba(124,58,237,.30)" } : undefined}>
+              style={allChecked && !isClaiming ? { background: CREATOR_ACTION_GRADIENT, boxShadow: "var(--shadow-kreator)" } : undefined}>
               {isClaiming ? "Memproses…" : "Klaim Sekarang"}
             </button>
           </div>
