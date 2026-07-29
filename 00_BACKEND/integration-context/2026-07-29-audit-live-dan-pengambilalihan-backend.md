@@ -4,7 +4,7 @@
 |---|---|
 | **Tanggal** | 2026-07-29 |
 | **Sifat** | Dokumen kerja tim sendiri — **bukan** handoff. Sejak hari ini tidak ada tim backend terpisah. |
-| **Status** | ✅ Analisis & perbaikan kode selesai · ⬜ 5 langkah tulis ke production menunggu dijalankan |
+| **Status** | ✅ **SELESAI** — runbook dijalankan 2026-07-29, `audit-live.mjs` melaporkan 0 blocker |
 | **Menggantikan** | Bagian "menunggu tim backend" di `2026-07-28-sprint4-alur-b.md` §B dan `2026-07-28-handoff-auth-sprint6.md` §A/§E |
 
 ---
@@ -182,6 +182,33 @@ Setelah menjalankan skrip itu kapan pun, verifikasi dengan
 `DEFAULT_STORAGE_BUCKET_ID`.
 
 ---
+
+## 6b. Hasil Eksekusi Runbook — SELESAI
+
+Seluruh 5 langkah dijalankan 2026-07-29. `node appwrite/ops/audit-live.mjs`
+melaporkan **"Tidak ada selisih. Live sama dengan config."** — 28 Function,
+28 tabel, 7 bucket, semua kolom `available`, semua variabel terisi.
+
+Keenam blocker di §2 tertutup, dan lubang berkas terbuka publik di §3 ikut
+tertutup: `user-files` dibuat dengan `create("users")` + `fileSecurity=true`,
+dan `DEFAULT_STORAGE_BUCKET_ID` diarahkan ke sana.
+
+Dua hal yang muncul saat eksekusi dan sudah diperbaiki:
+
+1. **Dua Function baru tidak punya variabel sama sekali.** Deploy-nya berhasil,
+   tapi `getEnv()` fail-fast saat `databaseId` kosong dan `APPWRITE_DATABASE_ID`
+   tidak punya default di kode — jadi keduanya akan melempar di setiap
+   eksekusi. Paket `.env` kiriman tidak memuatnya karena tim backend memang
+   tidak pernah punya kedua Function itu. `audit-live.mjs` sekarang menandai
+   Function tanpa variabel sebagai blocker supaya tidak terulang.
+2. **`sync-env-all-functions.sh` tidak bisa dipakai** — butuh `jq` dan CLI
+   `appwrite` di PATH, keduanya tidak ada di mesin dev. Skrip itu melaporkan
+   seluruh 28 Function `NOT DEPLOYED` padahal semuanya live. Diganti
+   `appwrite/ops/sync-function-vars.mjs` yang tanpa dependensi tambahan.
+
+**Belum diverifikasi:** belum ada satu pun eksekusi Function setelah deploy
+2026-07-29 02:37. Konfigurasi sudah benar, tapi belum ada bukti runtime.
+Smoke test adalah langkah berikutnya.
 
 ## 7. Yang Masih Terbuka Setelah Runbook
 
