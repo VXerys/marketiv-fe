@@ -227,7 +227,124 @@ PHASE_DEFINITIONS: list[dict] = [
             ("s8-claim-slot", "[FE] Kembalikan totalClaims saat submission ditolak — samakan dengan expire-stale-claims"),
         ],
     },
+    # ── Trek TAB (nomor 101+) ────────────────────────────────────────────────
+    #
+    # Dibuka 2026-07-29 malam, SETELAH Sprint 8 ditutup. Sengaja BUKAN "Sprint 9":
+    # cara kerjanya berbeda, jadi meneruskan penomoran lama hanya menyamarkan
+    # bahwa aturannya berganti.
+    #
+    # Sprint 0–8 mengerjakan lapisan (read, write, permission, uang) melintasi
+    # seluruh aplikasi sekaligus, dan setiap kali hasilnya sama: "selesai" berarti
+    # service-nya jalan, bukan layarnya. Mock data menyembunyikan selisih itu
+    # sampai Sprint 7.
+    #
+    # Trek ini membalik satuannya: SATU TAB FITUR pada satu waktu, divalidasi
+    # langsung di website dengan data live sebelum pindah. Fokusnya polish UI dan
+    # bug backend yang baru muncul saat ditelusuri manusia.
+    #
+    # Tiap tab memakai tulang punggung yang sama, mengikuti urutan kerja nyata:
+    #   -live    telusuri di browser, catat temuan   (buka tab, jangan perbaiki dulu)
+    #   -ui      polish tampilan & konsistensi
+    #   -be      tutup bug backend yang ketemu
+    #   -verify  buka lagi di browser, buktikan
+    # Task konkret ditambahkan ke tab yang bersangkutan begitu -live menemukannya.
+    {
+        "phase_no": 101,
+        "name": "Negosiasi & Chat",
+        "tasks": [
+            ("neg-live", "[FE] Telusuri /negosiasi kedua role dengan data live, catat semua temuan"),
+            ("neg-card-status", "[FE] Status & informasi di kartu negosiasi — label tahap, nominal, badge unread"),
+            ("neg-realtime", "[FE] Verifikasi realtime chat dua browser (pindahan s8-realtime-verify)"),
+            ("neg-ui", "[FE] Polish UI ruang chat & daftar negosiasi kedua sisi"),
+            ("neg-be", "[BE] Tutup bug backend yang muncul saat penelusuran tab ini"),
+            ("neg-verify", "[FE] Validasi ulang di browser setelah perbaikan"),
+        ],
+    },
+    {
+        "phase_no": 102,
+        "name": "Rate Card & Direktori Kreator",
+        "tasks": [
+            ("rc-live", "[FE] Telusuri /umkm/kreator + /kreator/rate-card dengan data live"),
+            ("rc-ui", "[FE] Polish UI kartu kreator, detail, & editor paket rate card"),
+            ("rc-be", "[BE] Tutup bug backend yang muncul saat penelusuran tab ini"),
+            ("rc-verify", "[FE] Validasi ulang di browser setelah perbaikan"),
+        ],
+    },
+    {
+        "phase_no": 103,
+        "name": "Campaign & Job Pool",
+        "tasks": [
+            ("cmp-live", "[FE] Telusuri /umkm/campaign + /kreator/job-pool dengan data live"),
+            ("cmp-ui", "[FE] Polish UI wizard campaign, kartu job pool, & detail"),
+            ("cmp-be", "[BE] Tutup bug backend yang muncul saat penelusuran tab ini"),
+            ("cmp-verify", "[FE] Validasi ulang di browser setelah perbaikan"),
+        ],
+    },
+    {
+        "phase_no": 104,
+        "name": "Pekerjaan Aktif & Review Bukti",
+        "tasks": [
+            ("work-live", "[FE] Telusuri /kreator/pekerjaan-aktif + review submission sisi UMKM"),
+            ("work-ui", "[FE] Polish UI tracker order, deliverable, & layar review"),
+            ("work-be", "[BE] Tutup bug backend yang muncul saat penelusuran tab ini"),
+            ("work-verify", "[FE] Validasi ulang di browser setelah perbaikan"),
+        ],
+    },
+    {
+        "phase_no": 105,
+        "name": "Keuangan & Escrow",
+        "tasks": [
+            ("fin-live", "[FE] Telusuri /keuangan kedua role dengan data live"),
+            ("fin-deploy-stale", "[BE] create-order & create-escrow: pastikan pointer deployment menunjuk build terbaru"),
+            ("fin-ui", "[FE] Polish UI saldo, riwayat transaksi, escrow, & penarikan"),
+            ("fin-be", "[BE] Tutup bug backend yang muncul saat penelusuran tab ini"),
+            ("fin-verify", "[FE] Validasi ulang di browser setelah perbaikan"),
+        ],
+    },
+    {
+        "phase_no": 106,
+        "name": "Dashboard & Overview",
+        "tasks": [
+            ("home-live", "[FE] Telusuri dashboard home kedua role dengan data live"),
+            ("home-ui", "[FE] Polish UI kartu metrik, ringkasan, & empty state"),
+            ("home-be", "[BE] Tutup bug backend yang muncul saat penelusuran tab ini"),
+            ("home-verify", "[FE] Validasi ulang di browser setelah perbaikan"),
+        ],
+    },
+    {
+        "phase_no": 107,
+        "name": "Notifikasi",
+        "tasks": [
+            ("notif-live", "[FE] Telusuri /notifikasi kedua role dengan data live"),
+            ("notif-ui", "[FE] Polish UI daftar notifikasi, badge, & tandai terbaca"),
+            ("notif-be", "[BE] Tutup bug backend yang muncul saat penelusuran tab ini"),
+            ("notif-verify", "[FE] Validasi ulang di browser setelah perbaikan"),
+        ],
+    },
+    {
+        "phase_no": 108,
+        "name": "Profil, Pengaturan & Panduan",
+        "tasks": [
+            ("akun-live", "[FE] Telusuri profil/pengaturan/panduan kedua role dengan data live"),
+            ("akun-ui", "[FE] Polish UI form profil, pengaturan, & halaman panduan"),
+            ("akun-be", "[BE] Tutup bug backend yang muncul saat penelusuran tab ini"),
+            ("akun-verify", "[FE] Validasi ulang di browser setelah perbaikan"),
+        ],
+    },
+    {
+        "phase_no": 109,
+        "name": "Analitik",
+        "tasks": [
+            ("analitik-live", "[FE] Telusuri /umkm/analitik — saat ini ditandai coming soon"),
+            ("analitik-ui", "[FE] Putuskan: bangun betulan atau kunci rapi sebagai coming soon"),
+            ("analitik-be", "[BE] Tutup bug backend yang muncul saat penelusuran tab ini"),
+            ("analitik-verify", "[FE] Validasi ulang di browser setelah perbaikan"),
+        ],
+    },
 ]
+
+# Batas antara trek Sprint (0–8, selesai) dan trek Tab (101+, berjalan).
+TAB_TRACK_START = 100
 
 
 LEGACY_SPRINT5_TASKS = {
@@ -270,6 +387,14 @@ def seed_phases() -> None:
             conn.execute(
                 "INSERT OR IGNORE INTO phases (phase_no, name, status) VALUES (?, ?, 'pending')",
                 (phase["phase_no"], phase["name"]),
+            )
+            # Nama disegarkan terpisah: INSERT OR IGNORE tidak pernah menyentuh
+            # baris yang sudah ada, jadi tanpa ini mengganti nama phase di
+            # PHASE_DEFINITIONS tidak berpengaruh apa pun. Status TIDAK ikut
+            # disentuh — itu progres nyata, bukan definisi.
+            conn.execute(
+                "UPDATE phases SET name=? WHERE phase_no=? AND name!=?",
+                (phase["name"], phase["phase_no"], phase["name"]),
             )
             for key, title in phase["tasks"]:
                 conn.execute(
@@ -399,13 +524,29 @@ def render_markdown() -> str:
         "",
     ]
 
+    tab_header_written = False
     for phase in progress:
         active_tasks = [t for t in phase["tasks"] if t["status"] != "superseded"]
         total = len(active_tasks)
         done = sum(1 for t in active_tasks if t["status"] == "done")
         pct = int(done / total * 100) if total else 0
         icon = _status_icon(phase["status"])
-        lines.append(f"## {icon} Sprint {phase['phase_no']} — {phase['name']} ({done}/{total} · {pct}%)")
+
+        is_tab = phase["phase_no"] > TAB_TRACK_START
+        if is_tab and not tab_header_written:
+            lines.extend([
+                "---",
+                "",
+                "# Trek Tab — satu tab fitur pada satu waktu",
+                "",
+                "_Dibuka setelah Sprint 8. Tiap tab ditelusuri di website dengan data live,",
+                "dipoles, lalu divalidasi ulang sebelum pindah ke tab berikutnya._",
+                "",
+            ])
+            tab_header_written = True
+
+        label = f"Tab {phase['phase_no'] - TAB_TRACK_START}" if is_tab else f"Sprint {phase['phase_no']}"
+        lines.append(f"## {icon} {label} — {phase['name']} ({done}/{total} · {pct}%)")
         lines.append("")
         for task in phase["tasks"]:
             t_icon = _status_icon(task["status"])
@@ -436,6 +577,7 @@ def print_status_table() -> None:
     print("=" * 65)
     print("  Sprint Integrasi Appwrite — Marketiv")
     print("=" * 65)
+    tab_header_written = False
     for phase in progress:
         active_tasks = [t for t in phase["tasks"] if t["status"] != "superseded"]
         total = len(active_tasks)
@@ -443,7 +585,17 @@ def print_status_table() -> None:
         blocked = sum(1 for t in phase["tasks"] if t["status"] == "blocked")
         pct = int(done / total * 100) if total else 0
         icon = _status_icon(phase["status"])
-        print(f"\n  {icon} Sprint {phase['phase_no']}: {phase['name']}")
+
+        is_tab = phase["phase_no"] > TAB_TRACK_START
+        if is_tab and not tab_header_written:
+            print()
+            print("=" * 65)
+            print("  Trek Tab — satu tab fitur pada satu waktu")
+            print("=" * 65)
+            tab_header_written = True
+
+        label = f"Tab {phase['phase_no'] - TAB_TRACK_START}" if is_tab else f"Sprint {phase['phase_no']}"
+        print(f"\n  {icon} {label}: {phase['name']}")
         print(f"     Progress : {done}/{total} tasks selesai ({pct}%)")
         if blocked:
             print(f"     Blocked  : {blocked} task")
