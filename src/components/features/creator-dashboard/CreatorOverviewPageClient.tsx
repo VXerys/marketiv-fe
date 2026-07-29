@@ -87,6 +87,16 @@ export function CreatorOverviewPageClient() {
     void fetchData(() => true);
   };
 
+  /**
+   * Baca ulang tanpa memunculkan skeleton — dipakai setelah aksi yang mengubah
+   * data (klaim campaign). Dashboard menampilkan metrik agregat yang hanya bisa
+   * dihitung server, jadi menambal state lokal setelah aksi akan menghasilkan
+   * angka yang berbeda dari isi database.
+   */
+  const handleRefresh = useCallback(async () => {
+    await fetchData(() => true);
+  }, [fetchData]);
+
   if (loading) return <CreatorPageSkeleton showMetrics variant="grid" />;
   if (error || !data) {
     return <CreatorErrorState errorMsg={error ?? "Gagal memuat dashboard."} onRetry={handleRetry} />;
@@ -100,6 +110,7 @@ export function CreatorOverviewPageClient() {
       negotiations={data.negotiations}
       activities={data.activities}
       recommendedJobs={data.recommendedJobs}
+      onRefresh={handleRefresh}
     />
   );
 }

@@ -12,9 +12,11 @@ import {
   Users,
   SlidersHorizontal,
 } from "lucide-react";
+import { toast } from "sonner";
 import { CreatorJob } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
+import { claimCampaign } from "@/services/creator/creator-dashboard.service";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
@@ -261,11 +263,10 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
   const [filterAvailableOnly, setFilterAvailableOnly] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
 
-  // Slicing State Simulators (for QA / User review)
-
   // Modal states
   const [claimingJob, setClaimingJob] = useState<CreatorJob | null>(null);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
   const [isRulesChecked, setIsRulesChecked] = useState({
     brief: false,
     privacy: false,
@@ -286,8 +287,31 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
     setIsRulesChecked({ brief: false, privacy: false, retention: false, views: false });
   };
 
-  const executeClaim = () => {
-    if (!claimingJob) return;
+  /**
+   * Klaim campaign dari kartu Job Pool.
+   *
+   * Sebelumnya fungsi ini HANYA menaikkan `usedQuota` di state lalu membuka modal
+   * sukses — tidak ada satu pun panggilan service, sehingga klaimnya tidak pernah
+   * tercatat dan pekerjaannya tidak pernah muncul di Pekerjaan Aktif. Karena ini
+   * tombol utama kartu (tombol "Detail" hanya sekunder), jalur palsu itulah yang
+   * paling sering dipakai.
+   *
+   * Pola disamakan dengan JobDetailView.handleClaimSubmit: kuota lokal baru naik
+   * SETELAH server menerima, supaya kuota tidak terlihat berkurang saat klaim
+   * ditolak (kuota penuh / sudah pernah klaim / profil belum lengkap).
+   */
+  const executeClaim = async () => {
+    if (!claimingJob || isClaiming) return;
+    setIsClaiming(true);
+    const res = await claimCampaign(claimingJob.id);
+    setIsClaiming(false);
+
+    if (!res.success) {
+      setClaimingJob(null);
+      toast.error(res.error ?? "Gagal mengambil pekerjaan ini.");
+      return;
+    }
+
     setJobs(prevJobs =>
       prevJobs.map(job =>
         job.id === claimingJob.id ? { ...job, usedQuota: job.usedQuota + 1 } : job
@@ -554,26 +578,27 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
                 <button
                   type="button"
                   onClick={() => setClaimingJob(null)}
-                  className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-full transition-all cursor-pointer"
+                  disabled={isClaiming}
+                  className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-full transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-60"
                 >
                   Batal
                 </button>
                 <button
                   type="button"
                   onClick={executeClaim}
-                  disabled={!allRulesChecked}
+                  disabled={!allRulesChecked || isClaiming}
                   className={cn(
                     "flex-1 py-3 font-bold text-xs rounded-full border transition-all cursor-pointer",
-                    !allRulesChecked
+                    !allRulesChecked || isClaiming
                       ? "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed shadow-none"
                       : "text-white border-transparent hover:-translate-y-0.5 active:translate-y-0 shadow-md"
                   )}
-                  style={allRulesChecked ? {
+                  style={allRulesChecked && !isClaiming ? {
                     background: CREATOR_ACTION_GRADIENT,
                     boxShadow: "var(--shadow-kreator)",
                   } : undefined}
                 >
-                  Klaim Sekarang
+                  {isClaiming ? "Mengambil…" : "Klaim Sekarang"}
                 </button>
               </div>
             </div>

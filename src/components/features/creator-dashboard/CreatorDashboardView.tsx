@@ -35,11 +35,10 @@ import {
 } from "@/types/creator-dashboard";
 import {
   DashboardBadge,
-  DashboardModal,
-  DashboardButton,
   DashboardStateCard,
 } from "@/components/features/dashboard/shared";
 import { MetricCard } from "@/components/ui/metric-card";
+import { claimCampaign } from "@/services/creator/creator-dashboard.service";
 import { formatCurrency, formatCompactCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
@@ -227,6 +226,8 @@ interface CreatorDashboardViewProps {
   negotiations: CreatorNegotiation[];
   activities: CreatorActivity[];
   recommendedJobs: CreatorJob[];
+  /** Baca ulang seluruh dashboard dari server setelah aksi yang mengubah data. */
+  onRefresh: () => Promise<void>;
 }
 
 export function CreatorDashboardView({
@@ -235,119 +236,50 @@ export function CreatorDashboardView({
   activeWorks: initialActiveWorks,
   activities: initialActivities,
   recommendedJobs: initialRecommendedJobs,
+  onRefresh,
 }: CreatorDashboardViewProps) {
 
   // ── State ──────────────────────────────────────────────────────────────────
-  const [activeWorks, setActiveWorks]         = useState<CreatorActiveWork[]>(initialActiveWorks);
-  const [activities, setActivities]           = useState<CreatorActivity[]>(initialActivities);
-  const [recJobs, setRecJobs]                 = useState<CreatorJob[]>(initialRecommendedJobs);
-  const [currentMetrics, setCurrentMetrics]   = useState<CreatorMetric>(metrics);
+  //
+  // Seluruh isi layar datang dari props dan dibaca ulang lewat `onRefresh`.
+  // Tidak ada lagi salinan state yang bisa dimutasi lokal: setiap "penambalan"
+  // di sini pernah berujung pada angka yang berbeda dari isi database.
+  const activeWorks = initialActiveWorks;
+  const activities = initialActivities;
+  const recJobs = initialRecommendedJobs;
+  const currentMetrics = metrics;
 
-
-  const [isTarikDanaOpen,       setIsTarikDanaOpen]       = useState(false);
-  const [isSubmitBuktiOpen,     setIsSubmitBuktiOpen]     = useState(false);
-  const [selectedWorkToSubmit,  setSelectedWorkToSubmit]  = useState<CreatorActiveWork | null>(null);
-
-  const [bankName,        setBankName]        = useState("bca");
-  const [accountNumber,   setAccountNumber]   = useState("");
-  const [accountHolder,   setAccountHolder]   = useState("");
-  const [withdrawAmount,  setWithdrawAmount]  = useState("");
-  const [submitPlatform,  setSubmitPlatform]  = useState<"tiktok" | "instagram">("tiktok");
-  const [submitUrl,       setSubmitUrl]       = useState("");
+  const [claimingJobId, setClaimingJobId] = useState<string | null>(null);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
   const showToast = (msg: string) => toast.success(msg);
 
-  const handleKlaimJob = (jobId: string, jobTitle: string) => {
-    const targetJob = recJobs.find(j => j.id === jobId);
-    if (!targetJob) return;
+  /**
+   * Klaim campaign dari kartu rekomendasi.
+   *
+   * Dulu fungsi ini memfabrikasi baris Pekerjaan Aktif ber-id
+   * `claim_new_${Date.now()}` dan menampilkan toast sukses tanpa memanggil
+   * service apa pun — klaimnya tidak pernah tercatat.
+   *
+   * Setelah klaim diterima server, seluruh dashboard dibaca ulang lewat
+   * `onRefresh` alih-alih ditambal di state: metrik, aktivitas, dan daftar
+   * pekerjaan aktif semuanya diturunkan dari data server, jadi menambalnya
+   * sendiri hanya menghasilkan angka yang berbeda dari kenyataan.
+   */
+  const handleKlaimJob = async (jobId: string, jobTitle: string) => {
+    if (claimingJobId) return;
+    setClaimingJobId(jobId);
+    const res = await claimCampaign(jobId);
+    setClaimingJobId(null);
 
-    setRecJobs(prev => prev.filter(j => j.id !== jobId));
-    setActiveWorks(prev => [{
-      id: `claim_new_${Date.now()}`,
-      campaignId: targetJob.id,
-      title: targetJob.title,
-      brandName: targetJob.brandName,
-      brandAvatar: targetJob.brandAvatar,
-      brief: targetJob.brief,
-      ratePerThousandViews: targetJob.ratePerThousandViews,
-      status: "claimed" as const,
-      claimedAt: new Date().toISOString(),
-      deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    }, ...prev]);
-
-    setCurrentMetrics(prev => ({
-      ...prev,
-      availableJobsCount: Math.max(0, prev.availableJobsCount - 1),
-      activeJobsCount: prev.activeJobsCount + 1,
-    }));
-
-    setActivities(prev => [{
-      id: `act_new_${Date.now()}`,
-      type: "pending_escrow",
-      title: "Pekerjaan Diklaim",
-      description: `Mengklaim pekerjaan kampanye '${jobTitle}'.`,
-      amount: targetJob.totalBudget,
-      createdAt: new Date().toISOString(),
-    }, ...prev]);
-
-    showToast(`Pekerjaan "${jobTitle}" berhasil diklaim!`);
-  };
-
-  const handleWithdrawalSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const amountNum = Number(withdrawAmount);
-    if (isNaN(amountNum) || amountNum <= 0) { showToast("Masukkan nominal penarikan yang valid."); return; }
-    if (amountNum > currentMetrics.balance)  { showToast("Saldo wallet Anda tidak mencukupi."); return; }
-
-    setCurrentMetrics(prev => ({
-      ...prev,
-      balance: prev.balance - amountNum,
-      pendingPayouts: prev.pendingPayouts + amountNum,
-    }));
-    setActivities(prev => [{
-      id: `act_new_${Date.now()}`,
-      type: "payout",
-      title: "Penarikan Diajukan",
-      description: `Mengajukan penarikan Rp${amountNum.toLocaleString("id-ID")} ke ${bankName.toUpperCase()}`,
-      amount: amountNum,
-      createdAt: new Date().toISOString(),
-    }, ...prev]);
-
-    setIsTarikDanaOpen(false);
-    showToast(`Pengajuan penarikan Rp${amountNum.toLocaleString("id-ID")} berhasil dikirim!`);
-  };
-
-  const handleProofSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedWorkToSubmit || !submitUrl.trim() || !submitUrl.startsWith("http")) {
-      showToast("Masukkan URL bukti tayang yang valid.");
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal mengambil pekerjaan ini.");
       return;
     }
 
-    setActiveWorks(prev =>
-      prev.map(w =>
-        w.id === selectedWorkToSubmit.id
-          ? { ...w, status: "submitted" as const, submissionStatus: "pending" as const, fraudStatus: "safe" as const, contentUrl: submitUrl }
-          : w
-      )
-    );
-    setCurrentMetrics(prev => ({
-      ...prev,
-      activeJobsCount: Math.max(0, prev.activeJobsCount - 1),
-      pendingSubmissionsCount: prev.pendingSubmissionsCount + 1,
-    }));
-    setActivities(prev => [{
-      id: `act_new_${Date.now()}`,
-      type: "submission_valid",
-      title: "Bukti Posting Dikirim",
-      description: `Mengirimkan link bukti tayang untuk '${selectedWorkToSubmit.title}'.`,
-      createdAt: new Date().toISOString(),
-    }, ...prev]);
-
-    setIsSubmitBuktiOpen(false);
-    showToast("Bukti tayang berhasil diunggah! Menunggu verifikasi admin.");
+    showToast(`Pekerjaan "${jobTitle}" berhasil diklaim!`);
+    await onRefresh();
   };
 
   const getDaysRemaining = (deadlineStr: string): string => {
@@ -529,20 +461,20 @@ export function CreatorDashboardView({
                 <span className="text-center text-[10px] font-extrabold leading-tight text-neutral-700 transition-colors group-hover:text-kreator-700">Cari Job Pool</span>
               </Link>
 
-              {/* Submit Bukti */}
-              <button
-                onClick={() => {
-                  const activeJob = activeWorks.find(w => w.status === "claimed");
-                  if (activeJob) { setSelectedWorkToSubmit(activeJob); setSubmitUrl(""); setIsSubmitBuktiOpen(true); }
-                  else showToast("Anda tidak memiliki pekerjaan aktif.");
-                }}
+              {/* Submit Bukti — dialihkan ke Pekerjaan Aktif.
+                  Dulu tombol ini membuka modal yang menandai pekerjaan
+                  `submitted` dan MENGARANG `fraudStatus: "safe"` tanpa menulis
+                  apa pun. Alur sebenarnya ada di ActiveWorkDetailView, lengkap
+                  dengan pra-cek ai-fraud-precheck. */}
+              <Link
+                href="/dashboard/kreator/pekerjaan-aktif"
                 className="group flex flex-col items-center justify-center gap-2 rounded-[18px] border border-neutral-200/60 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-kreator-400/30 hover:bg-kreator-50/40 hover:shadow-kreator cursor-pointer"
               >
                 <div className="h-9 w-9 rounded-[12px] bg-indigo-50 border border-indigo-200/50 flex items-center justify-center group-hover:bg-indigo-100/80 transition-colors duration-200">
                   <Upload className="w-4 h-4 text-indigo-600" />
                 </div>
                 <span className="text-center text-[10px] font-extrabold leading-tight text-neutral-700 transition-colors group-hover:text-kreator-700">Submit Bukti</span>
-              </button>
+              </Link>
 
               {/* Kelola Rate Card */}
               <Link
@@ -555,14 +487,19 @@ export function CreatorDashboardView({
                 <span className="text-center text-[10px] font-extrabold leading-tight text-neutral-700 transition-colors group-hover:text-kreator-700">Kelola Rate Card</span>
               </Link>
 
-              {/* Tarik Dana */}
-              <button
-                onClick={() => { setWithdrawAmount(""); setAccountNumber(""); setAccountHolder(""); setIsTarikDanaOpen(true); }}
-                disabled={currentMetrics.balance <= 0}
+              {/* Tarik Dana — dialihkan ke Keuangan.
+                  Dulu tombol ini membuka modal yang mengurangi saldo di layar
+                  dan bilang "penarikan berhasil dikirim" tanpa memanggil
+                  requestWithdrawal. Alur sebenarnya ada di KeuanganView, lengkap
+                  dengan requestKey idempoten dan validasi Zod terhadap saldo. */}
+              <Link
+                href="/dashboard/kreator/keuangan"
+                aria-disabled={currentMetrics.balance <= 0}
+                tabIndex={currentMetrics.balance <= 0 ? -1 : undefined}
                 className={cn(
                   "group flex flex-col items-center justify-center gap-2 p-4 rounded-[18px] border transition-all duration-200 shadow-[0_2px_8px_rgba(15,23,42,.04)]",
                   currentMetrics.balance <= 0
-                    ? "bg-neutral-50 border-neutral-200 text-neutral-400 cursor-not-allowed"
+                    ? "bg-neutral-50 border-neutral-200 text-neutral-400 pointer-events-none"
                     : "bg-white border-neutral-200/60 hover:border-kreator-400/30 hover:bg-kreator-50/40 hover:-translate-y-0.5 hover:shadow-kreator cursor-pointer"
                 )}
               >
@@ -575,7 +512,7 @@ export function CreatorDashboardView({
                   <Wallet className={cn("w-4 h-4", currentMetrics.balance <= 0 ? "text-neutral-400" : "text-kreator-600")} />
                 </div>
                 <span className="text-center text-[10px] font-extrabold leading-tight transition-colors group-hover:text-kreator-700">Tarik Dana</span>
-              </button>
+              </Link>
 
               {/* Edit Profil */}
               <Link
@@ -672,13 +609,13 @@ export function CreatorDashboardView({
                         <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
                           <DashboardBadge type="status" value={String(work.submissionStatus || work.status)} size="sm" />
                           {showSubmitBtn && (
-                            <button
-                              onClick={() => { setSelectedWorkToSubmit(work); setSubmitUrl(""); setIsSubmitBuktiOpen(true); }}
+                            <Link
+                              href={`/dashboard/kreator/pekerjaan-aktif/${work.id}`}
                               className="px-4 py-2 rounded-[10px] text-white text-[10px] font-extrabold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
                               style={{ background: CREATOR_BRAND_GRADIENT, boxShadow: "var(--shadow-kreator-sm)" }}
                             >
                               Submit Bukti
-                            </button>
+                            </Link>
                           )}
                           {work.contentUrl && (
                             <a href={work.contentUrl} target="_blank" rel="noreferrer"
@@ -741,81 +678,15 @@ export function CreatorDashboardView({
           </div>
         </div>
 
-      {/* ── Tarik Dana Modal ──────────────────────────────────────────────── */}
-      <DashboardModal
-        isOpen={isTarikDanaOpen}
-        title="Tarik Saldo Wallet"
-        description={`Saldo tersedia: ${formatCurrency(currentMetrics.balance)}`}
-        onClose={() => setIsTarikDanaOpen(false)}
-        footer={
-          <div className="flex gap-3 w-full">
-            <DashboardButton type="button" variant="outline" onClick={() => setIsTarikDanaOpen(false)} fullWidthOnMobile>Batal</DashboardButton>
-            <DashboardButton type="submit" form="tarik-dana-form" variant="primary" fullWidthOnMobile>Ajukan Penarikan</DashboardButton>
-          </div>
-        }
-      >
-        <form id="tarik-dana-form" onSubmit={handleWithdrawalSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Pilih Bank</label>
-            <select value={bankName} onChange={e => setBankName(e.target.value)}
-              className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500/50 transition-all">
-              <option value="bca">Bank BCA</option>
-              <option value="mandiri">Bank Mandiri</option>
-              <option value="bni">Bank BNI</option>
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Nomor Rekening</label>
-            <input type="text" required placeholder="Masukkan nomor rekening..." value={accountNumber} onChange={e => setAccountNumber(e.target.value)}
-              className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500/50 transition-all font-semibold text-neutral-800" />
-          </div>
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Nama Pemilik Rekening</label>
-            <input type="text" required placeholder="Sesuai nama rekening tabungan..." value={accountHolder} onChange={e => setAccountHolder(e.target.value)}
-              className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500/50 transition-all font-semibold text-neutral-800" />
-          </div>
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Nominal Penarikan</label>
-            <input type="number" required min={50000} max={currentMetrics.balance} placeholder="Rp..." value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)}
-              className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500/50 transition-all font-semibold text-neutral-800" />
-          </div>
-        </form>
-      </DashboardModal>
+      {/*
+        Modal "Tarik Dana" dan "Submit Bukti" DIHAPUS di sini, bukan disambungkan.
 
-      {/* ── Submit Bukti Modal ────────────────────────────────────────────── */}
-      <DashboardModal
-        isOpen={isSubmitBuktiOpen && !!selectedWorkToSubmit}
-        title="Kirim Bukti Tayang"
-        description={selectedWorkToSubmit?.title}
-        onClose={() => setIsSubmitBuktiOpen(false)}
-        footer={
-          <div className="flex gap-3 w-full">
-            <DashboardButton type="button" variant="outline" onClick={() => setIsSubmitBuktiOpen(false)} fullWidthOnMobile>Batal</DashboardButton>
-            <DashboardButton type="submit" form="submit-bukti-form" variant="primary" fullWidthOnMobile>Kirim Bukti Tayang</DashboardButton>
-          </div>
-        }
-      >
-        <form id="submit-bukti-form" onSubmit={handleProofSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-neutral-600 uppercase tracking-wider">Platform</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button type="button" onClick={() => setSubmitPlatform("tiktok")}
-                className={cn("py-2.5 rounded-xl border font-bold text-xs transition-all cursor-pointer", submitPlatform === "tiktok" ? "bg-violet-600 text-white border-violet-600" : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50")}>
-                TikTok
-              </button>
-              <button type="button" onClick={() => setSubmitPlatform("instagram")}
-                className={cn("py-2.5 rounded-xl border font-bold text-xs transition-all cursor-pointer", submitPlatform === "instagram" ? "bg-violet-600 text-white border-violet-600" : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50")}>
-                Instagram
-              </button>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Tautan URL Video Tayang</label>
-            <input type="url" required placeholder="https://tiktok.com/@username/video/..." value={submitUrl} onChange={e => setSubmitUrl(e.target.value)}
-              className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500/50 transition-all font-semibold text-neutral-800 placeholder-neutral-400" />
-          </div>
-        </form>
-      </DashboardModal>
+        Keduanya adalah jalur uang yang implementasi lengkapnya sudah ada:
+        KeuanganView memegang requestKey idempoten + validasi Zod terhadap saldo,
+        ActiveWorkDetailView memegang alur pra-cek fraud. Menyalin keduanya ke
+        dashboard berarti dua implementasi yang harus dijaga sinkron selamanya —
+        dan versi di sini justru yang tidak pernah memanggil service.
+      */}
     </div>
   );
 }
