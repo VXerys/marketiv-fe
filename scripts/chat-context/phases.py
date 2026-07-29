@@ -210,6 +210,23 @@ PHASE_DEFINITIONS: list[dict] = [
             ("s7-auth-best-practices", "[FE] Rapikan login/register sesuai best practices (prioritas rendah, ditunda user)"),
         ],
     },
+    {
+        "phase_no": 8,
+        "name": "Integritas Alur & Keamanan Uang",
+        # Dibuka 2026-07-29 dari audit baris-demi-baris Alur A & B. Temuan intinya:
+        # service layer benar, permukaan UI kreator tidak pernah disambungkan, dan
+        # permission Alur A tidak pernah ikut diketatkan seperti Alur B.
+        "tasks": [
+            ("s8-claim-wire", "[FE] Job Pool & kartu dashboard panggil claimCampaign sungguhan (hapus klaim palsu)"),
+            ("s8-dashboard-actions", "[FE] Cabut modal tarik dana & submit bukti palsu di dashboard home; arahkan ke halaman aslinya"),
+            ("s8-submission-rowperm", "[FE] Permission baris Alur A: UMKM read+update submission/claim, cabut update kreator"),
+            ("s8-harden-wave5", "[BE] Gelombang 5 harden-permissions: cabut update(users) dari 9 koleksi Alur A & rate card"),
+            ("s8-chat-read-at", "[FE] Tulis messages.read_at saat ruang chat dibuka — badge unread akhirnya bisa turun"),
+            ("s8-realtime-verify", "[FE] Verifikasi penamaan channel realtime (collections/documents vs tables/rows), perbaiki bila mati"),
+            ("s8-atomic-money", "[BE] Increment/decrement atomik di calculate-campaign-reward, create-escrow, release-escrow, claim"),
+            ("s8-claim-slot", "[FE] Kembalikan totalClaims saat submission ditolak — samakan dengan expire-stale-claims"),
+        ],
+    },
 ]
 
 
