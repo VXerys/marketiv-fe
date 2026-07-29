@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
+import { incrementColumn } from "./atomic.js";
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -117,22 +118,20 @@ async function completeTopup(databases, env, payment) {
     return { walletId: wallet?.$id ?? null, status: "already_processed" };
   }
 
+  // Kedua cabang memakai increment atomik. Sebelumnya keduanya baca-ubah-tulis;
+  // "baca ulang tepat sebelum menulis" mempersempit jendela balapan tapi tidak
+  // menutupnya, dan webhook Midtrans memang bisa terkirim ulang.
   if (isCampaign) {
     // Campaign top-up: credit remainingBudget only — dana tidak masuk wallet bebas
-    const campaign = await databases.getDocument(
-      env.databaseId, env.campaignsCollectionId, payment.campaign_id
-    );
-    await databases.updateDocument(
-      env.databaseId, env.campaignsCollectionId, payment.campaign_id,
-      { remainingBudget: Number(campaign.remainingBudget || 0) + Number(payment.amount) }
+    await incrementColumn(
+      env, env.campaignsCollectionId, payment.campaign_id, "remainingBudget", Number(payment.amount)
     );
   } else {
-    // Baca ulang tepat sebelum menulis — Appwrite tidak punya compare-and-set.
     const fresh = await findWallet(databases, env, payment.user_id);
     if (!fresh) throw new Error(`Wallet not found for user ${payment.user_id}`);
-    await databases.updateDocument(env.databaseId, env.walletsCollectionId, fresh.$id, {
-      balance: Number(fresh.balance || 0) + Number(payment.amount)
-    });
+    await incrementColumn(
+      env, env.walletsCollectionId, fresh.$id, "balance", Number(payment.amount)
+    );
   }
 
   await databases.updateDocument(env.databaseId, env.transactionsCollectionId, ledgerId, {

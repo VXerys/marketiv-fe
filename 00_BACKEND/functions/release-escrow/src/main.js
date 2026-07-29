@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
+import { incrementColumn } from "./atomic.js";
 
 /**
  * Mirror PLATFORM_FEE_RATE di 00_BACKEND/src/services/wallet.service.ts:6 dan
@@ -63,9 +64,13 @@ export default async ({ req, res, log, error }) => {
     // sebaliknya (kredit dulu) akan membayar dua kali saat event terkirim ulang,
     // dan itu tidak bisa ditarik kembali.
     await databases.updateDocument(env.databaseId, env.escrowsCollectionId, escrow.$id, { status: "released" });
-    await databases.updateDocument(env.databaseId, env.walletsCollectionId, wallet.$id, {
-      balance: Number(wallet.balance || 0) + creatorAmount
-    });
+    // Increment atomik: kreator bisa punya beberapa order yang dirilis dalam
+    // detik yang sama, dan `wallet.balance` di sini adalah bacaan dari sebelum
+    // escrow di-flip. Menulis hasil hitungan dari bacaan itu akan menghapus
+    // pelepasan lain yang kebetulan bersamaan.
+    await incrementColumn(
+      env, env.walletsCollectionId, wallet.$id, "balance", creatorAmount
+    );
 
     await ensureTransaction(databases, env, {
       userId: creatorId,

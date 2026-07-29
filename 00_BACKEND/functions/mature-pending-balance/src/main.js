@@ -1,5 +1,6 @@
 import { Client, Databases, Permission, Query, Role } from "node-appwrite";
 import { createHash } from "node:crypto";
+import { incrementColumn, decrementColumn } from "./atomic.js";
 
 /**
  * mature-pending-balance — cron harian.
@@ -126,18 +127,26 @@ async function matureOne(databases, env, tx, amount, now, log) {
   }
 
   const pending = Number(wallet.pendingBalance) || 0;
-  const balance = Number(wallet.balance) || 0;
 
   // Jangan biarkan pendingBalance jadi negatif kalau ada koreksi manual di
   // luar Function ini.
   const move = Math.min(amount, pending);
 
-  await databases.updateDocument(
-    env.databaseId,
-    env.walletsCollectionId,
-    wallet.$id,
-    { pendingBalance: pending - move, balance: balance + move }
-  );
+  // Dua mutasi ATOMIK, bukan satu updateDocument dari hasil bacaan.
+  //
+  // Cron ini tidak berlomba dengan dirinya sendiri, tapi berlomba dengan
+  // `calculate-campaign-reward` (menambah pendingBalance), `release-escrow`, dan
+  // `request-withdrawal` (mengubah balance). Menulis `pending - move` dan
+  // `balance + move` dari angka yang dibaca beberapa milidetik sebelumnya akan
+  // MENGHAPUS reward atau penarikan yang kebetulan masuk di sela itu.
+  //
+  // Dikurangi lebih dulu: kalau eksekusi berhenti di antara keduanya, dana
+  // tertahan (bisa dikoreksi manual) alih-alih terhitung dua kali. `min: 0`
+  // membuat server menolak bila `pending` ternyata sudah menyusut — ledger
+  // tetap `pending` dan cron berikutnya mengulangnya, bukan memindahkan dana
+  // yang tidak ada.
+  await decrementColumn(env, env.walletsCollectionId, wallet.$id, "pendingBalance", move, 0);
+  await incrementColumn(env, env.walletsCollectionId, wallet.$id, "balance", move);
 
   await databases.updateDocument(
     env.databaseId,

@@ -1,4 +1,5 @@
 import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
+import { incrementColumn, decrementColumn } from "./atomic.js";
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -52,11 +53,10 @@ export default async ({ req, res, log, error }) => {
     const creatorId = doc.creatorId;
     const walletDoc = await findOrCreateWallet(databases, env, creatorId);
 
-    const currentPending = Number(walletDoc.pendingBalance) || 0;
-
-    await databases.updateDocument(
-      env.databaseId, env.walletsCollectionId, walletDoc.$id,
-      { pendingBalance: currentPending + reward }
+    // Atomik: dua submission yang di-approve bersamaan sama-sama membaca
+    // pendingBalance lama, dan yang terakhir menulis menghapus reward yang lain.
+    await incrementColumn(
+      env, env.walletsCollectionId, walletDoc.$id, "pendingBalance", reward
     );
 
     await databases.createDocument(
@@ -76,18 +76,27 @@ export default async ({ req, res, log, error }) => {
       [Permission.read(Role.user(creatorId))]
     );
 
-    const spentAmount = Number(campaign.spentAmount) + reward;
-    const newRemainingBudget = Math.max(0, remainingBudget - reward);
-
-    await databases.updateDocument(
-      env.databaseId, env.campaignsCollectionId, doc.campaignId,
-      {
-        spentAmount,
-        remainingBudget: newRemainingBudget,
-      }
+    // Kedua kolom atomik. Versi lama menghitung dari `campaign` yang dibaca di
+    // awal handler: dua approve bersamaan sama-sama melihat remainingBudget yang
+    // sama, lalu keduanya menuliskan pengurangan dari angka itu — campaign
+    // membayar melebihi dananya dan `spentAmount` tidak pernah cocok dengan
+    // jumlah reward yang benar-benar keluar.
+    //
+    // `min: 0` menggantikan Math.max(0, …) dan ditegakkan server, jadi sisa
+    // budget tidak bisa jatuh negatif walau dua eksekusi bertemu.
+    await decrementColumn(
+      env, env.campaignsCollectionId, doc.campaignId, "remainingBudget", reward, 0
+    );
+    await incrementColumn(
+      env, env.campaignsCollectionId, doc.campaignId, "spentAmount", reward
     );
 
-    if (newRemainingBudget <= 0) {
+    // Status dinilai dari angka SESUDAH pengurangan, dibaca ulang — bukan dari
+    // hasil hitungan lokal yang bisa meleset saat ada eksekusi bersamaan.
+    const fresh = await databases.getDocument(
+      env.databaseId, env.campaignsCollectionId, doc.campaignId
+    );
+    if ((Number(fresh.remainingBudget) || 0) <= 0) {
       await databases.updateDocument(
         env.databaseId, env.campaignsCollectionId, doc.campaignId,
         { status: "completed" }

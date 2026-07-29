@@ -1214,6 +1214,29 @@ export async function reviewSubmissionInAppwrite(
       }
     }
 
+    // Submission ditolak = slot kuota kembali tersedia untuk kreator lain.
+    //
+    // `expire-stale-claims` sudah melakukan ini saat klaim kedaluwarsa, tapi
+    // jalur penolakan tidak pernah ikut — padahal kreator yang ditolak juga
+    // tidak bisa mengambil campaign ini lagi (cek duplikat di claimCampaign
+    // mengabaikan status). Tanpa pengembalian ini, slot yang sudah dibayar UMKM
+    // hilang permanen: tidak terpakai kreator itu, tidak bisa diambil siapa pun.
+    if (input.status === "rejected") {
+      try {
+        await databases.decrementDocumentAttribute({
+          databaseId: DB,
+          collectionId: COLLECTIONS.campaigns,
+          documentId: str(subDoc.campaignId),
+          attribute: "totalClaims",
+          value: 1,
+          min: 0,
+        });
+      } catch {
+        // Keputusan review adalah hasil utama; kuota yang telat kembali bisa
+        // direkonsiliasi dan tidak boleh membatalkan penolakan.
+      }
+    }
+
     return ok(null);
   } catch (err) {
     return failFromWriteError<null>(err, null);
