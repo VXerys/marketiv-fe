@@ -15,11 +15,17 @@ Kredensial diambil dari env (`APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`,
 | `ensure-buckets.mjs` | ya | `node appwrite/ops/ensure-buckets.mjs --dry` |
 | `ensure-columns.mjs` | ya | `node appwrite/ops/ensure-columns.mjs --dry` |
 | `fix-function-vars.mjs` | ya | `node appwrite/ops/fix-function-vars.mjs --dry` |
+| `sync-function-vars.mjs` | ya | `node appwrite/ops/sync-function-vars.mjs --dry` |
 | `harden-permissions.mjs` | ya | `node appwrite/ops/harden-permissions.mjs --dry` |
 | `sync-functions.mjs` | ya | `npm run fn:sync:dry` lalu `npm run fn:sync` |
 
 Yang menulis selalu punya `--dry`. Jalankan kering dulu, baca rencananya, baru
 tanpa flag.
+
+`sync-function-vars.mjs` menyalin `functions/<id>/.env` ke Appwrite. Ia
+menggantikan `scripts/sync-env-all-functions.sh`, yang butuh `jq` dan CLI
+`appwrite` di PATH — di mesin dev MINGW64 keduanya tidak ada, dan skrip itu
+melaporkan seluruh 28 Function `NOT DEPLOYED` padahal semuanya live.
 
 **Mulai dari `audit-live.mjs`.** `drift.mjs` hanya membandingkan field runtime
 Function dan buta terhadap bucket, tabel, dan kolom — pada 2026-07-29 justru di

@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+# 
+# CATATAN 2026-07-29: skrip ini butuh `jq` DAN CLI `appwrite` di PATH. Di mesin
+# MINGW64 dev keduanya tidak ada, sehingga seluruh 28 Function dilaporkan
+# "NOT DEPLOYED" padahal semuanya live. Gunakan padanan Node-nya yang tidak
+# punya dependensi tambahan:
+#
+#   node appwrite/ops/sync-function-vars.mjs --dry
+#   node appwrite/ops/sync-function-vars.mjs
+#
 # sync-env-all-functions.sh
 # Sync all env vars from each function's .env to Appwrite.
 #
@@ -16,6 +25,21 @@
 set -euo pipefail
 
 FUNCTIONS_DIR="$(cd "$(dirname "$0")/../functions" && pwd)"
+
+# CLI Appwrite tidak selalu ada di PATH (di MINGW64 biasanya tidak, padahal
+# `npx appwrite` jalan). Deteksi sekali di awal, lalu pakai $AW di seluruh skrip.
+if command -v appwrite >/dev/null 2>&1; then
+  AW=(appwrite)
+elif npx --no-install appwrite --version >/dev/null 2>&1; then
+  AW=(npx --no-install appwrite)
+else
+  echo "ERROR: CLI Appwrite tidak ditemukan."
+  echo "  Pasang global : npm i -g appwrite-cli"
+  echo "  Atau lokal    : npm i -D appwrite-cli   (lalu npx appwrite ...)"
+  exit 1
+fi
+echo "CLI: ${AW[*]}"
+
 TOTAL=0
 CREATED=0
 UPDATED=0
@@ -45,8 +69,12 @@ sync_function() {
   echo "[$TOTAL] $fn..."
 
   local raw_output
-  raw_output=$(appwrite --json functions list-variables --function-id "$fn" 2>&1) || {
-    echo "   NOT DEPLOYED — deploy first via deploy-all-functions.sh"
+  raw_output=$("${AW[@]}" --json functions list-variables --function-id "$fn" 2>&1) || {
+    # Ini BUKAN berarti Function belum di-deploy — perintahnya gagal karena
+    # alasan apa pun (CLI belum login, endpoint region salah, function-id tidak
+    # ada). Tampilkan errornya, jangan menebak sebabnya.
+    echo "   [GAGAL] tidak bisa membaca variabel:"
+    echo "$raw_output" | head -3 | sed 's/^/      /'
     FAILED_FUNCTIONS+=("$fn")
     return
   }
@@ -74,7 +102,7 @@ sync_function() {
 
     if [ -n "$existing_var_id" ]; then
       echo "   UPD $key"
-      if ! appwrite functions update-variable \
+      if ! "${AW[@]}" functions update-variable \
         --function-id "$fn" \
         --variable-id "$existing_var_id" \
         --key "$key" \
@@ -88,7 +116,7 @@ sync_function() {
     else
       echo "   NEW $key"
       local uid="${key}_${$}_$(date +%s | tail -c 6)"
-      if ! appwrite functions create-variable \
+      if ! "${AW[@]}" functions create-variable \
         --function-id "$fn" \
         --variable-id "$uid" \
         --key "$key" \
