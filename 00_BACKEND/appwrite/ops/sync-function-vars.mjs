@@ -20,7 +20,19 @@
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve, join } from "node:path";
+import { randomUUID } from "node:crypto";
 import { aw } from "./client.mjs";
+
+/**
+ * `POST /functions/{id}/variables` MEWAJIBKAN `variableId` — tidak ada
+ * auto-generate di sisi server untuk endpoint ini. Menghilangkannya menghasilkan
+ * 400 `Param "variableId" is not optional`.
+ *
+ * ID kustom Appwrite: maksimal 36 karakter, hanya a-z A-Z 0-9 dan . - _ , dan
+ * tidak boleh diawali karakter khusus. UUID tanpa tanda hubung = 32 heksadesimal,
+ * selalu memenuhi syarat itu.
+ */
+const newVariableId = () => randomUUID().replace(/-/g, "");
 
 const DRY = process.argv.includes("--dry");
 const onlyIdx = process.argv.indexOf("--only");
@@ -93,15 +105,23 @@ for (const fn of fns) {
       continue;
     }
 
-    const secret = isSecret(key);
     const existing = liveByKey.get(key);
 
     if (!existing) {
-      actions.push({ kind: "NEW", key, value, secret });
+      actions.push({ kind: "NEW", key, value, secret: isSecret(key) });
       continue;
     }
-    // Nilai variabel secret tidak pernah dikembalikan API, jadi tidak bisa
-    // dibandingkan — selalu tulis ulang supaya .env tetap jadi sumber kebenaran.
+
+    // Appwrite menolak menurunkan variabel secret jadi non-secret
+    // ("Secret variables cannot be marked as non-secret"). Beberapa variabel di
+    // live terlanjur ditandai secret padahal cuma id koleksi — nilainya tetap
+    // bisa diperbarui selama flag-nya dipertahankan, jadi jangan pernah
+    // menurunkannya. Menaikkan ke secret tetap boleh.
+    const secret = existing.secret || isSecret(key);
+
+    // Nilai variabel secret tidak pernah dikembalikan API (selalu ""), jadi
+    // tidak bisa dibandingkan — selalu tulis ulang supaya `.env` tetap jadi
+    // sumber kebenaran.
     if (secret || existing.value !== value) {
       actions.push({ kind: "UPD", key, value, secret, id: existing.$id });
     } else {
@@ -122,7 +142,12 @@ for (const fn of fns) {
       if (a.kind === "NEW") {
         await aw(`/functions/${fn}/variables`, {
           method: "POST",
-          body: { key: a.key, value: a.value, secret: a.secret },
+          body: {
+            variableId: newVariableId(),
+            key: a.key,
+            value: a.value,
+            secret: a.secret,
+          },
         });
         created++;
       } else {
