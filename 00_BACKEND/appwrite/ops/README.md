@@ -18,6 +18,7 @@ Kredensial diambil dari env (`APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`,
 | `sync-function-vars.mjs` | ya | `node appwrite/ops/sync-function-vars.mjs --dry` |
 | `harden-permissions.mjs` | ya | `node appwrite/ops/harden-permissions.mjs --dry` |
 | `sync-functions.mjs` | ya | `npm run fn:sync:dry` lalu `npm run fn:sync` |
+| `activate-latest-deployment.mjs` | ya | `node appwrite/ops/activate-latest-deployment.mjs --dry` |
 
 Yang menulis selalu punya `--dry`. Jalankan kering dulu, baca rencananya, baru
 tanpa flag.
@@ -31,6 +32,12 @@ melaporkan seluruh 28 Function `NOT DEPLOYED` padahal semuanya live.
 Function dan buta terhadap bucket, tabel, dan kolom — pada 2026-07-29 justru di
 kategori itulah empat dari enam blocker bersembunyi, termasuk bucket yang tidak
 pernah dibuat dan kolom yang hilang sejak migrasi gagal.
+
+`activate-latest-deployment.mjs` memindahkan pointer deployment ke build `ready`
+terbaru yang **sudah ada**; ia tidak pernah membuat deployment baru — itu tetap
+tugas `appwrite push functions`. Dipakai saat `audit-live.mjs` melaporkan
+`STALE-DEP`, yaitu kondisi Function lolos seluruh pemeriksaan config tapi
+menjalankan kode dari build lama karena push sebelumnya berhenti di tengah.
 
 ## Kapan perubahan berlaku
 
@@ -82,9 +89,15 @@ Konsekuensinya, untuk setiap tulis ke Appwrite:
 `appwrite/sync-scopes.ts` sudah diubah jadi stub yang menolak jalan dan
 menunjuk ke sini.
 
-## Catatan untuk tim backend
+## Catatan tentang `appwrite push functions`
 
-`appwrite push functions` sekarang **aman untuk scopes** — sejak generator
-diperbaiki, `appwrite.config.json` sudah memuat key `scopes` untuk seluruh 26
-Function, jadi push tidak lagi mengosongkannya. Sebelum perbaikan itu, setiap
-push diam-diam mencabut hak akses Function.
+Push sekarang **aman untuk scopes** — sejak generator diperbaiki,
+`appwrite.config.json` sudah memuat key `scopes` untuk seluruh 28 Function, jadi
+push tidak lagi mengosongkannya. Sebelum perbaikan itu, setiap push diam-diam
+mencabut hak akses Function.
+
+Yang belum aman: **push tidak dijamin tuntas.** Build bisa tersangkut di status
+`building` tanpa batas waktu, dan saat itu terjadi pointer deployment aktif
+Function tersebut tidak pernah maju — tanpa pesan error apa pun. Karena itu
+`appwrite push functions` selalu diikuti `audit-live.mjs`, bukan dianggap
+selesai begitu perintahnya kembali.

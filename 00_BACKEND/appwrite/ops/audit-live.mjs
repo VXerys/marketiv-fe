@@ -7,6 +7,8 @@
  *   - bucket yang dideklarasikan config tapi TIDAK ADA di live (404 saat runtime)
  *   - tabel yang dideklarasikan config tapi tidak ada di live
  *   - Function tanpa deployment aktif (ada tapi tidak pernah bisa dieksekusi)
+ *   - Function yang deployment aktifnya BUKAN `ready` terbaru — konfigurasinya
+ *     benar sempurna tapi kodenya yang jalan sudah usang
  *   - permission & rowSecurity tabel/bucket yang berbeda dari config
  *
  * Tidak pernah menulis apa pun. Aman dijalankan kapan saja.
@@ -162,6 +164,77 @@ for (const f of configFns) {
     console.log(`  NO-DEPLOY   ${f.$id}`);
     note("blocker", "function", `Function "${f.$id}" ada di live tapi tanpa deployment aktif — tidak bisa dieksekusi.`);
   }
+
+  // Punya deployment aktif TIDAK berarti deployment itu yang terbaru.
+  //
+  // `appwrite push functions` mengaktifkan deployment yang dibuatnya, tapi kalau
+  // push berhenti di tengah — build nyangkut, CLI di-interrupt — deployment-nya
+  // terlanjur `ready` sementara pointer aktif tidak pernah maju. Function tetap
+  // hidup, tetap lolos seluruh pemeriksaan config di atas, dan tetap menjalankan
+  // kode lama.
+  //
+  // Ketahuan 2026-07-29 pada `create-order`: aktif di deployment 2026-07-27
+  // sementara ada 5 deployment `ready` dari 2026-07-29. Audit ini melaporkan
+  // "0 blocker" saat itu justru karena hanya memeriksa `dep` ada atau tidak.
+  if (dep) {
+    try {
+      const res = await aw(`/functions/${f.$id}/deployments`, {
+        queries: [
+          { method: "limit", values: [25] },
+          { method: "orderDesc", values: ["$createdAt"] },
+        ],
+      });
+      const deployments = res.deployments || [];
+      const active = deployments.find((d) => d.$id === dep);
+      const newestReady = deployments.find((d) => d.status === "ready");
+
+      if (newestReady && newestReady.$id !== dep) {
+        // `active` undefined artinya deployment aktifnya sudah di luar 25 terbaru
+        // — tertinggal jauh, bukan sekadar selisih satu build.
+        const activeLabel = active ? active.$createdAt.slice(0, 19) : `${dep} (di luar 25 terbaru)`;
+        console.log(`  STALE-DEP   ${f.$id}`);
+        note(
+          "blocker",
+          "function",
+          `Function "${f.$id}" aktif di deployment ${activeLabel} padahal ada "ready" yang lebih baru ` +
+            `(${newestReady.$createdAt.slice(0, 19)}) — yang jalan di live belum tentu kode yang ada di repo. ` +
+            `Perbaiki: node appwrite/ops/activate-latest-deployment.mjs`
+        );
+      }
+
+      // Build yang menggantung inilah yang menghentikan push di tengah dan
+      // menyebabkan STALE-DEP di atas.
+      //
+      // Hanya dihitung yang LEBIH BARU dari deployment aktif. Appwrite Cloud
+      // meninggalkan build tersangkut berhari-hari tanpa membersihkannya; project
+      // ini punya 16 Function dengan sisa build dari 2026-07-26 s/d 07-28 yang
+      // semuanya sudah tidak relevan. Build yang lebih tua dari deployment aktif
+      // berarti push sesudahnya sudah berhasil — tidak ada yang perlu dikerjakan.
+      // Tanpa filter ini peringatannya muncul di 16 dari 28 Function dan berhenti
+      // dibaca orang.
+      const STUCK_MINUTES = 15;
+      const cutoff = Date.now() - STUCK_MINUTES * 60_000;
+      const activeAt = active ? Date.parse(active.$createdAt) : 0;
+      const stuck = deployments.filter(
+        (d) =>
+          ["building", "processing", "waiting"].includes(d.status) &&
+          Date.parse(d.$createdAt) < cutoff &&
+          Date.parse(d.$createdAt) > activeAt
+      );
+      if (stuck.length) {
+        note(
+          "warn",
+          "function",
+          `Function "${f.$id}" punya ${stuck.length} deployment tersangkut di status build >${STUCK_MINUTES} menit ` +
+            `dan LEBIH BARU dari deployment aktif (terbaru ${stuck[0].$createdAt.slice(0, 19)}, status "${stuck[0].status}") — ` +
+            `push terakhir untuk Function ini tidak tuntas.`
+        );
+      }
+    } catch {
+      note("warn", "function", `Gagal membaca daftar deployment "${f.$id}" — kesegaran deployment tidak terverifikasi.`);
+    }
+  }
+
   if (live.enabled === false) {
     console.log(`  DISABLED    ${f.$id}`);
     note("warn", "function", `Function "${f.$id}" dalam keadaan disabled.`);
