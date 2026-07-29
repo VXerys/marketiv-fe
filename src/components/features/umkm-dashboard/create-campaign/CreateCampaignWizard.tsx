@@ -77,6 +77,16 @@ export function CreateCampaignWizard() {
 
   /** Id campaign draft yang sudah tertulis — mencegah create ganda saat bayar. */
   const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
+  /**
+   * Budget yang benar-benar tersimpan di baris draft.
+   *
+   * Bukan sekadar salinan `totalBudgetEscrow`: draft ditulis sekali lalu
+   * saveDraft() mengembalikannya apa adanya, jadi kalau pengguna mengubah budget
+   * setelah percobaan bayar yang gagal, nilai di layar tidak lagi sama dengan
+   * nilai di DB. create-payment menolak selisih itu dengan 409, dan menolaknya
+   * memang benar — yang harus dikirim adalah angka milik draft.
+   */
+  const [draftBudget, setDraftBudget] = useState<number | null>(null);
 
   // Modals state
   const [isDraftOpen, setIsDraftOpen] = useState(false);
@@ -225,6 +235,7 @@ export function CreateCampaignWizard() {
     if (res.success && res.data) {
       res.data.warnings.forEach((w) => toast.warning(w));
       setCreatedCampaignId(res.data.campaign.id);
+      setDraftBudget(res.data.campaign.totalBudgetEscrow);
       return res.data.campaign.id;
     }
 
@@ -296,7 +307,10 @@ export function CreateCampaignWizard() {
       return;
     }
 
-    const res = await createCampaignPayment({ campaignId, budget: totalBudgetEscrow });
+    const res = await createCampaignPayment({
+      campaignId,
+      budget: draftBudget ?? totalBudgetEscrow,
+    });
     if (!res.success || !res.data) {
       setIsSubmitting(false);
       toast.error(
@@ -375,6 +389,7 @@ export function CreateCampaignWizard() {
     setAiObjective("");
     setAiGenerated(false);
     setCreatedCampaignId(null);
+    setDraftBudget(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
