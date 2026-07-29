@@ -15,6 +15,11 @@ export const routes = {
   forgotPassword: "/forgot-password",
   resetPassword: "/reset-password",
   verifyEmail: "/verify-email",
+  /**
+   * Wizard lengkapi profil. Butuh sesi aktif, jadi sengaja DI LUAR route group
+   * (auth) yang justru memantulkan pengguna yang sudah punya sesi.
+   */
+  onboarding: "/onboarding",
 
   // Legal & Informational
   panduan: "/panduan",

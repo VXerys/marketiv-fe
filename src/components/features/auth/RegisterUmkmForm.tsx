@@ -16,7 +16,7 @@ import { ProfileProvisionNotice } from "./ProfileProvisionNotice";
 import { registerUmkm } from "@/services/auth/auth.service";
 import { registerUmkmSchema, PASSWORD_MIN } from "@/lib/validations/auth.schema";
 import { parseOrErrors } from "@/lib/validations/to-field-errors";
-import { routes, dashboardByRole } from "@/lib/constants/routes";
+import { routes } from "@/lib/constants/routes";
 import { NICHE_OPTIONS } from "@/components/features/umkm-dashboard/create-campaign/create-campaign.constants";
 
 /**
@@ -85,7 +85,9 @@ export function RegisterUmkmForm() {
     }
 
     await refresh();
-    router.replace(dashboardByRole.umkm);
+    // Sama seperti sisi kreator: akun baru selalu belum lengkap, jadi langsung
+    // ke wizard daripada lewat dashboard yang akan memantulkan balik.
+    router.replace(routes.onboarding);
   }
 
   if (provisionFailed) {

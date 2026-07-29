@@ -30,6 +30,7 @@ import {
   setMockRole,
   type SessionUser,
 } from "./session.service";
+import { clearOnboardingSkip } from "@/lib/onboarding-skip";
 import type { ServiceResult, ServiceErrorCode, UserRole } from "@/types/domain";
 
 /**
@@ -194,7 +195,16 @@ async function registerWithPrefs(
   const session = await getSession();
   const user: SessionUser = session.success && session.data
     ? session.data
-    : { userId: "", email, role: prefs.role, status: "active", name };
+    : {
+        userId: "",
+        email,
+        role: prefs.role,
+        status: "active",
+        name,
+        // Akun yang baru dibuat belum pernah melewati onboarding, dan di cabang
+        // ini baris profilnya bahkan belum terbentuk.
+        isProfileCompleted: false,
+      };
 
   return ok({
     user,
@@ -274,6 +284,11 @@ export async function login(
     );
   }
   const { email, password } = parsed.data;
+
+  // Melewati onboarding berlaku untuk satu sesi. Tab yang sama dipakai login
+  // ulang harus menawarkan wizardnya lagi — profil yang belum lengkap membuat
+  // kreator tidak pernah terlihat oleh UMKM.
+  clearOnboardingSkip();
 
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(400);

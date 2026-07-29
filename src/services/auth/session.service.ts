@@ -26,7 +26,26 @@ export interface SessionUser {
   /** Nama tampilan; dari users.name atau profil terkait. */
   name?: string;
   avatarUrl?: string;
+  /**
+   * Onboarding sudah diselesaikan.
+   *
+   * Kolomnya ada di `creator_profiles`/`umkm_profiles`, BUKAN di `users`, jadi
+   * nilainya butuh satu bacaan tambahan. Ikut ke sini karena RoleGuard harus
+   * memutuskan pemantulan ke /onboarding sebelum dashboard dirender, dan tanpa
+   * itu setiap halaman harus memuat profil lengkapnya sendiri lebih dulu.
+   *
+   * Gerbang ini bukan kosmetik: `get-creator-directory`, `campaign-published`,
+   * dan klaim campaign semuanya menolak profil yang belum lengkap.
+   */
+  isProfileCompleted: boolean;
 }
+
+/** Koleksi profil per role — sumber `isProfileCompleted`. */
+const PROFILE_COLLECTION: Record<UserRole, string | null> = {
+  umkm: "umkm_profiles",
+  creator: "creator_profiles",
+  admin: null,
+};
 
 /**
  * Collection `users` — mirror Appwrite Auth, berisi role & status.
@@ -46,6 +65,7 @@ const MOCK_USERS: Record<UserRole, SessionUser> = {
     role: "umkm",
     status: "active",
     name: "Dapur Sehat Sukabumi",
+    isProfileCompleted: true,
   },
   creator: {
     userId: "creator_002",
@@ -53,6 +73,7 @@ const MOCK_USERS: Record<UserRole, SessionUser> = {
     role: "creator",
     status: "active",
     name: "Nadia Visuals",
+    isProfileCompleted: true,
   },
   admin: {
     userId: "admin_001",
@@ -60,6 +81,7 @@ const MOCK_USERS: Record<UserRole, SessionUser> = {
     role: "admin",
     status: "active",
     name: "Admin Marketiv",
+    isProfileCompleted: true,
   },
 };
 
@@ -115,6 +137,35 @@ const mapErrorCode = (err: unknown): ServiceErrorCode => {
 };
 
 /**
+ * Baca `isProfileCompleted` dari koleksi profil sesuai role.
+ *
+ * Gagal-terbuka dengan sengaja: kalau bacaannya error, kembalikan `true` supaya
+ * gangguan sesaat tidak mengurung pengguna yang profilnya sudah lengkap di
+ * halaman onboarding. Gerbang yang sesungguhnya tetap dijaga server —
+ * `get-creator-directory` dan klaim campaign memeriksa kolom yang sama.
+ *
+ * `admin` tidak punya koleksi profil, jadi selalu dianggap lengkap.
+ */
+async function readProfileCompleted(userId: string, role: UserRole): Promise<boolean> {
+  const collection = PROFILE_COLLECTION[role];
+  if (!collection) return true;
+
+  try {
+    const res = await databases.listDocuments(appwriteConfig.databaseId, collection, [
+      Query.equal("userId", userId),
+      Query.limit(1),
+    ]);
+    const profile = res.documents[0] as Record<string, unknown> | undefined;
+    // Profil belum ada = jelas belum lengkap; jangan gagal-terbuka di sini,
+    // karena onboarding-lah yang akan membuat kolomnya terisi.
+    if (!profile) return false;
+    return profile.isProfileCompleted === true;
+  } catch {
+    return true;
+  }
+}
+
+/**
  * Mengambil sesi aktif.
  *
  * Mock ON  → identitas sintetis sesuai getMockRole().
@@ -145,6 +196,8 @@ export async function getSession(): Promise<ServiceResult<SessionUser>> {
       };
     }
 
+    const role = doc.role as UserRole;
+
     // `users` hanya menyimpan userId/role/status/email/phone/createdAt — tidak
     // ada `name` maupun `avatarUrl` di sana. Nama tampilan datang dari akun Auth;
     // avatar tinggal di umkm_profiles/creator_profiles dan dibaca service profil.
@@ -153,9 +206,10 @@ export async function getSession(): Promise<ServiceResult<SessionUser>> {
       data: {
         userId: authUser.$id,
         email: authUser.email,
-        role: doc.role as UserRole,
+        role,
         status: doc.status as UserStatus,
         name: authUser.name || undefined,
+        isProfileCompleted: await readProfileCompleted(authUser.$id, role),
       },
     };
   } catch (err) {

@@ -157,6 +157,55 @@ export function AuthSelectField({
   );
 }
 
+interface AuthTextareaFieldProps extends Omit<React.ComponentProps<"textarea">, "id"> {
+  label: string;
+  error?: string;
+  hint?: string;
+}
+
+/** Textarea dengan tampilan sama persis dengan AuthField. */
+export function AuthTextareaField({
+  label,
+  error,
+  hint,
+  className,
+  rows = 4,
+  ...props
+}: AuthTextareaFieldProps) {
+  const autoId = useId();
+  const id = props.name ?? autoId;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className={labelCls}>
+        {label}
+      </label>
+      <textarea
+        {...props}
+        id={id}
+        rows={rows}
+        aria-invalid={!!error}
+        aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
+        className={cn(
+          inputCls,
+          "resize-y leading-relaxed",
+          error && "border-red-400 focus:border-red-500",
+          className
+        )}
+      />
+      {error ? (
+        <span id={`${id}-error`} role="alert" className={errCls}>
+          {error}
+        </span>
+      ) : hint ? (
+        <span id={`${id}-hint`} className="text-[0.7rem] font-semibold text-ink-500">
+          {hint}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 /** Banner error non-field (kegagalan dari service, bukan dari validasi Zod). */
 export function AuthErrorBanner({ message }: { message: string }) {
   return (

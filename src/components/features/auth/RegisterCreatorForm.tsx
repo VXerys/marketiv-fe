@@ -11,7 +11,7 @@ import { ProfileProvisionNotice } from "./ProfileProvisionNotice";
 import { registerCreator } from "@/services/auth/auth.service";
 import { registerCreatorSchema, PASSWORD_MIN } from "@/lib/validations/auth.schema";
 import { parseOrErrors } from "@/lib/validations/to-field-errors";
-import { routes, dashboardByRole } from "@/lib/constants/routes";
+import { routes } from "@/lib/constants/routes";
 
 /**
  * Kreator TIDAK diminta nomor HP saat register — itu aturan bisnis
@@ -61,7 +61,10 @@ export function RegisterCreatorForm() {
     }
 
     await refresh();
-    router.replace(dashboardByRole.creator);
+    // Langsung ke wizard, bukan ke dashboard: akun baru selalu punya
+    // isProfileCompleted=false, jadi RoleGuard akan memantulkannya ke sini juga —
+    // lewat dashboard dulu cuma menampilkan skeleton yang langsung hilang.
+    router.replace(routes.onboarding);
   }
 
   if (provisionFailed) {

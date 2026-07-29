@@ -6,6 +6,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { routes, dashboardByRole } from "@/lib/constants/routes";
 import { provisionUserProfile } from "@/services/auth/auth.service";
+import { isOnboardingSkipped } from "@/lib/onboarding-skip";
 import type { UserRole } from "@/types/domain";
 
 /**
@@ -16,10 +17,11 @@ import type { UserRole } from "@/types/domain";
  * mode mock ditentukan getMockRole() (dipilih saat login mock, atau lewat
  * NEXT_PUBLIC_MOCK_ROLE).
  *
- * - tanpa sesi        → /login?next=<path>
- * - sesi tanpa profil → kartu pemulihan (BUKAN redirect — lihat di bawah)
- * - role salah        → dashboard role yang benar
- * - suspended         → blokir dengan pesan eksplisit
+ * - tanpa sesi         → /login?next=<path>
+ * - sesi tanpa profil  → kartu pemulihan (BUKAN redirect — lihat di bawah)
+ * - role salah         → dashboard role yang benar
+ * - suspended          → blokir dengan pesan eksplisit
+ * - profil belum lengkap → /onboarding, kecuali sudah dilewati sesi ini
  */
 export function RoleGuard({
   role,
@@ -36,6 +38,10 @@ export function RoleGuard({
   // Sesi valid tapi baris `users` belum ada — beda dengan "tidak ada sesi".
   const profileMissing = !loading && user == null && errorCode === "not_found";
   const noSession = !loading && user == null && !profileMissing;
+  // Dibaca di dalam efek, bukan saat render: sessionStorage tidak ada di server
+  // dan membacanya di badan komponen memicu hydration mismatch.
+  const needsOnboarding =
+    !loading && user != null && user.role === role && !user.isProfileCompleted;
 
   useEffect(() => {
     if (noSession) {
@@ -44,8 +50,12 @@ export function RoleGuard({
     }
     if (mismatchedRole && user) {
       router.replace(dashboardByRole[user.role]);
+      return;
     }
-  }, [noSession, mismatchedRole, user, router, pathname]);
+    if (needsOnboarding && !isOnboardingSkipped()) {
+      router.replace(routes.onboarding);
+    }
+  }, [noSession, mismatchedRole, needsOnboarding, user, router, pathname]);
 
   if (loading) {
     return (
