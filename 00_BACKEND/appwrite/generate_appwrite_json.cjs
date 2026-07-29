@@ -1067,6 +1067,74 @@ const functions = [
         commands: "npm install",
         path: "../functions/send-chat-notification"
     },
+    // ── Tulis lintas-user (Sprint 8) ──────────────────────────────────────────
+    //
+    // Keempatnya ada di server BUKAN karena agregasi, tapi karena Appwrite
+    // melarang klien memasang permission untuk user LAIN: dari sesi browser
+    // `permissions` hanya boleh menyebut `any`, `users`, dan role diri sendiri.
+    // Sementara `conversations`, `messages`, `offers`, `campaign_submissions`,
+    // dan `campaign_claims` tidak punya izin baca/tulis di level koleksi, jadi
+    // lawan bicara HANYA bisa mengaksesnya lewat permission per-baris.
+    //
+    // Dua syarat itu tidak bisa dipenuhi bersamaan dari browser. Jangan
+    // memindahkan logikanya kembali ke `src/services/` — yang akan terjadi cuma
+    // `AppwriteException: Permissions must be one of: (...)` lagi.
+    {
+        $id: "create-conversation",
+        name: "Create Conversation",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/create-conversation"
+    },
+    {
+        $id: "send-message",
+        name: "Send Message",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/send-message"
+    },
+    {
+        $id: "create-offer",
+        name: "Create Offer",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/create-offer"
+    },
+    {
+        $id: "review-submission",
+        name: "Review Submission",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/review-submission"
+    },
     // ── Function DTO baca (Sprint 1 / s1-appwrite-read) ────────────────────────
     // Agregasi & join yang tidak bisa dipetakan setia dari satu collection.
     // Kontrak: docs/marketiv-md/database/08-frontend-data-contract.md §6, §15, §28.

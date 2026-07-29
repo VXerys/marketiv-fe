@@ -28,6 +28,23 @@ export const FUNCTION_IDS = {
   // (seller-side, ADR-008). Lihat header masing-masing Function.
   creatorNegotiations: "get-creator-negotiations",
   umkmNegotiations: "get-umkm-negotiations",
+  // ── Tulis lintas-user (Sprint 8) ─────────────────────────────────────────
+  /**
+   * Empat aksi tulis yang HARUS lewat server, bukan karena agregasi tapi karena
+   * Appwrite melarang klien memasang permission untuk user lain — dari sesi
+   * browser `permissions` hanya boleh menyebut `any`, `users`, dan role diri
+   * sendiri. Sementara `conversations`/`messages`/`offers`/`campaign_*` tidak
+   * punya izin di level koleksi, jadi lawan bicara cuma bisa mengaksesnya lewat
+   * permission per-baris.
+   *
+   * Gejalanya kalau ada yang memindahkannya kembali ke klien:
+   * `AppwriteException: Permissions must be one of: (any, users, user:<diri
+   * sendiri>, ...)`, yang di UI tampil sebagai "Gagal menyimpan data".
+   */
+  createConversation: "create-conversation",
+  sendMessage: "send-message",
+  createOffer: "create-offer",
+  reviewSubmission: "review-submission",
   // ── Tulis / aksi (Sprint 3) ──────────────────────────────────────────────
   aiBrief: "ai-brief",
   createPayment: "create-payment",
@@ -103,15 +120,39 @@ export async function executeFunction<T>(
     );
   }
 
-  if (execution.status === "failed") {
-    throw new FunctionExecutionError(`Function ${functionId} gagal dieksekusi`, 500, "server");
-  }
-
   const statusCode = execution.responseStatusCode;
+
   let payload: unknown;
   try {
     payload = execution.responseBody ? JSON.parse(execution.responseBody) : null;
   } catch {
+    payload = null;
+  }
+
+  /**
+   * `status === "failed"` diperiksa SETELAH body-nya dibaca, bukan sebelum.
+   *
+   * Appwrite menandai eksekusi yang membalas 5xx sebagai "failed" sekalipun
+   * Function-nya menutup rapat errornya dan membalas JSON yang benar. Versi
+   * sebelumnya melempar di sini lebih dulu, sehingga `{error: "..."}` dari
+   * Function tidak pernah dibaca dan semua kegagalan tampil sebagai kalimat
+   * generik "gagal dieksekusi" — persis pola yang sudah dua kali menyembunyikan
+   * penyebab asli. `execution.errors` berisi stderr Function dan hanya dicetak
+   * di luar production.
+   */
+  if (execution.status === "failed") {
+    if (process.env.NODE_ENV !== "production") {
+      console.error(
+        `[function] ${functionId} status=failed code=${statusCode}`,
+        execution.errors || execution.responseBody || "(tanpa keluaran)"
+      );
+    }
+    const message =
+      (payload as { error?: string } | null)?.error ?? `Function ${functionId} gagal dieksekusi`;
+    throw new FunctionExecutionError(message, statusCode || 500, statusToCode(statusCode || 500));
+  }
+
+  if (payload === null && execution.responseBody) {
     throw new FunctionExecutionError(
       `Function ${functionId} mengembalikan respons non-JSON`,
       statusCode,

@@ -12,7 +12,6 @@ import {
   createOfferSchema,
   type CreateOfferInput,
 } from "@/lib/validations/offer.schema";
-import { appendOfferMessageInAppwrite } from "@/services/shared/conversation-appwrite.service";
 import { getNotificationsFromAppwrite } from "@/services/shared/notification-appwrite.service";
 import type { NotifType } from "@/types/notification.types";
 import {
@@ -526,63 +525,26 @@ export async function createOfferInAppwrite(
   const offer = parsed.data;
 
   try {
-    // Percakapan dimuat lebih dulu supaya permission baris memakai peserta yang
-    // sebenarnya, bukan creatorId yang dikirim klien.
-    const conversation = (await databases.getDocument(
-      DB,
-      COLLECTIONS.conversations,
-      offer.conversationId
-    )) as unknown as Doc;
+    // Lewat Function: baris `offers` harus terbaca kreator dan di-update kreator
+    // (dia yang accept/reject), sementara klien Appwrite tidak boleh memasang
+    // permission untuk user lain. Peserta percakapan, pembagian permission, dan
+    // kartu offer di chat semuanya ditentukan di sisi server — `creatorId` yang
+    // dikirim di sini cuma dicocokkan, tidak dipercaya.
+    const data = await executeFunction<{ offerId?: string }>(FUNCTION_IDS.createOffer, {
+      conversationId: offer.conversationId,
+      creatorId: offer.creatorId,
+      title: offer.title,
+      description: offer.description || "",
+      price: offer.price,
+      deadline: offer.deadline,
+      revisionLimit: offer.revisionLimit,
+    });
 
-    const umkmId = str(conversation.umkm_id);
-    const creatorId = str(conversation.creator_id);
-
-    if (umkmId !== auth.userId) {
-      return fail("Hanya UMKM dalam percakapan ini yang dapat mengirim penawaran.", "forbidden", "");
-    }
-    if (creatorId !== offer.creatorId) {
-      return fail("Kreator tidak sesuai dengan percakapan.", "validation", "");
-    }
-
-    const created = await databases.createDocument(
-      DB,
-      COLLECTIONS.offers,
-      ID.unique(),
-      {
-        conversationId: offer.conversationId,
-        umkmId,
-        creatorId,
-        title: offer.title,
-        description: offer.description || "",
-        price: offer.price,
-        deadline: offer.deadline,
-        revisionLimit: offer.revisionLimit,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-      },
-      [
-        Permission.read(Role.user(umkmId)),
-        Permission.read(Role.user(creatorId)),
-        Permission.update(Role.user(creatorId)),
-        Permission.delete(Role.user(umkmId)),
-      ]
-    );
-
-    const offerId = str(created.$id);
-
-    // Pesan chat menyusul offer-nya, bukan sebaliknya: kalau createDocument di
-    // atas gagal, tidak ada kartu offer menggantung yang menunjuk ke baris yang
-    // tidak ada. Kalau JUSTRU ini yang gagal, offer tetap sah dan muncul di DTO
-    // negosiasi — jadi kegagalannya tidak dinaikkan sebagai error.
-    await appendOfferMessageInAppwrite(
-      offer.conversationId,
-      offerId,
-      `Penawaran Khusus: ${offer.title}`
-    );
-
+    const offerId = str(data?.offerId);
+    if (!offerId) return fail("Penawaran gagal dikirim.", "server", "");
     return ok(offerId);
   } catch (err) {
-    return failFromWriteError<string>(err, "", "Data offer tidak valid.");
+    return failFromWriteError<string>(err, "", "Data offer tidak valid.", "createOffer");
   }
 }
 
@@ -1168,51 +1130,21 @@ export async function reviewSubmissionInAppwrite(
   const auth = await requireUserId<null>(null);
   if (!auth.ok) return auth.result;
   try {
-    const subDoc = (await databases.getDocument(
-      DB,
-      COLLECTIONS.submissions,
-      input.submissionId
-    )) as unknown as Doc;
-
-    if (str(subDoc.status) !== "pending") {
-      return failValidation(
-        "Submission ini sudah pernah direview.",
-        null
-      );
-    }
-
-    // Kepemilikan lewat campaign induk — `campaign_submissions` tidak menyimpan
-    // umkmId, dan collection update("users") terlalu longgar untuk dipercaya.
-    const parent = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
-      Query.equal("$id", str(subDoc.campaignId)),
-      Query.equal("umkmId", auth.userId),
-      Query.limit(1),
-    ]);
-    if (!parent.documents[0]) {
-      return fail("Submission tidak ditemukan.", "not_found", null);
-    }
-
-    if (input.status === "approved" && (!Number.isInteger(input.views) || input.views < 0)) {
-      return failValidation("Jumlah views tidak valid.", null);
-    }
-
-    await databases.updateDocument(DB, COLLECTIONS.submissions, input.submissionId, {
-      status: input.status,
-      views: input.status === "approved" ? input.views : num(subDoc.views),
-    });
-
-    // Status claim mengikuti hasil review supaya layar kreator tidak terus
-    // menampilkan "menunggu review" setelah keputusan keluar.
-    const claimId = str(subDoc.claimId);
-    if (claimId) {
-      try {
-        await databases.updateDocument(DB, COLLECTIONS.claims, claimId, {
-          status: input.status,
-        });
-      } catch {
-        // Submission adalah sumber kebenaran review; claim menyusul.
+    // `campaign_submissions` dan `campaign_claims` tidak punya update di level
+    // koleksi (dicabut Sprint 8 — update("users") berarti siapa pun bisa
+    // menyetujui bukti kerja siapa pun lalu mencairkan dananya), dan permission
+    // barisnya tidak bisa dipasang kreator untuk UMKM. Jadi kedua update itu
+    // dikerjakan Function; kepemilikan lewat campaign induk juga diperiksa
+    // di sana, bukan di sini.
+    const reviewed = await executeFunction<{ campaignId?: string }>(
+      FUNCTION_IDS.reviewSubmission,
+      {
+        submissionId: input.submissionId,
+        status: input.status,
+        views: input.status === "approved" ? input.views : undefined,
       }
-    }
+    );
+    const campaignId = str(reviewed?.campaignId);
 
     // Submission ditolak = slot kuota kembali tersedia untuk kreator lain.
     //
@@ -1221,12 +1153,18 @@ export async function reviewSubmissionInAppwrite(
     // tidak bisa mengambil campaign ini lagi (cek duplikat di claimCampaign
     // mengabaikan status). Tanpa pengembalian ini, slot yang sudah dibayar UMKM
     // hilang permanen: tidak terpakai kreator itu, tidak bisa diambil siapa pun.
-    if (input.status === "rejected") {
+    //
+    // SENGAJA tetap di klien, bukan ikut pindah ke Function: UMKM adalah pemilik
+    // baris `campaigns` jadi update-nya sah dari sini, dan `decrementDocument-
+    // Attribute` bersifat atomik. node-appwrite 14 yang dipakai Function belum
+    // punya operasi itu, jadi memindahkannya ke sana berarti kembali ke
+    // baca-ubah-tulis — race yang baru saja ditutup commit 016811d.
+    if (input.status === "rejected" && campaignId) {
       try {
         await databases.decrementDocumentAttribute({
           databaseId: DB,
           collectionId: COLLECTIONS.campaigns,
-          documentId: str(subDoc.campaignId),
+          documentId: campaignId,
           attribute: "totalClaims",
           value: 1,
           min: 0,
@@ -1239,7 +1177,7 @@ export async function reviewSubmissionInAppwrite(
 
     return ok(null);
   } catch (err) {
-    return failFromWriteError<null>(err, null);
+    return failFromWriteError<null>(err, null, undefined, "reviewSubmission");
   }
 }
 

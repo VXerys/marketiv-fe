@@ -1,6 +1,7 @@
-import { ID, Permission, Query, Role } from "appwrite";
+import { Query } from "appwrite";
 import { databases } from "@/lib/appwrite/databases";
 import { appwriteConfig } from "@/lib/appwrite/config";
+import { executeFunction, FUNCTION_IDS } from "@/lib/appwrite/functions";
 import type { ServiceResult } from "@/types/domain";
 import type { ChatMessage } from "@/types/umkm-dashboard.types";
 import {
@@ -28,11 +29,26 @@ import {
  * `last_message`, `conversation_id`, `sender_id`, `message_type`, `read_at`).
  * Jangan menyalin pola camelCase dari service lain ke sini.
  *
- * ⚠️ PERMISSION. Sejak pengetatan gelombang 2, `conversations` dan `messages`
- * hanya punya `create("users")` di level koleksi — tanpa `read`. Artinya setiap
- * baris WAJIB memasang permission untuk kedua pihak saat dibuat; kalau tidak,
- * lawan bicara tidak akan pernah bisa membacanya dan tidak ada pesan error yang
- * menjelaskan kenapa.
+ * ⚠️ PERMISSION — dan kenapa jalur tulisnya ada di Function.
+ * Sejak pengetatan gelombang 2, `conversations` dan `messages` hanya punya
+ * `create("users")` di level koleksi, tanpa `read`. Artinya setiap baris WAJIB
+ * memasang permission untuk kedua pihak saat dibuat, kalau tidak lawan bicara
+ * tidak akan pernah bisa membacanya.
+ *
+ * Tapi Appwrite MELARANG klien memasang permission untuk user lain: dari sesi
+ * browser, `permissions` hanya boleh menyebut `any`, `users`, dan role diri
+ * sendiri. Percobaannya berbalas
+ *
+ *   AppwriteException: Permissions must be one of: (any, users, user:<diri
+ *   sendiri>, user:<diri sendiri>/unverified, users/unverified)
+ *
+ * yang di UI tampil sebagai "Gagal menyimpan data. Coba lagi." Karena itu SEMUA
+ * tulis di file ini lewat Function (`create-conversation`, `send-message`,
+ * `create-offer`) yang berjalan dengan API key. Yang tersisa di klien hanya
+ * baca, dan update baris yang pemiliknya memang sudah punya izin —
+ * `markConversationRead` dan `setConversationArchived`.
+ *
+ * Jangan mengembalikan `databases.createDocument` ke sini.
  */
 
 const DB = appwriteConfig.databaseId;
@@ -40,10 +56,14 @@ const CONVERSATIONS = "conversations";
 const MESSAGES = "messages";
 const OFFERS = "offers";
 
-/** Batas kolom `messages.content` di appwrite.config.json. */
+/**
+ * Batas kolom `messages.content` di appwrite.config.json.
+ *
+ * Dipakai untuk menolak lebih awal supaya pengguna tidak menunggu satu eksekusi
+ * Function hanya untuk ditolak. Batas yang MENGIKAT tetap ada di Function
+ * `send-message` — pemeriksaan di klien tidak pernah jadi pengaman.
+ */
 const MAX_MESSAGE_LENGTH = 2000;
-/** Batas kolom `conversations.last_message`. Lebih kecil dari content. */
-const MAX_LAST_MESSAGE_LENGTH = 1000;
 
 export type ConversationFlag = {
   id: string;
@@ -70,13 +90,16 @@ const mapConversation = (d: Doc): ConversationFlag => ({
 export const conversationPairKey = (umkmId: string, creatorId: string): string =>
   `${umkmId}:${creatorId}`;
 
-/** Permission baris: kedua peserta membaca dan memperbarui. */
-const participantPermissions = (umkmId: string, creatorId: string) => [
-  Permission.read(Role.user(umkmId)),
-  Permission.read(Role.user(creatorId)),
-  Permission.update(Role.user(umkmId)),
-  Permission.update(Role.user(creatorId)),
-];
+/**
+ * Bentuk user ID yang diterima Appwrite: maksimal 36 karakter, huruf/angka/
+ * titik/strip/garis bawah, dan tidak boleh diawali karakter selain alfanumerik.
+ *
+ * Dipakai untuk memeriksa `creatorId` SEBELUM dijadikan `Role.user(...)`. Kolom
+ * `creator_id` sendiri menerima string 255 karakter apa pun, jadi nilai yang
+ * tidak sah lolos ke Appwrite dan baru ditolak di sana sebagai 400 "invalid
+ * permissions" — pesan yang tidak pernah sampai ke pengguna.
+ */
+const APPWRITE_USER_ID = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,35}$/;
 
 /**
  * Percakapan milik sesi aktif, apa pun perannya.
@@ -117,11 +140,16 @@ export async function getMyConversationsFromAppwrite(): Promise<
  * Mulai (atau lanjutkan) percakapan dengan seorang kreator. UMKM-only —
  * pemanggilnya selalu menjadi `umkm_id`.
  *
- * Percakapan yang sudah ada dikembalikan apa adanya, bukan dianggap error.
- * `conversations` punya unique index `umkm_id + creator_id`, jadi ada DUA jalur
- * yang harus menghasilkan hal yang sama: pemeriksaan di awal (jalur normal) dan
- * penangkapan 409 (dua tab menekan "Chat" bersamaan). Tanpa yang kedua, balapan
- * itu tampil sebagai "Gagal menyimpan data" padahal percakapannya ada.
+ * Lewat Function, bukan `databases.createDocument`. Barisnya wajib membawa
+ * permission untuk KEDUA peserta (`conversations` tidak punya `read` di level
+ * koleksi), dan klien Appwrite dilarang memasang permission untuk user lain —
+ * lihat catatan di FUNCTION_IDS. Validasi di sini hanya menyaring lebih awal;
+ * yang menegakkan aturannya tetap Function.
+ *
+ * Percakapan yang sudah ada dikembalikan apa adanya, bukan dianggap error —
+ * termasuk saat unique index `umkm_id + creator_id` menolak baris kedua.
+ * Idempotensinya sekarang dipegang penuh Function, yang membaca dengan API key
+ * sehingga tidak pernah buta terhadap baris ber-permission rusak.
  */
 export async function createConversationInAppwrite(
   creatorId: string
@@ -132,45 +160,21 @@ export async function createConversationInAppwrite(
   if (creatorId === auth.userId) {
     return fail("Tidak bisa memulai percakapan dengan diri sendiri.", "validation", "");
   }
+  if (!APPWRITE_USER_ID.test(creatorId)) {
+    return fail("Profil kreator ini belum tertaut ke akun yang sah.", "validation", "");
+  }
 
   try {
-    const existing = await findConversationByPair(auth.userId, creatorId);
-    if (existing) return ok(existing);
-
-    const created = await databases.createDocument(
-      DB,
-      CONVERSATIONS,
-      ID.unique(),
-      {
-        umkm_id: auth.userId,
-        creator_id: creatorId,
-        last_message: "",
-        last_message_at: new Date().toISOString(),
-        is_archived: false,
-      },
-      participantPermissions(auth.userId, creatorId)
+    const data = await executeFunction<{ conversationId?: string }>(
+      FUNCTION_IDS.createConversation,
+      { creatorId }
     );
-    return ok(str(created.$id));
+    const conversationId = str(data?.conversationId);
+    if (!conversationId) return fail("Ruang negosiasi gagal dibuka.", "server", "");
+    return ok(conversationId);
   } catch (err) {
-    // 409 = unique index menolak duplikat. Percakapannya ada, ambil saja.
-    if ((err as { code?: number })?.code === 409) {
-      const raced = await findConversationByPair(auth.userId, creatorId).catch(() => null);
-      if (raced) return ok(raced);
-    }
-    return failFromWriteError<string>(err, "");
+    return failFromWriteError<string>(err, "", undefined, "createConversation");
   }
-}
-
-async function findConversationByPair(
-  umkmId: string,
-  creatorId: string
-): Promise<string | null> {
-  const res = await databases.listDocuments(DB, CONVERSATIONS, [
-    Query.equal("umkm_id", umkmId),
-    Query.equal("creator_id", creatorId),
-    Query.limit(1),
-  ]);
-  return res.documents[0] ? str(res.documents[0].$id) : null;
 }
 
 /** Peserta percakapan + peran pemanggil, atau null bila bukan peserta. */
@@ -195,9 +199,14 @@ async function loadParticipation(conversationId: string, userId: string) {
 /**
  * Kirim pesan teks.
  *
- * `conversations.last_message` sengaja diperbarui SETELAH pesannya tersimpan.
- * Urutan sebaliknya bisa meninggalkan ringkasan percakapan yang menjanjikan
- * pesan yang tidak pernah ada.
+ * Lewat Function karena baris `messages` harus terbaca lawan bicara, dan klien
+ * tidak boleh memasang permission untuk user lain. Tanpa permission per-baris,
+ * pesan tidak akan sampai — termasuk lewat realtime, yang hanya mengirim event
+ * untuk baris yang boleh dibaca penerimanya.
+ *
+ * Function juga yang memperbarui `conversations.last_message`, SETELAH pesannya
+ * tersimpan. Urutan sebaliknya bisa meninggalkan ringkasan percakapan yang
+ * menjanjikan pesan yang tidak pernah ada.
  */
 export async function sendMessageInAppwrite(
   conversationId: string,
@@ -214,85 +223,14 @@ export async function sendMessageInAppwrite(
   }
 
   try {
-    const participation = await loadParticipation(conversationId, auth.userId);
-    if (!participation) return fail("Percakapan tidak ditemukan.", "not_found", empty);
-
-    const created = await databases.createDocument(
-      DB,
-      MESSAGES,
-      ID.unique(),
-      {
-        conversation_id: conversationId,
-        sender_id: auth.userId,
-        message_type: "text",
-        content: text,
-        offer_id: null,
-        read_at: null,
-      },
-      participantPermissions(participation.umkmId, participation.creatorId)
-    );
-
-    await databases.updateDocument(DB, CONVERSATIONS, conversationId, {
-      last_message: text.slice(0, MAX_LAST_MESSAGE_LENGTH),
-      last_message_at: new Date().toISOString(),
-    });
-
-    return ok({
-      id: str(created.$id),
+    const message = await executeFunction<ChatMessage>(FUNCTION_IDS.sendMessage, {
       conversationId,
-      senderId: auth.userId,
-      senderRole: participation.role,
-      type: "text",
       content: text,
-      isRead: true,
-      createdAt: str(created.$createdAt),
     });
+    if (!message?.id) return fail("Pesan gagal terkirim.", "server", empty);
+    return ok(message);
   } catch (err) {
-    return failFromWriteError<ChatMessage>(err, empty);
-  }
-}
-
-/**
- * Catat satu pesan bertipe `offer` di dalam percakapan, lalu perbarui
- * ringkasannya. Dipakai `createOfferInAppwrite` setelah baris `offers` dibuat.
- *
- * Diekspor dari sini, bukan disalin ke service UMKM, supaya aturan snake_case
- * dan permission baris hanya ditulis di satu tempat.
- */
-export async function appendOfferMessageInAppwrite(
-  conversationId: string,
-  offerId: string,
-  summary: string
-): Promise<ServiceResult<null>> {
-  const auth = await requireUserId<null>(null);
-  if (!auth.ok) return auth.result;
-  try {
-    const participation = await loadParticipation(conversationId, auth.userId);
-    if (!participation) return fail("Percakapan tidak ditemukan.", "not_found", null);
-
-    await databases.createDocument(
-      DB,
-      MESSAGES,
-      ID.unique(),
-      {
-        conversation_id: conversationId,
-        sender_id: auth.userId,
-        message_type: "offer",
-        content: summary.slice(0, MAX_MESSAGE_LENGTH),
-        offer_id: offerId,
-        read_at: null,
-      },
-      participantPermissions(participation.umkmId, participation.creatorId)
-    );
-
-    await databases.updateDocument(DB, CONVERSATIONS, conversationId, {
-      last_message: summary.slice(0, MAX_LAST_MESSAGE_LENGTH),
-      last_message_at: new Date().toISOString(),
-      offer_id: offerId,
-    });
-    return ok(null);
-  } catch (err) {
-    return failFromWriteError<null>(err, null);
+    return failFromWriteError<ChatMessage>(err, empty, undefined, "sendMessage");
   }
 }
 

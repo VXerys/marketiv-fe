@@ -1262,17 +1262,18 @@ export async function claimCampaignInAppwrite(
         status: "claimed",
         claimedAt: new Date().toISOString(),
       },
-      // Kreator: baca, submit bukti (status → submitted), batalkan klaim.
-      // UMKM pemilik campaign: baca + update, karena reviewSubmission
-      // menyinkronkan status claim mengikuti hasil review. Tanpa itu, review
-      // akan gagal begitu `campaign_claims` kehilangan update("users") di level
-      // koleksi (gelombang 5 harden-permissions).
+      // HANYA role diri sendiri. Appwrite menolak klien yang memasang permission
+      // untuk user lain ("Permissions must be one of: (any, users, user:<diri
+      // sendiri>, ...)"), jadi dua baris untuk UMKM yang sempat ada di sini
+      // membuat klaim campaign gagal total — bukan sekadar tidak berefek.
+      //
+      // UMKM tetap bisa membaca klaim ini lewat `read("any")` yang masih
+      // terpasang di level koleksi `campaign_claims`, dan update statusnya
+      // dikerjakan Function `review-submission` dengan API key.
       [
         Permission.read(Role.user(auth.userId)),
         Permission.update(Role.user(auth.userId)),
         Permission.delete(Role.user(auth.userId)),
-        Permission.read(Role.user(str(campaign.umkmId))),
-        Permission.update(Role.user(str(campaign.umkmId))),
       ]
     );
 
@@ -1356,16 +1357,6 @@ export async function submitProofInAppwrite(
       );
     }
 
-    // `campaign_submissions` tidak menyimpan umkmId, jadi pemiliknya diambil dari
-    // campaign induk — dialah yang berhak membaca & mereview baris ini.
-    const campaign = (await databases.getDocument(
-      DB,
-      COLLECTIONS.campaigns,
-      input.campaignId
-    )) as unknown as Doc;
-    const umkmId = str(campaign.umkmId);
-    if (!umkmId) return fail("Campaign tidak valid.", "not_found", null);
-
     await databases.createDocument(
       DB,
       COLLECTIONS.submissions,
@@ -1380,12 +1371,17 @@ export async function submitProofInAppwrite(
         views: 0,
         status: "pending",
       },
-      // Lihat catatan jalur uang di header fungsi ini: keduanya membaca, HANYA
-      // UMKM yang boleh update.
+      // HANYA role diri sendiri — alasan yang sama dengan claimCampaign di atas.
+      //
+      // Jalur uang tetap terjaga, dan justru lebih rapat: `views` + status
+      // "approved" adalah yang memicu calculate-campaign-reward menambah saldo
+      // kreator, dan sekarang SATU-SATUNYA yang bisa menulisnya adalah Function
+      // `review-submission` (level koleksi tanpa update, baris tanpa update untuk
+      // siapa pun kecuali kreatornya sendiri untuk kirim ulang bukti). UMKM
+      // membacanya lewat `read("any")` yang masih ada di level koleksi.
       [
         Permission.read(Role.user(auth.userId)),
-        Permission.read(Role.user(umkmId)),
-        Permission.update(Role.user(umkmId)),
+        Permission.update(Role.user(auth.userId)),
       ]
     );
 
