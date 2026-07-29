@@ -108,7 +108,7 @@ komentar penjelas hari ini.
 | 14 variabel `APPWRITE_FUNCTION_API_ENDPOINT` / `APPWRITE_FUNCTION_PROJECT_ID` dibuat manual bernilai kosong di 7 Function `get-*` | Dihapus. Nama reserved, Appwrite meng-inject-nya saat runtime; keberadaannya jebakan bagi yang mengira perlu diisi |
 | Frontend `provisionUserProfile()` tidak mengirim `email` & `name` | Diperbaiki — `users.email` dan `creator_profiles.displayName` sebelumnya tersimpan string kosong |
 | `harden-permissions.mjs` abort dengan stacktrace saat bucket target tidak ada | Diperbaiki — melaporkan `MISS` lalu lanjut |
-| **Variabel Function tidak terlacak di repo sama sekali** (`appwrite.config.json` tidak punya blok `variables`) | **Celah yang diketahui, belum ditutup.** Inilah sebabnya `DEFAULT_STORAGE_BUCKET_ID` bisa salah berminggu-minggu tanpa jejak. Melacaknya utuh = pekerjaan tersendiri; variabel `secret: true` tidak bisa dibaca balik lewat API sehingga tidak bisa di-snapshot |
+| **Variabel Function tidak terlacak di repo** (`appwrite.config.json` tidak punya blok `variables`) | Sebagian tertutup oleh `scripts/sync-env-all-functions.sh` — lihat §6a. Sumber kebenarannya `functions/<id>/.env` yang **gitignored**, jadi nilainya tetap tidak terversion; yang berubah adalah sekarang ada satu jalur resmi menyetelnya |
 | Harness `vitest`: **103 dari 121 tes gagal** | **Di luar scope perbaikan ini.** Bukan blocker — tidak ada fungsi yang bergantung padanya. Sebagian ekspektasinya juga sudah usang terhadap ADR-008 (mis. `createPayment ... adds 2% fee to totalAmount`, padahal fee seller-side). Perlu workstream sendiri |
 
 ---
@@ -155,6 +155,31 @@ sebaliknya, jadi langkah 5 harus naik bersamaan dengan frontend yang sudah ada d
 `staging`.
 
 Sesudah langkah 2: **cabut API key `ai-brief` yang lama di konsol Appwrite.**
+
+### 6a. Peringatan urutan — `sync-env-all-functions.sh`
+
+`00_BACKEND/scripts/sync-env-all-functions.sh` menyalin `functions/<id>/.env` ke
+Appwrite. Saat ini **tidak ada satu pun `.env` di repo** (semuanya gitignored),
+jadi skrip itu melewati semua Function dan tidak berbenturan dengan apa pun.
+
+Tapi begitu `.env` dibuat, **urutannya jadi penting**: menjalankan skrip itu
+*setelah* langkah 2 akan menimpa ulang variabel dari isi `.env`. Kalau `.env`
+menyalin nilai lama, `DEFAULT_STORAGE_BUCKET_ID` kembali ke `campaign-assets`
+dan lubang §3 terbuka lagi — diam-diam, karena skripnya melaporkan sukses.
+
+Dua pengaman sudah dipasang:
+
+1. `functions/validate-and-upload/.env.example` sekarang berisi
+   `DEFAULT_STORAGE_BUCKET_ID=user-files` eksplisit (dulu placeholder
+   `your-storage-bucket-id`), dengan penjelasan kenapa jangan diarahkan ke
+   `campaign-assets`.
+2. Ke-23 `.env.example` tidak lagi memuat `APPWRITE_FUNCTION_API_KEY`, jadi
+   `.env` yang dibuat dari template tidak akan menghidupkan ulang variabel yang
+   dihapus langkah 2.
+
+Setelah menjalankan skrip itu kapan pun, verifikasi dengan
+`node appwrite/ops/audit-live.mjs` dan periksa ulang
+`DEFAULT_STORAGE_BUCKET_ID`.
 
 ---
 
