@@ -1,20 +1,15 @@
 "use client";
 
 interface CreatorStatsCardsProps {
-  creatorId: string;
+  engagementRate: number;
+  completedJobs: number;
 }
 
-export function CreatorStatsCards({ creatorId }: CreatorStatsCardsProps) {
-  // Vary statistics mockup based on id
-  const idNum = parseInt(creatorId) || 1;
-  const engagement = (4.5 + (idNum % 3) * 0.7).toFixed(1) + "%";
-  const avgViews = (12 + (idNum % 4) * 4).toFixed(0) + ".5K";
-  const completionRate = (95 + (idNum % 3) * 1.5).toFixed(1) + "%";
-
+export function CreatorStatsCards({ engagementRate, completedJobs }: CreatorStatsCardsProps) {
   const stats = [
     {
       label: "Engagement Rate",
-      value: engagement,
+      value: engagementRate > 0 ? `${engagementRate.toFixed(1)}%` : "—",
       desc: "Rasio interaksi audiens aktif",
       icon: (
         <svg className="w-4 h-4 sm:w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -25,9 +20,21 @@ export function CreatorStatsCards({ creatorId }: CreatorStatsCardsProps) {
       iconBorder: "rgba(234,88,12,.18)",
     },
     {
+      label: "Pesanan Selesai",
+      value: completedJobs > 0 ? String(completedJobs) : "—",
+      desc: "Total proyek yang diselesaikan",
+      icon: (
+        <svg className="w-4 h-4 sm:w-5 h-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      iconBg: "#f1fbf5",
+      iconBorder: "rgba(22,163,74,.18)",
+    },
+    {
       label: "Rata-rata Tayangan",
-      value: avgViews,
-      desc: "Views per postingan video",
+      value: "—",
+      desc: "Data belum tersedia",
       icon: (
         <svg className="w-4 h-4 sm:w-5 h-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -37,22 +44,9 @@ export function CreatorStatsCards({ creatorId }: CreatorStatsCardsProps) {
       iconBg: "#f0f6ff",
       iconBorder: "rgba(37,99,235,.18)",
     },
-    {
-      label: "Tingkat Penyelesaian",
-      value: completionRate,
-      desc: "Tepat waktu sesuai kesepakatan",
-      icon: (
-        <svg className="w-4 h-4 sm:w-5 h-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
-      iconBg: "#f1fbf5",
-      iconBorder: "rgba(22,163,74,.18)",
-    },
   ];
 
   return (
-    /* Grid: 2 kolom di mobile (2x2), 3 kolom di desktop (1 baris seimbang) */
     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5 mb-6">
       {stats.map((stat, idx) => (
         <div
@@ -62,7 +56,6 @@ export function CreatorStatsCards({ creatorId }: CreatorStatsCardsProps) {
             background: "radial-gradient(circle at 100% 0%, rgba(249,115,22,.03), transparent 10rem), linear-gradient(180deg, #ffffff, #fffdf9)",
           }}
         >
-          {/* Top Row: Icon Box */}
           <div className="flex items-center justify-between gap-2.5 mb-2.5 sm:mb-3.5">
             <div
               className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-[14px] grid place-items-center border shadow-3xs transition-transform duration-300 group-hover:scale-105"
@@ -73,17 +66,12 @@ export function CreatorStatsCards({ creatorId }: CreatorStatsCardsProps) {
           </div>
 
           <div>
-            {/* Label */}
             <span className="block text-[0.66rem] sm:text-[0.74rem] font-extrabold text-neutral-500 tracking-wide uppercase leading-none">
               {stat.label}
             </span>
-
-            {/* Value */}
             <div className="font-display text-[1.2rem] sm:text-[1.4rem] lg:text-[1.55rem] font-black text-neutral-900 tracking-tight leading-none mt-1 sm:mt-1.5 break-all">
               {stat.value}
             </div>
-
-            {/* Description/Note */}
             <span className="block text-[0.68rem] sm:text-[0.74rem] text-neutral-400 font-semibold mt-1 sm:mt-1.5 leading-tight">
               {stat.desc}
             </span>

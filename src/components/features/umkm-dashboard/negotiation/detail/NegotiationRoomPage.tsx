@@ -193,7 +193,11 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   const handleConfirmPayment = async () => {
     if (!order?.orderId || paying) return;
     setPaying(true);
-    const res = await createOrderPayment({ orderId: order.orderId, amount: order.finalPrice });
+    const res = await createOrderPayment({
+      orderId: order.orderId,
+      amount: order.finalPrice,
+      finishUrl: typeof window !== "undefined" ? window.location.href : undefined,
+    });
     setPaying(false);
     if (!res.success || !res.data) {
       toast.error(res.error ?? "Gagal membuat pembayaran.");

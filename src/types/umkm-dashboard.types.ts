@@ -91,6 +91,8 @@ export interface Campaign {
   pricePerThousandViews: number;
   totalBudgetEscrow: number;
   usedBudget: number;
+  /** Sisa dana di escrow campaign. 0 berarti belum dibayar atau semua reward sudah dicairkan. */
+  remainingBudget: number;
   totalViews: number;
   createdAt: string;
   updatedAt: string;

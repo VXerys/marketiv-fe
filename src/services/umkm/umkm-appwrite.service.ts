@@ -76,6 +76,7 @@ const COLLECTIONS = {
   campaignBriefs: "campaign_briefs",
   campaignAssets: "campaign_assets",
   umkmProfiles: "umkm_profiles",
+  creatorProfiles: "creator_profiles",
   submissions: "campaign_submissions",
   rateCards: "rate_cards",
   rateCardPackages: "rate_card_packages",
@@ -86,6 +87,27 @@ const COLLECTIONS = {
   messages: "messages",
   payments: "payments",
 } as const;
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Peta userId kreator → profil (displayName, avatarUrl).
+ *
+ * `creator_profiles` memakai `read("any")` di level koleksi (sama dengan
+ * `umkm_profiles`) jadi join ini sah dari browser. `harden-permissions.mjs:25-28`
+ * menyatakan `read("any")` ini disengaja dan tidak akan dicabut.
+ */
+async function loadCreatorProfiles(creatorIds: string[]): Promise<Map<string, Doc>> {
+  const unique = Array.from(new Set(creatorIds.filter(Boolean)));
+  if (unique.length === 0) return new Map();
+  const res = await databases.listDocuments(DB, COLLECTIONS.creatorProfiles, [
+    Query.equal("userId", unique.slice(0, 100)),
+    Query.limit(100),
+  ]);
+  return new Map(
+    (res.documents as unknown as Doc[]).map((p) => [str(p.userId), p])
+  );
+}
 
 // ── mappers ──────────────────────────────────────────────────────────────────
 
@@ -103,17 +125,19 @@ const mapCampaign = (d: Doc): Campaign => ({
   pricePerThousandViews: num(d.rewardPer1000Views),
   totalBudgetEscrow: num(d.budget),
   usedBudget: num(d.spentAmount),
+  remainingBudget: num(d.remainingBudget),
   totalViews: 0, // tak ada kolom — perlu agregasi campaign_submissions
   createdAt: str(d.$createdAt),
   updatedAt: str(d.$updatedAt),
 });
 
-const mapSubmission = (d: Doc): CampaignSubmission => ({
+/** Terima profil opsional dari `loadCreatorProfiles` untuk mengisi nama & avatar. */
+const mapSubmission = (d: Doc, creator?: Doc): CampaignSubmission => ({
   id: str(d.$id),
   campaignId: str(d.campaignId),
   creatorId: str(d.creatorId),
-  creatorName: "", // perlu join creator_profiles
-  creatorAvatarUrl: "",
+  creatorName: creator ? str(creator.displayName) : "",
+  creatorAvatarUrl: creator ? str(creator.avatarUrl) : "",
   platform: (str(d.platform) as "tiktok" | "instagram") || "tiktok",
   contentUrl: str(d.postUrl),
   actualViews: num(d.views),
@@ -359,7 +383,12 @@ export async function getCampaignSubmissionsFromAppwrite(
       Query.orderDesc("$createdAt"),
       Query.limit(100),
     ]);
-    return { success: true, data: res.documents.map((d) => mapSubmission(d as unknown as Doc)) };
+    const docs = res.documents as unknown as Doc[];
+    const creatorProfiles = await loadCreatorProfiles(docs.map((d) => str(d.creatorId)));
+    return {
+      success: true,
+      data: docs.map((d) => mapSubmission(d, creatorProfiles.get(str(d.creatorId)))),
+    };
   } catch (err) {
     return failFromError<CampaignSubmission[]>(err, []);
   }
@@ -383,7 +412,12 @@ export async function getPendingSubmissionsFromAppwrite(): Promise<ServiceResult
       Query.orderDesc("$createdAt"),
       Query.limit(100),
     ]);
-    return { success: true, data: res.documents.map((d) => mapSubmission(d as unknown as Doc)) };
+    const docs = res.documents as unknown as Doc[];
+    const creatorProfiles = await loadCreatorProfiles(docs.map((d) => str(d.creatorId)));
+    return {
+      success: true,
+      data: docs.map((d) => mapSubmission(d, creatorProfiles.get(str(d.creatorId)))),
+    };
   } catch (err) {
     return failFromError<CampaignSubmission[]>(err, []);
   }
@@ -1033,6 +1067,7 @@ export async function createCampaignPaymentInAppwrite(input: {
 export async function createOrderPaymentInAppwrite(input: {
   orderId: string;
   amount: number;
+  finishUrl?: string;
 }): Promise<ServiceResult<PaymentIntent>> {
   const empty = null as unknown as PaymentIntent;
   const auth = await requireUserId<PaymentIntent>(empty);
@@ -1042,6 +1077,7 @@ export async function createOrderPaymentInAppwrite(input: {
       purpose: "order",
       amount: input.amount,
       orderId: input.orderId,
+      ...(input.finishUrl && { finishUrl: input.finishUrl }),
     });
     return ok(res);
   } catch (err) {

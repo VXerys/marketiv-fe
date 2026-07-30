@@ -261,6 +261,7 @@ export type { CreateOfferInput };
 export async function createOrderPayment(input: {
   orderId: string;
   amount: number;
+  finishUrl?: string;
 }): Promise<ServiceResult<PaymentIntent>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(600);

@@ -102,7 +102,7 @@ export function CreatorDetailPage({ creatorId }: CreatorDetailPageProps) {
       <CreatorProfileHero creator={creatorView} />
 
       {/* Stats Quick Cards */}
-      <CreatorStatsCards creatorId={creatorId} />
+      <CreatorStatsCards engagementRate={creator.engagementRate} completedJobs={creator.completedJobs} />
 
       {/* Rate card packages — dari getCreatorRateCards() */}
       <RateCardPackagesSection

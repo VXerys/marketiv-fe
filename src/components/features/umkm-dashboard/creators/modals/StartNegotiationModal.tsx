@@ -44,23 +44,22 @@ export function StartNegotiationModal({
   const handleStart = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-
-    const res = await createConversation(creatorId);
-    setIsSubmitting(false);
-
-    if (!res.success || !res.data) {
-      const message = res.error ?? "Gagal membuka ruang negosiasi.";
-      // Kode error ikut ditampilkan di luar production supaya satu screenshot
-      // sudah cukup untuk membedakan validation/forbidden/auth — pesan yang
-      // sampai ke pengguna sengaja generik dan ketiganya terlihat sama.
-      toast.error(
-        process.env.NODE_ENV === "production" ? message : `${message} [${res.code ?? "?"}]`
-      );
-      return;
+    try {
+      const res = await createConversation(creatorId);
+      if (!res.success || !res.data) {
+        const message = res.error ?? "Gagal membuka ruang negosiasi.";
+        toast.error(
+          process.env.NODE_ENV === "production" ? message : `${message} [${res.code ?? "?"}]`
+        );
+        return;
+      }
+      onClose();
+      router.push(`/dashboard/umkm/negosiasi/${res.data}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal membuka ruang negosiasi.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    onClose();
-    router.push(`/dashboard/umkm/negosiasi/${res.data}`);
   };
 
   return (

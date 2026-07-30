@@ -351,7 +351,13 @@ export function CreatorDashboardView({
                   <div
                     className="relative h-24 w-24 overflow-hidden rounded-3xl border-4 border-white bg-kreator-100 shadow-kreator-avatar sm:h-[105px] sm:w-[105px]"
                   >
-                    <Image src={profile.avatarUrl} alt={profile.name} fill className="object-cover" sizes="105px" />
+                    {profile.avatarUrl ? (
+                      <Image src={profile.avatarUrl} alt={profile.name} fill className="object-cover" sizes="105px" />
+                    ) : (
+                      <span className="absolute inset-0 flex items-center justify-center text-3xl font-black text-kreator-300">
+                        {profile.name.charAt(0)}
+                      </span>
+                    )}
                   </div>
                   <span className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-emerald-400 border-3 border-white shadow-sm" />
                 </div>

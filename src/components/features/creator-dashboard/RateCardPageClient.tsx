@@ -23,19 +23,24 @@ export function RateCardPageClient() {
 
   /** Ambil data; setState hanya di posisi setelah await. */
   const fetchData = useCallback(async (isActive: () => boolean) => {
-    const [packagesRes, metricsRes] = await Promise.all([
-      getCreatorRateCardPackages(),
-      getCreatorMetrics(),
-    ]);
-    if (!isActive()) return;
-    if (!packagesRes.success || !packagesRes.data) {
-      setError(packagesRes.error ?? "Gagal memuat rate card.");
-      setLoading(false);
-      return;
+    try {
+      const [packagesRes, metricsRes] = await Promise.all([
+        getCreatorRateCardPackages(),
+        getCreatorMetrics(),
+      ]);
+      if (!isActive()) return;
+      if (!packagesRes.success || !packagesRes.data) {
+        setError(packagesRes.error ?? "Gagal memuat rate card.");
+        return;
+      }
+      setPackages(packagesRes.data);
+      setOrdersCount(metricsRes.data?.negotiationOrdersCount ?? 0);
+    } catch (err) {
+      if (!isActive()) return;
+      setError(err instanceof Error ? err.message : "Gagal memuat rate card.");
+    } finally {
+      if (isActive()) setLoading(false);
     }
-    setPackages(packagesRes.data);
-    setOrdersCount(metricsRes.data?.negotiationOrdersCount ?? 0);
-    setLoading(false);
   }, []);
 
   useEffect(() => {

@@ -1147,10 +1147,10 @@ export async function requestWithdrawalInAppwrite(
 // dan `ai-fraud-precheck` dipicu event database (lihat `events` di
 // 00_BACKEND/appwrite.config.json) dan menyala sendiri setelah tulisan masuk.
 //
-// ⚠️ `campaign-claimed` TIDAK menambah `totalClaims` — ia hanya mengoreksi bila
-// counter sudah melewati `claimLimit`, lalu membuat notifikasi. Penambahan
-// counter adalah tanggung jawab pemanggil (sama seperti claim.service.ts:154).
-// Kalau langkah itu dilewat, `claimLimit` tidak akan pernah menahan siapa pun.
+// `campaign-claimed` SEKARANG menambah `totalClaims` secara atomik. Klien hanya
+// membuat baris claim — counter adalah tanggung jawab Function. Sweep basi
+// sisi klien juga dihapus: slot dikembalikan oleh `expire-stale-claims` (cron
+// per jam) dan oleh `campaign-claimed` sendiri saat kuota terlampaui.
 
 /**
  * Klaim campaign aktif.
@@ -1196,46 +1196,19 @@ export async function claimCampaignInAppwrite(
       );
     }
 
-    // Bersihkan claim basi lebih dulu supaya slot yang sudah kedaluwarsa tidak
-    // ikut menghitung terhadap claimLimit.
-    const submissionDays = num(campaign.submissionDays) || 7;
-    const expiredSince = new Date(
-      Date.now() - submissionDays * 24 * 60 * 60 * 1000
-    ).toISOString();
-
-    let totalClaims = num(campaign.totalClaims);
-    try {
-      const stale = await databases.listDocuments(DB, COLLECTIONS.claims, [
-        Query.equal("campaignId", campaignId),
-        Query.equal("status", "claimed"),
-        Query.lessThan("claimedAt", expiredSince),
-        Query.limit(100),
-      ]);
-      for (const doc of stale.documents) {
-        await databases.updateDocument(DB, COLLECTIONS.claims, doc.$id, {
-          status: "expired",
-        });
-        totalClaims = Math.max(0, totalClaims - 1);
-      }
-      if (stale.documents.length > 0) {
-        await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
-          totalClaims,
-        });
-      }
-    } catch {
-      // Gagal membersihkan hanya membuat kuota terlihat lebih penuh dari
-      // seharusnya — jauh lebih aman daripada membatalkan klaim.
-    }
-
-    if (totalClaims >= num(campaign.claimLimit)) {
+    // Guard cepat berbasis bacaan — mungkin basi (counter diperbarui oleh
+    // `campaign-claimed` async, ~0,5–3 detik setelah createDocument). Tetap
+    // berguna sebagai penolakan dini untuk kasus yang jelas-jelas penuh.
+    // Penegakan final ada di `campaign-claimed` yang memakai incrementColumn
+    // dengan `max: claimLimit` — server yang benar-benar menolak bila sudah penuh.
+    if (num(campaign.totalClaims) >= num(campaign.claimLimit)) {
       return failValidation("Kuota kreator untuk campaign ini sudah penuh.", "");
     }
 
     // ⚠️ Cek duplikat sengaja TIDAK memfilter status — cermin persis
     // claim.service.ts:126. Konsekuensinya: kreator yang claim-nya sempat
-    // `expired` (oleh cron expire-stale-claims atau pembersihan di atas) tidak
-    // bisa mengambil campaign ini lagi, padahal slotnya sudah dikembalikan
-    // untuk kreator lain. Kami tidak melonggarkannya sepihak karena aturan
+    // `expired` tidak bisa mengambil campaign ini lagi, padahal slotnya sudah
+    // dikembalikan untuk kreator lain. Tidak dilonggarkan sepihak karena aturan
     // bisnis harus sama di kedua sisi; sudah ditanyakan ke backend.
     const existing = await databases.listDocuments(DB, COLLECTIONS.claims, [
       Query.equal("campaignId", campaignId),
@@ -1298,6 +1271,11 @@ export async function claimCampaignInAppwrite(
       // `campaign-claimed` akan mengoreksi bila sampai melewati batas.
     }
 
+    // Counter tidak lagi diincrement di sini — sekarang dilakukan oleh Function
+    // `campaign-claimed` secara atomik dengan max=claimLimit. Menghapus increment
+    // sisi klien menutup race condition di mana dua kreator membaca totalClaims=0
+    // bersamaan dan sama-sama berhasil melewati guard di atas.
+
     return ok(claim.$id);
   } catch (err) {
     return failFromWriteError<string>(err, "");
@@ -1309,6 +1287,9 @@ export type SubmitProofInput = {
   campaignId: string;
   postUrl: string;
   caption?: string;
+  /** Platform konten — diteruskan ke Appwrite supaya ai-fraud-precheck
+   *  membandingkan hostname URL dengan platform yang benar, bukan selalu "tiktok". */
+  platform: "tiktok" | "instagram";
 };
 
 /**
@@ -1365,7 +1346,9 @@ export async function submitProofInAppwrite(
         claimId: input.claimId,
         campaignId: input.campaignId,
         creatorId: auth.userId,
-        platform: "tiktok",
+        // Dulu selalu "tiktok". Sekarang diteruskan dari UI supaya ai-fraud-precheck
+        // tidak menambah +20 skor fraud "Platform tidak cocok" ke submission Instagram.
+        platform: input.platform,
         postUrl: input.postUrl,
         caption: input.caption ?? "",
         views: 0,
