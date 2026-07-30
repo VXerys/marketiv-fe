@@ -27,10 +27,10 @@ export function OrderSuccessModal({ isOpen, onClose, onConfirm }: OrderSuccessMo
             </svg>
           </div>
           <ResponsiveModalTitle className="text-sm sm:text-base font-extrabold text-text-primary uppercase tracking-wider text-center">
-            Deposit Berhasil Diverifikasi!
+            Pembayaran Berhasil Dikirim!
           </ResponsiveModalTitle>
           <ResponsiveModalDescription className="text-xs text-text-secondary leading-relaxed font-medium text-center mt-2">
-            Dana escrow Anda telah berhasil dikunci di sistem keamanan Marketiv. Kreator akan segera diberi tahu untuk memulai produksi video konten.
+            Pembayaran Anda sedang diverifikasi. Dana escrow akan dikunci secara otomatis setelah konfirmasi dari gateway pembayaran diterima. Kreator akan diberi tahu segera setelah escrow aktif.
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 

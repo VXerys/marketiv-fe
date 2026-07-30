@@ -33,6 +33,7 @@ import { DealChecklistCard } from "./DealChecklistCard";
 import { DeliverableReviewCard } from "./DeliverableReviewCard";
 import { NegotiationRoomSkeleton } from "./NegotiationRoomSkeleton";
 import { NegotiationNotFoundState } from "./NegotiationNotFoundState";
+import { NegotiationErrorState } from "../NegotiationErrorState";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
 import { realtimeClient, tableChannels } from "@/lib/appwrite/realtime";
 
@@ -83,6 +84,7 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   const [reviewing, setReviewing] = useState(false);
 
   const loadData = useCallback(async () => {
+    setLoading(true);
     setError(null);
     try {
       const [roomRes, msgRes] = await Promise.all([
@@ -290,7 +292,8 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   };
 
   if (loading) return <div className="p-4 sm:p-6 lg:p-8"><NegotiationRoomSkeleton /></div>;
-  if (error || !order) return <div className="p-4 sm:p-6 lg:p-8"><NegotiationNotFoundState /></div>;
+  if (error) return <div className="p-4 sm:p-6 lg:p-8"><NegotiationErrorState message={error} onRetry={loadData} /></div>;
+  if (!order) return <div className="p-4 sm:p-6 lg:p-8"><NegotiationNotFoundState /></div>;
 
   const statusCfg = STATUS_CFG[order.stage] ?? STATUS_CFG.chatting;
 
@@ -375,7 +378,6 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
                     <span>{order.creatorName.charAt(0)}</span>
                   )}
                 </div>
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-white" />
               </div>
               <div className="min-w-0">
                 <h4 className="text-sm font-extrabold text-[#182033] leading-tight truncate">
@@ -438,7 +440,7 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
           />
           <EscrowStatusCard orderStatus={order.stage} />
           <CreatorMiniProfileCard order={order} />
-          <DealChecklistCard orderStatus={order.stage} />
+          <DealChecklistCard stage={order.stage} />
         </div>
       </div>
       </div>

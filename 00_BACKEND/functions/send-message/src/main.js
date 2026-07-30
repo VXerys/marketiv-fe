@@ -62,10 +62,17 @@ export default async ({ req, res, log, error }) => {
       participantPermissions(participation.umkmId, participation.creatorId)
     );
 
-    await databases.updateDocument(env.databaseId, env.conversationsCollectionId, conversationId, {
-      last_message: text.slice(0, MAX_LAST_MESSAGE_LENGTH),
-      last_message_at: new Date().toISOString(),
-    });
+    // Kegagalan update ringkasan tidak membatalkan pengiriman pesan — baris
+    // `messages` sudah tersimpan. Membiarkan 500 di sini menyebabkan pengirim
+    // mencoba ulang dan menghasilkan pesan dobel.
+    try {
+      await databases.updateDocument(env.databaseId, env.conversationsCollectionId, conversationId, {
+        last_message: text.slice(0, MAX_LAST_MESSAGE_LENGTH),
+        last_message_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      log(`Gagal memperbarui ringkasan percakapan ${conversationId}: ${err?.message || String(err)}`);
+    }
 
     log(`Pesan ${created.$id} terkirim di ${conversationId} oleh ${userId}`);
 
@@ -78,7 +85,7 @@ export default async ({ req, res, log, error }) => {
       senderRole: participation.role,
       type: "text",
       content: text,
-      isRead: true,
+      isRead: false,
       createdAt: created.$createdAt,
     });
   } catch (err) {

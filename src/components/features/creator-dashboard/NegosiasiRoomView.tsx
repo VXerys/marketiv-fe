@@ -111,6 +111,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
   const [neg, setNeg] = useState<CreatorNegotiation | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [inputMessage, setInputMessage] = useState("");
@@ -151,24 +152,34 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
   });
 
   const loadRoom = useCallback(async () => {
-    const [roomRes, msgRes] = await Promise.all([
-      getCreatorNegotiationById(conversationId),
-      getMessagesByConversationId(conversationId),
-    ]);
-    if (roomRes.success && roomRes.data) setNeg(roomRes.data);
-    if (msgRes.success && msgRes.data) setChatMessages(msgRes.data.map(toViewMessage));
+    try {
+      const [roomRes, msgRes] = await Promise.all([
+        getCreatorNegotiationById(conversationId),
+        getMessagesByConversationId(conversationId),
+      ]);
 
-    // Deliverable hanya ada setelah order terbentuk — sebelum itu tidak ada
-    // orderId untuk di-query, dan memanggilnya cuma menghasilkan 404.
-    const orderId = roomRes.success ? roomRes.data?.orderId : undefined;
-    if (orderId) {
-      const dlvRes = await getDeliverables(orderId);
-      if (dlvRes.success && dlvRes.data) setDeliverables(dlvRes.data);
-    } else {
-      setDeliverables([]);
+      if (!roomRes.success) throw new Error(roomRes.error ?? "Gagal memuat data percakapan.");
+      if (roomRes.data) setNeg(roomRes.data);
+
+      if (msgRes.success && msgRes.data) setChatMessages(msgRes.data.map(toViewMessage));
+      else if (!msgRes.success) console.error("Gagal muat pesan:", msgRes.error);
+
+      // Deliverable hanya ada setelah order terbentuk — sebelum itu tidak ada
+      // orderId untuk di-query, dan memanggilnya cuma menghasilkan 404.
+      const orderId = roomRes.data?.orderId;
+      if (orderId) {
+        const dlvRes = await getDeliverables(orderId);
+        if (dlvRes.success && dlvRes.data) setDeliverables(dlvRes.data);
+      } else {
+        setDeliverables([]);
+      }
+
+      setLoadError(null);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Gagal memuat ruang percakapan.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }, [conversationId]);
 
   useEffect(() => {
@@ -363,12 +374,32 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
     );
   }
 
+  if (loadError) {
+    return (
+      <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[70vh]">
+        <CreatorEmptyState
+          title="Gagal memuat percakapan"
+          description={loadError}
+          actionButton={
+            <button
+              onClick={() => void loadRoom()}
+              className="text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow cursor-pointer"
+              style={{ background: CREATOR_ACTION_GRADIENT }}
+            >
+              Coba Lagi
+            </button>
+          }
+        />
+      </div>
+    );
+  }
+
   if (!neg) {
     return (
       <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[70vh]">
         <CreatorEmptyState
           title="Percakapan tidak ditemukan"
-          description="ID order negosiasi tidak terdaftar atau order telah dibatalkan."
+          description="Percakapan ini tidak dapat ditemukan atau sudah tidak aktif."
           actionButton={
             <Link href="/dashboard/kreator/negosiasi" className="text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow cursor-pointer" style={{ background: CREATOR_ACTION_GRADIENT }}>
               Kembali ke Negosiasi
@@ -398,23 +429,17 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
   const deadline  = new Date(neg.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 
   // Checklist milestones
+  const MILESTONE_STAGE_ORDER: Record<string, number> = {
+    chatting: 0, offer_pending: 1, offer_rejected: 1, awaiting_order: 2,
+    pending_payment: 3, escrow: 4, in_progress: 5, revision: 5, approved: 6, completed: 7,
+  };
+  const ms = MILESTONE_STAGE_ORDER[neg.stage] ?? 0;
+
   const milestones = [
-    {
-      label: "Inisiasi Negosiasi & Deal",
-      done: true,
-    },
-    {
-      label: "Pembayaran Escrow UMKM",
-      done: neg.stage !== "pending_payment",
-    },
-    {
-      label: "Submit Collab Post URL",
-      done: !!neg.submittedCollabUrl,
-    },
-    {
-      label: "Pelepasan Dana Escrow",
-      done: neg.stage === "completed",
-    },
+    { label: "Inisiasi Negosiasi & Deal", done: ms >= 2 },
+    { label: "Pembayaran Escrow UMKM", done: ms >= 4 },
+    { label: "Submit Collab Post URL", done: !!neg.submittedCollabUrl },
+    { label: "Pelepasan Dana Escrow", done: neg.stage === "completed" },
   ];
   const doneCount = milestones.filter(m => m.done).length;
 
@@ -448,7 +473,6 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                         <span>{neg.umkmName.charAt(0)}</span>
                       )}
                     </div>
-                    <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-white" />
                   </div>
                   <div>
                     <h4 className="text-sm font-black text-kreator-ink leading-tight">{neg.umkmName}</h4>
@@ -524,7 +548,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                                 {msg.offerData.scope}
                               </p>
 
-                              <div className="grid grid-cols-3 gap-2">
+                              <div className="grid grid-cols-2 gap-2">
                                 {[
                                   { label: "Revisi", val: `${msg.offerData.revisions}×` },
                                   {
@@ -778,7 +802,9 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                     </div>
                     <div className="bg-neutral-50 rounded-[12px] p-2.5 border border-neutral-100">
                       <span className="block text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">Maks Revisi</span>
-                      <span className="block text-xs font-extrabold text-neutral-800">{neg.revisionCount ?? 2}×</span>
+                      <span className="block text-xs font-extrabold text-neutral-800">
+                        {neg.revisionCount != null ? `${neg.revisionCount}×` : "—"}
+                      </span>
                     </div>
                   </div>
 
@@ -980,7 +1006,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
                 <p className="text-[10px] font-bold text-amber-700 leading-relaxed">
                   Pastikan tautannya bisa dibuka UMKM. Setelah UMKM menyetujui, dana escrow
-                  dilepaskan ke saldo kamu dikurangi fee platform 2%.
+                  dilepaskan ke saldo kamu dikurangi fee platform {PLATFORM_FEE_RATE * 100}%.
                 </p>
               </div>
 

@@ -3,18 +3,34 @@
 import { cn } from "@/lib/utils";
 
 interface DealChecklistCardProps {
-  orderStatus: string;
+  stage: string;
 }
 
-export function DealChecklistCard({ orderStatus }: DealChecklistCardProps) {
-  const isNegotiating = orderStatus === "negotiation";
-  
+const DEAL_STAGE_ORDER: Record<string, number> = {
+  chatting: 0,
+  offer_pending: 1,
+  offer_rejected: 1,
+  awaiting_order: 2,
+  pending_payment: 3,
+  escrow: 4,
+  in_progress: 5,
+  revision: 5,
+  approved: 6,
+  completed: 7,
+};
+
+export function DealChecklistCard({ stage }: DealChecklistCardProps) {
+  const o = DEAL_STAGE_ORDER[stage] ?? 0;
+
+  // Scope dianggap jelas begitu UMKM mengirim offer (offer telah menyertakan scope).
+  // Harga dan deadline baru "disepakati" saat kreator menerima offer (awaiting_order+).
+  // Dana Escrow Siap hanya saat escrow benar-benar aktif di server (escrow+).
   const checklist = [
-    { label: "Scope Pekerjaan Jelas", checked: true },
-    { label: "Harga Disepakati", checked: !isNegotiating },
-    { label: "Deadline Disepakati", checked: !isNegotiating },
+    { label: "Scope Pekerjaan Jelas", checked: o >= 1 },
+    { label: "Harga Disepakati", checked: o >= 2 },
+    { label: "Deadline Disepakati", checked: o >= 2 },
     { label: "Collab Post Instagram/TikTok", checked: true },
-    { label: "Dana Escrow Siap", checked: !isNegotiating && orderStatus !== "waiting_payment" },
+    { label: "Dana Escrow Siap", checked: o >= 4 },
   ];
 
   const checkedCount = checklist.filter((i) => i.checked).length;

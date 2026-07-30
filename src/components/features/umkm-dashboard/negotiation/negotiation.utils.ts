@@ -85,33 +85,55 @@ export function getStatusDetails(status: string): StatusDetail {
 
 /**
  * Formats dynamic step status in the escrow tracker.
+ *
+ * Empat tahap sebelum order lahir (chatting → offer_pending → offer_rejected →
+ * awaiting_order) tidak punya cabang di versi lama, sehingga stepIdx 0 selalu
+ * "completed" termasuk saat UMKM baru membuka percakapan. Sekarang memakai urutan
+ * kanonik sebagai bilangan bulat agar setiap langkah dievaluasi hanya dari posisi
+ * tahap saat ini.
  */
 export function getStepStatus(stepIdx: number, orderStatus: string): EscrowStepStatus {
-  if (orderStatus === "cancelled") {
-    return "cancelled";
-  }
+  if (orderStatus === "cancelled") return "cancelled";
+
+  // Tahap bercabang (offer_rejected, revision) sejajar dengan tahap sebelumnya
+  // agar tracker tidak mengklaim sudah maju saat negosiasi mengulang.
+  const STAGE_ORDER: Record<string, number> = {
+    chatting: 0,
+    offer_pending: 1,
+    offer_rejected: 1,
+    awaiting_order: 2,
+    pending_payment: 3,
+    escrow: 4,
+    in_progress: 5,
+    revision: 5,
+    approved: 6,
+    completed: 7,
+  };
+  const o = STAGE_ORDER[orderStatus] ?? 0;
 
   switch (stepIdx) {
-    case 0:
+    case 0: // Offer Dibuat
+      if (o === 0) return "pending";
+      if (o === 1) return "active";
       return "completed";
-    case 1:
-      if (orderStatus === "pending_payment") return "active";
+    case 1: // Pembayaran UMKM
+      if (o < 3) return "pending";
+      if (o === 3) return "active";
       return "completed";
-    case 2:
-      if (orderStatus === "pending_payment") return "pending";
-      if (orderStatus === "escrow") return "active";
+    case 2: // Dana Terkunci Escrow
+      if (o < 4) return "pending";
+      if (o === 4) return "active";
       return "completed";
-    case 3:
-      if (["pending_payment", "escrow"].includes(orderStatus)) return "pending";
-      if (orderStatus === "in_progress" || orderStatus === "revision") return "active";
+    case 3: // Kreator Eksekusi
+      if (o < 5) return "pending";
+      if (o === 5) return "active";
       return "completed";
-    case 4:
-      if (["pending_payment", "escrow", "in_progress", "revision"].includes(orderStatus)) return "pending";
-      if (orderStatus === "approved") return "active";
+    case 4: // Verifikasi Collab Post
+      if (o < 6) return "pending";
+      if (o === 6) return "active";
       return "completed";
-    case 5:
-      if (orderStatus === "completed") return "completed";
-      return "pending";
+    case 5: // Dana Cair ke Kreator
+      return o >= 7 ? "completed" : "pending";
     default:
       return "pending";
   }

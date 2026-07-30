@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { CreatorNegotiation } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
 import { formatCurrency } from "@/lib/formatters";
+import { calculatePlatformFee } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import {
   MessageSquare,
@@ -122,7 +123,7 @@ function NegotiationCard({
   // Fallback ke konstanta, bukan ke entri lain di peta — kalau kuncinya salah
   // ketik, `s` diam-diam jadi undefined dan seluruh daftar ikut mati.
   const s = STATUS_STYLES[neg.stage] ?? UNKNOWN_STAGE_STYLE;
-  const dateStr = new Date(neg.lastMessageAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+  const dateStr = new Date(neg.lastMessageAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const hasUrgent = neg.unreadCount > 0;
 
   return (
@@ -186,9 +187,12 @@ function NegotiationCard({
             <Clock3 className="w-2.5 h-2.5 shrink-0" />
             {dateStr}
           </span>
-          <span className="font-display text-xs font-black text-kreator-ink tracking-tight">
-            {formatCurrency(neg.finalPrice)}
-          </span>
+          <div className="flex flex-col gap-0">
+            <span className="font-display text-xs font-black text-kreator-ink tracking-tight leading-none">
+              {formatCurrency(neg.totalAmount ?? (neg.finalPrice - calculatePlatformFee(neg.finalPrice)))}
+            </span>
+            <span className="text-[8px] font-semibold text-neutral-400 leading-none">kamu terima</span>
+          </div>
         </div>
       </div>
 
@@ -250,26 +254,26 @@ export function NegosiasiView() {
     toast.success(next ? "Percakapan diarsipkan." : "Percakapan dikembalikan ke inbox.");
   };
 
-  useEffect(() => {
-    let active = true;
-    void (async () => {
-      const res = await getCreatorNegotiations();
-      if (!active) return;
-      if (res.success && res.data) {
-        setNegotiations(res.data);
-      } else {
-        setError(res.error ?? "Gagal memuat daftar negosiasi.");
-      }
-      setLoading(false);
-    })();
-    return () => {
-      active = false;
-    };
+  const loadNegotiations = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const res = await getCreatorNegotiations();
+    if (res.success && res.data) {
+      setNegotiations(res.data);
+    } else {
+      setError(res.error ?? "Gagal memuat daftar negosiasi.");
+    }
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    void loadNegotiations();
+  }, [loadNegotiations]);
 
   const handleClearFilters = () => {
     setSearch("");
     setSelectedStatus("all");
+    setSortBy("latest");
   };
 
   // "Negosiasi" dan "Menunggu pembayaran" dulu menghitung hal yang PERSIS SAMA
@@ -302,7 +306,12 @@ export function NegosiasiView() {
 
       return matchesSearch && matchesStatus && isArchived === showArchived;
     })
-    .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+    .sort((a, b) => {
+      if (sortBy === "deadline") return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+      if (sortBy === "price_desc") return (b.totalAmount ?? b.finalPrice) - (a.totalAmount ?? a.finalPrice);
+      if (sortBy === "unread") return b.unreadCount - a.unreadCount;
+      return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+    });
 
   const hasActiveFilters = search !== "" || selectedStatus !== "all";
 
@@ -322,6 +331,15 @@ export function NegosiasiView() {
         <CreatorEmptyState
           title="Gagal memuat negosiasi"
           description={error}
+          actionButton={
+            <button
+              onClick={() => void loadNegotiations()}
+              className="text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow cursor-pointer"
+              style={{ background: CREATOR_ACTION_GRADIENT }}
+            >
+              Coba Lagi
+            </button>
+          }
         />
       </div>
     );
@@ -438,6 +456,9 @@ export function NegosiasiView() {
                 className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[130px]"
               >
                 <option value="latest">Terbaru</option>
+                <option value="deadline">Deadline Terdekat</option>
+                <option value="price_desc">Harga Tertinggi</option>
+                <option value="unread">Belum Dibaca</option>
               </select>
 
               {hasActiveFilters && (

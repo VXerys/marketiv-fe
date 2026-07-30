@@ -1,4 +1,4 @@
-import { Client, Databases, ID, Permission, Role } from "node-appwrite";
+import { Client, Databases, ID, Permission, Role, Query } from "node-appwrite";
 
 /**
  * Kirim Custom Offer di dalam ruang negosiasi. UMKM-ONLY —
@@ -70,6 +70,20 @@ export default async ({ req, res, log, error }) => {
     }
     if (body.creatorId && str(body.creatorId) !== creatorId) {
       return json(res, { error: "Kreator tidak sesuai dengan percakapan." }, 400);
+    }
+
+    // Tolak offer kedua bila masih ada yang menunggu jawaban kreator — menerima
+    // offer lama setelah ada yang baru memicu create-order pada harga yang tidak
+    // ditampilkan lagi di UI.
+    const pending = await databases.listDocuments(
+      env.databaseId,
+      env.offersCollectionId,
+      [Query.equal("conversationId", conversationId), Query.equal("status", "pending"), Query.limit(1)]
+    );
+    if (pending.total > 0) {
+      return json(res, {
+        error: "Masih ada penawaran yang menunggu jawaban kreator. Tarik penawaran tersebut dulu sebelum mengirim yang baru.",
+      }, 409);
     }
 
     const created = await databases.createDocument(
@@ -150,6 +164,11 @@ function validate({ conversationId, title, description, deadline, price, revisio
     return `Deskripsi maksimal ${MAX_DESCRIPTION_LENGTH} karakter.`;
   }
   if (!deadline) return "Deadline wajib diisi.";
+  const deadlineDate = new Date(deadline);
+  if (isNaN(deadlineDate.getTime())) return "Format deadline tidak valid.";
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  if (deadlineDate < today) return "Deadline harus di masa depan.";
   if (!Number.isInteger(price) || price <= 0 || price > MAX_PRICE) return "Harga tidak valid.";
   if (!Number.isInteger(revisionLimit) || revisionLimit < 0) return "Jumlah revisi tidak valid.";
   return null;
