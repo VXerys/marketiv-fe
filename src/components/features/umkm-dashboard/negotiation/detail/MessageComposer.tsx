@@ -40,7 +40,7 @@ export function MessageComposer({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!content.trim()) return;
+      if (!content.trim() || sending) return;
       onSendMessage(content.trim());
       setContent("");
     }
@@ -172,7 +172,8 @@ export function MessageComposer({
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="flex-1 px-2 py-1.5 bg-transparent text-xs font-semibold focus:outline-none text-[#182033] placeholder:text-[#737f91]/55"
+          disabled={sending}
+          className="flex-1 px-2 py-1.5 bg-transparent text-xs font-semibold focus:outline-none text-[#182033] placeholder:text-[#737f91]/55 disabled:cursor-not-allowed"
         />
 
         {/* Send button */}
