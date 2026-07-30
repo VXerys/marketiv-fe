@@ -362,14 +362,18 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
           >
             <div className="flex items-center gap-3 min-w-0">
               <div className="relative shrink-0">
-                <div className="w-10 h-10 rounded-[12px] overflow-hidden bg-neutral-100 border border-neutral-200/40">
-                  <Image
-                    src={order.creatorAvatarUrl}
-                    alt={order.creatorName}
-                    fill
-                    className="object-cover"
-                    sizes="40px"
-                  />
+                <div className="w-10 h-10 rounded-[12px] overflow-hidden bg-neutral-100 border border-neutral-200/40 flex items-center justify-center font-black text-neutral-300 text-base">
+                  {order.creatorAvatarUrl ? (
+                    <Image
+                      src={order.creatorAvatarUrl}
+                      alt={order.creatorName}
+                      fill
+                      className="object-cover"
+                      sizes="40px"
+                    />
+                  ) : (
+                    <span>{order.creatorName.charAt(0)}</span>
+                  )}
                 </div>
                 <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-white" />
               </div>

@@ -193,12 +193,6 @@ export function MessageComposer({
         </button>
       </form>
 
-      <div className="flex items-center gap-1.5 pl-1 mt-1.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-[#f97316] animate-pulse" />
-        <span className="text-[8px] font-bold text-[#737f91]/60 uppercase tracking-wider">
-          Mode demo UI &mdash; pesan ditambahkan secara lokal (belum tersimpan di database).
-        </span>
-      </div>
     </div>
   );
 }

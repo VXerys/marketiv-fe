@@ -2,6 +2,10 @@ import { ToolbarStatusFilterOption, ToolbarSortOption, EscrowStep } from "./nego
 
 export const NEGOTIATION_STATUS_FILTERS: ToolbarStatusFilterOption[] = [
   { id: "all", label: "Semua" },
+  { id: "chatting", label: "Diskusi" },
+  { id: "offer_pending", label: "Penawaran Dikirim" },
+  { id: "offer_rejected", label: "Ditolak Kreator" },
+  { id: "awaiting_order", label: "Menyiapkan Order" },
   { id: "pending_payment", label: "Menunggu Pembayaran" },
   { id: "escrow", label: "Escrow" },
   { id: "in_progress", label: "Sedang Dikerjakan" },

@@ -79,6 +79,10 @@ export function NegotiationListPage() {
 
   const statusCounts: Partial<Record<string, number>> = {
     all: scopedNegotiations.length,
+    chatting: scopedNegotiations.filter((n) => n.stage === "chatting").length,
+    offer_pending: scopedNegotiations.filter((n) => n.stage === "offer_pending").length,
+    offer_rejected: scopedNegotiations.filter((n) => n.stage === "offer_rejected").length,
+    awaiting_order: scopedNegotiations.filter((n) => n.stage === "awaiting_order").length,
     pending_payment: scopedNegotiations.filter((n) => n.stage === "pending_payment").length,
     in_progress: scopedNegotiations.filter((n) => n.stage === "in_progress").length,
     escrow: scopedNegotiations.filter((n) => n.stage === "escrow").length,

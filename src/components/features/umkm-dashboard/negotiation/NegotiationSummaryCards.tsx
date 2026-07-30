@@ -45,12 +45,14 @@ interface NegotiationSummaryCardsProps {
 }
 
 export function NegotiationSummaryCards({ negotiations }: NegotiationSummaryCardsProps) {
-  const activeCount = negotiations.filter((n) => n.stage === "in_progress").length;
-  const waitingPaymentCount = negotiations.filter((n) => n.stage === "pending_payment").length;
+  const negotiatingStages = ["chatting", "offer_pending", "offer_rejected", "awaiting_order"];
   const escrowStatuses = ["escrow", "in_progress", "revision", "approved"];
+
+  const activeCount = negotiations.filter((n) => negotiatingStages.includes(n.stage)).length;
+  const waitingPaymentCount = negotiations.filter((n) => n.stage === "pending_payment").length;
   const escrowCount = negotiations.filter((n) => escrowStatuses.includes(n.stage)).length;
   const completedCount = negotiations.filter((n) => n.stage === "completed").length;
-  const disputeCount = negotiations.filter((n) => n.stage === "cancelled").length;
+  const cancelledCount = negotiations.filter((n) => n.stage === "cancelled").length;
   const escrowLockedValue = negotiations
     .filter((n) => escrowStatuses.includes(n.stage))
     .reduce((sum, n) => sum + n.finalPrice, 0);
@@ -95,12 +97,12 @@ export function NegotiationSummaryCards({ negotiations }: NegotiationSummaryCard
       />
       <SummaryCard
         icon={AlertTriangle}
-        label="Dispute"
-        value={String(disputeCount)}
-        note="Sengketa aktif"
-        iconBg="#fff1f2"
-        iconColor="#e11d48"
-        iconBorder="rgba(225,29,72,.18)"
+        label="Dibatalkan"
+        value={String(cancelledCount)}
+        note="Tidak dilanjutkan"
+        iconBg="#f8fafc"
+        iconColor="#64748b"
+        iconBorder="rgba(100,116,139,.18)"
       />
     </div>
   );
