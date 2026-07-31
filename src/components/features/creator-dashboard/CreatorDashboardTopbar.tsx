@@ -55,7 +55,7 @@ function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
 
 interface CreatorDashboardTopbarProps {
   creatorName: string;
-  creatorAvatar: string;
+  creatorAvatar?: string;
   onOpenSidebar?: () => void;
 }
 
@@ -190,15 +190,21 @@ export function CreatorDashboardTopbar({
           className="w-11 h-11 rounded-xl border border-neutral-200/70 shadow-3xs overflow-hidden hover:scale-105 hover:shadow-kreator-brand-sm active:scale-95 transition-all duration-200 relative block shrink-0 cursor-pointer"
           aria-label="Pengaturan akun"
         >
-          <Image
-            alt={creatorName}
-            className="w-full h-full object-cover"
-            src={creatorAvatar}
-            width={44}
-            height={44}
-            sizes="44px"
-            quality={85}
-          />
+          {creatorAvatar ? (
+            <Image
+              alt={creatorName || "Profil kreator"}
+              className="w-full h-full object-cover"
+              src={creatorAvatar}
+              width={44}
+              height={44}
+              sizes="44px"
+              quality={85}
+            />
+          ) : (
+            <span className="grid h-full w-full place-items-center bg-violet-100 text-sm font-black text-violet-700">
+              {(creatorName || "K").slice(0, 1).toUpperCase()}
+            </span>
+          )}
         </Link>
       </div>
     </header>

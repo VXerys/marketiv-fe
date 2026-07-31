@@ -48,7 +48,6 @@ export function CreatorOnboarding({ initialName }: { initialName?: string }) {
   const [bio, setBio] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [tiktok, setTiktok] = useState("");
-  const [instagram, setInstagram] = useState("");
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [banner, setBanner] = useState<string | null>(null);
@@ -80,10 +79,6 @@ export function CreatorOnboarding({ initialName }: { initialName?: string }) {
         ? "Tautan/username TikTok tidak valid."
         : "Akun TikTok wajib diisi.";
     }
-    if (target === 3 && instagram.trim() && !extractSocialUsername(instagram)) {
-      scoped.instagram = "Tautan/username Instagram tidak valid.";
-    }
-
     setErrors(scoped);
     return Object.keys(scoped).length === 0;
   }
@@ -145,16 +140,6 @@ export function CreatorOnboarding({ initialName }: { initialName?: string }) {
       setPending(false);
       setBanner(social.error ?? "Gagal menyimpan akun TikTok. Coba lagi.");
       return;
-    }
-
-    if (instagram.trim()) {
-      // Instagram opsional — kegagalannya tidak boleh membatalkan onboarding,
-      // tapi tetap harus terlihat.
-      const ig = await upsertCreatorSocialAccount({
-        platform: "instagram",
-        username: extractSocialUsername(instagram),
-      });
-      if (!ig.success) setBanner("Akun Instagram gagal disimpan, bisa diisi ulang di Pengaturan.");
     }
 
     const res = await updateCreatorProfile({
@@ -323,15 +308,6 @@ export function CreatorOnboarding({ initialName }: { initialName?: string }) {
             onChange={(e) => setTiktok(e.target.value)}
             error={errors.tiktok}
             hint="Wajib — TikTok adalah platform yang dipakai UMKM untuk menilai kreator."
-            disabled={busy}
-          />
-          <AuthField
-            label="Akun Instagram (opsional)"
-            name="instagram"
-            placeholder="@nadia.visuals atau tautan profilnya"
-            value={instagram}
-            onChange={(e) => setInstagram(e.target.value)}
-            error={errors.instagram}
             disabled={busy}
           />
         </div>

@@ -72,6 +72,7 @@ export function CreatorDashboardSidebar({
   const pathname = usePathname();
   const { state, toggleSidebar } = useSidebar();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const displayCreatorName = creatorName || "Profil belum dimuat";
 
   /**
    * Panel "Campaign Aktif".
@@ -366,7 +367,7 @@ export function CreatorDashboardSidebar({
           }}
         >
           <span className="font-extrabold text-[.82rem] text-white/90 font-display leading-none group-data-[collapsible=icon]:text-[.88rem]">
-            {creatorName.slice(0, 1).toUpperCase()}
+            {displayCreatorName.slice(0, 1).toUpperCase()}
           </span>
         </div>
 
@@ -375,7 +376,7 @@ export function CreatorDashboardSidebar({
             className="block text-[0.84rem] text-white leading-[1.2] truncate"
             style={{ letterSpacing: "-.02em" }}
           >
-            {creatorName}
+            {displayCreatorName}
           </strong>
           <span className="flex items-center gap-1 mt-[2px]">
             <BadgeCheck size={10.5} className="text-emerald-400 shrink-0" />

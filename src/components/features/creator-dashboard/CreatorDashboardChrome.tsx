@@ -32,9 +32,9 @@ export function CreatorDashboardChrome({ children }: CreatorDashboardChromeProps
     };
   }, []);
 
-  const creatorName = profile?.name || "Kreator Marketiv";
-  const creatorHandle = profile?.username || "creator";
-  const creatorAvatar = profile?.avatarUrl || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop";
+  const creatorName = profile?.name ?? "";
+  const creatorHandle = profile?.username ?? "";
+  const creatorAvatar = profile?.avatarUrl;
 
   return (
     <DashboardShell

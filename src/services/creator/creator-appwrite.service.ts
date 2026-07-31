@@ -978,7 +978,7 @@ export async function uploadCreatorAvatarInAppwrite(file: File): Promise<Service
  * Tak ada unique index, jadi list dulu supaya tidak duplikat.
  */
 export async function upsertCreatorSocialAccountInAppwrite(input: {
-  platform: "tiktok" | "instagram";
+  platform: "tiktok";
   username: string;
 }): Promise<ServiceResult<null>> {
   const auth = await requireUserId<null>(null);

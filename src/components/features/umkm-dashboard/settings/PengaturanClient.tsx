@@ -38,10 +38,10 @@ interface NotificationSetting {
 }
 
 const INITIAL_NOTIFICATIONS: NotificationSetting[] = [
-  { id: "kreator", label: "Kreator baru bergabung", desc: "Notifikasi saat kreator join campaign", enabled: true },
-  { id: "submission", label: "Submission masuk", desc: "Notifikasi saat ada konten dikirim", enabled: true },
-  { id: "completed", label: "Campaign selesai", desc: "Ringkasan saat campaign berakhir", enabled: true },
-  { id: "escrow", label: "Dana escrow siap cair", desc: "Alert saat dana perlu diverifikasi", enabled: true },
+  { id: "kreator", label: "Kreator baru bergabung", desc: "Notifikasi saat kreator join campaign", enabled: false },
+  { id: "submission", label: "Submission masuk", desc: "Notifikasi saat ada konten dikirim", enabled: false },
+  { id: "completed", label: "Campaign selesai", desc: "Ringkasan saat campaign berakhir", enabled: false },
+  { id: "escrow", label: "Dana escrow siap cair", desc: "Alert saat dana perlu diverifikasi", enabled: false },
   { id: "promo", label: "Promosi & update platform", desc: "Info fitur baru dari Marketiv", enabled: false },
 ];
 

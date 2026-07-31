@@ -75,19 +75,19 @@ export const creatorPortfolioSchema = z.object({
 export type CreatorPortfolioInput = z.infer<typeof creatorPortfolioSchema>;
 
 export const socialHandleSchema = z.object({
-  platform: enumOf(["tiktok", "instagram"] as const, "Platform"),
+  platform: enumOf(["tiktok"] as const, "Platform"),
   username: requiredStringMax("Username", 255),
 });
 export type SocialHandleInput = z.infer<typeof socialHandleSchema>;
 
 /**
- * Ambil handle dari URL/teks TikTok/Instagram. Menerima juga handle telanjang.
- * tiktok.com/@handle → handle ; instagram.com/handle → handle.
+ * Ambil handle dari URL/teks TikTok. Menerima juga handle telanjang.
+ * tiktok.com/@handle -> handle.
  */
 export function extractSocialUsername(input: string): string {
   const raw = input.trim();
   if (!raw) return "";
-  const match = raw.match(/(?:tiktok\.com|instagram\.com)\/@?([A-Za-z0-9._]+)/i);
+  const match = raw.match(/tiktok\.com\/@?([A-Za-z0-9._]+)/i);
   if (match) return match[1];
   return raw.replace(/^@/, "");
 }

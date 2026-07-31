@@ -19,8 +19,6 @@ import {
   CreatorActivity,
 } from "@/types/creator-dashboard";
 import {
-  mockCreatorProfile,
-  mockCreatorPortfolioItems,
   mockCreatorMetrics,
   mockCreatorJobs,
   mockCreatorActiveWorks,
@@ -73,18 +71,10 @@ import type {
 import type { RateCardStatus } from "@/types/domain";
 
 export async function getCreatorProfile(): Promise<ServiceResult<CreatorProfile>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(300);
-    return { success: true, data: mockCreatorProfile };
-  }
   return getCreatorProfileFromAppwrite();
 }
 
 export async function getCreatorPortfolio(): Promise<ServiceResult<CreatorPortfolioItem[]>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(300);
-    return { success: true, data: mockCreatorPortfolioItems };
-  }
   return getCreatorPortfolioFromAppwrite();
 }
 
@@ -321,61 +311,23 @@ export type { CreatorProfileWriteInput, CreatorPortfolioWriteInput };
 export async function updateCreatorProfile(
   input: CreatorProfileWriteInput
 ): Promise<ServiceResult<CreatorProfile>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(500);
-    return {
-      success: true,
-      data: {
-        ...mockCreatorProfile,
-        name: (input.displayName as string) ?? mockCreatorProfile.name,
-        bio: (input.bio as string) ?? mockCreatorProfile.bio,
-        location: (input.city as string) ?? mockCreatorProfile.location,
-        niche: (input.niche as CreatorProfile["niche"]) ?? mockCreatorProfile.niche,
-        avatarUrl: (input.avatarUrl as string) ?? mockCreatorProfile.avatarUrl,
-      },
-    };
-  }
   return updateCreatorProfileInAppwrite(input);
 }
 
 export async function uploadCreatorAvatar(file: File): Promise<ServiceResult<string>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(700);
-    return {
-      success: true,
-      data: `https://placehold.co/160x160?text=${encodeURIComponent(file.name.slice(0, 8))}`,
-    };
-  }
   return uploadCreatorAvatarInAppwrite(file);
 }
 
 export async function upsertCreatorSocialAccount(input: {
-  platform: "tiktok" | "instagram";
+  platform: "tiktok";
   username: string;
 }): Promise<ServiceResult<null>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(400);
-    return { success: true, data: null };
-  }
   return upsertCreatorSocialAccountInAppwrite(input);
 }
 
 export async function createCreatorPortfolio(
   input: CreatorPortfolioWriteInput
 ): Promise<ServiceResult<CreatorPortfolioItem>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(500);
-    return {
-      success: true,
-      data: {
-        id: `mock_port_${Date.now()}`,
-        title: input.title,
-        url: input.portfolioUrl,
-        description: input.description ?? "",
-        thumbnailUrl: input.thumbnailUrl || undefined,
-      },
-    };
-  }
   return createCreatorPortfolioInAppwrite(input);
 }
 
@@ -383,40 +335,16 @@ export async function updateCreatorPortfolio(
   id: string,
   input: CreatorPortfolioWriteInput
 ): Promise<ServiceResult<CreatorPortfolioItem>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(500);
-    return {
-      success: true,
-      data: {
-        id,
-        title: input.title,
-        url: input.portfolioUrl,
-        description: input.description ?? "",
-        thumbnailUrl: input.thumbnailUrl || undefined,
-      },
-    };
-  }
   return updateCreatorPortfolioInAppwrite(id, input);
 }
 
 export async function deleteCreatorPortfolio(id: string): Promise<ServiceResult<null>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(400);
-    return { success: true, data: null };
-  }
   return deleteCreatorPortfolioInAppwrite(id);
 }
 
 export async function uploadCreatorPortfolioThumbnail(
   file: File
 ): Promise<ServiceResult<string>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(700);
-    return {
-      success: true,
-      data: `https://placehold.co/320x180?text=${encodeURIComponent(file.name.slice(0, 10))}`,
-    };
-  }
   return uploadCreatorPortfolioThumbnailInAppwrite(file);
 }
 

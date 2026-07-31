@@ -36,6 +36,7 @@ import {
 import { parseOrErrors } from "@/lib/validations/to-field-errors";
 import { getSession } from "@/services/auth/session.service";
 import {
+  getCreatorProfile,
   updateCreatorProfile,
   uploadCreatorAvatar,
   upsertCreatorSocialAccount,
@@ -315,7 +316,6 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
   const [bio, setBio] = useState(profile.bio);
   const [location, setLocation] = useState(profile.location);
   const [tiktokUrl, setTiktokUrl] = useState(profile.tiktokUrl || "");
-  const [instagramUrl, setInstagramUrl] = useState(profile.instagramUrl || "");
   const [selectedNiche, setSelectedNiche] = useState<CreatorNiche>(profile.niche);
   const [formError, setFormError] = useState<string | null>(null);
   const [isProfileSuccessOpen, setIsProfileSuccessOpen] = useState(false);
@@ -338,11 +338,11 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
   const [isUploadingThumb, setIsUploadingThumb] = useState(false);
 
   // ── Notification toggles ──
-  const [notifCampaign, setNotifCampaign] = useState(true);
-  const [notifDeadline, setNotifDeadline] = useState(true);
-  const [notifOrder, setNotifOrder] = useState(true);
-  const [notifPayment, setNotifPayment] = useState(true);
-  const [notifMessage, setNotifMessage] = useState(true);
+  const [notifCampaign, setNotifCampaign] = useState(false);
+  const [notifDeadline, setNotifDeadline] = useState(false);
+  const [notifOrder, setNotifOrder] = useState(false);
+  const [notifPayment, setNotifPayment] = useState(false);
+  const [notifMessage, setNotifMessage] = useState(false);
   const [notifNewsletter, setNotifNewsletter] = useState(false);
 
   const showToast = (msg: string) => toast.success(msg);
@@ -376,44 +376,38 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
       setFormError("Tautan/username TikTok tidak valid.");
       return;
     }
-    if (instagramUrl && !extractSocialUsername(instagramUrl)) {
-      setFormError("Tautan/username Instagram tidak valid.");
-      return;
-    }
 
     setFormError(null);
     setIsSavingProfile(true);
     const res = await updateCreatorProfile(parsed.data);
 
-    // Akun sosial ada di collection terpisah (creator_social_accounts).
-    const socialWrites: Promise<unknown>[] = [];
-    if (tiktokUrl.trim()) {
-      socialWrites.push(
-        upsertCreatorSocialAccount({ platform: "tiktok", username: extractSocialUsername(tiktokUrl) })
+    if (!res.success || !res.data) {
+      setIsSavingProfile(false);
+      setFormError(
+        res.code === "auth"
+          ? "Sesi berakhir, silakan login kembali."
+          : res.error ?? "Gagal menyimpan profil."
       );
-    }
-    if (instagramUrl.trim()) {
-      socialWrites.push(
-        upsertCreatorSocialAccount({
-          platform: "instagram",
-          username: extractSocialUsername(instagramUrl),
-        })
-      );
-    }
-    await Promise.all(socialWrites);
-    setIsSavingProfile(false);
-
-    if (res.success && res.data) {
-      setProfile(res.data);
-      setIsEditing(false);
-      setIsProfileSuccessOpen(true);
       return;
     }
-    setFormError(
-      res.code === "auth"
-        ? "Sesi berakhir, silakan login kembali."
-        : res.error ?? "Gagal menyimpan profil."
-    );
+
+    if (tiktokUrl.trim()) {
+      const socialRes = await upsertCreatorSocialAccount({
+        platform: "tiktok",
+        username: extractSocialUsername(tiktokUrl),
+      });
+      if (!socialRes.success) {
+        setIsSavingProfile(false);
+        setFormError(socialRes.error ?? "Profil tersimpan, tapi akun TikTok gagal disimpan.");
+        return;
+      }
+    }
+
+    const fresh = await getCreatorProfile();
+    setIsSavingProfile(false);
+    setProfile(fresh.success && fresh.data ? fresh.data : res.data);
+    setIsEditing(false);
+    setIsProfileSuccessOpen(true);
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -609,7 +603,6 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
                 setBio(profile.bio);
                 setLocation(profile.location);
                 setTiktokUrl(profile.tiktokUrl || "");
-                setInstagramUrl(profile.instagramUrl || "");
                 setSelectedNiche(profile.niche);
                 setIsEditing(true);
               }}
@@ -661,16 +654,6 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-950 text-white text-[0.75rem] font-[700] hover:bg-neutral-800 transition-colors"
                   >
                     TikTok <ExternalLink size={10} />
-                  </a>
-                )}
-                {profile.instagramUrl && (
-                  <a
-                    href={profile.instagramUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-pink-600 text-white text-[0.75rem] font-[700] hover:bg-pink-700 transition-colors"
-                  >
-                    Instagram <ExternalLink size={10} />
                   </a>
                 )}
               </div>
@@ -773,7 +756,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
 
             {/* Akun sosial disimpan di collection `creator_social_accounts`
                 (bukan kolom URL di profil) — handle diekstrak dari tautan. */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-neutral-100 pt-4">
+            <div className="grid grid-cols-1 gap-4 border-t border-neutral-100 pt-4">
               <div className="space-y-1.5">
                 <label className="block text-[0.68rem] font-[900] text-neutral-400 uppercase tracking-wider">
                   Link / Username TikTok
@@ -783,18 +766,6 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
                   placeholder="https://tiktok.com/@handle"
                   value={tiktokUrl}
                   onChange={(e) => setTiktokUrl(e.target.value)}
-                  className={inputCls}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-400 uppercase tracking-wider">
-                  Link / Username Instagram
-                </label>
-                <input
-                  type="text"
-                  placeholder="https://instagram.com/handle"
-                  value={instagramUrl}
-                  onChange={(e) => setInstagramUrl(e.target.value)}
                   className={inputCls}
                 />
               </div>
