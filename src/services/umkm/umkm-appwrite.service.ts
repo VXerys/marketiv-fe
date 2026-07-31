@@ -165,17 +165,37 @@ const mapSubmission = (d: Doc, creator?: Doc, ratePerThousandViews = 0): Campaig
 // memang tidak cukup — dan dua collection yang dibutuhkan (`escrows`, `orders`)
 // bahkan tidak bisa dibaca klien sama sekali.
 
+const PAYMENT_PURPOSE_TYPE: Record<string, TransactionType> = {
+  campaign: "deposit",
+  order: "payment",
+  topup: "deposit",
+};
+
+const PAYMENT_PURPOSE_LABEL: Record<string, string> = {
+  campaign: "Deposit budget campaign",
+  order: "Pembayaran order rate card",
+  topup: "Top up saldo",
+};
+
 const mapTransaction = (d: Doc): Transaction => {
   const campaignId = str(d.campaign_id);
+  const purpose = str(d.purpose);
+  const gateway = str(d.gateway);
+  const gatewaySuffix =
+    gateway === "midtrans"
+      ? " via Midtrans"
+      : gateway === "manual-dev"
+        ? " (funding manual)"
+        : "";
   return {
     id: str(d.$id),
     userId: str(d.user_id),
     referenceId: campaignId || str(d.order_id),
     referenceType: campaignId ? "campaign" : "rate_card",
     amount: num(d.amount),
-    type: str(d.purpose) as TransactionType,
+    type: PAYMENT_PURPOSE_TYPE[purpose] ?? "payment",
     status: str(d.status) as TransactionStatus,
-    description: str(d.purpose),
+    description: (PAYMENT_PURPOSE_LABEL[purpose] ?? purpose) + gatewaySuffix,
     midtransOrderId: str(d.gateway_reference) || undefined,
     redirectUrl: str(d.redirect_url) || undefined,
     createdAt: str(d.paid_at) || str(d.$createdAt),

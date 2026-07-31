@@ -441,7 +441,7 @@ export async function requestWithdrawal(
         amount: input.amount,
         status: "processed",
         processedAt: new Date().toISOString(),
-        balanceAfter: 0,
+        balanceAfter: mockCreatorMetrics.balance - input.amount,
         transactionId: `mock_tx_${Date.now()}`,
       },
     };

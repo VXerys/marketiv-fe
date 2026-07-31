@@ -399,7 +399,7 @@ export async function getEscrowOverview(): Promise<ServiceResult<EscrowOverview>
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const pendingRelease = rateCardEscrow; // Rate card custom offers pending verification / collab post URL
-    const refundEligible = campaignEscrow > 0 ? Math.min(campaignEscrow, 1200000) : 0; // Unused budget of campaign quota
+    const refundEligible = campaignEscrow; // Unused budget dari campaign completed
 
     return {
       success: true,
