@@ -204,8 +204,22 @@ const mapSubmission = (d: Doc): CreatorSubmission => ({
  * apa adanya dan ditampilkan UI sebagai "INFO".
  */
 const ACTIVITY_TYPE_ALIAS: Record<string, CreatorActivityType> = {
+  // Keuangan
   reward: "payout",
+  reward_matured: "payout",
+  escrow_released: "payout",
+  // Submission
+  submission_approved: "submission_valid",
+  // Escrow
+  escrow_held: "pending_escrow",
+  // Negosiasi / Rate Card
   chat_message: "negotiation_new",
+  offer_rejected: "negotiation_new",
+  order_created: "negotiation_new",
+  order_completed: "negotiation_new",
+  deliverable_submitted: "negotiation_new",
+  revision_requested: "negotiation_new",
+  // campaign_published, claim, claim_expired: pass-through (sudah cocok CreatorActivityType)
 };
 
 const mapActivity = (d: Doc): CreatorActivity => {

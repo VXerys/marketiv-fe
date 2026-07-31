@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Client, Databases, ID, Messaging, Permission, Role } from "node-appwrite";
 
 export default async ({ req, res, log, error }) => {
@@ -24,20 +25,20 @@ export default async ({ req, res, log, error }) => {
 
     const title = "Pesan chat baru";
     const body = createNotificationBody(message);
-    const notification = await databases.createDocument(
-      env.databaseId,
-      env.notificationsCollectionId,
-      ID.unique(),
-      {
-        userId: receiverId,
-        title,
-        message: body,
-        type: "chat_message",
-        isRead: false,
-        createdAt: new Date().toISOString()
-      },
-      [Permission.read(Role.user(receiverId)), Permission.update(Role.user(receiverId))]
-    );
+    const notifId = deterministicNotificationId(message.$id || conversationId, "chat_message");
+    try {
+      await databases.createDocument(
+        env.databaseId,
+        env.notificationsCollectionId,
+        notifId,
+        { userId: receiverId, title, message: body, type: "chat_message",
+          isRead: false, createdAt: new Date().toISOString() },
+        [Permission.read(Role.user(receiverId)), Permission.update(Role.user(receiverId))]
+      );
+    } catch (err) {
+      if (err?.code !== 409) throw err;
+      log(`Notifikasi chat_message sudah ada untuk ${receiverId}, skip`);
+    }
 
     let pushSent = false;
     try {
@@ -59,12 +60,17 @@ export default async ({ req, res, log, error }) => {
       log(`Push notification skipped/failed for ${receiverId}: ${err?.message || String(err)}`);
     }
 
-    return json(res, { status: "ok", notificationId: notification.$id, pushSent });
+    return json(res, { status: "ok", notificationId: notifId, pushSent });
   } catch (err) {
     error(err?.stack || err?.message || String(err));
     return json(res, { error: "Internal server error" }, 500);
   }
 };
+
+function deterministicNotificationId(sourceId, kind) {
+  const digest = createHash("sha256").update(`${sourceId}:${kind}`).digest("hex");
+  return `ntf${digest.slice(0, 29)}`;
+}
 
 function getEnv(req) {
   const env = {

@@ -52,7 +52,7 @@ const TYPE_ALIAS: Record<string, NotifType> = {
   offer_created: "negosiasi",
   offer_rejected: "negosiasi",
   order_created: "negosiasi",
-  order_completed: "negosiasi",
+  order_completed: "keuangan",
   deliverable_submitted: "negosiasi",
   revision_requested: "negosiasi",
   // Uang

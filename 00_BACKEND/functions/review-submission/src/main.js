@@ -1,4 +1,5 @@
-import { Client, Databases, Query } from "node-appwrite";
+import { createHash } from "node:crypto";
+import { Client, Databases, Permission, Query, Role } from "node-appwrite";
 
 /**
  * UMKM menyetujui atau menolak bukti kerja kreator (Alur A).
@@ -88,6 +89,19 @@ export default async ({ req, res, log, error }) => {
       }
     }
 
+    if (status === "rejected") {
+      await notify(databases, env, {
+        sourceId: submissionId,
+        kind: "submission_rejected",
+        userId: str(submission.creatorId),
+        title: "Bukti Kerja Ditolak",
+        message: notes
+          ? `Bukti kerja Anda ditolak: ${notes}`
+          : "Bukti kerja Anda ditolak oleh UMKM. Periksa catatan review.",
+        type: "campaign",
+      }, log);
+    }
+
     log(`Submission ${submissionId} di-${status} oleh ${userId}`);
     return json(res, { success: true, campaignId: str(submission.campaignId), status });
   } catch (err) {
@@ -95,6 +109,26 @@ export default async ({ req, res, log, error }) => {
     return json(res, { error: "Internal server error" }, 500);
   }
 };
+
+async function notify(databases, env, payload, log) {
+  try {
+    await databases.createDocument(
+      env.databaseId, env.notificationsCollectionId,
+      deterministicNotificationId(payload.sourceId, payload.kind),
+      { userId: payload.userId, title: payload.title, message: payload.message,
+        type: payload.type, isRead: false, createdAt: new Date().toISOString() },
+      [Permission.read(Role.user(payload.userId)), Permission.update(Role.user(payload.userId))]
+    );
+  } catch (err) {
+    if (err?.code === 409) return;
+    log(`Notifikasi ${payload.kind} gagal untuk ${payload.userId}: ${err?.message || String(err)}`);
+  }
+}
+
+function deterministicNotificationId(sourceId, kind) {
+  const digest = createHash("sha256").update(`${sourceId}:${kind}`).digest("hex");
+  return `ntf${digest.slice(0, 29)}`;
+}
 
 function str(value) {
   return typeof value === "string" ? value : "";
@@ -113,6 +147,7 @@ function getEnv(req) {
     campaignsCollectionId: process.env.CAMPAIGNS_COLLECTION_ID || "campaigns",
     submissionsCollectionId: process.env.CAMPAIGN_SUBMISSIONS_COLLECTION_ID || "campaign_submissions",
     claimsCollectionId: process.env.CAMPAIGN_CLAIMS_COLLECTION_ID || "campaign_claims",
+    notificationsCollectionId: process.env.NOTIFICATIONS_COLLECTION_ID || "notifications",
   };
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
 import { incrementColumn, decrementColumn } from "./atomic.js";
 
@@ -103,21 +104,14 @@ export default async ({ req, res, log, error }) => {
       );
     }
 
-    await databases.createDocument(
-      env.databaseId, env.notificationsCollectionId, ID.unique(),
-      {
-        userId: creatorId,
-        title: "Reward Campaign",
-        message: `Reward Rp${reward.toLocaleString("id-ID")} sudah masuk ke pending balance`,
-        type: "reward",
-        isRead: false,
-        createdAt: new Date().toISOString(),
-      },
-      // `notifications` punya $permissions kosong + rowSecurity — tanpa permission
-      // baris, notifikasi tidak akan pernah terbaca pemiliknya. `update` diperlukan
-      // agar penerima bisa menandainya sudah dibaca.
-      [Permission.read(Role.user(creatorId)), Permission.update(Role.user(creatorId))]
-    );
+    await notify(databases, env, {
+      sourceId: submissionId,
+      kind: "reward",
+      userId: creatorId,
+      title: "Reward Campaign",
+      message: `Reward Rp${reward.toLocaleString("id-ID")} sudah masuk ke pending balance`,
+      type: "reward",
+    }, log);
 
     log(`Reward ${reward} calculated for submission ${submissionId}`);
     return res.json({ success: true, reward });
@@ -126,6 +120,26 @@ export default async ({ req, res, log, error }) => {
     return res.json({ success: false, error: err.message }, 500);
   }
 };
+
+async function notify(databases, env, payload, log) {
+  try {
+    await databases.createDocument(
+      env.databaseId, env.notificationsCollectionId,
+      deterministicNotificationId(payload.sourceId, payload.kind),
+      { userId: payload.userId, title: payload.title, message: payload.message,
+        type: payload.type, isRead: false, createdAt: new Date().toISOString() },
+      [Permission.read(Role.user(payload.userId)), Permission.update(Role.user(payload.userId))]
+    );
+  } catch (err) {
+    if (err?.code === 409) return;
+    log(`Notifikasi ${payload.kind} gagal untuk ${payload.userId}: ${err?.message || String(err)}`);
+  }
+}
+
+function deterministicNotificationId(sourceId, kind) {
+  const digest = createHash("sha256").update(`${sourceId}:${kind}`).digest("hex");
+  return `ntf${digest.slice(0, 29)}`;
+}
 
 async function findOrCreateWallet(databases, env, userId) {
   const { Query } = await import("node-appwrite");
