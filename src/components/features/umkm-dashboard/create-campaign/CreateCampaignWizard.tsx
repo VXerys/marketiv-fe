@@ -26,10 +26,12 @@ import { TONE_OPTIONS, CTA_OPTIONS } from "./create-campaign.constants";
 import { composeBriefDetail, packDoAndDontJson } from "@/lib/validations/campaign.schema";
 import {
   createCampaignDraft,
+  updateCampaignDraft,
   generateCampaignBrief,
   createCampaignPayment,
   publishCampaign,
 } from "@/services/umkm/umkm-dashboard.service";
+import type { RehydratedWizard } from "./create-campaign.rehydrate";
 import { loadSnap } from "@/lib/midtrans/snap";
 import type { CampaignType } from "@/types/domain";
 import { toast } from "sonner";
@@ -39,30 +41,39 @@ import { SaveDraftModal } from "./modals/SaveDraftModal";
 import { PaymentSimulationModal } from "./modals/PaymentSimulationModal";
 import { CampaignCreatedModal } from "./modals/CampaignCreatedModal";
 
-export function CreateCampaignWizard() {
+interface CreateCampaignWizardProps {
+  /** Id campaign draft yang sudah ada. Saat diisi, wizard berjalan dalam mode edit. */
+  campaignId?: string;
+  /** State awal untuk seeding field — dari rehydrateWizard(). */
+  initialState?: RehydratedWizard["state"];
+  /** Meta awal (assetId, dll.) — dari rehydrateWizard(). */
+  initialMeta?: RehydratedWizard["meta"];
+}
+
+export function CreateCampaignWizard({ campaignId, initialState, initialMeta }: CreateCampaignWizardProps = {}) {
   const router = useRouter();
 
   // Wizard state machine
   const [currentStep, setCurrentStep] = useState(1);
   const stepsCount = 5;
 
-  // Form states
-  const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
-  const [type, setType] = useState("");
-  const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
-  const [brief, setBrief] = useState("");
-  const [videoStyle, setVideoStyle] = useState("");
-  const [requiredPoints, setRequiredPoints] = useState("");
-  const [callToAction, setCallToAction] = useState("");
-  const [hashtags, setHashtags] = useState("");
-  const [externalAssetUrl, setExternalAssetUrl] = useState("");
-  const [assetNotes, setAssetNotes] = useState("");
-  const [pricePerThousandViews, setPricePerThousandViews] = useState(5000);
-  const [totalBudgetEscrow, setTotalBudgetEscrow] = useState(3200000);
-  const [creatorQuota, setCreatorQuota] = useState(4);
-  const [termsAgreed, setTermsAgreed] = useState(false);
+  // Form states — seeded dari initialState kalau dalam mode edit
+  const [title, setTitle] = useState(initialState?.title ?? "");
+  const [category, setCategory] = useState(initialState?.category ?? "");
+  const [type, setType] = useState(initialState?.type ?? "");
+  const [description, setDescription] = useState(initialState?.description ?? "");
+  const [location, setLocation] = useState(initialState?.location ?? "");
+  const [brief, setBrief] = useState(initialState?.brief ?? "");
+  const [videoStyle, setVideoStyle] = useState(initialState?.videoStyle ?? "");
+  const [requiredPoints, setRequiredPoints] = useState(initialState?.requiredPoints ?? "");
+  const [callToAction, setCallToAction] = useState(initialState?.callToAction ?? "");
+  const [hashtags, setHashtags] = useState(initialState?.hashtags ?? "");
+  const [externalAssetUrl, setExternalAssetUrl] = useState(initialState?.externalAssetUrl ?? "");
+  const [assetNotes, setAssetNotes] = useState(initialState?.assetNotes ?? "");
+  const [pricePerThousandViews, setPricePerThousandViews] = useState(initialState?.pricePerThousandViews ?? 5000);
+  const [totalBudgetEscrow, setTotalBudgetEscrow] = useState(initialState?.totalBudgetEscrow ?? 3200000);
+  const [creatorQuota, setCreatorQuota] = useState(initialState?.creatorQuota ?? 4);
+  const [termsAgreed, setTermsAgreed] = useState(false); // sengaja tidak di-seed — user wajib centang ulang
 
   // Validation state
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -197,7 +208,10 @@ export function CreateCampaignWizard() {
   /**
    * Tulis campaign draft. Dipakai tombol "Simpan Draft" maupun jalur pembayaran
    * (campaign harus ada dulu supaya create-payment punya campaignId).
-   * Idempoten lewat createdCampaignId — konfirmasi ulang tidak membuat duplikat.
+   *
+   * Mode create: buat baris baru. Mode edit (`campaignId` prop ada): update baris
+   * yang sudah ada. Setelah satu kali simpan sesi ini (`createdCampaignId` terisi),
+   * operasi berikutnya mengembalikan id langsung (idempoten).
    */
   const saveDraft = async (): Promise<string | null> => {
     if (createdCampaignId) return createdCampaignId;
@@ -213,7 +227,7 @@ export function CreateCampaignWizard() {
     const tone = TONE_OPTIONS.find((o) => o.id === videoStyle);
     const ctaOpt = CTA_OPTIONS.find((o) => o.id === callToAction);
 
-    const res = await createCampaignDraft({
+    const draftInput = {
       title,
       category,
       type: type as CampaignType,
@@ -230,7 +244,12 @@ export function CreateCampaignWizard() {
         generatedByAi: aiGenerated,
       },
       asset: externalAssetUrl.trim() ? { fileUrl: externalAssetUrl.trim() } : undefined,
-    });
+    };
+
+    const isEdit = !!campaignId;
+    const res = isEdit
+      ? await updateCampaignDraft(campaignId, draftInput)
+      : await createCampaignDraft(draftInput);
 
     if (res.success && res.data) {
       res.data.warnings.forEach((w) => toast.warning(w));
@@ -576,7 +595,7 @@ export function CreateCampaignWizard() {
           isOpen={isPaymentOpen}
           onClose={() => setIsPaymentOpen(false)}
           onConfirm={handleConfirmPayment}
-          totalBudgetEscrow={totalBudgetEscrow}
+          totalBudgetEscrow={draftBudget ?? totalBudgetEscrow}
         />
       )}
 

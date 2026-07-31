@@ -1,24 +1,29 @@
 import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
+import { decrementColumn } from "./atomic.js";
 
 export default async ({ req, res, log, error }) => {
   try {
     const env = getEnv(req);
     const databases = createDatabasesClient(env);
-    const { Query } = await import("node-appwrite");
 
     const now = new Date();
+    // TIDAK memakai campaignMap untuk menyimpan totalClaims. Dulu cache itu dipakai
+    // untuk menghitung Math.max(0, currentTotal - 1) secara lokal, yang menghasilkan
+    // race dengan campaign-claimed: satu lintasan cron bisa menghapus increment yang
+    // baru ditulisnya. decrementColumn atomik menyelesaikan keduanya sekaligus.
     const campaignMap = {};
     const LIMIT = 100;
-    let offset = 0;
     let total = 0;
-
+    // Pagination dengan cursor bukan offset — kita memutasi set yang sama
+    // (rows menyingkir dari filter `status=claimed` begitu dibalik), sehingga
+    // offset-based pagination bisa melompati klaim. Selalu ambil halaman pertama
+    // sampai kurang dari LIMIT kembali.
     while (true) {
       const claims = await databases.listDocuments(
         env.databaseId, env.claimsCollectionId,
         [
           Query.equal("status", "claimed"),
           Query.limit(LIMIT),
-          Query.offset(offset),
         ]
       );
 
@@ -27,39 +32,42 @@ export default async ({ req, res, log, error }) => {
       for (const claim of claims.documents) {
         const campaignId = claim.campaignId;
 
-        let campaign;
-        if (campaignMap[campaignId]) {
-          campaign = campaignMap[campaignId];
-        } else {
-          campaign = await databases.getDocument(
-            env.databaseId, env.campaignsCollectionId, campaignId
-          );
-          campaignMap[campaignId] = campaign;
+        // Baca campaign sekali per campaign-id unik; kita tidak perlu totalClaims
+        // dari cache karena decrementColumn langsung ke server.
+        if (!campaignMap[campaignId]) {
+          try {
+            campaignMap[campaignId] = await databases.getDocument(
+              env.databaseId, env.campaignsCollectionId, campaignId
+            );
+          } catch {
+            log(`Campaign ${campaignId} tidak ditemukan, skip klaim ${claim.$id}`);
+            continue;
+          }
         }
+        const campaign = campaignMap[campaignId];
 
         const submissionDays = Number(campaign.submissionDays) || 7;
         const claimedAt = new Date(claim.claimedAt);
         const deadline = new Date(claimedAt.getTime() + submissionDays * 24 * 60 * 60 * 1000);
 
         if (now >= deadline) {
+          // Balik status klaim.
           await databases.updateDocument(
             env.databaseId, env.claimsCollectionId, claim.$id,
             { status: "expired" }
           );
 
-          const currentTotal = Number(campaign.totalClaims) || 0;
-          await databases.updateDocument(
-            env.databaseId, env.campaignsCollectionId, campaignId,
-            { totalClaims: Math.max(0, currentTotal - 1) }
-          );
+          // Kurangi counter atomik — server menegakkan min=0, tidak ada negatif.
+          // Bungkus try/catch supaya kegagalan counter tidak membatalkan notifikasi;
+          // kuota yang sedikit lebih tinggi dari seharusnya jauh lebih aman daripada
+          // kampanye tanpa notifikasi.
+          try {
+            await decrementColumn(env, env.campaignsCollectionId, campaignId, "totalClaims", 1);
+          } catch (decErr) {
+            log(`Decrement totalClaims gagal untuk campaign ${campaignId}: ${decErr?.message}`);
+          }
 
-          campaign.totalClaims = Math.max(0, currentTotal - 1);
-
-          const creatorProfiles = await databases.listDocuments(
-            env.databaseId, env.creatorProfilesCollectionId,
-            [Query.equal("userId", claim.creatorId), Query.limit(1)]
-          );
-
+          // Notifikasi kreator.
           await databases.createDocument(
             env.databaseId, env.notificationsCollectionId, ID.unique(),
             {
@@ -70,19 +78,18 @@ export default async ({ req, res, log, error }) => {
               isRead: false,
               createdAt: now.toISOString(),
             },
-            // `notifications` punya $permissions kosong + rowSecurity — tanpa
-            // permission baris, notifikasi tidak akan pernah terbaca pemiliknya.
-            // `update` diperlukan agar penerima bisa menandainya sudah dibaca.
             [Permission.read(Role.user(claim.creatorId)), Permission.update(Role.user(claim.creatorId))]
           );
 
           total++;
-          log(`Claim ${claim.$id} expired for campaign ${campaignId}`);
+          log(`Claim ${claim.$id} expired untuk campaign ${campaignId}`);
         }
       }
 
+      // Kalau semua dalam halaman ini sudah diproses dan semuanya expired,
+      // halaman berikutnya akan memuat klaim yang belum expired. Kalau < LIMIT
+      // dokumen kembali, tidak ada halaman berikutnya.
       if (claims.documents.length < LIMIT) break;
-      offset += LIMIT;
     }
 
     log(`Expired ${total} stale claims`);

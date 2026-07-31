@@ -85,6 +85,8 @@ export interface Campaign {
   externalAssetUrl: string;
   thumbnailUrl: string;
   niche: CreatorNiche;
+  /** `campaigns.type` — "ugc" atau "clipping". */
+  type?: string;
   status: CampaignStatus;
   creatorQuota: number;
   usedQuota: number;

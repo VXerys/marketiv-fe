@@ -124,6 +124,10 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
       campaignId: work.campaignId,
       postUrl: contentUrl.trim(),
       caption: notes.trim() || undefined,
+      // Teruskan pilihan platform dari UI — dulu selalu "tiktok" padahal kreator
+      // sudah memilih Instagram, yang menyebabkan ai-fraud-precheck memberi +20
+      // skor fraud "Platform tidak cocok" untuk submission Instagram yang sah.
+      platform,
     });
 
     setIsSubmitting(false);

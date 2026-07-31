@@ -5,10 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowLeft,
-  Users,
   Share2,
   Play,
-  RefreshCw,
   ChevronDown,
   ChevronRight,
   AlignLeft,
@@ -67,7 +65,6 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
   const [activeBriefPill, setActiveBriefPill] = useState<BriefPill>("Aturan");
   const briefRef = useRef<HTMLDivElement>(null);
 
-  const [countdown, setCountdown] = useState({ h: 3, m: 16, s: 43 });
   const [isClaimOpen, setIsClaimOpen] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
@@ -77,22 +74,6 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
     retention: false,
     views: false,
   });
-
-  useEffect(() => {
-    const t = setInterval(() => {
-      setCountdown((prev) => {
-        let { h, m, s } = prev;
-        if (--s < 0) { s = 59; if (--m < 0) { m = 59; if (--h < 0) h = 0; } }
-        return { h, m, s };
-      });
-    }, 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  const formatCountdown = () => {
-    const { h, m, s } = countdown;
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  };
 
   const openBrief = () => {
     setIsBriefOpen(true);
@@ -133,10 +114,11 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
 
   const isFull = job.usedQuota >= job.quota;
   const isNearLimit = job.quota - job.usedQuota <= 1 && !isFull;
-  const percentQuotaUsed = Math.round((job.usedQuota / job.quota) * 100);
-  const budgetRemaining = 100 - percentQuotaUsed;
+  const percentQuotaUsed = job.quota > 0 ? Math.round((job.usedQuota / job.quota) * 100) : 0;
+  const quotaRemainingPct = 100 - percentQuotaUsed;
+  const quotaRemaining = job.quota - job.usedQuota;
   const allChecked = isRulesChecked.brief && isRulesChecked.privacy && isRulesChecked.retention && isRulesChecked.views;
-  const descText = job.productDescription ?? "";
+  const descText = job.brief ?? "";
   const isLongDesc = descText.length > 220;
 
   const doList = job.doAndDont?.do ?? [];
@@ -192,7 +174,7 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
                   </div>
                   <span className="text-xs font-bold text-white/80">{job.brandName}</span>
                 </div>
-                <span className="px-2.5 py-1 rounded-full bg-white/15 border border-white/20 text-[10px] font-black uppercase tracking-wide text-white/80">CLIPPING</span>
+                {job.type && <span className="px-2.5 py-1 rounded-full bg-white/15 border border-white/20 text-[10px] font-black uppercase tracking-wide text-white/80">{job.type.toUpperCase()}</span>}
                 <span className={cn("px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide border",
                   isFull ? "bg-red-500/30 text-red-200 border-red-400/30"
                   : isNearLimit ? "bg-amber-500/30 text-amber-200 border-amber-400/30"
@@ -213,21 +195,16 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
               </div>
 
               <div className="flex flex-wrap items-center gap-3 text-[11px] font-bold text-white/55">
-                <span className="flex items-center gap-1.5">
-                  <svg className="w-3.5 h-3.5 text-white/65" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                  </svg>
-                  INSTAGRAM
-                </span>
-                <span className="w-1 h-1 rounded-full bg-white/25 shrink-0" />
+                {platforms.map((p, i) => (
+                  <span key={p} className="flex items-center gap-1.5">
+                    {i > 0 && <span className="w-1 h-1 rounded-full bg-white/25 shrink-0" />}
+                    {p.toUpperCase()}
+                  </span>
+                ))}
+                {platforms.length > 0 && <span className="w-1 h-1 rounded-full bg-white/25 shrink-0" />}
                 <span className="flex items-center gap-1">
                   <Tag className="w-3 h-3 text-white/65" />
                   {job.niche.toUpperCase()}
-                </span>
-                <span className="w-1 h-1 rounded-full bg-white/25 shrink-0" />
-                <span className="flex items-center gap-1">
-                  <Users className="w-3 h-3 text-white/65" />
-                  {(job.targetViews || 7659).toLocaleString("id-ID")}
                 </span>
               </div>
 
@@ -330,11 +307,13 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
                 <div className="lg:col-span-4">
                   <div className="bg-white border border-neutral-200/60 rounded-[22px] p-5 shadow-sm space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-extrabold text-neutral-700">Budget Tersisa</span>
-                      <span className="text-sm font-black text-neutral-900">{budgetRemaining}%</span>
+                      <span className="text-sm font-extrabold text-neutral-700">Kuota Tersedia</span>
+                      <span className="text-sm font-black text-neutral-900">
+                        {quotaRemaining} / {job.quota} slot
+                      </span>
                     </div>
                     <div className="w-full h-2 bg-neutral-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${budgetRemaining}%`, background: CREATOR_PROGRESS_GRADIENT }} />
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${quotaRemainingPct}%`, background: CREATOR_PROGRESS_GRADIENT }} />
                     </div>
                     <div className="grid grid-cols-2 gap-2.5 pt-2 border-t border-neutral-100">
                       <div className="bg-neutral-50 border border-neutral-200/40 rounded-xl p-3.5">
@@ -345,19 +324,8 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
                         </div>
                       </div>
                       <div className="bg-neutral-50 border border-neutral-200/40 rounded-xl p-3.5">
-                        <span className="block text-[9px] font-black text-neutral-400 uppercase tracking-wide mb-2">Min Views · CPM Penuh</span>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="text-xs font-black text-neutral-900">{(job.targetViews || 10000).toLocaleString("id-ID")} Views</span>
-                          <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200 leading-none">CPM Penuh</span>
-                        </div>
-                      </div>
-                      <div className="bg-neutral-50 border border-neutral-200/40 rounded-xl p-3.5">
                         <span className="block text-[9px] font-black text-neutral-400 uppercase tracking-wide mb-2">CPM (Rate /1K Views)</span>
                         <span className="text-xs font-black text-neutral-900">{formatCurrency(job.ratePerThousandViews)}</span>
-                      </div>
-                      <div className="bg-neutral-50 border border-neutral-200/40 rounded-xl p-3.5">
-                        <span className="block text-[9px] font-black text-neutral-400 uppercase tracking-wide mb-2">Max Views per Video</span>
-                        <span className="text-xs font-black text-neutral-900">{(job.targetViews ?? 500000).toLocaleString("id-ID")} Views</span>
                       </div>
                     </div>
                   </div>
@@ -510,10 +478,10 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
                       {activeBriefPill === "Tentang" && (
                         <div className="space-y-4">
                           <SectionBox title="Tentang brand" badge="Informasi">
-                            <FieldBox label="Deskripsi produk">
-                              {job.productDescription ? (
+                            <FieldBox label="Deskripsi kampanye">
+                              {job.brief ? (
                                 <p className="text-sm text-neutral-700 font-medium leading-relaxed">
-                                  {job.productDescription}
+                                  {job.brief}
                                 </p>
                               ) : (
                                 <BriefEmpty>Belum diisi UMKM.</BriefEmpty>
@@ -581,11 +549,6 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
             <div className="bg-white border border-neutral-200/60 rounded-[22px] shadow-sm overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
                 <h3 className="text-sm font-extrabold text-neutral-800">Video Kamu</h3>
-                <button className="inline-flex items-center gap-2 text-xs font-bold text-neutral-500 hover:text-neutral-800 border border-neutral-200 hover:border-neutral-300 rounded-xl px-3.5 py-2 transition-all duration-200 cursor-pointer">
-                  <RefreshCw className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Refresh Views dalam <strong className="text-neutral-700 font-black">{formatCountdown()}</strong></span>
-                  <ChevronDown className="w-3.5 h-3.5" />
-                </button>
               </div>
               <div className="flex border-b border-neutral-100 overflow-x-auto px-5">
                 {VIDEO_SUB_TABS.map((tab) => (

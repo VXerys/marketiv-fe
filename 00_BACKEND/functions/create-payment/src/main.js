@@ -125,7 +125,8 @@ export default async ({ req, res, log, error }) => {
         userId,
         // Referensi tidak lagi memuat id campaign/order, jadi kaitannya
         // dititipkan di sini supaya dashboard Midtrans tetap bisa ditelusuri.
-        referenceId: payload.orderId || payload.campaignId || ""
+        referenceId: payload.orderId || payload.campaignId || "",
+        finishUrl: typeof payload.finishUrl === "string" ? payload.finishUrl : undefined,
       });
 
       await databases.updateDocument(env.databaseId, env.paymentsCollectionId, payment.$id, {
@@ -238,7 +239,14 @@ async function createMidtransTransaction(env, params) {
         }
       ],
       custom_field1: params.userId,
-      custom_field2: params.referenceId || ""
+      custom_field2: params.referenceId || "",
+      ...(params.finishUrl && {
+        callbacks: {
+          finish: params.finishUrl,
+          unfinish: params.finishUrl,
+          error: params.finishUrl,
+        }
+      }),
     })
   });
 

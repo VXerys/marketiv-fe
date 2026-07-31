@@ -328,7 +328,7 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
   const newTodayCount      = jobs.filter(j => {
     const d = new Date(j.createdAt), t = new Date();
     return d.getDate() === t.getDate() && d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear();
-  }).length || 1;
+  }).length;
 
   // Filter + sort
   const filteredJobs = jobs

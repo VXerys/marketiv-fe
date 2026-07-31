@@ -179,6 +179,7 @@ const mapJob = (d: Doc, umkm?: Doc): CreatorJob => ({
   status: str(d.status) as CampaignStatus,
   totalBudget: num(d.budget),
   createdAt: str(d.$createdAt),
+  type: str(d.type) || undefined,
   platforms: strList(d.platforms),
 });
 

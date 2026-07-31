@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import * as XLSX from "xlsx";
 import { DashboardButton } from "../../shared";
 import {
   ResponsiveModal,
@@ -14,31 +15,46 @@ import {
 interface ExportReportModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /**
+   * Baris yang akan diekspor. Tiap objek = satu baris; key = nama kolom.
+   * Dipasok pemanggil sehingga modal tidak perlu tahu struktur data.
+   */
+  rows: Record<string, unknown>[];
+  /** Nama file tanpa ekstensi, mis. "Laporan_Campaign_Marketiv". */
+  filename: string;
 }
 
-export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
-  const [reportType, setReportType] = useState("summary");
-  const [formatType, setFormatType] = useState("csv");
+export function ExportReportModal({ isOpen, onClose, rows, filename }: ExportReportModalProps) {
+  const [formatType, setFormatType] = useState<"csv" | "excel">("csv");
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleExport = () => {
+    if (rows.length === 0) return;
     setIsGenerating(true);
-    // Simulate generation delay
-    setTimeout(() => {
+
+    try {
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Data");
+
+      if (formatType === "csv") {
+        const csv = XLSX.utils.sheet_to_csv(ws);
+        const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${filename}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      } else {
+        XLSX.writeFile(wb, `${filename}.xlsx`);
+      }
+    } finally {
       setIsGenerating(false);
       onClose();
-      // Trigger a direct dummy file download simulation
-      const blob = new Blob(["id,judul,views,status\n1,Sambal Matah,184200,Aktif\n2,Nasi Sehat,88500,Aktif"], {
-        type: "text/csv;charset=utf-8;",
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `Laporan_Kemajuan_${reportType}_Marketiv.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }, 1500);
+    }
   };
 
   return (
@@ -49,30 +65,14 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             Export Laporan Kemajuan
           </ResponsiveModalTitle>
           <ResponsiveModalDescription className="text-sm text-text-secondary leading-relaxed">
-            Pilih tipe data dan format laporan kemajuan P2MW 2025 yang ingin Anda ekspor dari sistem.
+            {rows.length > 0
+              ? `${rows.length} baris data siap diekspor. Pilih format yang diinginkan.`
+              : "Tidak ada data untuk diekspor."}
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
-        {/* Report Type Select */}
-        <div className="mb-4 mt-4">
-          <label htmlFor="report-type" className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
-            Tipe Data Laporan
-          </label>
-          <select
-            id="report-type"
-            className="w-full px-3.5 py-2.5 bg-neutral-50 text-sm text-text-primary border border-border-strong rounded-xl focus:outline-none focus:border-primary transition-colors cursor-pointer"
-            value={reportType}
-            onChange={(e) => setReportType(e.target.value)}
-          >
-            <option value="summary">Ringkasan Campaign & Views (P2MW)</option>
-            <option value="views">Performa Konten & Views Kreator</option>
-            <option value="submissions">Bukti Tayang & URL Submissions</option>
-            <option value="escrow">Catatan Mutasi Transaksi Escrow</option>
-          </select>
-        </div>
-
         {/* Format Options */}
-        <div className="mb-6">
+        <div className="mb-6 mt-4">
           <span className="block text-xs font-semibold text-text-secondary mb-2.5 uppercase tracking-wider">
             Format Dokumen
           </span>
@@ -112,7 +112,13 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           <DashboardButton variant="secondary" size="md" onClick={onClose} disabled={isGenerating} className="text-xs">
             Batal
           </DashboardButton>
-          <DashboardButton variant="primary" size="md" onClick={handleExport} disabled={isGenerating} className="text-xs">
+          <DashboardButton
+            variant="primary"
+            size="md"
+            onClick={handleExport}
+            disabled={isGenerating || rows.length === 0}
+            className="text-xs"
+          >
             {isGenerating ? "Mengekspor..." : "Generate Laporan"}
           </DashboardButton>
         </ResponsiveModalFooter>

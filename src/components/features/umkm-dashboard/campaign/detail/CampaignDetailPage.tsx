@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { UmkmPageWrapper } from "../../shared/UmkmPageWrapper";
 import { CampaignDetailHeader } from "./CampaignDetailHeader";
@@ -40,6 +41,7 @@ interface CampaignDetailPageProps {
 }
 
 export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -156,6 +158,21 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
     }
   };
 
+  /**
+   * CTA utama campaign paused → aktifkan kembali (bukan edit).
+   * Guard status ada di backend — kalau sudah aktif, server menolak.
+   */
+  const handleResumeFromPause = async () => {
+    if (!campaign) return;
+    const res = await updateCampaignStatus(campaign.id, "active");
+    if (res.success && res.data) {
+      setCampaign(res.data);
+      showToast(`Campaign "${campaign.title}" berhasil diaktifkan kembali.`);
+    } else {
+      toast.error(res.error ?? "Gagal mengaktifkan campaign.");
+    }
+  };
+
   if (loading) {
     return (
       <UmkmDashboardChrome businessName={profile?.businessName ?? ""}>
@@ -184,7 +201,11 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
           campaign={campaign}
           onCancelClick={() => setIsCancelModalOpen(true)}
           onExportClick={() => setIsExportModalOpen(true)}
-          onEditClick={() => showToast(`Buka wizard edit campaign: ${campaign.title}`)}
+          onEditClick={
+            campaign.status === "paused"
+              ? handleResumeFromPause
+              : () => router.push(`/dashboard/umkm/campaign/${campaign.id}/edit`)
+          }
         />
 
         {/* Overview cards */}
@@ -256,6 +277,19 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
           <ExportReportModal
             isOpen={isExportModalOpen}
             onClose={() => setIsExportModalOpen(false)}
+            filename={`Laporan_${campaign?.title?.replace(/\s+/g, "_") ?? "Campaign"}_Marketiv`}
+            rows={submissions.map((s) => ({
+              "ID Submission": s.id,
+              "Kreator": s.creatorName,
+              "Platform": s.platform,
+              "URL Konten": s.contentUrl,
+              "Views": s.actualViews,
+              "Status": s.validationStatus,
+              "Fraud Status": s.fraudStatus,
+              "Dana Dicairkan (Rp)": s.releasedFund,
+              "Dikirim": s.submittedAt,
+              "Divalidasi": s.validatedAt ?? "-",
+            }))}
           />
         )}
 

@@ -58,6 +58,8 @@ import {
   getEscrowOverviewFromAppwrite,
   getFinanceOverviewFromAppwrite,
   createCampaignDraftInAppwrite,
+  getCampaignDraftForEditFromAppwrite,
+  updateCampaignDraftInAppwrite,
   updateCampaignStatusInAppwrite,
   duplicateCampaignInAppwrite,
   getUmkmSettingsProfileFromAppwrite,
@@ -80,6 +82,7 @@ import type {
   PaymentIntent,
   CreateCampaignDraftInput,
   CampaignDraftResult,
+  CampaignEditRaw,
   DuplicateCampaignOptions,
   UmkmProfileWriteInput,
   ReviewSubmissionInput,
@@ -441,6 +444,7 @@ export async function createCampaignDraft(
       pricePerThousandViews: input.rewardPer1000Views,
       totalBudgetEscrow: input.budget,
       usedBudget: 0,
+      remainingBudget: 0,
       totalViews: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -450,7 +454,44 @@ export async function createCampaignDraft(
   return createCampaignDraftInAppwrite(input);
 }
 
-export type { DuplicateCampaignOptions };
+export type { DuplicateCampaignOptions, CampaignEditRaw };
+
+/**
+ * Baca campaign draft untuk halaman edit wizard.
+ * Mock: cari di mockCampaigns berdasarkan id, kembalikan data mentah kosong kalau tidak ada.
+ */
+export async function getCampaignDraftForEdit(
+  campaignId: string
+): Promise<ServiceResult<CampaignEditRaw>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    const campaign = mockCampaigns.find((c) => c.id === campaignId);
+    if (!campaign || campaign.status !== "draft") {
+      return { success: false, error: "Campaign draft tidak ditemukan.", code: "not_found", data: null as unknown as CampaignEditRaw };
+    }
+    return { success: true, data: { campaign, warnings: [] } };
+  }
+  return getCampaignDraftForEditFromAppwrite(campaignId);
+}
+
+/**
+ * Update campaign draft yang sudah ada.
+ * Mock: echo — operasi tulis tidak dimutasi di mock.
+ */
+export async function updateCampaignDraft(
+  campaignId: string,
+  input: CreateCampaignDraftInput
+): Promise<ServiceResult<CampaignDraftResult>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(600);
+    const campaign = mockCampaigns.find((c) => c.id === campaignId);
+    if (!campaign) {
+      return { success: false, error: "Campaign tidak ditemukan.", code: "not_found", data: null as unknown as CampaignDraftResult };
+    }
+    return { success: true, data: { campaign: { ...campaign, title: input.title }, complete: true, warnings: [] } };
+  }
+  return updateCampaignDraftInAppwrite(campaignId, input);
+}
 
 /** Jeda / aktifkan kembali campaign. Mock meniru validasi status yang sama. */
 export async function updateCampaignStatus(

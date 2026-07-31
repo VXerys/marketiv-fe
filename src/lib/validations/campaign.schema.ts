@@ -139,6 +139,64 @@ export function composeBriefDetail(input: {
   return sections.join("\n\n").slice(0, 10000);
 }
 
+/**
+ * Inverse self-verifying dari `composeBriefDetail`.
+ *
+ * Memisah `briefDetail` kembali ke field wizard. Self-verify: jalankan ulang
+ * `composeBriefDetail` atas hasilnya dan bandingkan byte-per-byte. Jika beda
+ * (mis. data baru yang kolomnya belum dikenal, duplikat header), seluruh teks
+ * masuk ke `brief` dan `lossy = true` — lebih baik data terpelihara dari
+ * pada kehilangan sebagian saat setiap putaran simpan.
+ *
+ * Tidak mem-parse `doAndDont` — field itu tersimpan terpisah di
+ * `campaign_briefs.doAndDont` dan tidak dititipkan ke `briefDetail`.
+ */
+export function decomposeBriefDetail(briefDetail: string): {
+  brief: string;
+  requiredPoints: string;
+  hashtags: string;
+  location: string;
+  assetNotes: string;
+  lossy: boolean;
+} {
+  const empty = { brief: briefDetail, requiredPoints: "", hashtags: "", location: "", assetNotes: "", lossy: true };
+  if (!briefDetail.trim()) {
+    return { brief: "", requiredPoints: "", hashtags: "", location: "", assetNotes: "", lossy: false };
+  }
+
+  let brief = "";
+  let requiredPoints = "";
+  let hashtags = "";
+  let location = "";
+  let assetNotes = "";
+
+  for (const chunk of briefDetail.split("\n\n")) {
+    if (chunk.startsWith("Poin Wajib:\n")) {
+      requiredPoints = chunk.slice("Poin Wajib:\n".length);
+    } else if (chunk.startsWith("Hashtag: ")) {
+      hashtags = chunk.slice("Hashtag: ".length);
+    } else if (chunk.startsWith("Target Lokasi Kreator: ")) {
+      location = chunk.slice("Target Lokasi Kreator: ".length);
+    } else if (chunk.startsWith("Catatan Aset: ")) {
+      assetNotes = chunk.slice("Catatan Aset: ".length);
+    } else if (!brief) {
+      // Blok pertama yang tidak punya header = brief utama
+      brief = chunk;
+    } else {
+      // Blok ekstra yang tidak dikenal → lossy
+      return empty;
+    }
+  }
+
+  // Self-verify: komposisi ulang harus byte-identik dengan input asli
+  const recomposed = composeBriefDetail({ brief, requiredPoints, hashtags, location, assetNotes });
+  if (recomposed !== briefDetail.slice(0, 10000)) {
+    return empty;
+  }
+
+  return { brief, requiredPoints, hashtags, location, assetNotes, lossy: false };
+}
+
 export const CAMPAIGN_TYPE_OPTIONS = [
   {
     id: "ugc",

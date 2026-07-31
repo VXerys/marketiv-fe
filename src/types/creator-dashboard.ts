@@ -133,6 +133,8 @@ export interface CreatorJob {
   ctaInstruction?: string;
   externalAssetUrl?: string;
   thumbnailUrl?: string;
+  /** `campaigns.type` — tipe campaign, mis. "clipping". */
+  type?: string;
   /** `campaigns.platforms` — kolom array, bukan string tunggal. */
   platforms?: string[];
   /** Seluruh baris `campaign_assets` milik campaign ini. */

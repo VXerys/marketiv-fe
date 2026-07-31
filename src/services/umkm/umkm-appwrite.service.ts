@@ -119,6 +119,7 @@ const mapCampaign = (d: Doc): Campaign => ({
   externalAssetUrl: "", // tak ada kolom sumber — aset ada di campaign_assets
   thumbnailUrl: "", // tak ada kolom sumber
   niche: (str(d.category) as CreatorNiche) || "lainnya",
+  type: str(d.type) || undefined,
   status: str(d.status) as CampaignStatus,
   creatorQuota: num(d.claimLimit),
   usedQuota: num(d.totalClaims),
@@ -1409,4 +1410,216 @@ export async function cancelPaymentInAppwrite(paymentId: string): Promise<Servic
   } catch (err) {
     return failFromWriteError<null>(err, null);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Edit draft campaign
+// ---------------------------------------------------------------------------
+
+/**
+ * Data mentah draft campaign untuk halaman edit wizard.
+ * Berbeda dari `CampaignDraftResult` yang memakai mapped type Campaign —
+ * field `brief`/`asset` menyimpan nilai DB mentah supaya W14 rehydrate bisa
+ * menjalankan `decomposeBriefDetail` tanpa kehilangan data.
+ */
+export type CampaignEditRaw = {
+  campaign: Campaign;
+  brief?: {
+    id: string;
+    briefDetail: string;
+    contentAngle: string;
+    cta: string;
+    objective: string;
+    doAndDont: string;
+  };
+  asset?: {
+    id: string;
+    fileUrl: string;
+    fileName: string;
+  };
+  warnings: string[];
+};
+
+/**
+ * Baca campaign draft + brief + asset, ownership-filtered (umkmId = uid, status = draft).
+ * Dipakai halaman `/campaign/[id]/edit` untuk seeding wizard state.
+ */
+export async function getCampaignDraftForEditFromAppwrite(
+  campaignId: string
+): Promise<ServiceResult<CampaignEditRaw>> {
+  const empty = null as unknown as CampaignEditRaw;
+  const auth = await requireUserId<CampaignEditRaw>(empty);
+  if (!auth.ok) return auth.result;
+
+  try {
+    // Guard kepemilikan + status=draft dalam satu query
+    const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", campaignId),
+      Query.equal("umkmId", auth.userId),
+      Query.equal("status", "draft"),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Campaign draft tidak ditemukan atau bukan milik Anda.", "not_found", empty);
+
+    const campaign = mapCampaign(doc);
+    const warnings: string[] = [];
+
+    // Baca brief (opsional)
+    let brief: CampaignEditRaw["brief"];
+    try {
+      const briefRes = await databases.listDocuments(DB, COLLECTIONS.campaignBriefs, [
+        Query.equal("campaignId", campaignId),
+        Query.limit(1),
+      ]);
+      const bd = briefRes.documents[0] as unknown as Doc | undefined;
+      if (bd) {
+        brief = {
+          id: str(bd.$id),
+          briefDetail: str(bd.briefDetail),
+          contentAngle: str(bd.contentAngle),
+          cta: str(bd.cta),
+          objective: str(bd.objective),
+          doAndDont: str(bd.doAndDont),
+        };
+      }
+    } catch {
+      warnings.push("Brief tidak bisa dimuat — langkah 2 kosong.");
+    }
+
+    // Baca asset baris pertama (opsional)
+    let asset: CampaignEditRaw["asset"];
+    try {
+      const assetRes = await databases.listDocuments(DB, COLLECTIONS.campaignAssets, [
+        Query.equal("campaignId", campaignId),
+        Query.limit(1),
+      ]);
+      const ad = assetRes.documents[0] as unknown as Doc | undefined;
+      if (ad) {
+        asset = {
+          id: str(ad.$id),
+          fileUrl: str(ad.fileUrl),
+          fileName: str(ad.fileName),
+        };
+      }
+    } catch {
+      warnings.push("Aset tidak bisa dimuat — langkah 3 kosong.");
+    }
+
+    return ok<CampaignEditRaw>({ campaign, brief, asset, warnings });
+  } catch (err) {
+    return failFromError<CampaignEditRaw>(err, empty);
+  }
+}
+
+/**
+ * Update campaign draft yang sudah ada.
+ * Guard: campaign harus milik uid + `status === "draft"`.
+ * Brief dan asset di-upsert: update baris lama bila ada, buat baru bila belum.
+ * Kembalikan `CampaignDraftResult` agar wizard tidak perlu bedakan create vs update.
+ */
+export async function updateCampaignDraftInAppwrite(
+  campaignId: string,
+  input: CreateCampaignDraftInput
+): Promise<ServiceResult<CampaignDraftResult>> {
+  const empty = null as unknown as CampaignDraftResult;
+  const auth = await requireUserId<CampaignDraftResult>(empty);
+  if (!auth.ok) return auth.result;
+
+  // Guard kepemilikan + draft sebelum tulis
+  let existingDoc: Doc;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", campaignId),
+      Query.equal("umkmId", auth.userId),
+      Query.equal("status", "draft"),
+      Query.limit(1),
+    ]);
+    const d = res.documents[0] as unknown as Doc | undefined;
+    if (!d) return fail("Campaign draft tidak ditemukan atau bukan milik Anda.", "not_found", empty);
+    existingDoc = d;
+  } catch (err) {
+    return failFromError<CampaignDraftResult>(err, empty);
+  }
+  void existingDoc; // dipakai untuk guard ownership, nilai sudah cukup
+
+  // Update campaign row
+  let campaignDoc: Doc;
+  try {
+    campaignDoc = (await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
+      title: input.title.trim(),
+      category: input.category,
+      type: input.type,
+      description: input.description.trim(),
+      budget: input.budget,
+      rewardPer1000Views: input.rewardPer1000Views,
+      claimLimit: input.claimLimit,
+      submissionDays: input.submissionDays ?? 7,
+    })) as unknown as Doc;
+  } catch (err) {
+    return failFromWriteError<CampaignDraftResult>(err, empty);
+  }
+
+  const warnings: string[] = [];
+  const perms = [
+    Permission.read(Role.any()),
+    Permission.update(Role.user(auth.userId)),
+    Permission.delete(Role.user(auth.userId)),
+  ];
+
+  // Upsert brief
+  if (input.brief) {
+    try {
+      const briefRes = await databases.listDocuments(DB, COLLECTIONS.campaignBriefs, [
+        Query.equal("campaignId", campaignId),
+        Query.limit(1),
+      ]);
+      const existingBrief = briefRes.documents[0] as unknown as Doc | undefined;
+      const briefData = {
+        objective: input.brief.objective ?? "",
+        contentAngle: input.brief.contentAngle,
+        cta: input.brief.cta,
+        briefDetail: input.brief.briefDetail,
+        doAndDont: input.brief.doAndDont ?? "",
+        generatedByAi: input.brief.generatedByAi ?? false,
+      };
+      if (existingBrief) {
+        await databases.updateDocument(DB, COLLECTIONS.campaignBriefs, str(existingBrief.$id), briefData);
+      } else {
+        await databases.createDocument(DB, COLLECTIONS.campaignBriefs, ID.unique(), { campaignId, ...briefData }, perms);
+      }
+    } catch {
+      warnings.push("Brief belum tersimpan — buka draft untuk melengkapi.");
+    }
+  }
+
+  // Upsert asset
+  if (input.asset) {
+    try {
+      const assetRes = await databases.listDocuments(DB, COLLECTIONS.campaignAssets, [
+        Query.equal("campaignId", campaignId),
+        Query.limit(1),
+      ]);
+      const existingAsset = assetRes.documents[0] as unknown as Doc | undefined;
+      const assetData = {
+        source: "external",
+        type: "link",
+        fileUrl: input.asset.fileUrl,
+        fileName: input.asset.fileName ?? "Folder Aset Eksternal",
+      };
+      if (existingAsset) {
+        await databases.updateDocument(DB, COLLECTIONS.campaignAssets, str(existingAsset.$id), assetData);
+      } else {
+        await databases.createDocument(DB, COLLECTIONS.campaignAssets, ID.unique(), { campaignId, ...assetData }, perms);
+      }
+    } catch {
+      warnings.push("Tautan aset belum tersimpan — buka draft untuk melengkapi.");
+    }
+  }
+
+  return ok<CampaignDraftResult>({
+    campaign: mapCampaign(campaignDoc),
+    complete: warnings.length === 0,
+    warnings,
+  });
 }
