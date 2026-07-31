@@ -281,6 +281,7 @@ export async function getOverviewFromAppwrite(): Promise<ServiceResult<UmkmOverv
     campaigns,
     kpis: {
       campaignActive: summary.activeCampaigns,
+      campaignCompleted: summary.completedCampaigns,
       totalSpend: summary.totalSpent,
       escrowBalance: summary.escrowBalance,
       creatorJoined: campaigns.reduce((n, c) => n + c.usedQuota, 0),

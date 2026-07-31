@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendingUp, Users, Eye, Wallet, BadgeCheck } from "lucide-react";
+import { TrendingUp, Users, Eye, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HeroOverviewProps {
@@ -110,17 +110,6 @@ export function HeroOverview({
             )}
           </div>
 
-          {/* Verified status badge */}
-          {!isLoading && (
-            <div className="hidden sm:flex flex-col items-end gap-1.5 px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-md shrink-0">
-              <span className="text-[10px] text-white/40 font-extrabold uppercase tracking-wider leading-none">
-                Status Akun
-              </span>
-              <span className="flex items-center gap-1.5 text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full shadow-3xs">
-                <BadgeCheck className="w-3.5 h-3.5" /> Terverifikasi
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Stats grid */}

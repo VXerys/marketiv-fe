@@ -29,7 +29,6 @@ import {
   CreatorProfile,
   CreatorMetric,
   CreatorActiveWork,
-  CreatorNegotiation,
   CreatorActivity,
   CreatorJob,
 } from "@/types/creator-dashboard";
@@ -223,7 +222,6 @@ interface CreatorDashboardViewProps {
   profile: CreatorProfile;
   metrics: CreatorMetric;
   activeWorks: CreatorActiveWork[];
-  negotiations: CreatorNegotiation[];
   activities: CreatorActivity[];
   recommendedJobs: CreatorJob[];
   /** Baca ulang seluruh dashboard dari server setelah aksi yang mengubah data. */
@@ -291,31 +289,40 @@ export function CreatorDashboardView({
 
   const getActivityDot = (type: string): string => {
     switch (type) {
-      case "submission_valid": return "var(--color-green-500)";
-      case "payout":           return "var(--color-red-500)";
-      case "negotiation_new":  return "var(--color-amber-500)";
-      case "pending_escrow":   return "var(--color-kreator-600)";
-      default:                 return "var(--color-control-disabled)";
+      case "submission_valid":    return "var(--color-green-500)";
+      case "payout":              return "var(--color-red-500)";
+      case "negotiation_new":     return "var(--color-amber-500)";
+      case "pending_escrow":      return "var(--color-kreator-600)";
+      case "campaign_published":  return "var(--color-blue-500)";
+      case "claim":               return "var(--color-violet-500)";
+      case "claim_expired":       return "var(--color-neutral-400)";
+      default:                    return "var(--color-control-disabled)";
     }
   };
 
   const getActivityBadgeClass = (type: string): string => {
     switch (type) {
-      case "submission_valid": return "bg-green-50 text-green-700 border-green-200/50";
-      case "payout":           return "bg-red-50 text-red-700 border-red-200/50";
-      case "negotiation_new":  return "bg-amber-50 text-amber-700 border-amber-200/50";
-      case "pending_escrow":   return "bg-violet-50 text-violet-700 border-violet-200/50";
-      default:                 return "bg-neutral-50 text-neutral-600 border-neutral-200/50";
+      case "submission_valid":    return "bg-green-50 text-green-700 border-green-200/50";
+      case "payout":              return "bg-red-50 text-red-700 border-red-200/50";
+      case "negotiation_new":     return "bg-amber-50 text-amber-700 border-amber-200/50";
+      case "pending_escrow":      return "bg-violet-50 text-violet-700 border-violet-200/50";
+      case "campaign_published":  return "bg-blue-50 text-blue-700 border-blue-200/50";
+      case "claim":               return "bg-violet-50 text-violet-700 border-violet-200/50";
+      case "claim_expired":       return "bg-neutral-100 text-neutral-500 border-neutral-200/50";
+      default:                    return "bg-neutral-50 text-neutral-600 border-neutral-200/50";
     }
   };
 
   const getActivityLabel = (type: string): string => {
     switch (type) {
-      case "submission_valid": return "VALID";
-      case "payout":           return "PAYOUT";
-      case "negotiation_new":  return "CHAT";
-      case "pending_escrow":   return "KLAIM";
-      default:                 return "INFO";
+      case "submission_valid":    return "VALID";
+      case "payout":              return "PAYOUT";
+      case "negotiation_new":     return "CHAT";
+      case "pending_escrow":      return "KLAIM";
+      case "campaign_published":  return "KAMPANYE";
+      case "claim":               return "KLAIM";
+      case "claim_expired":       return "KADALUARSA";
+      default:                    return "INFO";
     }
   };
 

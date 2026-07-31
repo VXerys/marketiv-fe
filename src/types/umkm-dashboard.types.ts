@@ -309,6 +309,7 @@ export interface UmkmDashboardSummary {
  */
 export interface UmkmOverviewKpis {
   campaignActive: number;
+  campaignCompleted: number;
   totalSpend: number;
   escrowBalance: number;
   /** Σ klaim terpakai lintas campaign — jumlah kreator yang sudah bergabung. */

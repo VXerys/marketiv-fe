@@ -22,6 +22,7 @@ export const mockUmkmOverview: Omit<UmkmOverviewData, "campaigns"> = {
   businessName: "Dapur Sehat Sukabumi",
   kpis: {
     campaignActive: 1,
+    campaignCompleted: 3,
     totalSpend: 4800000,
     escrowBalance: 3250000,
     creatorJoined: 8,

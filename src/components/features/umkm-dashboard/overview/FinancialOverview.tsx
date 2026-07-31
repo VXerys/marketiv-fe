@@ -1,6 +1,6 @@
 "use client";
 
-import { Shield, ArrowDownLeft, Clock, TrendingUp, ChevronRight } from "lucide-react";
+import { Shield, Clock, TrendingUp, ChevronRight } from "lucide-react";
 
 interface FinancialOverviewProps {
   isLoading?: boolean;
@@ -21,16 +21,16 @@ function fmt(num: number): string {
 
 export function FinancialOverview({
   isLoading = false,
-  escrowBalance = 3_250_000,
-  totalSpend = 4_800_000,
-  pendingValidation = 2,
+  escrowBalance,
+  totalSpend,
+  pendingValidation,
   onViewFinanceClick,
 }: FinancialOverviewProps) {
   const items = [
     {
       icon: Shield,
       label: "Saldo Escrow",
-      value: fmt(escrowBalance),
+      value: escrowBalance !== undefined ? fmt(escrowBalance) : "—",
       note: "Dana aman",
       color: "#d97706",
       bg: "radial-gradient(circle at 100% 0%, rgba(217,119,6,.10), transparent 8rem), linear-gradient(180deg, #ffffff, #fffbeb)",
@@ -39,20 +39,9 @@ export function FinancialOverview({
       highlight: true,
     },
     {
-      icon: ArrowDownLeft,
-      label: "Cair Bulan Ini",
-      value: fmt(totalSpend * 0.4),
-      note: "Rilis otomatis",
-      color: "#16a34a",
-      bg: "radial-gradient(circle at 100% 0%, rgba(22,163,74,.08), transparent 8rem), linear-gradient(180deg, #ffffff, #f1fbf5)",
-      iconBg: "#f1fbf5",
-      border: "rgba(22,163,74,.10)",
-      highlight: false,
-    },
-    {
       icon: Clock,
       label: "Pending Verifikasi",
-      value: String(pendingValidation),
+      value: pendingValidation !== undefined ? String(pendingValidation) : "—",
       note: "submission",
       color: "#2563eb",
       bg: "radial-gradient(circle at 100% 0%, rgba(37,99,235,.08), transparent 8rem), linear-gradient(180deg, #ffffff, #f0f6ff)",
@@ -63,7 +52,7 @@ export function FinancialOverview({
     {
       icon: TrendingUp,
       label: "Total Pengeluaran",
-      value: fmt(totalSpend),
+      value: totalSpend !== undefined ? fmt(totalSpend) : "—",
       note: "Sejak bergabung",
       color: "#ea580c",
       bg: "radial-gradient(circle at 100% 0%, rgba(234,88,12,.08), transparent 8rem), linear-gradient(180deg, #ffffff, #fff7ed)",
@@ -153,7 +142,7 @@ export function FinancialOverview({
       {/* Finance grid */}
       {isLoading ? (
         <div style={{ display: "grid", gap: 9 }}>
-          {[1, 2, 3, 4].map((i) => (
+          {[1, 2, 3].map((i) => (
             <div
               key={i}
               style={{

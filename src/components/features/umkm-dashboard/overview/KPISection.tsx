@@ -122,9 +122,7 @@ export function KPISection({ isLoading = false, kpisData }: KPISectionProps) {
     {
       icon: TrendingUp,
       label: "Campaign Aktif",
-      value: String(kpisData?.campaignActive ?? 5),
-      note: "2 akan berakhir minggu ini",
-      growth: 25,
+      value: String(kpisData?.campaignActive ?? 0),
       iconBg: "#fff7ed",
       iconColor: "#ea580c",
       iconBorder: "rgba(234,88,12,.18)",
@@ -132,9 +130,7 @@ export function KPISection({ isLoading = false, kpisData }: KPISectionProps) {
     {
       icon: CheckCircle,
       label: "Campaign Selesai",
-      value: String(kpisData?.campaignCompleted ?? 18),
-      note: "Bulan ini: 3 selesai",
-      growth: 12,
+      value: String(kpisData?.campaignCompleted ?? 0),
       iconBg: "#f1fbf5",
       iconColor: "#16a34a",
       iconBorder: "rgba(22,163,74,.18)",
@@ -142,9 +138,7 @@ export function KPISection({ isLoading = false, kpisData }: KPISectionProps) {
     {
       icon: Users,
       label: "Total Kreator",
-      value: String(kpisData?.creatorJoined ?? 28),
-      note: "4 kreator baru minggu ini",
-      growth: 16,
+      value: String(kpisData?.creatorJoined ?? 0),
       iconBg: "#f0f6ff",
       iconColor: "#2563eb",
       iconBorder: "rgba(37,99,235,.18)",
@@ -155,9 +149,7 @@ export function KPISection({ isLoading = false, kpisData }: KPISectionProps) {
       value:
         typeof kpisData?.viewsValid === "number"
           ? `${(kpisData.viewsValid / 1_000_000).toFixed(1)}jt`
-          : "2.4jt",
-      note: "Rata-rata 481rb/campaign",
-      growth: 38,
+          : "—",
       iconBg: "#f7f3ff",
       iconColor: "#7c3aed",
       iconBorder: "rgba(124,58,237,.18)",
@@ -168,9 +160,7 @@ export function KPISection({ isLoading = false, kpisData }: KPISectionProps) {
       value:
         kpisData?.escrowBalance !== undefined
           ? `Rp ${(kpisData.escrowBalance / 1_000_000).toFixed(1)}jt`
-          : "Rp 8.5jt",
-      note: "Terkunci untuk 3 campaign",
-      growth: -4,
+          : "—",
       iconBg: "#fffbeb",
       iconColor: "#d97706",
       iconBorder: "rgba(217,119,6,.18)",
@@ -181,9 +171,7 @@ export function KPISection({ isLoading = false, kpisData }: KPISectionProps) {
       value:
         kpisData?.totalSpend !== undefined
           ? `Rp ${(kpisData.totalSpend / 1_000_000).toFixed(1)}jt`
-          : "Rp 42jt",
-      note: "Bulan ini: Rp 12.5jt",
-      growth: 8,
+          : "—",
       iconBg: "#fff7ed",
       iconColor: "#ea580c",
       iconBorder: "rgba(234,88,12,.18)",

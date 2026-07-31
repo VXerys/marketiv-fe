@@ -5,7 +5,6 @@ import {
   getCreatorProfile,
   getCreatorMetrics,
   getCreatorActiveWorks,
-  getCreatorNegotiations,
   getCreatorActivities,
   getCreatorJobs,
 } from "@/services/creator/creator-dashboard.service";
@@ -13,7 +12,6 @@ import type {
   CreatorProfile,
   CreatorMetric,
   CreatorActiveWork,
-  CreatorNegotiation,
   CreatorActivity,
   CreatorJob,
 } from "@/types/creator-dashboard";
@@ -25,7 +23,6 @@ interface OverviewData {
   profile: CreatorProfile;
   metrics: CreatorMetric;
   activeWorks: CreatorActiveWork[];
-  negotiations: CreatorNegotiation[];
   activities: CreatorActivity[];
   recommendedJobs: CreatorJob[];
 }
@@ -43,12 +40,11 @@ export function CreatorOverviewPageClient() {
   const [data, setData] = useState<OverviewData | null>(null);
 
   const fetchData = useCallback(async (isActive: () => boolean) => {
-    const [profileRes, metricsRes, worksRes, negoRes, activityRes, jobsRes] =
+    const [profileRes, metricsRes, worksRes, activityRes, jobsRes] =
       await Promise.all([
         getCreatorProfile(),
         getCreatorMetrics(),
         getCreatorActiveWorks(),
-        getCreatorNegotiations(),
         getCreatorActivities(),
         getCreatorJobs(),
       ]);
@@ -64,7 +60,6 @@ export function CreatorOverviewPageClient() {
       profile: profileRes.data,
       metrics: metricsRes.data,
       activeWorks: worksRes.data ?? [],
-      negotiations: negoRes.data ?? [],
       activities: activityRes.data ?? [],
       recommendedJobs: jobsRes.data ?? [],
     });
@@ -107,7 +102,6 @@ export function CreatorOverviewPageClient() {
       profile={data.profile}
       metrics={data.metrics}
       activeWorks={data.activeWorks}
-      negotiations={data.negotiations}
       activities={data.activities}
       recommendedJobs={data.recommendedJobs}
       onRefresh={handleRefresh}
