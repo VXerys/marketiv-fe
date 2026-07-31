@@ -18,7 +18,7 @@ interface ReviewSubmissionModalProps {
   isOpen: boolean;
   onClose: () => void;
   submission: CampaignSubmission;
-  onConfirm: (status: SubmissionStatus, views: number) => void | Promise<void>;
+  onConfirm: (status: SubmissionStatus, views: number, notes?: string) => void | Promise<void>;
 }
 
 export function ReviewSubmissionModal({
@@ -31,6 +31,7 @@ export function ReviewSubmissionModal({
   const [viewsInput, setViewsInput] = useState(
     submission.actualViews > 0 ? String(submission.actualViews) : ""
   );
+  const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
 
   const views = Number(viewsInput.replace(/\D/g, ""));
@@ -42,7 +43,7 @@ export function ReviewSubmissionModal({
     if (!canConfirm || busy) return;
     setBusy(true);
     try {
-      await onConfirm(selectedStatus, selectedStatus === "approved" ? views : 0);
+      await onConfirm(selectedStatus, selectedStatus === "approved" ? views : 0, notes.trim() || undefined);
       onClose();
     } catch {
       // Pemanggil yang menampilkan pesannya; modal tetap terbuka.
@@ -191,19 +192,18 @@ export function ReviewSubmissionModal({
           </div>
         )}
 
-        {/*
-          Catatan validator dinonaktifkan: `campaign_submissions` tidak punya
-          kolom untuk menyimpannya (B-2). Field yang membuang input pengguna
-          diam-diam lebih buruk daripada tidak ada field sama sekali.
-        */}
         <div className="mb-6">
-          <label className="block text-xs font-semibold text-text-muted mb-1.5 uppercase tracking-wider">
-            Catatan Validator
+          <label htmlFor="review-notes" className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">
+            Catatan Validator <span className="font-normal text-text-muted normal-case">(opsional)</span>
           </label>
           <textarea
-            disabled
-            className="w-full min-h-[60px] px-3.5 py-2.5 bg-neutral-100 text-sm text-text-muted border border-border-soft rounded-xl resize-none cursor-not-allowed"
-            placeholder="Segera tersedia — catatan review belum punya tempat penyimpanan."
+            id="review-notes"
+            className="w-full min-h-[72px] px-3.5 py-2.5 bg-neutral-50 text-sm text-text-primary border border-border-strong rounded-xl resize-none focus:outline-none focus:border-primary transition-colors"
+            placeholder={selectedStatus === "rejected" ? "Jelaskan alasan penolakan ke kreator…" : "Catatan tambahan untuk kreator…"}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            maxLength={1000}
+            disabled={busy}
           />
         </div>
 

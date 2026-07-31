@@ -38,6 +38,7 @@ export default async ({ req, res, log, error }) => {
     const submissionId = str(body.submissionId);
     const status = str(body.status);
     const views = body.views;
+    const notes = typeof body.notes === "string" ? body.notes.trim().slice(0, 1000) : undefined;
 
     if (!submissionId) return json(res, { error: "Submission tidak valid." }, 400);
     if (!VALID_STATUS.has(status)) return json(res, { error: "Status review tidak valid." }, 400);
@@ -72,6 +73,7 @@ export default async ({ req, res, log, error }) => {
     await databases.updateDocument(env.databaseId, env.submissionsCollectionId, submissionId, {
       status,
       views: status === "approved" ? views : Number(submission.views) || 0,
+      ...(notes ? { reviewNotes: notes } : {}),
     });
 
     // Status claim mengikuti hasil review supaya layar kreator tidak terus

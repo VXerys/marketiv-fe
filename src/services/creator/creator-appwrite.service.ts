@@ -511,6 +511,7 @@ async function buildActiveWorks(claims: Doc[]): Promise<CreatorActiveWork[]> {
       submittedAt: submission ? str(submission.$createdAt) : undefined,
       validatedAt:
         submission && str(submission.status) !== "pending" ? str(submission.$updatedAt) : undefined,
+      rejectedReason: submission ? orUndefined(str(submission.reviewNotes)) : undefined,
       assetUrl: orUndefined(assetUrlByCampaignId.get(str(claim.campaignId)) ?? ""),
     };
   });

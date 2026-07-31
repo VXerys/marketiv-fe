@@ -109,7 +109,7 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
    * server alih-alih ditebak lokal — dengan jeda singkat supaya Function sempat
    * selesai. Kalau belum sempat, angkanya menyusul di refresh berikutnya.
    */
-  const handleReviewConfirm = async (status: SubmissionStatus, views: number) => {
+  const handleReviewConfirm = async (status: SubmissionStatus, views: number, notes?: string) => {
     if (!activeReviewSubmission || !campaign) return;
     if (status === "pending") return;
 
@@ -118,6 +118,7 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
       submissionId: target.id,
       status,
       views,
+      notes,
     });
 
     if (!res.success) {

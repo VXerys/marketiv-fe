@@ -7,7 +7,7 @@ import {
   FUNCTION_IDS,
 } from "@/lib/appwrite/functions";
 import { uploadPublicFile, FileRuleError } from "@/lib/appwrite/storage";
-import { type CampaignType, MINIMUM_CAMPAIGN_BUDGET } from "@/types/domain";
+import { type CampaignType, MINIMUM_CAMPAIGN_BUDGET, PLATFORM_FEE_RATE } from "@/types/domain";
 import {
   createOfferSchema,
   type CreateOfferInput,
@@ -132,22 +132,29 @@ const mapCampaign = (d: Doc): Campaign => ({
   updatedAt: str(d.$updatedAt),
 });
 
-/** Terima profil opsional dari `loadCreatorProfiles` untuk mengisi nama & avatar. */
-const mapSubmission = (d: Doc, creator?: Doc): CampaignSubmission => ({
-  id: str(d.$id),
-  campaignId: str(d.campaignId),
-  creatorId: str(d.creatorId),
-  creatorName: creator ? str(creator.displayName) : "",
-  creatorAvatarUrl: creator ? str(creator.avatarUrl) : "",
-  platform: (str(d.platform) as "tiktok" | "instagram") || "tiktok",
-  contentUrl: str(d.postUrl),
-  actualViews: num(d.views),
-  targetViews: 0, // tak ada kolom sumber
-  releasedFund: 0, // ditentukan calculate-campaign-reward Function
-  validationStatus: str(d.status) as SubmissionStatus,
-  fraudStatus: str(d.fraudStatus) as FraudStatus,
-  submittedAt: str(d.$createdAt),
-});
+/** Terima profil opsional dan rate campaign untuk menghitung releasedFund tampilan. */
+const mapSubmission = (d: Doc, creator?: Doc, ratePerThousandViews = 0): CampaignSubmission => {
+  const views = num(d.views);
+  const status = str(d.status) as SubmissionStatus;
+  return {
+    id: str(d.$id),
+    campaignId: str(d.campaignId),
+    creatorId: str(d.creatorId),
+    creatorName: creator ? str(creator.displayName) : "",
+    creatorAvatarUrl: creator ? str(creator.avatarUrl) : "",
+    platform: (str(d.platform) as "tiktok" | "instagram") || "tiktok",
+    contentUrl: str(d.postUrl),
+    actualViews: views,
+    targetViews: 0,
+    releasedFund: status === "approved" && ratePerThousandViews > 0
+      ? Math.floor(views / 1000 * ratePerThousandViews * (1 - PLATFORM_FEE_RATE))
+      : 0,
+    validationStatus: status,
+    fraudStatus: str(d.fraudStatus) as FraudStatus,
+    rejectedReason: str(d.reviewNotes) || undefined,
+    submittedAt: str(d.$createdAt),
+  };
+};
 
 // CreatorProfile dipetakan di Function `get-creator-directory` — join lintas
 // collection tidak bisa dilakukan di klien tanpa kehilangan field.
@@ -379,6 +386,7 @@ export async function getCampaignSubmissionsFromAppwrite(
     if (!owned.documents[0]) {
       return { success: false, data: [], error: "Campaign tidak ditemukan", code: "not_found" };
     }
+    const rate = num((owned.documents[0] as unknown as Doc).rewardPer1000Views);
     const res = await databases.listDocuments(DB, COLLECTIONS.submissions, [
       Query.equal("campaignId", campaignId),
       Query.orderDesc("$createdAt"),
@@ -388,7 +396,7 @@ export async function getCampaignSubmissionsFromAppwrite(
     const creatorProfiles = await loadCreatorProfiles(docs.map((d) => str(d.creatorId)));
     return {
       success: true,
-      data: docs.map((d) => mapSubmission(d, creatorProfiles.get(str(d.creatorId)))),
+      data: docs.map((d) => mapSubmission(d, creatorProfiles.get(str(d.creatorId)), rate)),
     };
   } catch (err) {
     return failFromError<CampaignSubmission[]>(err, []);
@@ -404,8 +412,11 @@ export async function getPendingSubmissionsFromAppwrite(): Promise<ServiceResult
       Query.equal("umkmId", auth.userId),
       Query.limit(100),
     ]);
-    const campaignIds = campaigns.documents.map((c) => str((c as unknown as Doc).$id));
+    const campaignDocs = campaigns.documents as unknown as Doc[];
+    const campaignIds = campaignDocs.map((c) => str(c.$id));
     if (campaignIds.length === 0) return { success: true, data: [] };
+
+    const rateMap = new Map(campaignDocs.map((c) => [str(c.$id), num(c.rewardPer1000Views)]));
 
     const res = await databases.listDocuments(DB, COLLECTIONS.submissions, [
       Query.equal("campaignId", campaignIds),
@@ -417,7 +428,9 @@ export async function getPendingSubmissionsFromAppwrite(): Promise<ServiceResult
     const creatorProfiles = await loadCreatorProfiles(docs.map((d) => str(d.creatorId)));
     return {
       success: true,
-      data: docs.map((d) => mapSubmission(d, creatorProfiles.get(str(d.creatorId)))),
+      data: docs.map((d) =>
+        mapSubmission(d, creatorProfiles.get(str(d.creatorId)), rateMap.get(str(d.campaignId)) ?? 0)
+      ),
     };
   } catch (err) {
     return failFromError<CampaignSubmission[]>(err, []);
@@ -1142,6 +1155,7 @@ export async function publishCampaignInAppwrite(
 export type ReviewSubmissionInput = {
   submissionId: string;
   status: Extract<SubmissionStatus, "approved" | "rejected">;
+  notes?: string;
   /**
    * Jumlah views yang diverifikasi UMKM.
    *
@@ -1179,6 +1193,7 @@ export async function reviewSubmissionInAppwrite(
         submissionId: input.submissionId,
         status: input.status,
         views: input.status === "approved" ? input.views : undefined,
+        ...(input.notes ? { notes: input.notes } : {}),
       }
     );
     const campaignId = str(reviewed?.campaignId);
