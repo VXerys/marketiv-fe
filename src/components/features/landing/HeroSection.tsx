@@ -11,7 +11,7 @@ export function HeroSection() {
     <section className="relative w-full min-h-screen flex flex-col items-center justify-center overflow-hidden pt-16">
       {/* Background Image (Desktop/Tablet) */}
       <Image src={landingPageBg} alt="UMKM dan Konten Kreator berkolaborasi" fill priority className="hidden md:block object-cover object-center" sizes="100vw" quality={100} />
-      
+
       {/* Background Image (Mobile) */}
       <Image src={heroMobileBg} alt="UMKM dan Konten Kreator berkolaborasi" fill priority className="block md:hidden object-cover object-center" sizes="100vw" quality={100} />
 
@@ -25,25 +25,18 @@ export function HeroSection() {
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center text-center px-4 sm:px-6 max-w-4xl mx-auto pt-16 sm:pt-20">
-        {/* Headline / Slogan */}
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white drop-shadow-2xl max-w-3xl lg:max-w-5xl tracking-tight leading-[1.15]">
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-primary-600">
-            {hero.titleAccent}
-          </span>{" "}
-          {hero.titleMain}
-        </h1>
+        {/* Headline */}
+        <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[56px] font-bold text-white drop-shadow-xl max-w-2xl md:max-w-3xl lg:max-w-4xl whitespace-pre-line leading-tight">{hero.title}</h1>
 
         {/* Subtitle */}
-        <p className="text-base sm:text-lg md:text-xl lg:text-2xl font-medium text-neutral-100 mt-6 sm:mt-8 max-w-2xl md:max-w-3xl drop-shadow-lg leading-relaxed">
-          {hero.subtitle}
-        </p>
+        <p className="text-sm sm:text-base md:text-lg lg:text-xl font-medium text-white/95 mt-4 sm:mt-5 md:mt-6 max-w-xl md:max-w-2xl drop-shadow-lg">{hero.subtitle}</p>
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 mt-12 sm:mt-16 md:mt-20 lg:mt-24">
-          <Button variant="primary" size="xl" href={routes.registerWithRole("umkm")} className="shadow-lg shadow-primary-500/30 font-bold">
+          <Button variant="primary" size="xl" href={routes.registerWithRole("umkm")}>
             {hero.ctaUmkm}
           </Button>
-          <Button variant="outline" size="xl" href={routes.registerWithRole("creator")} className="bg-navy-800 text-white font-bold border-none shadow-lg shadow-navy-900/30 hover:bg-navy-900 hover:text-white">
+          <Button variant="outline" size="xl" href={routes.registerWithRole("creator")} className="!bg-white/20 !backdrop-blur-md !border-white/40 !text-white font-semibold hover:!bg-white/40 hover:!border-white/70 transition-all duration-300">
             {hero.ctaCreator}
           </Button>
         </div>

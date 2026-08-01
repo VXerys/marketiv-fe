@@ -15,16 +15,12 @@ export const NAVBAR_CONTENT = {
 
 export const LANDING_CONTENT = {
   hero: {
-    tagline: "Platform Marketing No. 1 Indonesia",
-    titleAccent: "Kolaborasi Hebat,",
-    titleMain: "Bisnis Melesat.",
+    title: "Kolaborasi Hebat, Bisnis\nMelesat",
     subtitle:
-      "Marketiv menghubungkan UMKM dengan Mikro-Kreator lokal. Promosi produk berbasis performa — bayar sesuai views, bukan janji.",
+      "Platform Penghubung UMKM Dan Konten Kreator Untuk Promosi Produk Yang Lebih Berdampak",
     ctaUmkm: "Saya Pemilik UMKM",
     ctaCreator: "Saya Konten Kreator",
-    toggleUmkm: "UMKM",
-    toggleKreator: "Kreator",
-    trustLine: "Dipercaya Oleh Ratusan UMKM Di Seluruh Indonesia",
+    trustLine: "Dipercaya Oleh Banyak UMKM Di Seluruh Indonesia",
     mockupCard: {
       payoutId: "Payout #2047",
       views: "250K",
