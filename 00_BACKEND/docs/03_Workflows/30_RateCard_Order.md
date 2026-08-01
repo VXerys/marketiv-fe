@@ -20,6 +20,8 @@ UMKM buka `Creator Discovery` → profil creator → lihat rate card → pilih j
 
 ## Data Model — Collection yang Terlibat
 
+> **Permission `deliverables` & `revisions`** — keduanya `create("users")` + `rowSecurity`, **tanpa** `read`/`update("users")` level koleksi. Permission Appwrite bersifat union, jadi `update("users")` di sana akan membuat setiap user login bisa menyetujui deliverable siapa pun — dan approve itulah yang mencairkan escrow. Akses hanya lewat permission baris: `deliverables` → read kedua pihak, **update UMKM saja**; `revisions` → read + update kedua pihak.
+
 | Collection | Modul | Aksi |
 |---|---|---|
 | `rate_cards`, `rate_card_packages` | RateCards | read |
@@ -30,7 +32,7 @@ UMKM buka `Creator Discovery` → profil creator → lihat rate card → pilih j
 | `revisions` | Orders | insert (UMKM minta revisi) |
 | `user_files` | Users | insert saat upload deliverable via storage |
 | `user_storage_usage` | Users | update kuota |
-| `wallets` | Payments | update escrowBalance, balance |
+| `wallets` | Payments | update `balance` (kolomnya hanya `userId`, `balance`, `pendingBalance`) |
 | `escrows` | Payments | insert → update status |
 | `transactions` | Payments | insert |
 | `notifications` | Notifications | insert notifikasi |
@@ -61,8 +63,8 @@ UMKM buka `Creator Discovery` → profil creator → lihat rate card → pilih j
    - Informasi Creator, paket, amount.
    - CTA: "Menunggu deliverable dari Creator..." (belum ada tombol upload/review).
 7. **Event `payments.status (pending→paid)`** memicu function **`create-escrow`**.
-8. **Payments** — Buat `escrows`: `{ orderId, amount, status: 'held' }`.
-9. **Payments** — Update wallet: `wallets.escrowBalance += amount` (dana UMKM ditahan).
+8. **Payments** — Buat `escrows`: `{ orderId, amount, status: 'held' }`. Baris inilah satu-satunya catatan dana tertahan — tabel `wallets` hanya punya `userId`, `balance`, `pendingBalance`, **tidak ada `escrowBalance`**.
+9. **Payments** — Catat `transactions`: `{ userId: umkmId, type: 'payment', referenceType: 'order', referenceId: orderId }`.
 10. **Orders** — Update order: `status: pending_payment → in_progress`.
 11. **Notifications** — Notifikasi ke creator: "Order baru: {package.title} — segera upload deliverable".
 
@@ -100,10 +102,10 @@ UMKM buka `Creator Discovery` → profil creator → lihat rate card → pilih j
 ## Tahap Bersama: Deliverable & Review
 
 14. **Orders** — Creator `uploadDeliverable()`:
-    - **Internal (storage)**: upload file via File Manager (`uploadFile({ file })`). File Manager hanya menyimpan file umum dan metadata storage; relasi ke order dicatat di `deliverables.fileId`. File terikat kuota creator (100 MB).
+    - **Internal (storage)**: upload via Function `validate-and-upload` dengan `shareWithOrderId` — Function menurunkan pihak lawan dari baris `orders` dan memberinya `Permission.read`. **Tanpa parameter itu UMKM tidak akan bisa membuka berkasnya.** Relasi ke order dicatat di `deliverables.fileId`. Terikat kuota creator.
     - **External URL**: link Google Drive/Dropbox/CDN (`https` saja). Bebas kuota.
     - Deliverable tersimpan: `{ orderId, source, fileUrl, version: n+1, status: 'submitted' }`.
-15. **Event `deliverables.create`** memicu function **`notify-client-review`**.
+15. **Event `deliverables.rows.*.create`** memicu function **`notify-order-activity`**.
 16. **Notifications** — Notifikasi ke UMKM: "Deliverable sudah diupload — review sekarang".
 17. **Orders** — UMKM review deliverable:
     - **Approve**: `deliverables.status: submitted → approved`.
@@ -116,14 +118,15 @@ UMKM buka `Creator Discovery` → profil creator → lihat rate card → pilih j
 19. **Jika Approve:**
     - **Event `deliverables.status (revision_requested→approved)`** memicu function **`release-escrow`**.
 20. **Payments** — Release escrow (dipotong fee 2%):
-    - `escrows.status: held → released`.
-    - `wallets.escrowBalance -= amount` (dana keluar dari escrow).
+    - Guard: order harus `in_progress` atau `revision`, dan escrow harus `held`. Di luar itu Function berhenti tanpa efek.
+    - `escrows.status: held → released` **lebih dulu**, baru wallet dikredit. Urutan ini disengaja: kalau eksekusi terputus di antaranya, escrow sudah tidak `held` sehingga pemicu ulang tidak membayar dua kali.
     - Hitung fee: `feeAmount = floor(amount × 2%)`.
     - Hitung bersih: `creatorAmount = amount - feeAmount`.
     - `wallets.balance += creatorAmount` (dana masuk available balance creator setelah fee).
-    - Buat `transactions`:
-      - `{ userId: creatorId, amount: creatorAmount, type: 'release', referenceType: 'order', referenceId: orderId }`.
-      - `{ userId: creatorId, amount: feeAmount, type: 'fee', referenceType: 'order', referenceId: orderId }`.
+    - Buat `transactions` (di-dedup per `referenceId` + `referenceType` + `type`):
+      - `{ userId: creatorId, amount: creatorAmount, type: 'release', referenceType: 'escrow', referenceId: escrowId }`.
+      - `{ userId: creatorId, amount: feeAmount, type: 'fee', referenceType: 'escrow', referenceId: escrowId }` — hanya bila `feeAmount > 0`.
+    - `referenceType: 'escrow'` bukan `'order'`: `get-creator-dashboard-summary` membedakan pendapatan Rate Card (`release` + `escrow`) dari reward Campaign (`release` + `campaign_submission`) lewat field itu.
 21. **Orders** — Update order: `status: in_progress/revision → completed`.
 22. **Notifications** — Notifikasi ke kedua pihak: "Order selesai — dana sudah dirilis ke wallet creator".
 23. **Notifications** — Notifikasi ke creator: "Fee platform 2% ({feeAmount}) telah dipotong dari order ini".
@@ -150,12 +153,15 @@ DELIVERABLE STATUS: submitted → approved | revision_requested
 
 ## Events / Functions
 
-| Trigger | Function | Aksi |
-|---|---|---|
-| `offers.status (pending→accepted)` | `create-order` | Buat order dari offer (Jalur B) |
-| `payments.status (pending→paid)` | `create-escrow` | Buat escrow, hold dana |
-| `deliverables.create` | `notify-client-review` | Notifikasi UMKM untuk review |
-| `deliverables.status (revision_requested→approved)` | `release-escrow` | Release escrow ke wallet creator |
+| Trigger | Function | Aksi | Status |
+|---|---|---|---|
+| `offers.rows.*.update` (status `accepted`) | `create-order` | Buat order dari offer (Jalur B) | ✅ live |
+| `payments.rows.*.update` (status `paid`) | `create-escrow` | Buat escrow, hold dana | ✅ live |
+| `deliverables.rows.*.create` | `notify-order-activity` | Notifikasi UMKM: hasil kerja masuk | ✅ live |
+| `revisions.rows.*.create` | `notify-order-activity` | Notifikasi Kreator: UMKM minta revisi | ✅ live |
+| `deliverables.rows.*.update` (status `approved`) | `release-escrow` | Release escrow ke wallet creator, potong fee 2% | ✅ live |
+
+Event Appwrite **tidak mengirim `$previous`**, jadi Function tidak bisa memagari transisi (`pending→accepted`); yang diperiksa hanya status akhir. Perlindungan terhadap eksekusi ganda datang dari tempat lain: unique index `orders.idx_offerId` untuk `create-order`, dan guard `escrow.status = held` untuk `release-escrow`.
 
 ## Validation Rules per Langkah
 
@@ -171,22 +177,25 @@ DELIVERABLE STATUS: submitted → approved | revision_requested
 | Upload deliverable storage | Kuota creator cukup | Error "Kuota penuh" |
 | Approve deliverable | Deliverable harus `submitted` | Error status |
 | Request revision | Revision count < `revisionLimit` | Error "Batas revisi habis" |
-| Release escrow | Escrow harus `held` | Error status |
+| Release escrow | Escrow harus `held` | `status: "ignored"` |
+| Release escrow | Order harus `in_progress` atau `revision` | `status: "ignored"` |
+| Approve deliverable | Hanya UMKM pemilik order — ditegakkan permission baris, bukan hanya kode | 401/403 dari Appwrite |
 
 ## Notifikasi
 
-| Titik | Notifikasi | Penerima |
-|---|---|---|
-| Order created (Direct) | "Order menunggu pembayaran" | UMKM |
-| Order created (Custom Offer) | "Offer diterima — lakukan pembayaran" | UMKM |
-| Offer created | "Offer baru masuk" | Creator |
-| Offer rejected | "Offer ditolak" | UMKM |
-| Payment success | "Pembayaran berhasil — escrow terkunci" | UMKM + Creator |
-| Deliverable uploaded | "Deliverable sudah diupload — review" | UMKM |
-| Revision requested | "UMKM minta revisi: {message}" | Creator |
-| Deliverable approved | "Deliverable disetujui" | Creator |
-| Escrow released | "Order selesai — dana dirilis" | Creator + UMKM |
-| Fee deducted | "Fee platform 2% ({amount}) telah dipotong dari order ini" | Creator |
+Semua notifikasi memakai document id deterministik dari `(sourceId, kind)`, jadi event yang terkirim ulang menghasilkan 409 — bukan notifikasi ganda. Kegagalannya tidak pernah menggagalkan Function pemanggil: dana sudah berpindah, dan membatalkan itu karena notifikasi gagal jauh lebih merugikan daripada notifikasi yang hilang.
+
+| Titik | Notifikasi | Penerima | Ditulis oleh |
+|---|---|---|---|
+| Order created (Direct) | "Order menunggu pembayaran" | UMKM | ⬜ Jalur A belum dibangun |
+| Order created (Custom Offer) | "Offer diterima — lakukan pembayaran" | UMKM | `create-order` |
+| Offer created | "Offer baru masuk" | Creator | `send-chat-notification` |
+| Offer rejected | "Offer ditolak" | UMKM | `create-order` |
+| Payment success | "Pembayaran berhasil — escrow terkunci" | UMKM + Creator | `create-escrow` |
+| Deliverable uploaded | "Deliverable sudah diupload — review" | UMKM | `notify-order-activity` |
+| Revision requested | "UMKM minta revisi: {message}" | Creator | `notify-order-activity` |
+| Escrow released | "Dana Sudah Cair" — nominal bersih + potongan fee 2% dalam satu pesan | Creator | `release-escrow` |
+| Order completed | "Pesanan Selesai" | UMKM | `release-escrow` |
 
 ## Edge Cases
 

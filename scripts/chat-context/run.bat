@@ -8,6 +8,7 @@ REM        run.bat --sync-progress
 setlocal
 set PYTHON_EXE=C:\Users\PLN\AppData\Local\Programs\Python\Python311\python.exe
 set MARKETIV_MEMORY_DIR=C:\Users\PLN\.claude\projects\C--Users-PLN-marketiv-web\memory
+set PYTHONIOENCODING=utf-8
 
 if not exist "%PYTHON_EXE%" (
     echo Error: Python not found at %PYTHON_EXE%

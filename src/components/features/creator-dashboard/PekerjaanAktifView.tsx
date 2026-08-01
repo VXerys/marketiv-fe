@@ -7,6 +7,7 @@ import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { CreatorActiveWork } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { DashboardStateCard } from "@/components/features/dashboard/shared";
+import { MetricCard } from "@/components/ui/metric-card";
 import { formatCurrency } from "@/lib/formatters";
 import { getClaimStatusLabel, getFraudStatusLabel, getSubmissionStatusLabel } from "@/lib/creator-status";
 import { cn } from "@/lib/utils";
@@ -28,67 +29,15 @@ interface PekerjaanAktifViewProps {
   initialWorks: CreatorActiveWork[];
 }
 
-const getThumbnailUrl = (campaignId: string): string => {
-  if (campaignId === "campaign_006") return "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=400&h=300&fit=crop";
-  if (campaignId === "campaign_007") return "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=400&h=300&fit=crop";
-  if (campaignId === "campaign_008") return "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=300&fit=crop";
-  return "https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=400&h=300&fit=crop";
-};
-
-// ─── MetricTile ──────────────────────────────────────────────────────────────
-
-interface MetricTileProps {
-  label: string;
-  value: string | number;
-  helper?: string;
-  icon: React.ReactNode;
-  iconBg: string;
-  accent?: "default" | "blue" | "green" | "red" | "amber";
-}
-
-const ACCENT_STYLES: Record<string, { card: string; badge: string }> = {
-  default: {
-    card: "border-neutral-200/60 shadow-[0_2px_12px_rgba(15,23,42,.03)]",
-    badge: "",
-  },
-  blue: {
-    card: "border-blue-200/40 shadow-[0_4px_20px_rgba(37,99,235,.06)] bg-gradient-to-br from-blue-50/30 to-white",
-    badge: "bg-blue-50 border-blue-200/30 text-blue-600",
-  },
-  green: {
-    card: "border-emerald-200/40 shadow-[0_4px_20px_rgba(22,163,74,.06)] bg-gradient-to-br from-emerald-50/30 to-white",
-    badge: "bg-emerald-50 border-emerald-200/30 text-emerald-600",
-  },
-  red: {
-    card: "border-red-200/40 shadow-[0_4px_20px_rgba(220,38,38,.06)] bg-gradient-to-br from-red-50/30 to-white",
-    badge: "bg-red-50 border-red-200/30 text-red-600",
-  },
-  amber: {
-    card: "border-amber-200/40 shadow-[0_4px_20px_rgba(217,119,6,.06)] bg-gradient-to-br from-amber-50/30 to-white",
-    badge: "bg-amber-50 border-amber-200/30 text-amber-600",
-  },
-};
-
-function MetricTile({ label, value, helper, icon, iconBg, accent = "default" }: MetricTileProps) {
-  const styles = ACCENT_STYLES[accent];
-  return (
-    <div
-      className={cn(
-        "group relative p-4 sm:p-5 rounded-[22px] border bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_36px_rgba(15,23,42,.08)] select-none cursor-default",
-        styles.card
-      )}
-    >
-      <div className={cn("h-9 w-9 rounded-[12px] flex items-center justify-center mb-3.5 border transition-transform duration-300 group-hover:scale-105", iconBg)}>
-        {icon}
-      </div>
-      <div className="text-[.67rem] font-extrabold text-neutral-400 uppercase tracking-widest leading-none">{label}</div>
-      <div className="font-display text-[1.3rem] sm:text-[1.4rem] font-black text-[#1e1b4b] tracking-tight leading-none mt-1.5">{value}</div>
-      {helper && (
-        <div className="text-[.7rem] text-neutral-400 font-semibold mt-1 leading-none">{helper}</div>
-      )}
-    </div>
-  );
-}
+/**
+ * Thumbnail campaign.
+ *
+ * Versi lama memetakan `campaign_006/007/008` ke tiga foto Unsplash dan sisanya
+ * ke foto keempat — id-id itu hanya ada di mock, jadi dengan data nyata SEMUA
+ * campaign memakai foto makanan yang sama. `campaigns` tidak punya kolom
+ * thumbnail (lihat mapCampaign di umkm-appwrite.service.ts), jadi sampai kolom
+ * itu ada, yang jujur adalah tidak menampilkan foto sama sekali.
+ */
 
 // ─── ActiveJobCard ────────────────────────────────────────────────────────────
 
@@ -105,6 +54,11 @@ const PLATFORM_ICON = {
   ),
 };
 
+const CREATOR_DARK_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-ink) 0%, var(--color-kreator-ink-mid) 45%, var(--color-kreator-900) 100%)";
+const CREATOR_ACTION_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-600), var(--color-kreator-action-end))";
+
 function ActiveJobCard({
   work,
   getSubStatusLabel,
@@ -119,7 +73,6 @@ function ActiveJobCard({
   const subStatus    = getSubStatusLabel(work);
   const hasSubmitted = !!work.contentUrl;
   const { text: deadlineText, days } = getDaysRemaining(work.deadline);
-  const thumbnailUrl = getThumbnailUrl(work.campaignId);
   const isFraud   = work.submissionStatus === "rejected" || work.status === "rejected" || work.fraudStatus === "rejected";
   const isValid   = work.submissionStatus === "approved" || work.status === "approved";
   const isPending = work.submissionStatus === "pending";
@@ -134,11 +87,6 @@ function ActiveJobCard({
     ? (work.earnings ?? 0)
     : (work.ratePerThousandViews * auditedViews) / 1000;
   const earningLabel = isValid ? "Pendapatan Dirilis" : "Estimasi Reward";
-
-  // Claimed date
-  const claimedDate = new Date(work.claimedAt).toLocaleDateString("id-ID", {
-    day: "numeric", month: "short",
-  });
 
   const platform = work.platform;
 
@@ -161,17 +109,17 @@ function ActiveJobCard({
           ? "border-red-200/60 shadow-[0_4px_20px_rgba(220,38,38,.07)] hover:shadow-[0_16px_48px_rgba(220,38,38,.12)] hover:-translate-y-1.5 hover:border-red-300/40"
           : isValid
           ? "border-emerald-200/50 shadow-[0_4px_20px_rgba(22,163,74,.07)] hover:shadow-[0_16px_48px_rgba(22,163,74,.12)] hover:-translate-y-1.5 hover:border-emerald-300/40"
-          : "border-neutral-200/50 shadow-[0_2px_16px_rgba(15,23,42,.05)] hover:shadow-[0_16px_48px_rgba(109,40,217,.12)] hover:-translate-y-1.5 hover:border-violet-400/20"
+          : "border-neutral-200/50 shadow-1 hover:shadow-kreator-avatar hover:-translate-y-1.5 hover:border-kreator-400/20"
       )}
     >
       {/* Cover image — same 4:3 as Job Pool */}
       <div className="relative w-full overflow-hidden shrink-0" style={{ aspectRatio: "4/3" }}>
-        <Image
-          src={thumbnailUrl}
-          alt={work.title}
-          fill
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            background: CREATOR_DARK_GRADIENT,
+          }}
         />
         <div
           className="absolute inset-0 pointer-events-none"
@@ -214,12 +162,12 @@ function ActiveJobCard({
 
       {/* Card body — same compact density as Job Pool */}
       <div className="p-4 flex flex-col gap-3 flex-1">
-        <h4 className="text-sm font-extrabold text-[#1e1b4b] leading-snug line-clamp-2">{work.title}</h4>
+        <h4 className="text-sm font-extrabold text-kreator-ink leading-snug line-clamp-2">{work.title}</h4>
 
         {/* CPM Rate row */}
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-1">
-            <span className="font-display text-[1.1rem] font-black text-[#7c3aed] tracking-tight leading-none">
+            <span className="font-display text-[1.1rem] font-black text-kreator-600 tracking-tight leading-none">
               {formatCurrency(work.ratePerThousandViews)}
             </span>
             <span className="text-[10px] text-neutral-400 font-semibold">/ 1K views</span>
@@ -257,7 +205,7 @@ function ActiveJobCard({
         {/* Earnings row */}
         <div className="flex items-center justify-between bg-neutral-50 border border-neutral-200/30 rounded-[10px] px-3 py-2">
           <span className="text-[9px] font-bold text-neutral-400 uppercase tracking-wider">{earningLabel}</span>
-          <span className={cn("text-[11px] font-black", isValid ? "text-emerald-700" : "text-[#7c3aed]")}>
+          <span className={cn("text-[11px] font-black", isValid ? "text-emerald-700" : "text-kreator-600")}>
             {formatCurrency(earningVal)}
           </span>
         </div>
@@ -270,7 +218,7 @@ function ActiveJobCard({
               href={work.contentUrl}
               target="_blank"
               rel="noreferrer"
-              className="font-bold text-[#7c3aed] truncate hover:underline"
+              className="font-bold text-kreator-600 truncate hover:underline"
             >
               {work.contentUrl}
             </a>
@@ -299,8 +247,8 @@ function ActiveJobCard({
               href={`/dashboard/kreator/pekerjaan-aktif/${work.id}`}
               className="flex-[2] text-center py-2.5 rounded-[12px] text-[10px] font-extrabold text-white hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
               style={{
-                background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-                boxShadow: "0 4px 14px rgba(124,58,237,.30)",
+                background: CREATOR_ACTION_GRADIENT,
+                boxShadow: "var(--shadow-kreator)",
               }}
             >
               Submit Bukti
@@ -353,9 +301,9 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
   };
 
   /**
-   * Batalkan claim. Baris dibuang dari daftar karena statusnya jadi `unclaimed`
-   * — bukan lagi "pekerjaan aktif". Lempar ulang saat gagal supaya
-   * ConfirmDialog tetap terbuka dengan pesan errornya.
+   * Batalkan claim. Baris claim dihapus di backend, jadi ikut dibuang dari
+   * daftar. Lempar ulang saat gagal supaya ConfirmDialog tetap terbuka
+   * dengan pesan errornya.
    */
   const handleUnclaimConfirm = async () => {
     if (!unclaimTarget) return;
@@ -439,37 +387,33 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
 
           {/* Summary tiles */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-7">
-            <MetricTile
+            <MetricCard
               label="Belum Submit"
               value={countBelumSubmit}
               helper="Butuh posting bukti"
-              accent="default"
-              iconBg="bg-neutral-50 border-neutral-200/60"
-              icon={<Clock className="w-4.5 h-4.5 text-neutral-500" />}
+              tone="default"
+              icon={<Clock />}
             />
-            <MetricTile
+            <MetricCard
               label="Menunggu Validasi"
               value={countPending}
               helper="Sedang diaudit"
-              accent="blue"
-              iconBg="bg-blue-50 border-blue-200/40"
-              icon={<PlayCircle className="w-4.5 h-4.5 text-blue-500" />}
+              tone="info"
+              icon={<PlayCircle />}
             />
-            <MetricTile
+            <MetricCard
               label="Valid"
               value={countValid}
               helper="Reward siap cair"
-              accent="green"
-              iconBg="bg-emerald-50 border-emerald-200/40"
-              icon={<CheckCircle2 className="w-4.5 h-4.5 text-emerald-500" />}
+              tone="success"
+              icon={<CheckCircle2 />}
             />
-            <MetricTile
+            <MetricCard
               label="Perlu Review / Fraud"
               value={countReviewFraud}
               helper="Ada kendala konten"
-              accent="red"
-              iconBg="bg-red-50 border-red-200/40"
-              icon={<AlertTriangle className="w-4.5 h-4.5 text-red-500" />}
+              tone="danger"
+              icon={<AlertTriangle />}
             />
           </div>
 
@@ -610,8 +554,7 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
                 akan dilepas dan slotnya kembali terbuka untuk kreator lain.
               </>
             }
-            note="Kamu tidak bisa mengambil campaign ini lagi setelah dibatalkan. Pastikan memang tidak akan mengerjakannya."
-            acknowledgement="Saya mengerti campaign ini tidak bisa saya klaim ulang."
+            note="Kamu masih bisa mengambil campaign ini lagi selama slotnya belum penuh. Progres dan catatan pada pekerjaan ini tidak disimpan."
             confirmLabel="Batalkan Pekerjaan"
             tone="warning"
             onConfirm={handleUnclaimConfirm}

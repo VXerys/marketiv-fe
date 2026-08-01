@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ChatMessage } from "@/types/umkm-dashboard.types";
+import { ChatMessage, NegotiationStage } from "@/types/umkm-dashboard.types";
 import { ChatMessageBubble } from "./ChatMessageBubble";
 import { SystemMessageCard } from "./SystemMessageCard";
 import { CustomOfferCard } from "./CustomOfferCard";
@@ -9,10 +9,19 @@ import { CustomOfferCard } from "./CustomOfferCard";
 interface ChatTimelineProps {
   messages: ChatMessage[];
   onPayOffer: () => void;
-  orderStatus: string;
+  onDeleteOffer?: (offerId: string) => void;
+  stage: NegotiationStage;
+  /** offerId yang sedang berlaku — kartu offer lama tidak dapat aksi. */
+  activeOfferId?: string;
 }
 
-export function ChatTimeline({ messages, onPayOffer, orderStatus }: ChatTimelineProps) {
+export function ChatTimeline({
+  messages,
+  onPayOffer,
+  onDeleteOffer,
+  stage,
+  activeOfferId,
+}: ChatTimelineProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll on new message
@@ -43,7 +52,9 @@ export function ChatTimeline({ messages, onPayOffer, orderStatus }: ChatTimeline
                   key={msg.id}
                   message={msg}
                   onPay={onPayOffer}
-                  orderStatus={orderStatus}
+                  onDeleteOffer={onDeleteOffer}
+                  stage={stage}
+                  activeOfferId={activeOfferId}
                 />
               );
             }

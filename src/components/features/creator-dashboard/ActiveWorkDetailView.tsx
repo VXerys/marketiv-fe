@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { CreatorActiveWork } from "@/types/creator-dashboard";
 import { getClaimStatusLabel, getFraudStatusLabel, getSubmissionStatusLabel } from "@/lib/creator-status";
+import { submitProof } from "@/services/creator/creator-dashboard.service";
+import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { DashboardModal, DashboardButton, DashboardStateCard } from "@/components/features/dashboard/shared";
@@ -27,12 +29,20 @@ interface ActiveWorkDetailViewProps {
   work: CreatorActiveWork | null;
 }
 
-const getThumbnailUrl = (campaignId: string): string => {
-  if (campaignId === "campaign_006") return "https://images.unsplash.com/photo-1558171813-4c088753af8f?w=800&h=600&fit=crop";
-  if (campaignId === "campaign_007") return "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800&h=600&fit=crop";
-  if (campaignId === "campaign_008") return "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=600&fit=crop";
-  return "https://images.unsplash.com/photo-1621939514649-280e2ee25f60?w=800&h=600&fit=crop";
-};
+const CREATOR_DARK_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-ink) 0%, var(--color-kreator-ink-mid) 45%, var(--color-kreator-900) 100%)";
+const CREATOR_ACTION_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-600), var(--color-kreator-action-end))";
+
+/**
+ * Thumbnail campaign.
+ *
+ * Versi lama memetakan `campaign_006/007/008` ke tiga foto Unsplash dan sisanya
+ * ke foto keempat — id-id itu hanya ada di mock, jadi dengan data nyata SEMUA
+ * campaign memakai foto makanan yang sama. `campaigns` tidak punya kolom
+ * thumbnail (lihat mapCampaign di umkm-appwrite.service.ts), jadi sampai kolom
+ * itu ada, yang jujur adalah tidak menampilkan foto sama sekali.
+ */
 
 // ─── Stat chip used in hero ───────────────────────────────────────────────────
 
@@ -49,6 +59,7 @@ function StatPill({ icon, label }: { icon: React.ReactNode; label: string }) {
 
 export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailViewProps) {
   const [work, setWork] = useState<CreatorActiveWork | null>(initialWork);
+  const [renderedAt] = useState(() => Date.now());
 
   const [platform, setPlatform] = useState<"tiktok" | "instagram">("tiktok");
   const [contentUrl, setContentUrl] = useState("");
@@ -94,26 +105,52 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
     setIsConfirmOpen(true);
   };
 
-  const executeSubmit = () => {
+  /**
+   * Kirim bukti tayang.
+   *
+   * `fraudStatus` sengaja TIDAK diisi. Sebelumnya di-set `"safe"` begitu kirim,
+   * yang berarti kreator melihat lencana "aman" sebelum ada pemeriksaan apa pun.
+   * `ai-fraud-precheck` dipicu event `campaign_submissions.*.create` dan menulis
+   * balik skornya beberapa saat kemudian — sampai itu tiba, tidak ada lencana
+   * fraud yang ditampilkan (renderer melewatinya saat `fraudStatus` kosong).
+   */
+  const executeSubmit = async () => {
+    if (!work) return;
     setIsConfirmOpen(false);
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setWork((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          contentUrl: contentUrl.trim(),
-          platform,
-          status: "submitted" as const,
-          submissionStatus: "pending" as const,
-          fraudStatus: "safe" as const,
-          submittedAt: new Date().toISOString(),
-          notes: notes.trim(),
-        };
-      });
-      setIsSuccessOpen(true);
-    }, 1000);
+
+    const res = await submitProof({
+      claimId: work.id,
+      campaignId: work.campaignId,
+      postUrl: contentUrl.trim(),
+      caption: notes.trim() || undefined,
+      // Teruskan pilihan platform dari UI — dulu selalu "tiktok" padahal kreator
+      // sudah memilih Instagram, yang menyebabkan ai-fraud-precheck memberi +20
+      // skor fraud "Platform tidak cocok" untuk submission Instagram yang sah.
+      platform,
+    });
+
+    setIsSubmitting(false);
+
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal mengirim bukti tayang.");
+      return;
+    }
+
+    setWork((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        contentUrl: contentUrl.trim(),
+        platform,
+        status: "submitted" as const,
+        submissionStatus: "pending" as const,
+        fraudStatus: undefined,
+        submittedAt: new Date().toISOString(),
+        notes: notes.trim(),
+      };
+    });
+    setIsSuccessOpen(true);
   };
 
   if (!work) {
@@ -138,11 +175,10 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
   // angka ini yang dipakai kreator untuk memperkirakan bayaran.
   const auditedViews = work.actualViews ?? 0;
   const earningsEstimate = work.earnings ?? (work.ratePerThousandViews * auditedViews) / 1000;
-  const thumbnailUrl = getThumbnailUrl(work.campaignId);
 
   const { text: deadlineText, days } = (() => {
     const diffDays = Math.ceil(
-      (new Date(work.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+      (new Date(work.deadline).getTime() - renderedAt) / (1000 * 60 * 60 * 24)
     );
     if (diffDays < 0) return { text: "Melewati batas", days: diffDays };
     if (diffDays === 0) return { text: "Hari ini", days: 0 };
@@ -167,13 +203,12 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
           <div className="relative overflow-hidden" style={{ minHeight: 320 }}>
             {/* Blurred background image */}
             <div className="absolute inset-0 scale-110">
-              <Image
-                src={thumbnailUrl}
-                alt=""
-                fill
-                className="object-cover"
-                priority
-                sizes="100vw"
+              <div
+                aria-hidden="true"
+                className="absolute inset-0"
+                style={{
+                  background: CREATOR_DARK_GRADIENT,
+                }}
               />
             </div>
 
@@ -247,11 +282,17 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                   <div className="flex flex-wrap items-center gap-3 pt-1">
                     <StatPill
                       icon={
-                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                        </svg>
+                        work.platform === "instagram" ? (
+                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.27 8.27 0 004.84 1.55V6.79a4.85 4.85 0 01-1.07-.1z" />
+                          </svg>
+                        )
                       }
-                      label="INSTAGRAM"
+                      label={(work.platform ?? "tiktok").toUpperCase()}
                     />
                     <span className="w-1 h-1 rounded-full bg-white/25 shrink-0" />
                     <StatPill icon={<Eye className="w-3.5 h-3.5" />} label="CPM MODE" />
@@ -268,8 +309,8 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                         }
                         className="min-h-[44px] px-7 font-black text-sm rounded-xl text-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
                         style={{
-                          background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-                          boxShadow: "0 6px 20px rgba(124,58,237,.40)",
+                          background: CREATOR_ACTION_GRADIENT,
+                          boxShadow: "var(--shadow-kreator-cta)",
                         }}
                       >
                         Submit Bukti Tayang
@@ -294,15 +335,14 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                   </div>
                 </div>
 
-                {/* Right: product image */}
+                {/* Right: placeholder — `campaigns` belum punya kolom thumbnail */}
                 <div className="relative w-full lg:w-[320px] xl:w-[360px] aspect-[4/3] rounded-2xl overflow-hidden border border-white/10 shadow-2xl shrink-0 bg-white/5 hidden lg:block">
-                  <Image
-                    src={thumbnailUrl}
-                    alt={work.title}
-                    fill
-                    sizes="360px"
-                    className="object-cover"
-                    priority
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0"
+                    style={{
+                      background: CREATOR_DARK_GRADIENT,
+                    }}
                   />
                 </div>
               </div>
@@ -321,7 +361,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                   className={cn(
                     "py-3 border-b-2 font-black text-sm transition-all cursor-pointer capitalize",
                     activeTab === tab
-                      ? "border-[#7c3aed] text-[#7c3aed]"
+                      ? "border-kreator-600 text-kreator-600"
                       : "border-transparent text-neutral-400 hover:text-neutral-600"
                   )}
                 >
@@ -382,7 +422,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-extrabold text-xs transition-all hover:-translate-y-0.5 cursor-pointer shrink-0"
-                          style={{ background: "linear-gradient(135deg, #7c3aed, #4f46e5)" }}
+                          style={{ background: CREATOR_ACTION_GRADIENT }}
                         >
                           <FolderOpen className="w-3.5 h-3.5" />
                           Buka Materi
@@ -430,7 +470,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                                 )}
                                 style={
                                   platform === p
-                                    ? { background: "linear-gradient(135deg, #7c3aed, #4f46e5)" }
+                                    ? { background: CREATOR_ACTION_GRADIENT }
                                     : undefined
                                 }
                               >
@@ -483,8 +523,8 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                           type="submit"
                           className="w-full py-4 text-center text-white font-black text-sm rounded-full transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
                           style={{
-                            background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-                            boxShadow: "0 6px 20px rgba(124,58,237,.32)",
+                            background: CREATOR_ACTION_GRADIENT,
+                            boxShadow: "var(--shadow-kreator-cta)",
                           }}
                         >
                           Kirim Bukti Postingan
@@ -512,7 +552,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                               href={work.contentUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="flex items-center gap-1.5 text-xs font-black text-[#7c3aed] mt-1 truncate hover:underline"
+                              className="flex items-center gap-1.5 text-xs font-black text-kreator-600 mt-1 truncate hover:underline"
                             >
                               <span className="truncate">{work.contentUrl}</span>
                               <ExternalLink className="w-3 h-3 shrink-0" />
@@ -562,13 +602,13 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                           <div
                             className="p-4 rounded-[14px] text-center border"
                             style={{
-                              background: "linear-gradient(135deg, rgba(124,58,237,0.06), rgba(79,70,229,0.06))",
-                              borderColor: "rgba(124,58,237,0.20)",
+                              background: "linear-gradient(135deg, color-mix(in srgb, var(--color-kreator-600) 6%, transparent), color-mix(in srgb, var(--color-kreator-action-end) 6%, transparent))",
+                              borderColor: "color-mix(in srgb, var(--color-kreator-600) 20%, transparent)",
                             }}
                           >
                             <CheckCircle className="w-4 h-4 text-violet-500 mx-auto mb-2" />
                             <span className="block text-[8px] font-bold text-violet-500 uppercase tracking-wider">Total Reward Cair</span>
-                            <span className="block text-lg font-black text-[#7c3aed] mt-1">
+                            <span className="block text-lg font-black text-kreator-600 mt-1">
                               {formatCurrency(earningsEstimate)}
                             </span>
                           </div>
@@ -576,7 +616,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
 
                         <div
                           className="border rounded-[14px] p-4 text-[11px] text-violet-900 font-bold leading-normal flex items-start gap-2"
-                          style={{ background: "rgba(124,58,237,0.04)", borderColor: "rgba(124,58,237,0.15)" }}
+                          style={{ background: "color-mix(in srgb, var(--color-kreator-600) 4%, transparent)", borderColor: "color-mix(in srgb, var(--color-kreator-600) 15%, transparent)" }}
                         >
                           <Info className="w-4 h-4 shrink-0 text-violet-500 mt-0.5" />
                           <span>Dana reward dihitung berkala berdasarkan data views video yang disinkronkan oleh sistem audit admin Marketiv.</span>
@@ -712,8 +752,8 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                   <div
                     className="rounded-[22px] p-5 border space-y-3"
                     style={{
-                      background: "rgba(124,58,237,0.03)",
-                      borderColor: "rgba(124,58,237,0.15)",
+                      background: "color-mix(in srgb, var(--color-kreator-600) 3%, transparent)",
+                      borderColor: "color-mix(in srgb, var(--color-kreator-600) 15%, transparent)",
                     }}
                   >
                     <h4 className="text-[10px] font-extrabold text-violet-700 uppercase tracking-widest flex items-center gap-1.5">
@@ -753,7 +793,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                               href={work.contentUrl}
                               target="_blank"
                               rel="noreferrer"
-                              className="flex items-center gap-1.5 text-xs font-bold text-[#7c3aed] hover:underline max-w-[280px]"
+                              className="flex items-center gap-1.5 text-xs font-bold text-kreator-600 hover:underline max-w-[280px]"
                             >
                               <span className="truncate">{work.contentUrl}</span>
                               <ExternalLink className="w-3 h-3 shrink-0" />
@@ -766,14 +806,14 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                             </div>
                             <div className="text-center">
                               <span className="block text-[8px] font-bold text-neutral-400 uppercase tracking-wider">Reward</span>
-                              <span className="block text-sm font-black text-[#7c3aed] mt-0.5">{formatCurrency(earningsEstimate)}</span>
+                              <span className="block text-sm font-black text-kreator-600 mt-0.5">{formatCurrency(earningsEstimate)}</span>
                             </div>
                           </div>
                         </div>
 
                         <div
                           className="text-[11px] text-violet-900 font-semibold leading-relaxed border rounded-[14px] p-4 flex items-start gap-2"
-                          style={{ background: "rgba(124,58,237,0.04)", borderColor: "rgba(124,58,237,0.15)" }}
+                          style={{ background: "color-mix(in srgb, var(--color-kreator-600) 4%, transparent)", borderColor: "color-mix(in srgb, var(--color-kreator-600) 15%, transparent)" }}
                         >
                           <Info className="w-4 h-4 shrink-0 text-violet-500 mt-0.5" />
                           <span>Data tayangan (views) ditarik otomatis dari media sosial. Harap tidak menghapus video minimal 30 hari pasca audit agar reward tidak dibatalkan.</span>
@@ -815,7 +855,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
         cancelLabel="Cek Ulang URL"
         onConfirm={executeSubmit}
       >
-        <div className="mt-3 bg-neutral-50 border border-neutral-200 rounded-[14px] p-4 break-all text-xs font-semibold text-[#7c3aed]">
+        <div className="mt-3 bg-neutral-50 border border-neutral-200 rounded-[14px] p-4 break-all text-xs font-semibold text-kreator-600">
           {contentUrl}
         </div>
       </DashboardModal>
@@ -852,7 +892,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
       {isSubmitting && (
         <div className="fixed inset-0 bg-neutral-900/30 backdrop-blur-[2px] z-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-2xl shadow-xl flex items-center gap-3 border border-neutral-100">
-            <svg className="animate-spin h-5 w-5 text-[#7c3aed]" fill="none" viewBox="0 0 24 24">
+            <svg className="animate-spin h-5 w-5 text-kreator-600" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>

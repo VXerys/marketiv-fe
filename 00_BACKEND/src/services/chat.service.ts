@@ -157,7 +157,14 @@ export const sendMessage = async (data: SendMessageInput): Promise<ChatMessage> 
       COLLECTIONS.messages,
       ID.unique(),
       payload,
-      [Permission.read(Role.user(conversation.umkmId)), Permission.read(Role.user(conversation.creatorId))]
+      // `update` diberikan ke kedua pihak supaya penerima bisa menulis `read_at`
+      // setelah read("users") di level koleksi dicabut.
+      [
+        Permission.read(Role.user(conversation.umkmId)),
+        Permission.read(Role.user(conversation.creatorId)),
+        Permission.update(Role.user(conversation.umkmId)),
+        Permission.update(Role.user(conversation.creatorId)),
+      ]
     );
 
     await databases.updateDocument(DATABASE_ID, COLLECTIONS.conversations, conversationId, {

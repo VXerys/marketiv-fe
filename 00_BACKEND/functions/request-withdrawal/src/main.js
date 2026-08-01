@@ -34,6 +34,15 @@ export default async ({ req, res, log, error }) => {
     const databases = createDatabasesClient(env);
     const amount = Number(payload.amount);
 
+    // Hanya kreator yang menarik saldo. UMKM mengisi saldo untuk membayar
+    // campaign/order, bukan mencairkannya — tanpa guard ini siapa pun yang
+    // punya `wallets.balance` bisa menarik dana platform.
+    const role = await getUserRole(databases, env, userId);
+    if (role !== "creator") {
+      log(`Withdrawal ditolak untuk ${userId}: role=${role || "unknown"}`);
+      return json(res, { error: "Hanya kreator yang dapat menarik saldo." }, 403);
+    }
+
     const wallet = await getWallet(databases, env, userId);
     if (!wallet) return json(res, { error: "Wallet tidak ditemukan" }, 404);
     if (Number(wallet.balance) < amount) {
@@ -125,6 +134,15 @@ export default async ({ req, res, log, error }) => {
       error(`Baris transactions gagal untuk withdrawal ${documentId}: ${err?.message || err}`);
     }
 
+    await notify(databases, env, {
+      sourceId: withdrawal.$id,
+      kind: "withdrawal",
+      userId,
+      title: "Penarikan Saldo Berhasil",
+      message: `Penarikan Rp${amount.toLocaleString("id-ID")} ke ${String(payload.payoutMethod).toUpperCase()} berhasil diproses.`,
+      type: "keuangan",
+    }, log);
+
     log(`Withdrawal ${withdrawal.$id} processed for ${userId}: ${amount}`);
     return json(res, {
       withdrawalId: withdrawal.$id,
@@ -141,6 +159,26 @@ export default async ({ req, res, log, error }) => {
   }
 };
 
+async function notify(databases, env, payload, log) {
+  try {
+    await databases.createDocument(
+      env.databaseId, env.notificationsCollectionId,
+      deterministicNotificationId(payload.sourceId, payload.kind),
+      { userId: payload.userId, title: payload.title, message: payload.message,
+        type: payload.type, isRead: false, createdAt: new Date().toISOString() },
+      [Permission.read(Role.user(payload.userId)), Permission.update(Role.user(payload.userId))]
+    );
+  } catch (err) {
+    if (err?.code === 409) return;
+    log(`Notifikasi ${payload.kind} gagal untuk ${payload.userId}: ${err?.message || String(err)}`);
+  }
+}
+
+function deterministicNotificationId(sourceId, kind) {
+  const digest = createHash("sha256").update(`${sourceId}:${kind}`).digest("hex");
+  return `ntf${digest.slice(0, 29)}`;
+}
+
 /**
  * Pola header-first sesuai integration-context/2026-07-25-blocker-api-key-runtime.md:
  * APPWRITE_FUNCTION_API_KEY hanya ada saat BUILD; saat runtime kunci dinamis
@@ -155,7 +193,9 @@ function getEnv(req) {
     databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
     walletsCollectionId: process.env.WALLETS_COLLECTION_ID || "wallets",
     withdrawalsCollectionId: process.env.WITHDRAWALS_COLLECTION_ID || "withdrawals",
-    transactionsCollectionId: process.env.TRANSACTIONS_COLLECTION_ID || "transactions"
+    transactionsCollectionId: process.env.TRANSACTIONS_COLLECTION_ID || "transactions",
+    usersCollectionId: process.env.USERS_COLLECTION_ID || "users",
+    notificationsCollectionId: process.env.NOTIFICATIONS_COLLECTION_ID || "notifications",
   };
 
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
@@ -216,6 +256,22 @@ function validatePayload(payload, minimumWithdraw) {
 function deterministicId(userId, requestKey) {
   const digest = createHash("sha256").update(`${userId}:${requestKey}`).digest("hex");
   return `wd${digest.slice(0, 32)}`;
+}
+
+/**
+ * Peran user dari koleksi `users`.
+ *
+ * WAJIB lewat listDocuments + Query.equal("userId"), BUKAN getDocument(userId):
+ * baris `users` dibuat dengan `ID.unique()` di create-user-profile, jadi `$id`
+ * baris tidak sama dengan id akun Auth. `getDocument` akan 404 lebih dulu —
+ * persis jebakan yang membuat setiap klaim campaign gagal (B-3, fix 11ebfc3).
+ */
+async function getUserRole(databases, env, userId) {
+  const res = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
+    Query.equal("userId", userId),
+    Query.limit(1)
+  ]);
+  return res.documents[0]?.role || null;
 }
 
 async function getWallet(databases, env, userId) {

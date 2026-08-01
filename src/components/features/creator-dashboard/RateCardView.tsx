@@ -5,6 +5,7 @@ import { ClipboardList, BadgeDollarSign, ShoppingBag } from "lucide-react";
 import { CreatorRateCardPackage } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
+import { DashboardModal } from "@/components/features/dashboard/shared";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -484,21 +485,33 @@ export function RateCardView({ initialPackages, ordersCount }: RateCardViewProps
               label="Paket Aktif"
               value={activeCount.toString()}
               note="Tampil di direktori kreator"
-              colors={{ bg: "#f0f6ff", iconColor: "#2563eb", border: "#bfdbfe" }}
+              colors={{
+                bg: "var(--color-info-surface)",
+                iconColor: "var(--color-info)",
+                border: "var(--color-info-border)",
+              }}
             />
             <MetricInfoCard
               icon={BadgeDollarSign}
               label="Harga Mulai Dari"
               value={startingPrice > 0 ? formatCurrency(startingPrice) : "—"}
               note="Harga paket termurah aktif"
-              colors={{ bg: "#fff7ed", iconColor: "#ea580c", border: "#fed7aa" }}
+              colors={{
+                bg: "var(--color-primary-50)",
+                iconColor: "var(--color-primary-600)",
+                border: "var(--color-primary-200)",
+              }}
             />
             <MetricInfoCard
               icon={ShoppingBag}
               label="Order Jasa Masuk"
               value={ordersCount.toString()}
               note="Melalui Rate Card"
-              colors={{ bg: "#f1fbf5", iconColor: "#16a34a", border: "#bbf7d0" }}
+              colors={{
+                bg: "var(--color-success-surface)",
+                iconColor: "var(--green)",
+                border: "var(--color-success-border)",
+              }}
             />
           </div>
 
@@ -537,17 +550,14 @@ export function RateCardView({ initialPackages, ordersCount }: RateCardViewProps
 
       {/* ════════════════ Modal: Create ════════════════ */}
       {isCreateOpen && (
-        <div className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-neutral-200/50 shadow-2xl p-6 sm:p-8 max-w-md w-full animate-in fade-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start gap-4 mb-5">
-              <div>
-                <h3 className="text-base font-black text-neutral-900 leading-none">Buat Paket Baru</h3>
-                <p className="text-[10px] text-neutral-400 font-bold mt-1 uppercase tracking-wider">Lengkapi spesifikasi jasa Rate Card</p>
-              </div>
-              <button onClick={() => setIsCreateOpen(false)} className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer shrink-0" aria-label="Tutup">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
+        <DashboardModal
+          isOpen={isCreateOpen}
+          title="Buat Paket Baru"
+          description="Lengkapi spesifikasi jasa Rate Card"
+          onClose={() => setIsCreateOpen(false)}
+          hideFooter
+          className="max-w-md max-h-[90vh] overflow-y-auto"
+        >
 
             {formError && (
               <div className="bg-red-50 border border-red-200 p-3.5 rounded-xl text-red-800 text-xs font-bold mb-4">⚠️ {formError}</div>
@@ -589,23 +599,19 @@ export function RateCardView({ initialPackages, ordersCount }: RateCardViewProps
                 <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-primary hover:bg-primary-600 text-white font-bold text-xs rounded-full transition-all border border-primary-600/10 shadow-md cursor-pointer disabled:opacity-60">{isSubmitting ? "Menyimpan…" : "Buat Paket"}</button>
               </div>
             </form>
-          </div>
-        </div>
+        </DashboardModal>
       )}
 
       {/* ════════════════ Modal: Edit ════════════════ */}
       {isEditOpen && activePackage && (
-        <div className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-neutral-200/50 shadow-2xl p-6 sm:p-8 max-w-md w-full animate-in fade-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start gap-4 mb-5">
-              <div>
-                <h3 className="text-base font-black text-neutral-900 leading-none">Ubah Paket Jasa</h3>
-                <p className="text-[10px] text-neutral-400 font-bold mt-1 uppercase tracking-wider">{activePackage.name}</p>
-              </div>
-              <button onClick={() => { setIsEditOpen(false); setActivePackage(null); }} className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer shrink-0" aria-label="Tutup">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-            </div>
+        <DashboardModal
+          isOpen={isEditOpen}
+          title="Ubah Paket Jasa"
+          description={activePackage.name}
+          onClose={() => { setIsEditOpen(false); setActivePackage(null); }}
+          hideFooter
+          className="max-w-md max-h-[90vh] overflow-y-auto"
+        >
 
             {formError && (
               <div className="bg-red-50 border border-red-200 p-3.5 rounded-xl text-red-800 text-xs font-bold mb-4">⚠️ {formError}</div>
@@ -647,20 +653,24 @@ export function RateCardView({ initialPackages, ordersCount }: RateCardViewProps
                 <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-primary hover:bg-primary-600 text-white font-bold text-xs rounded-full transition-all border border-primary-600/10 shadow-md cursor-pointer disabled:opacity-60">{isSubmitting ? "Menyimpan…" : "Simpan Perubahan"}</button>
               </div>
             </form>
-          </div>
-        </div>
+        </DashboardModal>
       )}
 
       {/* ════════════════ Modal: Delete confirm ════════════════ */}
       {isDeleteOpen && activePackage && (
-        <div className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-neutral-200/50 shadow-2xl p-6 sm:p-8 max-w-sm w-full animate-in fade-in zoom-in-95 duration-300">
+        <DashboardModal
+          isOpen={isDeleteOpen}
+          title="Hapus Paket Jasa?"
+          description="Tindakan ini tidak dapat dibatalkan."
+          onClose={() => { setIsDeleteOpen(false); setActivePackage(null); }}
+          hideFooter
+          className="max-w-sm"
+        >
             <div className="w-14 h-14 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center text-red-500 mb-5 mx-auto">
               <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
             </div>
-            <h3 className="text-base font-black text-neutral-900 text-center mb-2">Hapus Paket Jasa?</h3>
             <p className="text-xs text-neutral-500 font-semibold leading-relaxed text-center mb-4">
               Apakah Anda yakin ingin menghapus{" "}
               <span className="font-extrabold text-neutral-900">&quot;{activePackage.name}&quot;</span>{" "}
@@ -686,8 +696,7 @@ export function RateCardView({ initialPackages, ordersCount }: RateCardViewProps
                 <button type="button" disabled={isSubmitting} onClick={executeDelete} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-full transition-all shadow-md cursor-pointer disabled:opacity-60">{isSubmitting ? "Menghapus…" : "Ya, Hapus Paket"}</button>
               </div>
             )}
-          </div>
-        </div>
+        </DashboardModal>
       )}
 
     </div>

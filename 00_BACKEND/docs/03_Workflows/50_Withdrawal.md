@@ -51,12 +51,18 @@ WALLET:      balance -= amount
 
 ## Events / Functions
 
-Tidak ada Appwrite Function khusus. Proses sepenuhnya di service layer `wallet.service.ts`.
+| Trigger | Function | Aksi |
+|---|---|---|
+| Dipanggil frontend (`executeFunction`) | `request-withdrawal` | Validasi peran & saldo, buat `withdrawals`, debit `wallets.balance`, catat `transactions` |
+| Scheduled (harian, 02:00) | `mature-pending-balance` | Memindahkan reward campaign ≥ 7 hari dari `pendingBalance` ke `balance` sehingga bisa ditarik |
+
+`wallets` dan `transactions` punya `$permissions: []` + rowSecurity, jadi browser tidak bisa mendebit saldo — debit wajib lewat Function.
 
 ## Validation Rules per Langkah
 
 | Langkah | Validasi | Gagal → |
 |---|---|---|
+| Request withdrawal | `users.role === "creator"` | `403` "Hanya kreator yang dapat menarik saldo." |
 | Request withdrawal | `wallet.balance >= amount` | Error "Saldo tidak mencukupi" |
 | Request withdrawal | `amount >= MINIMUM_WITHDRAW` | Error "Minimum withdraw Rp50.000" |
 | Request withdrawal | `amount > 0` | Error "Jumlah tidak valid" |
@@ -73,7 +79,8 @@ Tidak ada Appwrite Function khusus. Proses sepenuhnya di service layer `wallet.s
 
 - **Saldo kurang dari amount** — ditolak saat validasi awal.
 - **Amount di bawah minimum withdraw** — ditolak.
-- **Hanya saldo available yang bisa ditarik** — `pendingBalance` dan `escrowBalance` tidak bisa ditarik.
+- **Hanya saldo available yang bisa ditarik** — `pendingBalance` dan `escrowBalance` tidak bisa ditarik. Reward campaign masuk ke `pendingBalance` lebih dulu dan baru bisa ditarik setelah dimatangkan `mature-pending-balance` (H+7).
+- **UMKM mengajukan withdrawal** — ditolak `403`. Saldo UMKM diisi untuk membayar campaign/order, bukan untuk dicairkan.
 - **Withdrawal diakses saat wallet dibekukan** — jika user `status: suspended`, withdrawal tidak bisa diajukan.
 - **Transfer gagal di sisi bank/e-wallet** — di luar tanggung jawab platform. Dana sudah keluar dari wallet sistem.
 

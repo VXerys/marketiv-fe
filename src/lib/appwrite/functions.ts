@@ -23,13 +23,45 @@ export const FUNCTION_IDS = {
   creatorDirectory: "get-creator-directory",
   creatorProfile: "get-creator-profile",
   creatorDashboardSummary: "get-creator-dashboard-summary",
+  // Pasangan DTO ruang negosiasi. Keduanya di-key conversationId dan menjoin
+  // offers → orders → escrows; yang berbeda hanya sisi peserta dan semantik fee
+  // (seller-side, ADR-008). Lihat header masing-masing Function.
   creatorNegotiations: "get-creator-negotiations",
+  umkmNegotiations: "get-umkm-negotiations",
+  // ── Tulis lintas-user (Sprint 8) ─────────────────────────────────────────
+  /**
+   * Empat aksi tulis yang HARUS lewat server, bukan karena agregasi tapi karena
+   * Appwrite melarang klien memasang permission untuk user lain — dari sesi
+   * browser `permissions` hanya boleh menyebut `any`, `users`, dan role diri
+   * sendiri. Sementara `conversations`/`messages`/`offers`/`campaign_*` tidak
+   * punya izin di level koleksi, jadi lawan bicara cuma bisa mengaksesnya lewat
+   * permission per-baris.
+   *
+   * Gejalanya kalau ada yang memindahkannya kembali ke klien:
+   * `AppwriteException: Permissions must be one of: (any, users, user:<diri
+   * sendiri>, ...)`, yang di UI tampil sebagai "Gagal menyimpan data".
+   */
+  createConversation: "create-conversation",
+  sendMessage: "send-message",
+  createOffer: "create-offer",
+  reviewSubmission: "review-submission",
   // ── Tulis / aksi (Sprint 3) ──────────────────────────────────────────────
   aiBrief: "ai-brief",
   createPayment: "create-payment",
   cancelPayment: "cancel-payment",
   requestWithdrawal: "request-withdrawal",
   validateAndUpload: "validate-and-upload",
+  // ── Auth (Sprint 6) ──────────────────────────────────────────────────────
+  /**
+   * Dieksekusi SINKRON dari klien setelah account.updatePrefs, bukan lewat event
+   * users.*.create: Function membaca role dari prefs, dan prefs baru ada setelah
+   * sesi hidup — jadi saat event menyala prefs masih kosong dan Function menolak
+   * 400. Lihat handoff-auth-sprint6.md §A-1.
+   *
+   * Butuh `execute` untuk role `users`; belum diberikan, jadi 401 sampai tim
+   * backend bertindak. Kegagalannya sengaja tidak menggagalkan register.
+   */
+  createUserProfile: "create-user-profile",
 } as const;
 
 export type FunctionId = (typeof FUNCTION_IDS)[keyof typeof FUNCTION_IDS];
@@ -88,15 +120,39 @@ export async function executeFunction<T>(
     );
   }
 
-  if (execution.status === "failed") {
-    throw new FunctionExecutionError(`Function ${functionId} gagal dieksekusi`, 500, "server");
-  }
-
   const statusCode = execution.responseStatusCode;
+
   let payload: unknown;
   try {
     payload = execution.responseBody ? JSON.parse(execution.responseBody) : null;
   } catch {
+    payload = null;
+  }
+
+  /**
+   * `status === "failed"` diperiksa SETELAH body-nya dibaca, bukan sebelum.
+   *
+   * Appwrite menandai eksekusi yang membalas 5xx sebagai "failed" sekalipun
+   * Function-nya menutup rapat errornya dan membalas JSON yang benar. Versi
+   * sebelumnya melempar di sini lebih dulu, sehingga `{error: "..."}` dari
+   * Function tidak pernah dibaca dan semua kegagalan tampil sebagai kalimat
+   * generik "gagal dieksekusi" — persis pola yang sudah dua kali menyembunyikan
+   * penyebab asli. `execution.errors` berisi stderr Function dan hanya dicetak
+   * di luar production.
+   */
+  if (execution.status === "failed") {
+    if (process.env.NODE_ENV !== "production") {
+      console.error(
+        `[function] ${functionId} status=failed code=${statusCode}`,
+        execution.errors || execution.responseBody || "(tanpa keluaran)"
+      );
+    }
+    const message =
+      (payload as { error?: string } | null)?.error ?? `Function ${functionId} gagal dieksekusi`;
+    throw new FunctionExecutionError(message, statusCode || 500, statusToCode(statusCode || 500));
+  }
+
+  if (payload === null && execution.responseBody) {
     throw new FunctionExecutionError(
       `Function ${functionId} mengembalikan respons non-JSON`,
       statusCode,

@@ -72,10 +72,10 @@ export function SubmissionDetailModal({
           </div>
           <div className="bg-neutral-50 p-3 rounded-xl border border-border-soft">
             <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-              Target Views
+              Fraud Status
             </span>
-            <span className="text-base font-extrabold text-text-primary">
-              {submission.targetViews.toLocaleString("id-ID")}
+            <span className="text-xs font-extrabold text-text-primary capitalize">
+              {submission.fraudStatus || "—"}
             </span>
           </div>
           <div className="bg-neutral-50 p-3 rounded-xl border border-border-soft">
@@ -162,6 +162,16 @@ export function SubmissionDetailModal({
             )}
           </div>
         </div>
+
+        {/* Catatan Validator */}
+        {submission.rejectedReason && (
+          <div className="mb-6 p-3.5 bg-amber-50 border border-amber-200/60 rounded-xl">
+            <span className="block text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1">
+              Catatan Validator
+            </span>
+            <p className="text-xs text-amber-900 font-medium leading-relaxed">{submission.rejectedReason}</p>
+          </div>
+        )}
 
         {/* Buttons */}
         <ResponsiveModalFooter className="flex items-center justify-end gap-3 border-t border-border-soft pt-4">

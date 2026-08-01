@@ -18,12 +18,21 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 - **Trigger**: callable dari frontend saat UMKM checkout order atau top up.
 - **Aksi**: validasi user/order/amount, buat dokumen `payments`, panggil Midtrans, simpan `snapToken` dan/atau `redirectUrl`.
 - **Env wajib**: `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_ENV`.
+- **Validasi per purpose**: `order` dan `campaign` sama-sama memeriksa kepemilikan, status, dan kecocokan nominal terhadap baris sumbernya. `campaign` wajib berstatus `draft` dan `amount` harus sama persis dengan `campaigns.budget`.
+- **Batas `gateway_reference`**: maksimal **50 karakter** — itu batas `transaction_details.order_id` di Midtrans. Referensi dibentuk `<prefix>-<paymentId>` (`ord`/`top`/`cmp`, total 24 karakter) dan id campaign/order **tidak** ikut di dalamnya; kaitannya sudah disimpan di kolom `campaign_id`/`order_id`. Bentuk lama yang menyertakan id + timestamp mencapai 52 karakter dan membuat **setiap** pembayaran campaign ditolak Midtrans dengan `transaction_details.order_id is too long`.
 
 ### midtrans-webhook
 
 - **Trigger**: HTTP notification dari Midtrans.
 - **Aksi**: validasi `signature_key` Midtrans dengan SHA-512 (`order_id + status_code + gross_amount + MIDTRANS_SERVER_KEY`), cocokkan `gateway_reference`, validasi nominal, update status payment secara idempotent.
 - **Efek sukses**: status payment `pending → paid`, lalu alur escrow/deposit berjalan dari event `payments.status`.
+- **Konfigurasi WAJIB di luar repo**: URL Function ini harus didaftarkan di dashboard Midtrans (**Settings → Configuration → Payment Notification URL**). Tanpa itu tidak ada error di mana pun — Snap tetap sukses, tapi `payments.status` selamanya `pending`, `create-escrow` tidak pernah menyala, `campaigns.remainingBudget` tetap 0, dan campaign mandek sebagai draft dengan pesan "Dana campaign belum masuk". Cetak URL yang benar dengan:
+
+  ```bash
+  node 00_BACKEND/appwrite/ops/midtrans-webhook-url.mjs
+  ```
+
+- **`execute` harus `["any"]`**: Midtrans memanggil tanpa sesi Appwrite. Nilai lain membuat notifikasi ditolak 401 sebelum sampai ke kode.
 
 ### create-user-wallet
 
@@ -39,6 +48,13 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 
 - **Trigger**: `deliverables.status` → `approved`.
 - **Aksi**: rilis escrow, tambah balance wallet Creator, catat transaksi `release`, update order.
+
+### mature-pending-balance
+
+- **Trigger**: terjadwal, `0 2 * * *` (harian pukul 02:00).
+- **Aksi**: cari `transactions` bertipe `release` dengan `referenceType: "campaign_submission"`, `status: "completed"`, dan berumur ≥ 7 hari. Untuk tiap baris: pindahkan `pendingBalance → balance` di wallet pemiliknya, tandai baris sumber `status: "matured"`, dan kirim notifikasi ke creator.
+- **Idempotensi**: memakai pola `create-escrow` — baris ledger `mature` dengan id deterministik dibuat sebagai `pending` sebelum dana dipindah, lalu ditandai `completed`. Eksekusi yang terputus di tengah diselesaikan cron berikutnya, bukan diulang dari nol.
+- **Catatan**: tanpa Function ini reward campaign mengendap permanen — `request-withdrawal` hanya membaca `balance`.
 
 ### get-umkm-finance-summary
 

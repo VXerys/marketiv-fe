@@ -7,7 +7,13 @@ import {
   FUNCTION_IDS,
 } from "@/lib/appwrite/functions";
 import { uploadPublicFile, FileRuleError } from "@/lib/appwrite/storage";
-import { type CampaignType, MINIMUM_CAMPAIGN_BUDGET } from "@/types/domain";
+import { type CampaignType, MINIMUM_CAMPAIGN_BUDGET, PLATFORM_FEE_RATE } from "@/types/domain";
+import {
+  createOfferSchema,
+  type CreateOfferInput,
+} from "@/lib/validations/offer.schema";
+import { getNotificationsFromAppwrite } from "@/services/shared/notification-appwrite.service";
+import type { NotifType } from "@/types/notification.types";
 import {
   type Doc,
   str,
@@ -18,19 +24,20 @@ import {
   failFromError,
   failFromWriteError,
   requireUserId,
+  noData,
 } from "@/services/shared/service-result";
 import {
   ServiceResult,
   UmkmProfile,
   UmkmSettingsProfile,
   UmkmDashboardSummary,
+  UmkmOverviewData,
   Campaign,
   CampaignSubmission,
   CreatorProfile,
   CreatorNiche,
   RateCardPackage,
   NegotiationOrder,
-  ChatMessage,
   Transaction,
   UmkmFinanceSummary,
   EscrowOverview,
@@ -38,8 +45,6 @@ import {
   SubmissionStatus,
   FraudStatus,
   RateCardStatus,
-  OrderStatus,
-  MessageType,
   TransactionType,
   TransactionStatus,
 } from "@/types/umkm-dashboard.types";
@@ -71,14 +76,38 @@ const COLLECTIONS = {
   campaignBriefs: "campaign_briefs",
   campaignAssets: "campaign_assets",
   umkmProfiles: "umkm_profiles",
+  creatorProfiles: "creator_profiles",
   submissions: "campaign_submissions",
   rateCards: "rate_cards",
   rateCardPackages: "rate_card_packages",
+  claims: "campaign_claims",
   orders: "orders",
   offers: "offers",
+  conversations: "conversations",
   messages: "messages",
   payments: "payments",
 } as const;
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Peta userId kreator → profil (displayName, avatarUrl).
+ *
+ * `creator_profiles` memakai `read("any")` di level koleksi (sama dengan
+ * `umkm_profiles`) jadi join ini sah dari browser. `harden-permissions.mjs:25-28`
+ * menyatakan `read("any")` ini disengaja dan tidak akan dicabut.
+ */
+async function loadCreatorProfiles(creatorIds: string[]): Promise<Map<string, Doc>> {
+  const unique = Array.from(new Set(creatorIds.filter(Boolean)));
+  if (unique.length === 0) return new Map();
+  const res = await databases.listDocuments(DB, COLLECTIONS.creatorProfiles, [
+    Query.equal("userId", unique.slice(0, 100)),
+    Query.limit(100),
+  ]);
+  return new Map(
+    (res.documents as unknown as Doc[]).map((p) => [str(p.userId), p])
+  );
+}
 
 // ── mappers ──────────────────────────────────────────────────────────────────
 
@@ -90,64 +119,85 @@ const mapCampaign = (d: Doc): Campaign => ({
   externalAssetUrl: "", // tak ada kolom sumber — aset ada di campaign_assets
   thumbnailUrl: "", // tak ada kolom sumber
   niche: (str(d.category) as CreatorNiche) || "lainnya",
+  type: str(d.type) || undefined,
   status: str(d.status) as CampaignStatus,
   creatorQuota: num(d.claimLimit),
   usedQuota: num(d.totalClaims),
   pricePerThousandViews: num(d.rewardPer1000Views),
   totalBudgetEscrow: num(d.budget),
   usedBudget: num(d.spentAmount),
+  remainingBudget: num(d.remainingBudget),
   totalViews: 0, // tak ada kolom — perlu agregasi campaign_submissions
   createdAt: str(d.$createdAt),
   updatedAt: str(d.$updatedAt),
 });
 
-const mapSubmission = (d: Doc): CampaignSubmission => ({
-  id: str(d.$id),
-  campaignId: str(d.campaignId),
-  creatorId: str(d.creatorId),
-  creatorName: "", // perlu join creator_profiles
-  creatorAvatarUrl: "",
-  platform: (str(d.platform) as "tiktok" | "instagram") || "tiktok",
-  contentUrl: str(d.postUrl),
-  actualViews: num(d.views),
-  targetViews: 0, // tak ada kolom sumber
-  releasedFund: 0, // ditentukan calculate-campaign-reward Function
-  validationStatus: str(d.status) as SubmissionStatus,
-  fraudStatus: str(d.fraudStatus) as FraudStatus,
-  submittedAt: str(d.$createdAt),
-});
+/** Terima profil opsional dan rate campaign untuk menghitung releasedFund tampilan. */
+const mapSubmission = (d: Doc, creator?: Doc, ratePerThousandViews = 0): CampaignSubmission => {
+  const views = num(d.views);
+  const status = str(d.status) as SubmissionStatus;
+  return {
+    id: str(d.$id),
+    campaignId: str(d.campaignId),
+    creatorId: str(d.creatorId),
+    creatorName: creator ? str(creator.displayName) : "",
+    creatorAvatarUrl: creator ? str(creator.avatarUrl) : "",
+    platform: (str(d.platform) as "tiktok" | "instagram") || "tiktok",
+    contentUrl: str(d.postUrl),
+    actualViews: views,
+    targetViews: 0,
+    releasedFund: status === "approved" && ratePerThousandViews > 0
+      ? Math.floor(views / 1000 * ratePerThousandViews * (1 - PLATFORM_FEE_RATE))
+      : 0,
+    validationStatus: status,
+    fraudStatus: str(d.fraudStatus) as FraudStatus,
+    rejectedReason: str(d.reviewNotes) || undefined,
+    submittedAt: str(d.$createdAt),
+  };
+};
 
 // CreatorProfile dipetakan di Function `get-creator-directory` — join lintas
 // collection tidak bisa dilakukan di klien tanpa kehilangan field.
 
-const mapOrder = (d: Doc): NegotiationOrder => ({
-  id: str(d.$id),
-  umkmId: str(d.umkmId),
-  creatorId: str(d.creatorId),
-  creatorName: "", // perlu join creator_profiles
-  creatorAvatarUrl: "",
-  projectTitle: "", // tak ada kolom sumber (ada di rate_card / offer)
-  scope: "",
-  finalPrice: num(d.amount),
-  deadline: "", // tak ada kolom sumber
-  status: str(d.status) as OrderStatus,
-  lastMessage: "", // perlu query messages terakhir
-  lastMessageAt: str(d.createdAt) || str(d.$createdAt),
-  unreadCount: 0,
-});
+// NegotiationOrder dipetakan di Function `get-umkm-negotiations`. Mapper lokal
+// dulu ada di sini dan mengembalikan enam field kosong ("perlu join
+// creator_profiles", "tak ada kolom sumber", …) karena `orders` sendirian
+// memang tidak cukup — dan dua collection yang dibutuhkan (`escrows`, `orders`)
+// bahkan tidak bisa dibaca klien sama sekali.
+
+const PAYMENT_PURPOSE_TYPE: Record<string, TransactionType> = {
+  campaign: "deposit",
+  order: "payment",
+  topup: "deposit",
+};
+
+const PAYMENT_PURPOSE_LABEL: Record<string, string> = {
+  campaign: "Deposit budget campaign",
+  order: "Pembayaran order rate card",
+  topup: "Top up saldo",
+};
 
 const mapTransaction = (d: Doc): Transaction => {
   const campaignId = str(d.campaign_id);
+  const purpose = str(d.purpose);
+  const gateway = str(d.gateway);
+  const gatewaySuffix =
+    gateway === "midtrans"
+      ? " via Midtrans"
+      : gateway === "manual-dev"
+        ? " (funding manual)"
+        : "";
   return {
     id: str(d.$id),
     userId: str(d.user_id),
     referenceId: campaignId || str(d.order_id),
     referenceType: campaignId ? "campaign" : "rate_card",
     amount: num(d.amount),
-    type: str(d.purpose) as TransactionType,
+    type: PAYMENT_PURPOSE_TYPE[purpose] ?? "payment",
     status: str(d.status) as TransactionStatus,
-    description: str(d.purpose),
+    description: (PAYMENT_PURPOSE_LABEL[purpose] ?? purpose) + gatewaySuffix,
     midtransOrderId: str(d.gateway_reference) || undefined,
+    redirectUrl: str(d.redirect_url) || undefined,
     createdAt: str(d.paid_at) || str(d.$createdAt),
   };
 };
@@ -176,6 +226,92 @@ export async function getDashboardSummaryFromAppwrite(): Promise<ServiceResult<U
     return failFromError<UmkmDashboardSummary>(err, null as unknown as UmkmDashboardSummary);
   }
 }
+
+/**
+ * View-model Overview (s5-overview-dto).
+ *
+ * Sebelumnya `getOverview()` tidak punya cabang Appwrite sama sekali — ia
+ * mengembalikan `success: false` harfiah saat mock OFF, sehingga halaman
+ * pertama yang dilihat UMKM setelah login adalah kotak error. Function
+ * `get-umkm-dashboard-summary` sudah ada sejak Sprint 1; yang belum ada hanya
+ * perakitannya jadi bentuk yang dirender halaman.
+ *
+ * Tiga sumber, satu perjalanan:
+ * - profil ...... Function `get-umkm-profile` (nama usaha untuk header & chrome)
+ * - metrik ...... Function `get-umkm-dashboard-summary` (agregasi, termasuk uang)
+ * - campaign .... query langsung; juga sumber `creatorJoined`
+ *
+ * `creatorJoined` dihitung di klien sebagai Σ `usedQuota`. Ini pencacahan klaim,
+ * BUKAN perhitungan uang, jadi tidak melanggar §26 yang melarang klien
+ * menjumlahkan escrow/wallet sendiri.
+ *
+ * `insights` dibiarkan undefined: tidak ada mesin insight di backend, dan
+ * kalimat "Campaign Kuliner 28% lebih tinggi" di mock tidak punya sumber data.
+ */
+export async function getOverviewFromAppwrite(): Promise<ServiceResult<UmkmOverviewData>> {
+  const [profileRes, summaryRes, campaignsRes, activitiesRes] = await Promise.all([
+    getUmkmProfileFromAppwrite(),
+    getDashboardSummaryFromAppwrite(),
+    getCampaignsFromAppwrite(),
+    getNotificationsFromAppwrite("umkm"),
+  ]);
+
+  // Profil & metrik adalah isi halaman; tanpa keduanya tidak ada yang bisa
+  // ditampilkan selain angka kosong yang menyesatkan.
+  if (!profileRes.success || !profileRes.data) {
+    return fail<UmkmOverviewData>(
+      profileRes.error ?? "Gagal memuat profil usaha.",
+      profileRes.code ?? "unknown",
+      noData<UmkmOverviewData>()
+    );
+  }
+  if (!summaryRes.success || !summaryRes.data) {
+    return fail<UmkmOverviewData>(
+      summaryRes.error ?? "Gagal memuat ringkasan dashboard.",
+      summaryRes.code ?? "unknown",
+      noData<UmkmOverviewData>()
+    );
+  }
+
+  const campaigns = campaignsRes.data ?? [];
+  const summary = summaryRes.data;
+
+  return ok<UmkmOverviewData>({
+    businessName: profileRes.data.businessName,
+    campaigns,
+    kpis: {
+      campaignActive: summary.activeCampaigns,
+      campaignCompleted: summary.completedCampaigns,
+      totalSpend: summary.totalSpent,
+      escrowBalance: summary.escrowBalance,
+      creatorJoined: campaigns.reduce((n, c) => n + c.usedQuota, 0),
+      viewsValid: summary.totalViews,
+      pendingSubmissions: summary.pendingSubmissions,
+    },
+    // Notifikasi gagal/kosong bukan alasan menggagalkan halaman — timeline
+    // tinggal kosong. Sampai permission baris Function penulis diperbaiki
+    // (§B handoff Alur B), daftar ini memang bisa pulang kosong.
+    activities: (activitiesRes.data ?? []).slice(0, 8).map((n) => ({
+      id: n.id,
+      title: n.title,
+      description: n.message,
+      type: ACTIVITY_TYPE_BY_NOTIF[n.type],
+      time: n.timestamp,
+    })),
+  });
+}
+
+/** Kategori notifikasi → ikon timeline aktivitas. */
+const ACTIVITY_TYPE_BY_NOTIF: Record<
+  NotifType,
+  NonNullable<UmkmOverviewData["activities"]>[number]["type"]
+> = {
+  campaign: "campaign",
+  keuangan: "payment",
+  negosiasi: "progress",
+  rate_card: "progress",
+  sistem: "progress",
+};
 
 /**
  * `get-umkm-finance-summary` mengembalikan finance + escrow sekali jalan supaya
@@ -271,12 +407,18 @@ export async function getCampaignSubmissionsFromAppwrite(
     if (!owned.documents[0]) {
       return { success: false, data: [], error: "Campaign tidak ditemukan", code: "not_found" };
     }
+    const rate = num((owned.documents[0] as unknown as Doc).rewardPer1000Views);
     const res = await databases.listDocuments(DB, COLLECTIONS.submissions, [
       Query.equal("campaignId", campaignId),
       Query.orderDesc("$createdAt"),
       Query.limit(100),
     ]);
-    return { success: true, data: res.documents.map((d) => mapSubmission(d as unknown as Doc)) };
+    const docs = res.documents as unknown as Doc[];
+    const creatorProfiles = await loadCreatorProfiles(docs.map((d) => str(d.creatorId)));
+    return {
+      success: true,
+      data: docs.map((d) => mapSubmission(d, creatorProfiles.get(str(d.creatorId)), rate)),
+    };
   } catch (err) {
     return failFromError<CampaignSubmission[]>(err, []);
   }
@@ -291,8 +433,11 @@ export async function getPendingSubmissionsFromAppwrite(): Promise<ServiceResult
       Query.equal("umkmId", auth.userId),
       Query.limit(100),
     ]);
-    const campaignIds = campaigns.documents.map((c) => str((c as unknown as Doc).$id));
+    const campaignDocs = campaigns.documents as unknown as Doc[];
+    const campaignIds = campaignDocs.map((c) => str(c.$id));
     if (campaignIds.length === 0) return { success: true, data: [] };
+
+    const rateMap = new Map(campaignDocs.map((c) => [str(c.$id), num(c.rewardPer1000Views)]));
 
     const res = await databases.listDocuments(DB, COLLECTIONS.submissions, [
       Query.equal("campaignId", campaignIds),
@@ -300,7 +445,14 @@ export async function getPendingSubmissionsFromAppwrite(): Promise<ServiceResult
       Query.orderDesc("$createdAt"),
       Query.limit(100),
     ]);
-    return { success: true, data: res.documents.map((d) => mapSubmission(d as unknown as Doc)) };
+    const docs = res.documents as unknown as Doc[];
+    const creatorProfiles = await loadCreatorProfiles(docs.map((d) => str(d.creatorId)));
+    return {
+      success: true,
+      data: docs.map((d) =>
+        mapSubmission(d, creatorProfiles.get(str(d.creatorId)), rateMap.get(str(d.campaignId)) ?? 0)
+      ),
+    };
   } catch (err) {
     return failFromError<CampaignSubmission[]>(err, []);
   }
@@ -383,68 +535,85 @@ export async function getCreatorRateCardsFromAppwrite(
   }
 }
 
+/**
+ * Daftar ruang negosiasi UMKM → Function `get-umkm-negotiations`.
+ *
+ * Versi sebelumnya beriterasi atas `orders` di klien dan mengembalikan enam
+ * field kosong. Dua alasan kenapa itu tidak bisa ditambal di sini:
+ * 1. Di Alur B order lahir PALING AKHIR (chat → offer → accept → order), jadi
+ *    daftar yang di-key order menyembunyikan seluruh tahap negosiasi.
+ * 2. `escrows` punya `$permissions` kosong + rowSecurity dan tidak pernah
+ *    dipasangi permission baris, jadi status escrow mustahil dibaca klien.
+ */
 export async function getNegotiationsFromAppwrite(): Promise<ServiceResult<NegotiationOrder[]>> {
-  const auth = await requireUserId<NegotiationOrder[]>([]);
-  if (!auth.ok) return auth.result;
   try {
-    const res = await databases.listDocuments(DB, COLLECTIONS.orders, [
-      Query.equal("umkmId", auth.userId),
-      Query.orderDesc("$createdAt"),
-      Query.limit(100),
-    ]);
-    return { success: true, data: res.documents.map((d) => mapOrder(d as unknown as Doc)) };
+    const data = await executeFunction<NegotiationOrder[]>(FUNCTION_IDS.umkmNegotiations);
+    return ok(data);
   } catch (err) {
     return failFromError<NegotiationOrder[]>(err, []);
   }
 }
 
-export async function getNegotiationByIdFromAppwrite(id: string): Promise<ServiceResult<NegotiationOrder>> {
-  const auth = await requireUserId<NegotiationOrder>(null as unknown as NegotiationOrder);
-  if (!auth.ok) return auth.result;
+/** Satu ruang negosiasi. `id` di sini adalah conversationId, bukan orderId. */
+export async function getNegotiationByIdFromAppwrite(
+  conversationId: string
+): Promise<ServiceResult<NegotiationOrder>> {
+  const empty = null as unknown as NegotiationOrder;
   try {
-    const res = await databases.listDocuments(DB, COLLECTIONS.orders, [
-      Query.equal("$id", id),
-      Query.equal("umkmId", auth.userId),
-      Query.limit(1),
-    ]);
-    const doc = res.documents[0];
-    if (!doc) {
-      return { success: false, data: null, error: "Negosiasi tidak ditemukan", code: "not_found" };
-    }
-    return { success: true, data: mapOrder(doc as unknown as Doc) };
+    const data = await executeFunction<NegotiationOrder>(FUNCTION_IDS.umkmNegotiations, {
+      conversationId,
+    });
+    return ok(data);
   } catch (err) {
-    return failFromError<NegotiationOrder>(err, null as unknown as NegotiationOrder);
+    return failFromError<NegotiationOrder>(err, empty);
   }
 }
 
-export async function getMessagesByOrderIdFromAppwrite(orderId: string): Promise<ServiceResult<ChatMessage[]>> {
-  const auth = await requireUserId<ChatMessage[]>([]);
+/**
+ * Kirim Custom Offer. UMKM-ONLY —
+ * docs/02_Modules/Offers/30_Business_Rules.md:13.
+ *
+ * Aturan itu ditegakkan di sini oleh permission baris, bukan hanya oleh
+ * ketiadaan tombol di UI kreator: `update` diberikan ke KREATOR (dia yang
+ * accept/reject) dan `delete` ke UMKM (dia yang membatalkan). UMKM sengaja
+ * TIDAK diberi `update` — mengubah harga offer yang sudah dikirim, setelah
+ * kreator melihatnya, bukan negosiasi yang jujur.
+ *
+ * Mirror 00_BACKEND/src/services/offer.service.ts:147-150.
+ */
+export async function createOfferInAppwrite(
+  input: CreateOfferInput
+): Promise<ServiceResult<string>> {
+  const auth = await requireUserId<string>("");
   if (!auth.ok) return auth.result;
+
+  const parsed = createOfferSchema.safeParse(input);
+  if (!parsed.success) {
+    return failValidation<string>(parsed.error.issues[0]?.message ?? "Data offer tidak valid.", "");
+  }
+  const offer = parsed.data;
+
   try {
-    // Catatan: `messages` di-key oleh conversation_id. Diasumsikan caller mengirim
-    // conversation_id order terkait. senderRole diturunkan via perbandingan sesi.
-    const res = await databases.listDocuments(DB, COLLECTIONS.messages, [
-      Query.equal("conversation_id", orderId),
-      Query.orderAsc("$createdAt"),
-      Query.limit(200),
-    ]);
-    const data: ChatMessage[] = res.documents.map((m) => {
-      const md = m as unknown as Doc;
-      const senderId = str(md.sender_id);
-      return {
-        id: str(md.$id),
-        orderId,
-        senderId,
-        senderRole: senderId === auth.userId ? "umkm" : "creator",
-        type: str(md.message_type) as MessageType,
-        content: str(md.content),
-        isRead: str(md.read_at) !== "",
-        createdAt: str(md.$createdAt),
-      };
+    // Lewat Function: baris `offers` harus terbaca kreator dan di-update kreator
+    // (dia yang accept/reject), sementara klien Appwrite tidak boleh memasang
+    // permission untuk user lain. Peserta percakapan, pembagian permission, dan
+    // kartu offer di chat semuanya ditentukan di sisi server — `creatorId` yang
+    // dikirim di sini cuma dicocokkan, tidak dipercaya.
+    const data = await executeFunction<{ offerId?: string }>(FUNCTION_IDS.createOffer, {
+      conversationId: offer.conversationId,
+      creatorId: offer.creatorId,
+      title: offer.title,
+      description: offer.description || "",
+      price: offer.price,
+      deadline: offer.deadline,
+      revisionLimit: offer.revisionLimit,
     });
-    return { success: true, data };
+
+    const offerId = str(data?.offerId);
+    if (!offerId) return fail("Penawaran gagal dikirim.", "server", "");
+    return ok(offerId);
   } catch (err) {
-    return failFromError<ChatMessage[]>(err, []);
+    return failFromWriteError<string>(err, "", "Data offer tidak valid.", "createOffer");
   }
 }
 
@@ -918,6 +1087,173 @@ export async function createCampaignPaymentInAppwrite(input: {
   }
 }
 
+/**
+ * Buat payment untuk satu order Rate Card lewat Function `create-payment`.
+ *
+ * `amount` HARUS persis `order.amount` — Rate Card Order adalah seller-side
+ * (ADR-008), jadi UMKM membayar harga rate card tanpa tambahan apa pun. Function
+ * menolak 409 kalau nominalnya tidak cocok, dan itu memang yang diinginkan.
+ *
+ * Validasi kepemilikan order, status `pending_payment`, dan kecocokan nominal
+ * sudah dikerjakan Function (create-payment:33-42) — sengaja TIDAK diduplikasi
+ * di sini, karena versi klien tidak bisa dipercaya dan akan menjadi sumber drift
+ * kedua. Yang dikerjakan di sini hanya memetakan errornya ke pesan yang terbaca.
+ */
+export async function createOrderPaymentInAppwrite(input: {
+  orderId: string;
+  amount: number;
+  finishUrl?: string;
+}): Promise<ServiceResult<PaymentIntent>> {
+  const empty = null as unknown as PaymentIntent;
+  const auth = await requireUserId<PaymentIntent>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await executeFunction<PaymentIntent>(FUNCTION_IDS.createPayment, {
+      purpose: "order",
+      amount: input.amount,
+      orderId: input.orderId,
+      ...(input.finishUrl && { finishUrl: input.finishUrl }),
+    });
+    return ok(res);
+  } catch (err) {
+    return failFromWriteError<PaymentIntent>(err, empty);
+  }
+}
+
+// ── Alur A: terbitkan campaign & review submission (Sprint 4) ────────────────
+//
+// Keduanya lewat SDK tulis dokumen, BUKAN executeFunction. `campaign-published`
+// dan `calculate-campaign-reward` dipicu event database (lihat `events` di
+// 00_BACKEND/appwrite.config.json), jadi menyala sendiri setelah tulisan di
+// bawah masuk. Efeknya asinkron — pemanggil tidak boleh menganggap hasilnya
+// langsung terlihat.
+
+/**
+ * Terbitkan campaign draft → `active`.
+ *
+ * Mirror 00_BACKEND/src/services/campaign.service.ts:210-240. Guard
+ * `remainingBudget > 0` adalah alasan alur ini terblokir sepanjang Sprint 3:
+ * kolomnya baru terisi setelah `create-escrow` memproses pembayaran campaign.
+ * Karena webhook Midtrans bisa telat beberapa detik, pemanggil harus siap
+ * mendapat "belum di-top-up" walau pengguna baru saja membayar.
+ */
+export async function publishCampaignInAppwrite(
+  campaignId: string
+): Promise<ServiceResult<Campaign>> {
+  const empty = null as unknown as Campaign;
+  const auth = await requireUserId<Campaign>(empty);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", campaignId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Campaign tidak ditemukan.", "not_found", empty);
+
+    if (str(doc.status) !== "draft") {
+      return failValidation("Hanya campaign draft yang bisa diterbitkan.", empty);
+    }
+
+    if (num(doc.remainingBudget) <= 0) {
+      return failValidation(
+        "Dana campaign belum masuk. Tunggu beberapa saat setelah pembayaran, lalu coba lagi.",
+        empty
+      );
+    }
+
+    const updated = await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
+      status: "active",
+      publishedAt: new Date().toISOString(),
+    });
+    return ok(mapCampaign(updated as unknown as Doc));
+  } catch (err) {
+    return failFromWriteError<Campaign>(err, empty);
+  }
+}
+
+export type ReviewSubmissionInput = {
+  submissionId: string;
+  status: Extract<SubmissionStatus, "approved" | "rejected">;
+  notes?: string;
+  /**
+   * Jumlah views yang diverifikasi UMKM.
+   *
+   * WAJIB ikut ditulis saat approve. `calculate-campaign-reward:38` menghitung
+   * reward dari `campaign_submissions.views`, dan TIDAK ADA satu pun Function
+   * backend yang pernah mengisi kolom itu — kalau dibiarkan 0, reward selalu 0
+   * dan kreator tidak pernah dibayar. Sudah diangkat ke backend sebagai B-1.
+   */
+  views: number;
+};
+
+/**
+ * Setujui / tolak submission kreator.
+ *
+ * `views` ditulis BERSAMAAN dengan `status` dalam satu updateDocument, bukan
+ * dua panggilan terpisah: `calculate-campaign-reward` menyala pada update dan
+ * langsung membaca `doc.views`. Kalau views ditulis belakangan, Function sudah
+ * terlanjur menghitung reward dari angka lama.
+ */
+export async function reviewSubmissionInAppwrite(
+  input: ReviewSubmissionInput
+): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    // `campaign_submissions` dan `campaign_claims` tidak punya update di level
+    // koleksi (dicabut Sprint 8 — update("users") berarti siapa pun bisa
+    // menyetujui bukti kerja siapa pun lalu mencairkan dananya), dan permission
+    // barisnya tidak bisa dipasang kreator untuk UMKM. Jadi kedua update itu
+    // dikerjakan Function; kepemilikan lewat campaign induk juga diperiksa
+    // di sana, bukan di sini.
+    const reviewed = await executeFunction<{ campaignId?: string }>(
+      FUNCTION_IDS.reviewSubmission,
+      {
+        submissionId: input.submissionId,
+        status: input.status,
+        views: input.status === "approved" ? input.views : undefined,
+        ...(input.notes ? { notes: input.notes } : {}),
+      }
+    );
+    const campaignId = str(reviewed?.campaignId);
+
+    // Submission ditolak = slot kuota kembali tersedia untuk kreator lain.
+    //
+    // `expire-stale-claims` sudah melakukan ini saat klaim kedaluwarsa, tapi
+    // jalur penolakan tidak pernah ikut — padahal kreator yang ditolak juga
+    // tidak bisa mengambil campaign ini lagi (cek duplikat di claimCampaign
+    // mengabaikan status). Tanpa pengembalian ini, slot yang sudah dibayar UMKM
+    // hilang permanen: tidak terpakai kreator itu, tidak bisa diambil siapa pun.
+    //
+    // SENGAJA tetap di klien, bukan ikut pindah ke Function: UMKM adalah pemilik
+    // baris `campaigns` jadi update-nya sah dari sini, dan `decrementDocument-
+    // Attribute` bersifat atomik. node-appwrite 14 yang dipakai Function belum
+    // punya operasi itu, jadi memindahkannya ke sana berarti kembali ke
+    // baca-ubah-tulis — race yang baru saja ditutup commit 016811d.
+    if (input.status === "rejected" && campaignId) {
+      try {
+        await databases.decrementDocumentAttribute({
+          databaseId: DB,
+          collectionId: COLLECTIONS.campaigns,
+          documentId: campaignId,
+          attribute: "totalClaims",
+          value: 1,
+          min: 0,
+        });
+      } catch {
+        // Keputusan review adalah hasil utama; kuota yang telat kembali bisa
+        // direkonsiliasi dan tidak boleh membatalkan penolakan.
+      }
+    }
+
+    return ok(null);
+  } catch (err) {
+    return failFromWriteError<null>(err, null, undefined, "reviewSubmission");
+  }
+}
+
 // ── hapus & batalkan (Sprint 3.5) ────────────────────────────────────────────
 //
 // Dua kelas yang SENGAJA dibedakan — jangan disatukan:
@@ -1110,4 +1446,216 @@ export async function cancelPaymentInAppwrite(paymentId: string): Promise<Servic
   } catch (err) {
     return failFromWriteError<null>(err, null);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Edit draft campaign
+// ---------------------------------------------------------------------------
+
+/**
+ * Data mentah draft campaign untuk halaman edit wizard.
+ * Berbeda dari `CampaignDraftResult` yang memakai mapped type Campaign —
+ * field `brief`/`asset` menyimpan nilai DB mentah supaya W14 rehydrate bisa
+ * menjalankan `decomposeBriefDetail` tanpa kehilangan data.
+ */
+export type CampaignEditRaw = {
+  campaign: Campaign;
+  brief?: {
+    id: string;
+    briefDetail: string;
+    contentAngle: string;
+    cta: string;
+    objective: string;
+    doAndDont: string;
+  };
+  asset?: {
+    id: string;
+    fileUrl: string;
+    fileName: string;
+  };
+  warnings: string[];
+};
+
+/**
+ * Baca campaign draft + brief + asset, ownership-filtered (umkmId = uid, status = draft).
+ * Dipakai halaman `/campaign/[id]/edit` untuk seeding wizard state.
+ */
+export async function getCampaignDraftForEditFromAppwrite(
+  campaignId: string
+): Promise<ServiceResult<CampaignEditRaw>> {
+  const empty = null as unknown as CampaignEditRaw;
+  const auth = await requireUserId<CampaignEditRaw>(empty);
+  if (!auth.ok) return auth.result;
+
+  try {
+    // Guard kepemilikan + status=draft dalam satu query
+    const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", campaignId),
+      Query.equal("umkmId", auth.userId),
+      Query.equal("status", "draft"),
+      Query.limit(1),
+    ]);
+    const doc = res.documents[0] as unknown as Doc | undefined;
+    if (!doc) return fail("Campaign draft tidak ditemukan atau bukan milik Anda.", "not_found", empty);
+
+    const campaign = mapCampaign(doc);
+    const warnings: string[] = [];
+
+    // Baca brief (opsional)
+    let brief: CampaignEditRaw["brief"];
+    try {
+      const briefRes = await databases.listDocuments(DB, COLLECTIONS.campaignBriefs, [
+        Query.equal("campaignId", campaignId),
+        Query.limit(1),
+      ]);
+      const bd = briefRes.documents[0] as unknown as Doc | undefined;
+      if (bd) {
+        brief = {
+          id: str(bd.$id),
+          briefDetail: str(bd.briefDetail),
+          contentAngle: str(bd.contentAngle),
+          cta: str(bd.cta),
+          objective: str(bd.objective),
+          doAndDont: str(bd.doAndDont),
+        };
+      }
+    } catch {
+      warnings.push("Brief tidak bisa dimuat — langkah 2 kosong.");
+    }
+
+    // Baca asset baris pertama (opsional)
+    let asset: CampaignEditRaw["asset"];
+    try {
+      const assetRes = await databases.listDocuments(DB, COLLECTIONS.campaignAssets, [
+        Query.equal("campaignId", campaignId),
+        Query.limit(1),
+      ]);
+      const ad = assetRes.documents[0] as unknown as Doc | undefined;
+      if (ad) {
+        asset = {
+          id: str(ad.$id),
+          fileUrl: str(ad.fileUrl),
+          fileName: str(ad.fileName),
+        };
+      }
+    } catch {
+      warnings.push("Aset tidak bisa dimuat — langkah 3 kosong.");
+    }
+
+    return ok<CampaignEditRaw>({ campaign, brief, asset, warnings });
+  } catch (err) {
+    return failFromError<CampaignEditRaw>(err, empty);
+  }
+}
+
+/**
+ * Update campaign draft yang sudah ada.
+ * Guard: campaign harus milik uid + `status === "draft"`.
+ * Brief dan asset di-upsert: update baris lama bila ada, buat baru bila belum.
+ * Kembalikan `CampaignDraftResult` agar wizard tidak perlu bedakan create vs update.
+ */
+export async function updateCampaignDraftInAppwrite(
+  campaignId: string,
+  input: CreateCampaignDraftInput
+): Promise<ServiceResult<CampaignDraftResult>> {
+  const empty = null as unknown as CampaignDraftResult;
+  const auth = await requireUserId<CampaignDraftResult>(empty);
+  if (!auth.ok) return auth.result;
+
+  // Guard kepemilikan + draft sebelum tulis
+  let existingDoc: Doc;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", campaignId),
+      Query.equal("umkmId", auth.userId),
+      Query.equal("status", "draft"),
+      Query.limit(1),
+    ]);
+    const d = res.documents[0] as unknown as Doc | undefined;
+    if (!d) return fail("Campaign draft tidak ditemukan atau bukan milik Anda.", "not_found", empty);
+    existingDoc = d;
+  } catch (err) {
+    return failFromError<CampaignDraftResult>(err, empty);
+  }
+  void existingDoc; // dipakai untuk guard ownership, nilai sudah cukup
+
+  // Update campaign row
+  let campaignDoc: Doc;
+  try {
+    campaignDoc = (await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
+      title: input.title.trim(),
+      category: input.category,
+      type: input.type,
+      description: input.description.trim(),
+      budget: input.budget,
+      rewardPer1000Views: input.rewardPer1000Views,
+      claimLimit: input.claimLimit,
+      submissionDays: input.submissionDays ?? 7,
+    })) as unknown as Doc;
+  } catch (err) {
+    return failFromWriteError<CampaignDraftResult>(err, empty);
+  }
+
+  const warnings: string[] = [];
+  const perms = [
+    Permission.read(Role.any()),
+    Permission.update(Role.user(auth.userId)),
+    Permission.delete(Role.user(auth.userId)),
+  ];
+
+  // Upsert brief
+  if (input.brief) {
+    try {
+      const briefRes = await databases.listDocuments(DB, COLLECTIONS.campaignBriefs, [
+        Query.equal("campaignId", campaignId),
+        Query.limit(1),
+      ]);
+      const existingBrief = briefRes.documents[0] as unknown as Doc | undefined;
+      const briefData = {
+        objective: input.brief.objective ?? "",
+        contentAngle: input.brief.contentAngle,
+        cta: input.brief.cta,
+        briefDetail: input.brief.briefDetail,
+        doAndDont: input.brief.doAndDont ?? "",
+        generatedByAi: input.brief.generatedByAi ?? false,
+      };
+      if (existingBrief) {
+        await databases.updateDocument(DB, COLLECTIONS.campaignBriefs, str(existingBrief.$id), briefData);
+      } else {
+        await databases.createDocument(DB, COLLECTIONS.campaignBriefs, ID.unique(), { campaignId, ...briefData }, perms);
+      }
+    } catch {
+      warnings.push("Brief belum tersimpan — buka draft untuk melengkapi.");
+    }
+  }
+
+  // Upsert asset
+  if (input.asset) {
+    try {
+      const assetRes = await databases.listDocuments(DB, COLLECTIONS.campaignAssets, [
+        Query.equal("campaignId", campaignId),
+        Query.limit(1),
+      ]);
+      const existingAsset = assetRes.documents[0] as unknown as Doc | undefined;
+      const assetData = {
+        source: "external",
+        type: "link",
+        fileUrl: input.asset.fileUrl,
+        fileName: input.asset.fileName ?? "Folder Aset Eksternal",
+      };
+      if (existingAsset) {
+        await databases.updateDocument(DB, COLLECTIONS.campaignAssets, str(existingAsset.$id), assetData);
+      } else {
+        await databases.createDocument(DB, COLLECTIONS.campaignAssets, ID.unique(), { campaignId, ...assetData }, perms);
+      }
+    } catch {
+      warnings.push("Tautan aset belum tersimpan — buka draft untuk melengkapi.");
+    }
+  }
+
+  return ok<CampaignDraftResult>({
+    campaign: mapCampaign(campaignDoc),
+    complete: warnings.length === 0,
+    warnings,
+  });
 }

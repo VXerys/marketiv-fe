@@ -1,3 +1,5 @@
+import type { UserRole } from "@/types/domain";
+
 /**
  * Central Route Constants
  *
@@ -13,6 +15,11 @@ export const routes = {
   forgotPassword: "/forgot-password",
   resetPassword: "/reset-password",
   verifyEmail: "/verify-email",
+  /**
+   * Wizard lengkapi profil. Butuh sesi aktif, jadi sengaja DI LUAR route group
+   * (auth) yang justru memantulkan pengguna yang sudah punya sesi.
+   */
+  onboarding: "/onboarding",
 
   // Legal & Informational
   panduan: "/panduan",
@@ -60,4 +67,26 @@ export const routes = {
   adminDisputeDetail: (disputeId: string) => `/admin/disputes/${disputeId}`,
   adminUsers: "/admin/users",
   adminReports: "/admin/reports",
+
+  /** Register dengan role sudah dipilih dari CTA landing/navbar. */
+  registerWithRole: (role: "umkm" | "creator") => `/register?role=${role}`,
+  /** Login dengan tujuan setelah berhasil (dipakai RoleGuard). */
+  loginWithNext: (path: string) => `/login?next=${encodeURIComponent(path)}`,
 } as const;
+
+/**
+ * Dashboard tujuan per role.
+ *
+ * Tinggal di sini, bukan di RoleGuard, karena RoleGuard, RedirectIfAuthenticated,
+ * LoginForm, dan kedua form register semuanya membutuhkannya — empat salinan
+ * dijamin drift.
+ *
+ * `admin` menunjuk /admin yang BELUM ada route-nya (celah diketahui, di luar
+ * Sprint 6). Sebelumnya "/" — memantulkan admin ke landing publik secara diam-diam;
+ * 404 yang jujur lebih baik daripada pantulan yang salah tanpa jejak.
+ */
+export const dashboardByRole: Record<UserRole, string> = {
+  umkm: routes.dashboardUmkm,
+  creator: routes.dashboardKreator,
+  admin: routes.admin,
+};

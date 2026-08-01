@@ -6,6 +6,7 @@
 - **Realtime** — mekanisme pengiriman pesan instan via Appwrite Realtime tanpa polling.
 - **Message Type** — tipe pesan MVP: `text`, `offer`, `system`.
 - **Read Receipt** — timestamp saat penerima membaca pesan, ditampilkan sebagai indikator "Sudah dibaca".
+- **Archive** — menyembunyikan percakapan dari inbox utama tanpa menghapus pesan. Pesan tetap utuh dan dapat diakses melalui tab Arsip.
 
 ## Konsep
 
@@ -14,3 +15,6 @@
 - Pesan `system` dibuat otomatis oleh sistem (bukan user).
 - Denormalisasi `lastMessage` pada conversation untuk performa daftar chat.
 - Read receipt diupdate otomatis saat penerima membuka chat room.
+- Arsip bersifat per-user: participant dapat mengarsipkan percakapan tanpa memengaruhi participant lain.
+- Inbox default hanya menampilkan percakapan yang tidak diarsipkan (`is_archived = false`).
+- Percakapan yang diarsipkan dapat dikembalikan ke inbox utama kapan saja.

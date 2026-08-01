@@ -31,18 +31,11 @@ export type CampaignPlatform = "tiktok";
 /**
  * campaign_claims.status
  *
- * `unclaimed` ditambahkan backend (claim.service.ts:unclaimCampaign) tapi BELUM
- * masuk docs/02_Modules/Campaigns/50_Database.md:90 — lihat temuan T-2 di
- * integration-context/2026-07-26-review-frontend-atas-delete-layer.md.
- * Kolomnya `string` biasa di Appwrite (bukan enum), jadi nilai ini aman ditulis.
+ * Tidak ada nilai `unclaimed`: backend memilih hard delete untuk pembatalan
+ * claim (T-1, resolusi 2026-07-26), jadi claim yang dibatalkan hilang dari
+ * koleksi alih-alih berpindah status.
  */
-export type ClaimStatus =
-  | "claimed"
-  | "submitted"
-  | "approved"
-  | "rejected"
-  | "expired"
-  | "unclaimed";
+export type ClaimStatus = "claimed" | "submitted" | "approved" | "rejected" | "expired";
 
 /** campaign_submissions.status */
 export type SubmissionStatus = "pending" | "approved" | "rejected";
@@ -65,6 +58,29 @@ export type OrderStatus =
 export type DeliverableStatus = "submitted" | "revision_requested" | "approved";
 export type DeliverableSource = "storage" | "external_url";
 export type RevisionStatus = "open" | "resolved";
+
+/**
+ * Tahap ruang negosiasi — satu field yang bisa di-switch UI.
+ *
+ * Dibutuhkan karena `OrderStatus` tidak punya nilai untuk "order belum ada",
+ * padahal di Alur B order lahir paling akhir (chat → offer → accept → order).
+ * Tiga nilai pertama menutupi rentang sebelum order muncul; sisanya adalah
+ * `OrderStatus` apa adanya, karena begitu order lahir statusnyalah yang
+ * menentukan.
+ *
+ * Diturunkan di Function (`deriveStage` di get-{umkm,creator}-negotiations),
+ * bukan di klien — supaya kedua dashboard tidak bisa berbeda pendapat.
+ */
+export type NegotiationStage =
+  /** Percakapan sudah ada, belum ada offer sama sekali. */
+  | "chatting"
+  /** UMKM sudah mengirim offer, kreator belum menjawab. */
+  | "offer_pending"
+  /** Kreator menolak; UMKM boleh menawar ulang. */
+  | "offer_rejected"
+  /** Offer diterima, `create-order` belum selesai membuat ordernya (asinkron). */
+  | "awaiting_order"
+  | OrderStatus;
 
 // ---------------------------------------------------------------------------
 // Finansial

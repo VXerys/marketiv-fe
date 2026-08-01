@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendingUp, Users, Eye, Wallet, BadgeCheck } from "lucide-react";
+import { TrendingUp, Users, Eye, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HeroOverviewProps {
@@ -35,18 +35,24 @@ function SkeletonBlock({ width = "100%", height = 16 }: { width?: string | numbe
   );
 }
 
+/**
+ * Default parameter di sini dulu berisi angka contoh (`5`, `"2.4jt"`, `28`,
+ * `"Rp 12.5jt"`) dan nama `"Dapur Sehat"`. Karena default hanya berlaku saat
+ * prop `undefined` — persis kondisi ketika pembacaan gagal — hero menampilkan
+ * angka karangan tepat pada saat data tidak ada. Sekarang strip.
+ */
 export function HeroOverview({
-  businessName = "Dapur Sehat",
-  campaignAktif = 5,
-  totalViews = "2.4jt",
-  totalKreator = 28,
-  danaBerjalan = "Rp 12.5jt",
+  businessName = "",
+  campaignAktif,
+  totalViews = "—",
+  totalKreator,
+  danaBerjalan = "—",
   isLoading = false,
 }: HeroOverviewProps) {
   const stats = [
-    { icon: TrendingUp, label: "Campaign Aktif", value: String(campaignAktif), colorClass: "bg-orange-500/10 border-orange-500/20 text-orange-400", glowColor: "hover:shadow-[0_8px_24px_rgba(249,115,22,0.1)]" },
+    { icon: TrendingUp, label: "Campaign Aktif", value: campaignAktif === undefined ? "—" : String(campaignAktif), colorClass: "bg-orange-500/10 border-orange-500/20 text-orange-400", glowColor: "hover:shadow-[0_8px_24px_rgba(249,115,22,0.1)]" },
     { icon: Eye, label: "Total Views", value: totalViews, colorClass: "bg-blue-500/10 border-blue-500/20 text-blue-400", glowColor: "hover:shadow-[0_8px_24px_rgba(59,130,246,0.1)]" },
-    { icon: Users, label: "Total Kreator", value: String(totalKreator), colorClass: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400", glowColor: "hover:shadow-[0_8px_24px_rgba(16,185,129,0.1)]" },
+    { icon: Users, label: "Total Kreator", value: totalKreator === undefined ? "—" : String(totalKreator), colorClass: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400", glowColor: "hover:shadow-[0_8px_24px_rgba(16,185,129,0.1)]" },
     { icon: Wallet, label: "Dana Berjalan", value: danaBerjalan, colorClass: "bg-purple-500/10 border-purple-500/20 text-purple-400", glowColor: "hover:shadow-[0_8px_24px_rgba(139,92,246,0.1)]" },
   ];
 
@@ -104,17 +110,6 @@ export function HeroOverview({
             )}
           </div>
 
-          {/* Verified status badge */}
-          {!isLoading && (
-            <div className="hidden sm:flex flex-col items-end gap-1.5 px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] backdrop-blur-md shrink-0">
-              <span className="text-[10px] text-white/40 font-extrabold uppercase tracking-wider leading-none">
-                Status Akun
-              </span>
-              <span className="flex items-center gap-1.5 text-xs font-black text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full shadow-3xs">
-                <BadgeCheck className="w-3.5 h-3.5" /> Terverifikasi
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Stats grid */}

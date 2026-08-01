@@ -63,6 +63,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     await logoutSession();
     setUser(null);
+    // errorCode/error harus ikut dibersihkan: RedirectIfAuthenticated dan
+    // RoleGuard sama-sama bercabang di errorCode, jadi sisa "not_found" dari
+    // sesi sebelumnya akan salah dibaca sebagai profil yang belum terbentuk.
+    setErrorCode(null);
+    setError(null);
   }, []);
 
   return (

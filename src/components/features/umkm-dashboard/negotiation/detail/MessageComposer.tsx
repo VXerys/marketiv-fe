@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import type { OrderStatus } from "@/types/domain";
+import type { NegotiationStage } from "@/types/domain";
 
 interface MessageComposerProps {
   onSendMessage: (content: string) => void;
-  orderStatus?: OrderStatus;
+  /** Tahap ruang — menentukan aksi cepat mana yang masuk akal saat ini. */
+  stage?: NegotiationStage;
   onSendOffer?: () => void;
   onPay?: () => void;
-  onVerify?: () => void;
+  /** Nonaktifkan input selama pesan sedang dikirim. */
+  sending?: boolean;
 }
 
 interface QuickAction {
@@ -19,10 +21,10 @@ interface QuickAction {
 
 export function MessageComposer({
   onSendMessage,
-  orderStatus,
+  stage,
   onSendOffer,
   onPay,
-  onVerify,
+  sending = false,
 }: MessageComposerProps) {
   const [content, setContent] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -38,7 +40,7 @@ export function MessageComposer({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!content.trim()) return;
+      if (!content.trim() || sending) return;
       onSendMessage(content.trim());
       setContent("");
     }
@@ -58,25 +60,22 @@ export function MessageComposer({
   const buildQuickActions = (): QuickAction[] => {
     const actions: QuickAction[] = [];
 
-    if (orderStatus === "pending_payment" && onSendOffer) {
+    // Custom Offer boleh dikirim selama belum ada offer yang menunggu jawaban:
+    // saat masih ngobrol, atau setelah tawaran sebelumnya ditolak. Versi lama
+    // hanya memunculkannya di `pending_payment` — tahap yang justru sudah
+    // TERLAMBAT untuk menawar, karena ordernya sudah terbentuk.
+    if ((stage === "chatting" || stage === "offer_rejected") && onSendOffer) {
       actions.push({
         icon: "💰",
-        label: "Ajukan Nego Harga",
+        label: "Kirim Custom Offer",
         handler: () => { onSendOffer(); setMenuOpen(false); },
       });
     }
-    if (orderStatus === "pending_payment" && onPay) {
+    if (stage === "pending_payment" && onPay) {
       actions.push({
         icon: "💳",
         label: "Lakukan Pembayaran",
         handler: () => { onPay(); setMenuOpen(false); },
-      });
-    }
-    if (orderStatus === "approved" && onVerify) {
-      actions.push({
-        icon: "✅",
-        label: "Verifikasi Collab Post",
-        handler: () => { onVerify(); setMenuOpen(false); },
       });
     }
 
@@ -98,7 +97,7 @@ export function MessageComposer({
   };
 
   const quickActions = buildQuickActions();
-  const canSend = content.trim().length > 0;
+  const canSend = content.trim().length > 0 && !sending;
 
   return (
     <div
@@ -173,7 +172,8 @@ export function MessageComposer({
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="flex-1 px-2 py-1.5 bg-transparent text-xs font-semibold focus:outline-none text-[#182033] placeholder:text-[#737f91]/55"
+          disabled={sending}
+          className="flex-1 px-2 py-1.5 bg-transparent text-xs font-semibold focus:outline-none text-[#182033] placeholder:text-[#737f91]/55 disabled:cursor-not-allowed"
         />
 
         {/* Send button */}
@@ -194,12 +194,6 @@ export function MessageComposer({
         </button>
       </form>
 
-      <div className="flex items-center gap-1.5 pl-1 mt-1.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-[#f97316] animate-pulse" />
-        <span className="text-[8px] font-bold text-[#737f91]/60 uppercase tracking-wider">
-          Mode demo UI &mdash; pesan ditambahkan secara lokal (belum tersimpan di database).
-        </span>
-      </div>
     </div>
   );
 }

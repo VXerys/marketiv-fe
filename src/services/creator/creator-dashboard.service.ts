@@ -1,5 +1,10 @@
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
 import { mockDelay } from "@/lib/mock-delay";
+import type { ChatMessage } from "@/types/umkm-dashboard.types";
+import {
+  sendMessageInAppwrite,
+  getMessagesByConversationIdInAppwrite,
+} from "@/services/shared/conversation-appwrite.service";
 import {
   ServiceResult,
   CreatorProfile,
@@ -14,8 +19,6 @@ import {
   CreatorActivity,
 } from "@/types/creator-dashboard";
 import {
-  mockCreatorProfile,
-  mockCreatorPortfolioItems,
   mockCreatorMetrics,
   mockCreatorJobs,
   mockCreatorActiveWorks,
@@ -36,6 +39,8 @@ import {
   getCreatorSubmissionsFromAppwrite,
   getCreatorNegotiationsFromAppwrite,
   getCreatorNegotiationByIdFromAppwrite,
+  acceptOfferInAppwrite,
+  rejectOfferInAppwrite,
   getCreatorRateCardPackagesFromAppwrite,
   getCreatorTransactionsFromAppwrite,
   getCreatorActivitiesFromAppwrite,
@@ -52,6 +57,8 @@ import {
   uploadCreatorPortfolioThumbnailInAppwrite,
   requestWithdrawalInAppwrite,
   unclaimCampaignInAppwrite,
+  claimCampaignInAppwrite,
+  submitProofInAppwrite,
 } from "./creator-appwrite.service";
 import type {
   RateCardPackageWriteInput,
@@ -59,22 +66,15 @@ import type {
   CreatorPortfolioWriteInput,
   WithdrawRequestInput,
   WithdrawalReceipt,
+  SubmitProofInput,
 } from "./creator-appwrite.service";
 import type { RateCardStatus } from "@/types/domain";
 
 export async function getCreatorProfile(): Promise<ServiceResult<CreatorProfile>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(300);
-    return { success: true, data: mockCreatorProfile };
-  }
   return getCreatorProfileFromAppwrite();
 }
 
 export async function getCreatorPortfolio(): Promise<ServiceResult<CreatorPortfolioItem[]>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(300);
-    return { success: true, data: mockCreatorPortfolioItems };
-  }
   return getCreatorPortfolioFromAppwrite();
 }
 
@@ -142,16 +142,78 @@ export async function getCreatorNegotiations(): Promise<ServiceResult<CreatorNeg
   return getCreatorNegotiationsFromAppwrite();
 }
 
-export async function getCreatorNegotiationById(id: string): Promise<ServiceResult<CreatorNegotiation>> {
+/** Satu ruang negosiasi. `conversationId`, bukan orderId. */
+export async function getCreatorNegotiationById(
+  conversationId: string
+): Promise<ServiceResult<CreatorNegotiation>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(300);
-    const order = mockCreatorNegotiations.find((n) => n.id === id);
-    if (!order) {
-      return { success: false, data: null, error: "Negosiasi tidak ditemukan" };
+    const room = mockCreatorNegotiations.find((n) => n.conversationId === conversationId);
+    if (!room) {
+      return { success: false, data: null, error: "Negosiasi tidak ditemukan", code: "not_found" };
     }
-    return { success: true, data: order };
+    return { success: true, data: room };
   }
-  return getCreatorNegotiationByIdFromAppwrite(id);
+  return getCreatorNegotiationByIdFromAppwrite(conversationId);
+}
+
+/**
+ * Terima Custom Offer.
+ *
+ * Order TIDAK langsung ada sesudah ini — `create-order` dipicu event database
+ * dan berjalan asinkron. Pemanggil harus mem-poll DTO negosiasi sampai
+ * `orderId` muncul, bukan menganggapnya sudah terbentuk.
+ */
+export async function acceptOffer(offerId: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return { success: true, data: null };
+  }
+  return acceptOfferInAppwrite(offerId);
+}
+
+/** Tolak Custom Offer. UMKM boleh menawar ulang di percakapan yang sama. */
+export async function rejectOffer(offerId: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return { success: true, data: null };
+  }
+  return rejectOfferInAppwrite(offerId);
+}
+
+/** Pesan satu ruang negosiasi. Argumennya conversationId. */
+export async function getMessagesByConversationId(
+  conversationId: string
+): Promise<ServiceResult<ChatMessage[]>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return { success: true, data: [] };
+  }
+  return getMessagesByConversationIdInAppwrite(conversationId);
+}
+
+/** Kirim pesan teks. Kreator dan UMKM memakai jalur yang sama. */
+export async function sendMessage(
+  conversationId: string,
+  content: string
+): Promise<ServiceResult<ChatMessage>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return {
+      success: true,
+      data: {
+        id: `msg_mock_${Date.now()}`,
+        conversationId,
+        senderId: "creator_001",
+        senderRole: "creator",
+        type: "text",
+        content,
+        isRead: true,
+        createdAt: new Date().toISOString(),
+      },
+    };
+  }
+  return sendMessageInAppwrite(conversationId, content);
 }
 
 export async function getCreatorRateCardPackages(): Promise<ServiceResult<CreatorRateCardPackage[]>> {
@@ -249,61 +311,23 @@ export type { CreatorProfileWriteInput, CreatorPortfolioWriteInput };
 export async function updateCreatorProfile(
   input: CreatorProfileWriteInput
 ): Promise<ServiceResult<CreatorProfile>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(500);
-    return {
-      success: true,
-      data: {
-        ...mockCreatorProfile,
-        name: (input.displayName as string) ?? mockCreatorProfile.name,
-        bio: (input.bio as string) ?? mockCreatorProfile.bio,
-        location: (input.city as string) ?? mockCreatorProfile.location,
-        niche: (input.niche as CreatorProfile["niche"]) ?? mockCreatorProfile.niche,
-        avatarUrl: (input.avatarUrl as string) ?? mockCreatorProfile.avatarUrl,
-      },
-    };
-  }
   return updateCreatorProfileInAppwrite(input);
 }
 
 export async function uploadCreatorAvatar(file: File): Promise<ServiceResult<string>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(700);
-    return {
-      success: true,
-      data: `https://placehold.co/160x160?text=${encodeURIComponent(file.name.slice(0, 8))}`,
-    };
-  }
   return uploadCreatorAvatarInAppwrite(file);
 }
 
 export async function upsertCreatorSocialAccount(input: {
-  platform: "tiktok" | "instagram";
+  platform: "tiktok";
   username: string;
 }): Promise<ServiceResult<null>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(400);
-    return { success: true, data: null };
-  }
   return upsertCreatorSocialAccountInAppwrite(input);
 }
 
 export async function createCreatorPortfolio(
   input: CreatorPortfolioWriteInput
 ): Promise<ServiceResult<CreatorPortfolioItem>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(500);
-    return {
-      success: true,
-      data: {
-        id: `mock_port_${Date.now()}`,
-        title: input.title,
-        url: input.portfolioUrl,
-        description: input.description ?? "",
-        thumbnailUrl: input.thumbnailUrl || undefined,
-      },
-    };
-  }
   return createCreatorPortfolioInAppwrite(input);
 }
 
@@ -311,40 +335,16 @@ export async function updateCreatorPortfolio(
   id: string,
   input: CreatorPortfolioWriteInput
 ): Promise<ServiceResult<CreatorPortfolioItem>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(500);
-    return {
-      success: true,
-      data: {
-        id,
-        title: input.title,
-        url: input.portfolioUrl,
-        description: input.description ?? "",
-        thumbnailUrl: input.thumbnailUrl || undefined,
-      },
-    };
-  }
   return updateCreatorPortfolioInAppwrite(id, input);
 }
 
 export async function deleteCreatorPortfolio(id: string): Promise<ServiceResult<null>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(400);
-    return { success: true, data: null };
-  }
   return deleteCreatorPortfolioInAppwrite(id);
 }
 
 export async function uploadCreatorPortfolioThumbnail(
   file: File
 ): Promise<ServiceResult<string>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(700);
-    return {
-      success: true,
-      data: `https://placehold.co/320x180?text=${encodeURIComponent(file.name.slice(0, 10))}`,
-    };
-  }
   return uploadCreatorPortfolioThumbnailInAppwrite(file);
 }
 
@@ -369,7 +369,7 @@ export async function requestWithdrawal(
         amount: input.amount,
         status: "processed",
         processedAt: new Date().toISOString(),
-        balanceAfter: 0,
+        balanceAfter: mockCreatorMetrics.balance - input.amount,
         transactionId: `mock_tx_${Date.now()}`,
       },
     };
@@ -377,14 +377,74 @@ export async function requestWithdrawal(
   return requestWithdrawalInAppwrite(input);
 }
 
+// ── Alur A: klaim & kirim bukti (Sprint 4) ───────────────────────────────────
+
+export type { SubmitProofInput };
+
+/**
+ * Klaim campaign dari Job Pool. Mengembalikan claimId supaya pemanggil bisa
+ * langsung mengarahkan ke halaman pekerjaan aktif.
+ *
+ * Mock menegakkan guard kuota & duplikat yang sama — dua penolakan yang paling
+ * mungkin ditemui pengguna nyata, jadi harus bisa diuji tanpa Appwrite.
+ */
+export async function claimCampaign(campaignId: string): Promise<ServiceResult<string>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(800);
+    const job = mockCreatorJobs.find((j) => j.id === campaignId);
+    if (!job) {
+      return { success: false, data: "", error: "Campaign tidak ditemukan.", code: "not_found" };
+    }
+    if (job.usedQuota >= job.quota) {
+      return {
+        success: false,
+        data: "",
+        error: "Kuota kreator untuk campaign ini sudah penuh.",
+        code: "validation",
+      };
+    }
+    if (mockCreatorActiveWorks.some((w) => w.campaignId === campaignId)) {
+      return {
+        success: false,
+        data: "",
+        error: "Kamu sudah pernah mengambil campaign ini.",
+        code: "validation",
+      };
+    }
+    return { success: true, data: `mock_claim_${Date.now()}` };
+  }
+  return claimCampaignInAppwrite(campaignId);
+}
+
+/**
+ * Kirim bukti konten. `fraudScore`/`fraudStatus` TIDAK langsung tersedia —
+ * `ai-fraud-precheck` berjalan asinkron setelah submission dibuat.
+ */
+export async function submitProof(input: SubmitProofInput): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(900);
+    const work = mockCreatorActiveWorks.find((w) => w.id === input.claimId);
+    if (!work) {
+      return { success: false, data: null, error: "Pekerjaan tidak ditemukan.", code: "not_found" };
+    }
+    if (work.status !== "claimed") {
+      return {
+        success: false,
+        data: null,
+        error: "Bukti untuk pekerjaan ini sudah pernah dikirim.",
+        code: "validation",
+      };
+    }
+    return { success: true, data: null };
+  }
+  return submitProofInAppwrite(input);
+}
+
 // ── batalkan claim (Sprint 3.5) ──────────────────────────────────────────────
 
 /**
- * Batalkan pekerjaan yang belum dikirim. Slot campaign kembali terbuka.
- *
- * ⚠️ Pembatalan bersifat PERMANEN untuk kreator ini — backend menolak claim
- * ulang atas campaign yang sama. Lihat catatan di unclaimCampaignInAppwrite;
- * jawaban backend atas T-1 akan menentukan apakah batasan ini tetap.
+ * Batalkan pekerjaan yang belum dikirim — baris claim dihapus, slot campaign
+ * kembali terbuka, dan kreator boleh mengambilnya lagi nanti (resolusi T-1).
  */
 export async function unclaimCampaign(claimId: string): Promise<ServiceResult<null>> {
   if (DATA_SOURCE_CONFIG.useMockData) {

@@ -2,7 +2,6 @@ export * from "./CreatorDashboardChrome";
 export * from "./CreatorDashboardSidebar";
 export * from "./CreatorDashboardTopbar";
 export * from "./CreatorDashboardView";
-export * from "./CreatorMetricCard";
 export * from "./CreatorStatusBadge";
 export * from "./CreatorPageHeader";
 export * from "./CreatorEmptyState";

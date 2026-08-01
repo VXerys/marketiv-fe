@@ -85,6 +85,19 @@ export const indonesianPhone = z
   );
 
 /**
+ * Alamat email.
+ *
+ * Zod v4 — `z.email()` top-level, bukan `z.string().email()` yang sudah usang.
+ * Ditaruh di sini, bukan di auth.schema.ts, karena email adalah tipe field
+ * generik sekelas indonesianPhone dan dipakai di luar auth (kolom users.email,
+ * form kontak).
+ */
+export const emailAddress = (fieldName = "Email") =>
+  z
+    .email({ error: `${fieldName} tidak valid.` })
+    .min(1, `${fieldName} wajib diisi.`);
+
+/**
  * Currency amount in Rupiah (integer, stored as IDR cents-equivalent).
  * Must be a positive integer — no decimals, no negatives.
  */

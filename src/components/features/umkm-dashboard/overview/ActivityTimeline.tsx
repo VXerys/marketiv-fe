@@ -1,8 +1,8 @@
 "use client";
 
-import { UserPlus, FileText, CheckCircle, DollarSign, Rocket } from "lucide-react";
+import { UserPlus, FileText, CheckCircle, DollarSign, Rocket, MessageCircle } from "lucide-react";
 
-type ActivityType = "kreator_bergabung" | "submission_baru" | "campaign_selesai" | "dana_cair" | "campaign_dibuat";
+type ActivityType = "kreator_bergabung" | "submission_baru" | "campaign_selesai" | "dana_cair" | "campaign_dibuat" | "progress";
 
 interface Activity {
   id: string;
@@ -18,11 +18,12 @@ const ACTIVITY_CONFIG: Record<ActivityType, {
   color: string;
   border: string;
 }> = {
-  kreator_bergabung: { icon: UserPlus,    bg: "#f0f6ff", color: "#2563eb", border: "rgba(37,99,235,.18)" },
-  submission_baru:   { icon: FileText,    bg: "#f7f3ff", color: "#7c3aed", border: "rgba(124,58,237,.18)" },
-  campaign_selesai:  { icon: CheckCircle, bg: "#f1fbf5", color: "#16a34a", border: "rgba(22,163,74,.18)" },
-  dana_cair:         { icon: DollarSign,  bg: "#fffbeb", color: "#d97706", border: "rgba(217,119,6,.18)" },
-  campaign_dibuat:   { icon: Rocket,      bg: "#fff7ed", color: "#ea580c", border: "rgba(234,88,12,.18)" },
+  kreator_bergabung: { icon: UserPlus,       bg: "#f0f6ff", color: "#2563eb", border: "rgba(37,99,235,.18)" },
+  submission_baru:   { icon: FileText,       bg: "#f7f3ff", color: "#7c3aed", border: "rgba(124,58,237,.18)" },
+  campaign_selesai:  { icon: CheckCircle,    bg: "#f1fbf5", color: "#16a34a", border: "rgba(22,163,74,.18)" },
+  dana_cair:         { icon: DollarSign,     bg: "#fffbeb", color: "#d97706", border: "rgba(217,119,6,.18)" },
+  campaign_dibuat:   { icon: Rocket,         bg: "#fff7ed", color: "#ea580c", border: "rgba(234,88,12,.18)" },
+  progress:          { icon: MessageCircle,  bg: "#f0f9ff", color: "#0284c7", border: "rgba(2,132,199,.18)" },
 };
 
 interface ActivityTimelineProps {
@@ -174,9 +175,10 @@ export function ActivityTimeline({ activities = [], isLoading = false }: Activit
           <div style={{ display: "grid", gap: 12 }}>
             {activities.map((act) => {
               let mappedType: ActivityType = "kreator_bergabung";
-              if (act.type === "submission") mappedType = "submission_baru";
-              else if (act.type === "payment")  mappedType = "dana_cair";
-              else if (act.type === "campaign") mappedType = "campaign_dibuat";
+              if (act.type === "submission")      mappedType = "submission_baru";
+              else if (act.type === "payment")    mappedType = "dana_cair";
+              else if (act.type === "campaign")   mappedType = "campaign_dibuat";
+              else if (act.type === "progress")   mappedType = "progress";
 
               const cfg  = ACTIVITY_CONFIG[mappedType];
               const Icon = cfg.icon;

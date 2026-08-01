@@ -21,6 +21,46 @@ interface ExportFinanceReportModalProps {
   onExportSuccess: (filename: string) => void;
 }
 
+const REPORT_HEADERS = [
+  "ID Transaksi",
+  "Tanggal",
+  "Deskripsi",
+  "Tipe Transaksi",
+  "Kategori Fitur",
+  "Nominal (IDR)",
+  "Status",
+  "Midtrans Order ID",
+];
+
+function getDateRangeStart(dateRange: string): Date | null {
+  const now = new Date();
+
+  if (dateRange === "this_month") {
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  if (dateRange === "last_30_days") {
+    const start = new Date(now);
+    start.setDate(start.getDate() - 30);
+    return start;
+  }
+
+  if (dateRange === "last_3_months") {
+    const start = new Date(now);
+    start.setMonth(start.getMonth() - 3);
+    return start;
+  }
+
+  return null;
+}
+
+function escapeCsvCell(value: string | number): string {
+  const stringValue = String(value);
+  return /[",\n\r]/.test(stringValue)
+    ? `"${stringValue.replace(/"/g, '""')}"`
+    : stringValue;
+}
+
 export function ExportFinanceReportModal({
   transactions,
   isOpen,
@@ -31,14 +71,13 @@ export function ExportFinanceReportModal({
   const [selectedFormat, setSelectedFormat] = useState<string>("csv");
   const [dateRange, setDateRange] = useState<string>("all");
   const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     setIsExporting(true);
+    setExportError(null);
 
-    setTimeout(() => {
-      setIsExporting(false);
-
-      // Filter transactions based on selection
+    try {
       let filtered = [...transactions];
       if (selectedType === "campaign") {
         filtered = filtered.filter((tx) => tx.referenceType === "campaign");
@@ -48,22 +87,18 @@ export function ExportFinanceReportModal({
         filtered = filtered.filter((tx) => tx.type === "refund");
       }
 
-      // Generate simulated file content
-      const headers = [
-        "ID Transaksi",
-        "Tanggal",
-        "Deskripsi",
-        "Tipe Transaksi",
-        "Kategori Fitur",
-        "Nominal (IDR)",
-        "Status",
-        "Midtrans Order ID",
-      ];
-      
+      const rangeStart = getDateRangeStart(dateRange);
+      if (rangeStart) {
+        filtered = filtered.filter((tx) => {
+          const transactionDate = new Date(tx.createdAt);
+          return !Number.isNaN(transactionDate.getTime()) && transactionDate >= rangeStart;
+        });
+      }
+
       const rows = filtered.map((tx) => [
         tx.id,
         tx.createdAt,
-        `"${tx.description.replace(/"/g, '""')}"`,
+        tx.description,
         tx.type,
         tx.referenceType,
         tx.amount,
@@ -71,28 +106,46 @@ export function ExportFinanceReportModal({
         tx.midtransOrderId || "-",
       ]);
 
-      const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      
       const filename = `marketiv_keuangan_umkm_${selectedType}_${new Date()
         .toISOString()
         .slice(0, 10)}.${selectedFormat}`;
 
-      // Browser download trigger
-      const link = document.createElement("a");
-      if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", filename);
-        link.style.visibility = "hidden";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+      let blob: Blob;
+      if (selectedFormat === "xlsx") {
+        const XLSX = await import("xlsx");
+        const worksheet = XLSX.utils.aoa_to_sheet([REPORT_HEADERS, ...rows]);
+        worksheet["!cols"] = REPORT_HEADERS.map((header) => ({ wch: Math.max(header.length + 2, 16) }));
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Keuangan");
+        const workbookBytes = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+        blob = new Blob([workbookBytes], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+      } else {
+        const csvContent = [
+          REPORT_HEADERS.map(escapeCsvCell).join(","),
+          ...rows.map((row) => row.map(escapeCsvCell).join(",")),
+        ].join("\r\n");
+        blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       }
 
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
       onExportSuccess(filename);
-    }, 1500);
+    } catch {
+      setExportError("Laporan gagal dibuat. Coba lagi.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const dateRangeOptions = [
@@ -128,6 +181,11 @@ export function ExportFinanceReportModal({
         {/* Body */}
         <div className="p-5 space-y-4 text-xs">
           <ResponsiveModalDescription className="hidden" />
+          {exportError && (
+            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700 font-semibold">
+              {exportError}
+            </p>
+          )}
           
           {/* Type Option */}
           <div className="space-y-1.5">

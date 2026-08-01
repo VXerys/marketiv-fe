@@ -21,7 +21,6 @@ const CATEGORIES = [
   { id: "pariwisata", label: "Pariwisata"     },
   { id: "edukasi",    label: "Edukasi"        },
   { id: "kecantikan", label: "Kecantikan"     },
-  { id: "teknologi",  label: "Teknologi"      },
   { id: "lainnya",    label: "Lainnya"        },
 ];
 

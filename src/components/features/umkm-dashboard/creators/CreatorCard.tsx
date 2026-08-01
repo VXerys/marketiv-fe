@@ -262,7 +262,7 @@ export function CreatorCard({ creator }: CreatorCardProps) {
         >
           {[
             { label: "Followers", value: creator.followers, Icon: Users, color: "#ea580c", border: "rgba(234,88,12,.08)", iconBg: "rgba(234,88,12,.08)" },
-            { label: "Paket Jasa", value: String(creator.rateCardCount ?? 1), Icon: Package, color: "#2563eb", border: "rgba(37,99,235,.08)", iconBg: "rgba(37,99,235,.08)" },
+            { label: "Paket Jasa", value: creator.rateCardCount != null ? String(creator.rateCardCount) : "—", Icon: Package, color: "#2563eb", border: "rgba(37,99,235,.08)", iconBg: "rgba(37,99,235,.08)" },
           ].map(({ label, value, Icon, color, border, iconBg }) => (
             <div
               key={label}
@@ -405,7 +405,7 @@ export function CreatorCard({ creator }: CreatorCardProps) {
           <button
             type="button"
             aria-label="Mulai negosiasi"
-            onClick={() => router.push("/dashboard/umkm/negosiasi")}
+            onClick={() => router.push(`/dashboard/umkm/kreator/${creator.id}`)}
             className="transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(234,88,12,.32)] active:scale-[0.96] active:translate-y-0 cursor-pointer"
             style={{
               width: 44,

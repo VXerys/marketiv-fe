@@ -36,6 +36,36 @@ export const creatorProfileUpdateSchema = z.object({
 });
 export type CreatorProfileUpdateInput = z.infer<typeof creatorProfileUpdateSchema>;
 
+/**
+ * Skema onboarding — lebih ketat daripada skema update di atas.
+ *
+ * Bedanya disengaja. Update profil boleh menyisakan field kosong; onboarding
+ * tidak, karena hasilnya menyetel `isProfileCompleted = true` dan itulah yang
+ * dipakai `get-creator-directory` untuk memutuskan siapa yang tampil ke UMKM.
+ * Menandai profil "lengkap" tanpa niche atau kota berarti menerbitkan kartu
+ * kreator yang tidak bisa difilter maupun dicari.
+ */
+export const creatorOnboardingSchema = z.object({
+  displayName: requiredStringMax("Nama display", 255),
+  niche: enumOf(CREATOR_NICHES, "Niche"),
+  city: requiredStringMax("Kota", 100),
+  bio: requiredStringMax("Bio", 2000).min(20, "Bio minimal 20 karakter."),
+});
+export type CreatorOnboardingInput = z.infer<typeof creatorOnboardingSchema>;
+
+export const umkmOnboardingSchema = z.object({
+  businessName: requiredStringMax("Nama bisnis", 255),
+  category: requiredStringMax("Kategori", 100),
+  city: requiredStringMax("Kota", 100),
+  description: requiredStringMax("Deskripsi usaha", 2000).min(
+    20,
+    "Deskripsi usaha minimal 20 karakter."
+  ),
+  address: optionalString(500, "Alamat"),
+  tiktok: optionalString(255, "TikTok"),
+});
+export type UmkmOnboardingInput = z.infer<typeof umkmOnboardingSchema>;
+
 export const creatorPortfolioSchema = z.object({
   title: requiredStringMax("Judul portofolio", 255),
   portfolioUrl: requiredHttpsUrl("Link portofolio"),
@@ -45,19 +75,19 @@ export const creatorPortfolioSchema = z.object({
 export type CreatorPortfolioInput = z.infer<typeof creatorPortfolioSchema>;
 
 export const socialHandleSchema = z.object({
-  platform: enumOf(["tiktok", "instagram"] as const, "Platform"),
+  platform: enumOf(["tiktok"] as const, "Platform"),
   username: requiredStringMax("Username", 255),
 });
 export type SocialHandleInput = z.infer<typeof socialHandleSchema>;
 
 /**
- * Ambil handle dari URL/teks TikTok/Instagram. Menerima juga handle telanjang.
- * tiktok.com/@handle → handle ; instagram.com/handle → handle.
+ * Ambil handle dari URL/teks TikTok. Menerima juga handle telanjang.
+ * tiktok.com/@handle -> handle.
  */
 export function extractSocialUsername(input: string): string {
   const raw = input.trim();
   if (!raw) return "";
-  const match = raw.match(/(?:tiktok\.com|instagram\.com)\/@?([A-Za-z0-9._]+)/i);
+  const match = raw.match(/tiktok\.com\/@?([A-Za-z0-9._]+)/i);
   if (match) return match[1];
   return raw.replace(/^@/, "");
 }

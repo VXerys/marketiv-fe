@@ -108,6 +108,8 @@ UMKM klik `Buat Campaign` dari dashboard (tipe Campaign Viral).
 32. **Payments** — Buat `transactions`: `{ userId: creatorId, amount: reward, type: 'release', referenceType: 'campaign_submission' }`.
 33. **Campaigns** — Update denormalisasi: `campaigns.spentAmount += reward`, `campaigns.remainingBudget = budget - spentAmount`.
 34. **Notifications** — Notifikasi ke creator: "Reward campaign {title} sudah masuk ke pending balance".
+35. **Payments** — Setelah 7 hari, Function terjadwal `mature-pending-balance` memindahkan reward itu: `pendingBalance -= reward`, `balance += reward`. Baru setelah langkah ini reward bisa ditarik lewat `request-withdrawal`, karena withdraw hanya membaca `balance`.
+36. **Notifications** — Notifikasi ke creator: "Reward campaign sebesar Rp{amount} sudah masuk saldo dan bisa kamu tarik".
 
 ## State Transitions
 
@@ -118,7 +120,7 @@ CLAIM:       claimed → submitted → approved | rejected
            ↘ expired (auto, lewat submissionDays)
 SUBMISSION:  pending → approved | rejected
 FRAUD_CHECK: running → safe | review | rejected
-WALLET:      pendingBalance += reward → (later → available)
+WALLET:      pendingBalance += reward → (H+7, cron) → balance
 ```
 
 ## Events / Functions
@@ -131,6 +133,7 @@ WALLET:      pendingBalance += reward → (later → available)
 | `campaign_submissions.create` | `ai-fraud-precheck` | Fraud detection & routing |
 | `campaign_submissions.status (pending→approved)` | `calculate-campaign-reward` | Hitung reward, update wallet + campaign counters |
 | Scheduled (setiap 6 jam) | `expire-stale-claims` | Expire claim yang lewat `submissionDays`, kurangi `totalClaims` |
+| Scheduled (harian, 02:00) | `mature-pending-balance` | Pindahkan reward berumur ≥ 7 hari dari `pendingBalance` ke `balance` |
 
 ## Validation Rules per Langkah
 

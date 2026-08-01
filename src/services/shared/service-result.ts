@@ -18,6 +18,26 @@ import { getSession } from "@/services/auth/session.service";
 
 export type Doc = Record<string, unknown>;
 
+/**
+ * Error mentah Appwrite ke console, HANYA di luar production.
+ *
+ * Alasannya bukan kenyamanan: pesan yang dikembalikan helper di bawah sengaja
+ * generik, jadi 400, 403, 404, dan 409 tampil identik di UI. Tanpa log ini
+ * satu-satunya cara membedakannya adalah menebak. Yang dicetak `code`/`type`/
+ * `message` bawaan Appwrite — bukan payload, supaya tidak ada data pengguna
+ * yang bocor ke console.
+ */
+const logRawError = (scope: string | undefined, err: unknown): void => {
+  if (process.env.NODE_ENV === "production") return;
+  const e = err as { code?: unknown; type?: unknown; message?: unknown };
+  console.error(
+    `[appwrite] ${scope ?? "unknown"} gagal — code=${String(e?.code)} type=${String(
+      e?.type
+    )} message=${String(e?.message)}`,
+    err
+  );
+};
+
 export const str = (v: unknown): string => (typeof v === "string" ? v : "");
 export const num = (v: unknown): number => (typeof v === "number" ? v : 0);
 
@@ -72,27 +92,39 @@ export const failValidation = <T>(message: string, empty: T): ServiceResult<T> =
   fail(message, "validation", empty);
 
 /** BACA gagal — pesan generik Sprint 1/2. */
-export const failFromError = <T>(err: unknown, empty: T): ServiceResult<T> => ({
-  success: false,
-  data: empty,
-  error: "Gagal memuat data. Coba lagi.",
-  code: mapErrorCode(err),
-});
+export const failFromError = <T>(err: unknown, empty: T, scope?: string): ServiceResult<T> => {
+  logRawError(scope, err);
+  return {
+    success: false,
+    data: empty,
+    error: "Gagal memuat data. Coba lagi.",
+    code: mapErrorCode(err),
+  };
+};
 
 /**
  * TULIS gagal. Untuk error validation, pakai `validationMessage` bila diberikan;
  * bila `err` adalah FunctionExecutionError, teruskan pesan Function (sudah ditulis
  * manusia di backend). Selain itu pesan generik "Gagal menyimpan data.".
+ *
+ * 409 dipisahkan dari validasi walaupun `mapWriteErrorCode` menyatukan keduanya
+ * ke `"validation"`: konflik unique index BUKAN kesalahan input pengguna, dan
+ * menyuruh mereka memperbaiki isian yang sudah benar hanya menyesatkan.
  */
 export const failFromWriteError = <T>(
   err: unknown,
   empty: T,
-  validationMessage?: string
+  validationMessage?: string,
+  scope?: string
 ): ServiceResult<T> => {
+  logRawError(scope, err);
   const code = mapWriteErrorCode(err);
+  const isConflict = (err as { code?: number })?.code === 409;
   let error = "Gagal menyimpan data. Coba lagi.";
   if (err instanceof FunctionExecutionError && err.message) {
     error = err.message;
+  } else if (isConflict) {
+    error = "Data ini sudah ada. Muat ulang halaman lalu coba lagi.";
   } else if (code === "validation" && validationMessage) {
     error = validationMessage;
   }

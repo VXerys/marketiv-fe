@@ -21,7 +21,6 @@ export function getClaimStatusLabel(status: ClaimStatus): string {
     approved: "Selesai",
     rejected: "Ditolak",
     expired: "Kedaluwarsa",
-    unclaimed: "Dibatalkan",
   };
   return map[status] || status;
 }

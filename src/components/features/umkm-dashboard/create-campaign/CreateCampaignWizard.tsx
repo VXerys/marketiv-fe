@@ -26,9 +26,12 @@ import { TONE_OPTIONS, CTA_OPTIONS } from "./create-campaign.constants";
 import { composeBriefDetail, packDoAndDontJson } from "@/lib/validations/campaign.schema";
 import {
   createCampaignDraft,
+  updateCampaignDraft,
   generateCampaignBrief,
   createCampaignPayment,
+  publishCampaign,
 } from "@/services/umkm/umkm-dashboard.service";
+import type { RehydratedWizard } from "./create-campaign.rehydrate";
 import { loadSnap } from "@/lib/midtrans/snap";
 import type { CampaignType } from "@/types/domain";
 import { toast } from "sonner";
@@ -38,30 +41,39 @@ import { SaveDraftModal } from "./modals/SaveDraftModal";
 import { PaymentSimulationModal } from "./modals/PaymentSimulationModal";
 import { CampaignCreatedModal } from "./modals/CampaignCreatedModal";
 
-export function CreateCampaignWizard() {
+interface CreateCampaignWizardProps {
+  /** Id campaign draft yang sudah ada. Saat diisi, wizard berjalan dalam mode edit. */
+  campaignId?: string;
+  /** State awal untuk seeding field — dari rehydrateWizard(). */
+  initialState?: RehydratedWizard["state"];
+  /** Meta awal (assetId, dll.) — dari rehydrateWizard(). */
+  initialMeta?: RehydratedWizard["meta"];
+}
+
+export function CreateCampaignWizard({ campaignId, initialState, initialMeta }: CreateCampaignWizardProps = {}) {
   const router = useRouter();
 
   // Wizard state machine
   const [currentStep, setCurrentStep] = useState(1);
   const stepsCount = 5;
 
-  // Form states
-  const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
-  const [type, setType] = useState("");
-  const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
-  const [brief, setBrief] = useState("");
-  const [videoStyle, setVideoStyle] = useState("");
-  const [requiredPoints, setRequiredPoints] = useState("");
-  const [callToAction, setCallToAction] = useState("");
-  const [hashtags, setHashtags] = useState("");
-  const [externalAssetUrl, setExternalAssetUrl] = useState("");
-  const [assetNotes, setAssetNotes] = useState("");
-  const [pricePerThousandViews, setPricePerThousandViews] = useState(5000);
-  const [totalBudgetEscrow, setTotalBudgetEscrow] = useState(3200000);
-  const [creatorQuota, setCreatorQuota] = useState(4);
-  const [termsAgreed, setTermsAgreed] = useState(false);
+  // Form states — seeded dari initialState kalau dalam mode edit
+  const [title, setTitle] = useState(initialState?.title ?? "");
+  const [category, setCategory] = useState(initialState?.category ?? "");
+  const [type, setType] = useState(initialState?.type ?? "");
+  const [description, setDescription] = useState(initialState?.description ?? "");
+  const [location, setLocation] = useState(initialState?.location ?? "");
+  const [brief, setBrief] = useState(initialState?.brief ?? "");
+  const [videoStyle, setVideoStyle] = useState(initialState?.videoStyle ?? "");
+  const [requiredPoints, setRequiredPoints] = useState(initialState?.requiredPoints ?? "");
+  const [callToAction, setCallToAction] = useState(initialState?.callToAction ?? "");
+  const [hashtags, setHashtags] = useState(initialState?.hashtags ?? "");
+  const [externalAssetUrl, setExternalAssetUrl] = useState(initialState?.externalAssetUrl ?? "");
+  const [assetNotes, setAssetNotes] = useState(initialState?.assetNotes ?? "");
+  const [pricePerThousandViews, setPricePerThousandViews] = useState(initialState?.pricePerThousandViews ?? 5000);
+  const [totalBudgetEscrow, setTotalBudgetEscrow] = useState(initialState?.totalBudgetEscrow ?? 3200000);
+  const [creatorQuota, setCreatorQuota] = useState(initialState?.creatorQuota ?? 4);
+  const [termsAgreed, setTermsAgreed] = useState(false); // sengaja tidak di-seed — user wajib centang ulang
 
   // Validation state
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
@@ -76,6 +88,16 @@ export function CreateCampaignWizard() {
 
   /** Id campaign draft yang sudah tertulis — mencegah create ganda saat bayar. */
   const [createdCampaignId, setCreatedCampaignId] = useState<string | null>(null);
+  /**
+   * Budget yang benar-benar tersimpan di baris draft.
+   *
+   * Bukan sekadar salinan `totalBudgetEscrow`: draft ditulis sekali lalu
+   * saveDraft() mengembalikannya apa adanya, jadi kalau pengguna mengubah budget
+   * setelah percobaan bayar yang gagal, nilai di layar tidak lagi sama dengan
+   * nilai di DB. create-payment menolak selisih itu dengan 409, dan menolaknya
+   * memang benar — yang harus dikirim adalah angka milik draft.
+   */
+  const [draftBudget, setDraftBudget] = useState<number | null>(null);
 
   // Modals state
   const [isDraftOpen, setIsDraftOpen] = useState(false);
@@ -186,7 +208,10 @@ export function CreateCampaignWizard() {
   /**
    * Tulis campaign draft. Dipakai tombol "Simpan Draft" maupun jalur pembayaran
    * (campaign harus ada dulu supaya create-payment punya campaignId).
-   * Idempoten lewat createdCampaignId — konfirmasi ulang tidak membuat duplikat.
+   *
+   * Mode create: buat baris baru. Mode edit (`campaignId` prop ada): update baris
+   * yang sudah ada. Setelah satu kali simpan sesi ini (`createdCampaignId` terisi),
+   * operasi berikutnya mengembalikan id langsung (idempoten).
    */
   const saveDraft = async (): Promise<string | null> => {
     if (createdCampaignId) return createdCampaignId;
@@ -202,7 +227,7 @@ export function CreateCampaignWizard() {
     const tone = TONE_OPTIONS.find((o) => o.id === videoStyle);
     const ctaOpt = CTA_OPTIONS.find((o) => o.id === callToAction);
 
-    const res = await createCampaignDraft({
+    const draftInput = {
       title,
       category,
       type: type as CampaignType,
@@ -219,11 +244,17 @@ export function CreateCampaignWizard() {
         generatedByAi: aiGenerated,
       },
       asset: externalAssetUrl.trim() ? { fileUrl: externalAssetUrl.trim() } : undefined,
-    });
+    };
+
+    const isEdit = !!campaignId;
+    const res = isEdit
+      ? await updateCampaignDraft(campaignId, draftInput)
+      : await createCampaignDraft(draftInput);
 
     if (res.success && res.data) {
       res.data.warnings.forEach((w) => toast.warning(w));
       setCreatedCampaignId(res.data.campaign.id);
+      setDraftBudget(res.data.campaign.totalBudgetEscrow);
       return res.data.campaign.id;
     }
 
@@ -246,9 +277,44 @@ export function CreateCampaignWizard() {
   };
 
   /**
-   * Bayar: pastikan draft ada → create-payment → Snap.
-   * Publish ke `active` BUKAN di sini — itu Sprint 4 lewat webhook Midtrans
-   * (create-escrow), bukan aksi klien.
+   * Terbitkan campaign setelah pembayaran, dengan menunggu dana benar-benar
+   * masuk.
+   *
+   * Dananya tidak muncul di `campaigns.remainingBudget` saat Snap menutup —
+   * yang mengisinya adalah `create-escrow`, yang baru menyala setelah Midtrans
+   * memanggil `midtrans-webhook`. Itu perjalanan server-ke-server yang bisa
+   * makan beberapa detik. Karena itu di-poll, bukan diterbitkan langsung.
+   *
+   * Kalau poll habis, campaign SENGAJA dibiarkan sebagai draft dan pengguna
+   * diberi tahu apa adanya — menandai campaign `active` tanpa dana adalah
+   * kebohongan yang akan tampak sebagai kuota kreator yang tidak bisa dibayar.
+   * Tombol "Terbitkan" di daftar campaign menjadi jalan keluarnya.
+   */
+  const publishAfterPayment = async (campaignId: string) => {
+    const ATTEMPTS = 5;
+    const GAP_MS = 2000;
+
+    for (let i = 0; i < ATTEMPTS; i++) {
+      await new Promise((r) => setTimeout(r, GAP_MS));
+
+      const res = await publishCampaign(campaignId);
+      if (res.success) {
+        toast.success("Campaign berhasil diterbitkan dan kini tayang di Job Pool.");
+        return true;
+      }
+      // "validation" = dana belum masuk; error lain tidak akan membaik dengan
+      // menunggu, jadi berhenti mencoba.
+      if (res.code !== "validation") break;
+    }
+
+    toast.info(
+      "Pembayaran diterima, tapi dana belum tercatat di campaign. Campaign tersimpan sebagai draft — terbitkan dari daftar campaign setelah beberapa saat."
+    );
+    return false;
+  };
+
+  /**
+   * Bayar: pastikan draft ada → create-payment → Snap → tunggu dana → terbitkan.
    */
   const handleConfirmPayment = async () => {
     setIsPaymentOpen(false);
@@ -260,7 +326,10 @@ export function CreateCampaignWizard() {
       return;
     }
 
-    const res = await createCampaignPayment({ campaignId, budget: totalBudgetEscrow });
+    const res = await createCampaignPayment({
+      campaignId,
+      budget: draftBudget ?? totalBudgetEscrow,
+    });
     if (!res.success || !res.data) {
       setIsSubmitting(false);
       toast.error(
@@ -279,7 +348,10 @@ export function CreateCampaignWizard() {
         const snap = await loadSnap();
         setIsSubmitting(false);
         snap.pay(intent.snapToken, {
-          onSuccess: () => setIsCreatedOpen(true),
+          onSuccess: () => {
+            setIsCreatedOpen(true);
+            void publishAfterPayment(campaignId);
+          },
           onPending: () => {
             toast.info("Pembayaran menunggu konfirmasi. Campaign tetap tersimpan sebagai draft.");
             router.push("/dashboard/umkm/campaign");
@@ -336,6 +408,7 @@ export function CreateCampaignWizard() {
     setAiObjective("");
     setAiGenerated(false);
     setCreatedCampaignId(null);
+    setDraftBudget(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -522,7 +595,7 @@ export function CreateCampaignWizard() {
           isOpen={isPaymentOpen}
           onClose={() => setIsPaymentOpen(false)}
           onConfirm={handleConfirmPayment}
-          totalBudgetEscrow={totalBudgetEscrow}
+          totalBudgetEscrow={draftBudget ?? totalBudgetEscrow}
         />
       )}
 

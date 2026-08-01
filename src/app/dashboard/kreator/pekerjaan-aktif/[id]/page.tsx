@@ -1,5 +1,4 @@
-import { getCreatorActiveWorkById } from "@/services/creator/creator-dashboard.service";
-import { ActiveWorkDetailView } from "@/components/features/creator-dashboard";
+import { ActiveWorkDetailPageClient } from "@/components/features/creator-dashboard/ActiveWorkDetailPageClient";
 
 interface ActiveWorkDetailPageProps {
   params: Promise<{ id: string }>;
@@ -7,7 +6,5 @@ interface ActiveWorkDetailPageProps {
 
 export default async function ActiveWorkDetailPage({ params }: ActiveWorkDetailPageProps) {
   const { id } = await params;
-  const res = await getCreatorActiveWorkById(id);
-
-  return <ActiveWorkDetailView work={res.data} />;
+  return <ActiveWorkDetailPageClient workId={id} />;
 }

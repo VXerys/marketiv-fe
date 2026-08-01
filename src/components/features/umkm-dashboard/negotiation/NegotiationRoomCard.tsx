@@ -14,18 +14,53 @@ interface NegotiationRoomCardProps {
   onToggleArchive?: () => void;
 }
 
-const STATUS_STYLE: Record<
-  string,
-  { border: string; badgeBg: string; badgeText: string; badgeBorder: string; dot: string }
-> = {
-  negotiation: {
+type StageStyle = {
+  border: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+  dot: string;
+};
+
+/**
+ * Key = `NegotiationStage` (src/types/domain.ts).
+ *
+ * Sebelumnya peta ini memakai kosakata lama — `negotiation`, `waiting_payment`,
+ * `waiting_verification`, `dispute` — yang tidak pernah dihasilkan `deriveStage`
+ * di Function negosiasi. Akibatnya hampir setiap kartu meleset ke fallback
+ * `cancelled` dan SEMUA negosiasi aktif tampil abu-abu seperti dibatalkan.
+ * Tidak pernah error, jadi tidak pernah ketahuan.
+ */
+const STATUS_STYLE: Record<string, StageStyle> = {
+  chatting: {
+    border: "border-l-neutral-300",
+    badgeBg: "bg-neutral-50",
+    badgeText: "text-neutral-600",
+    badgeBorder: "border-neutral-200/60",
+    dot: "bg-neutral-400",
+  },
+  offer_pending: {
     border: "border-l-blue-400",
     badgeBg: "bg-blue-50",
     badgeText: "text-blue-700",
     badgeBorder: "border-blue-200/60",
     dot: "bg-blue-400",
   },
-  waiting_payment: {
+  offer_rejected: {
+    border: "border-l-rose-400",
+    badgeBg: "bg-rose-50",
+    badgeText: "text-rose-700",
+    badgeBorder: "border-rose-200/60",
+    dot: "bg-rose-400",
+  },
+  awaiting_order: {
+    border: "border-l-indigo-400",
+    badgeBg: "bg-indigo-50",
+    badgeText: "text-indigo-700",
+    badgeBorder: "border-indigo-200/60",
+    dot: "bg-indigo-400",
+  },
+  pending_payment: {
     border: "border-l-amber-400",
     badgeBg: "bg-amber-50",
     badgeText: "text-amber-700",
@@ -46,12 +81,19 @@ const STATUS_STYLE: Record<
     badgeBorder: "border-red-200/60",
     dot: "bg-red-400",
   },
-  waiting_verification: {
+  in_progress: {
     border: "border-l-orange-400",
     badgeBg: "bg-orange-50",
     badgeText: "text-orange-700",
     badgeBorder: "border-orange-200/60",
     dot: "bg-orange-400",
+  },
+  approved: {
+    border: "border-l-violet-400",
+    badgeBg: "bg-violet-50",
+    badgeText: "text-violet-700",
+    badgeBorder: "border-violet-200/60",
+    dot: "bg-violet-400",
   },
   completed: {
     border: "border-l-blue-300",
@@ -59,13 +101,6 @@ const STATUS_STYLE: Record<
     badgeText: "text-blue-600",
     badgeBorder: "border-blue-200/60",
     dot: "bg-blue-400",
-  },
-  dispute: {
-    border: "border-l-rose-500",
-    badgeBg: "bg-rose-50",
-    badgeText: "text-rose-700",
-    badgeBorder: "border-rose-200/60",
-    dot: "bg-rose-500",
   },
   cancelled: {
     border: "border-l-neutral-300",
@@ -76,13 +111,17 @@ const STATUS_STYLE: Record<
   },
 };
 
+/** Dipakai bila `stage` tidak dikenali. Fallback ke `cancelled` menandai
+ *  negosiasi yang masih hidup sebagai dibatalkan — itu bohong ke pengguna. */
+const UNKNOWN_STAGE_STYLE: StageStyle = STATUS_STYLE.chatting;
+
 export function NegotiationRoomCard({
   order,
   isArchived = false,
   onToggleArchive,
 }: NegotiationRoomCardProps) {
-  const statusDetail = getStatusDetails(order.status);
-  const style = STATUS_STYLE[order.status] ?? STATUS_STYLE.cancelled;
+  const statusDetail = getStatusDetails(order.stage);
+  const style = STATUS_STYLE[order.stage] ?? UNKNOWN_STAGE_STYLE;
 
   return (
     <div
@@ -98,14 +137,23 @@ export function NegotiationRoomCard({
       <div className="flex gap-4 flex-1 min-w-0">
         {/* Avatar with unread badge */}
         <div className="relative shrink-0">
-          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-neutral-100 border border-neutral-200/60 relative overflow-hidden shadow-3xs transition-transform duration-300 group-hover:scale-105">
-            <Image
-              src={order.creatorAvatarUrl}
-              alt={order.creatorName}
-              fill
-              className="object-cover"
-              sizes="48px"
-            />
+          {/* Kreator tanpa foto profil mengirim `avatarUrl: ""`, dan next/image
+              melempar pada src kosong — cukup untuk mematikan seluruh daftar.
+              Inisial nama dipakai sebagai gantinya, sama seperti kartu kreator. */}
+          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-neutral-100 border border-neutral-200/60 relative overflow-hidden shadow-3xs transition-transform duration-300 group-hover:scale-105 flex items-center justify-center">
+            {order.creatorAvatarUrl ? (
+              <Image
+                src={order.creatorAvatarUrl}
+                alt={order.creatorName}
+                fill
+                className="object-cover"
+                sizes="48px"
+              />
+            ) : (
+              <span className="font-black text-neutral-300 text-lg select-none">
+                {order.creatorName?.charAt(0) ?? "?"}
+              </span>
+            )}
           </div>
           {order.unreadCount > 0 && (
             <span className="absolute -top-1 -right-1 h-[18px] w-[18px] rounded-full bg-primary text-white text-[9px] font-extrabold flex items-center justify-center border-2 border-white shadow-3xs">

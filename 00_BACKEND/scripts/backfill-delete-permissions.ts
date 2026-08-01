@@ -32,12 +32,13 @@ const DB_ID = process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID 
 
 interface Target {
   collectionId: string;
-  ownerField: string;
+  ownerField: string | null;
   label: string;
 }
 
 const TARGETS: Target[] = [
   { collectionId: "campaigns",        ownerField: "umkmId",    label: "Campaigns" },
+  { collectionId: "campaign_claims",  ownerField: "creatorId", label: "Campaign Claims" },
   { collectionId: "rate_cards",       ownerField: "creatorId", label: "Rate Cards" },
   { collectionId: "offers",           ownerField: "umkmId",    label: "Offers" },
   { collectionId: "campaign_assets",  ownerField: null,        label: "Campaign Assets" },

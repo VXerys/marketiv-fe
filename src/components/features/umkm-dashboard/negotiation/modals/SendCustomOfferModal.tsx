@@ -11,27 +11,39 @@ import {
 interface SendCustomOfferModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (offer: { finalPrice: number; scope: string; deadline: string; revisionCount: number }) => void;
+  onConfirm: (offer: { finalPrice: number; scope: string; deadline: string; revisionCount: number }) => Promise<void>;
   creatorName: string;
 }
 
 export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }: SendCustomOfferModalProps) {
-  const [scope, setScope] = useState("1 Video Review Instagram Reels Collab Post + Raw Footage");
-  const [price, setPrice] = useState(600000);
-  const [deadline, setDeadline] = useState("2026-06-15");
-  const [revisions, setRevisions] = useState(2);
+  const [scope, setScope] = useState("");
+  const [price, setPrice] = useState(0);
+  const [deadline, setDeadline] = useState("");
+  const [revisions, setRevisions] = useState(1);
   const [agreed, setAgreed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!agreed) return;
-    onConfirm({
-      finalPrice: price,
-      scope,
-      deadline: new Date(deadline).toISOString(),
-      revisionCount: revisions,
-    });
-    onClose();
+    if (!agreed || submitting) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      await onConfirm({
+        finalPrice: price,
+        scope,
+        deadline: new Date(deadline).toISOString(),
+        revisionCount: revisions,
+      });
+      onClose();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Gagal mengirim penawaran. Coba lagi.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -121,6 +133,7 @@ export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }
               id="modal-deadline"
               type="date"
               required
+              min={todayStr}
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
               className="w-full px-3.5 py-2 bg-neutral-50 border border-border-strong rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
@@ -141,21 +154,26 @@ export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }
             </span>
           </label>
 
+          {submitError && (
+            <p className="text-[10px] font-bold text-danger text-center px-1">{submitError}</p>
+          )}
+
           {/* Actions */}
           <ResponsiveModalFooter className="flex items-center gap-3 pt-3 border-t border-border-soft">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-neutral-200 hover:bg-neutral-50 text-text-secondary text-xs font-bold transition-all duration-200 cursor-pointer select-none text-center"
+              disabled={submitting}
+              className="flex-1 py-2.5 rounded-xl border border-neutral-200 hover:bg-neutral-50 text-text-secondary text-xs font-bold transition-all duration-200 cursor-pointer select-none text-center disabled:opacity-50"
             >
               Batal
             </button>
             <button
               type="submit"
-              disabled={!agreed}
+              disabled={!agreed || submitting}
               className="flex-1 py-2.5 rounded-xl bg-primary disabled:opacity-50 hover:bg-primary-600 text-white text-xs font-bold transition-all duration-200 cursor-pointer border border-primary disabled:border-neutral-200 hover:border-primary-600 shadow-xs text-center select-none"
             >
-              Kirim Penawaran
+              {submitting ? "Mengirim…" : "Kirim Penawaran"}
             </button>
           </ResponsiveModalFooter>
         </form>

@@ -8,7 +8,7 @@ export interface RateCardPackage {
   price: string;
   description: string;
   deliveryDays: number;
-  revisionLimit: number;
+  revisionLimit: number | null;
   deliverables: string[];
   recommended?: boolean;
 }
@@ -59,7 +59,7 @@ export function RateCardPackageCard({ pkg, onSelectPackage }: RateCardPackageCar
             <svg className="w-3.5 h-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H18v3.54" />
             </svg>
-            <span>{pkg.revisionLimit}x Revisi</span>
+            <span>{pkg.revisionLimit != null ? `${pkg.revisionLimit}x` : "—"} Revisi</span>
           </div>
         </div>
 

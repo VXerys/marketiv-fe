@@ -22,6 +22,7 @@ import {
 import { CreatorMetric, CreatorTransaction } from "@/types/creator-dashboard";
 import { CreatorStatusBadge } from "./CreatorStatusBadge";
 import { CreatorEmptyState } from "./CreatorEmptyState";
+import { MetricCard } from "@/components/ui/metric-card";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { MINIMUM_WITHDRAW } from "@/types/domain";
@@ -36,44 +37,6 @@ import { requestWithdrawal } from "@/services/creator/creator-dashboard.service"
 interface KeuanganViewProps {
   metrics: CreatorMetric;
   initialTransactions: CreatorTransaction[];
-}
-
-/* ---------------------------------- */
-/* Summary card — konsisten dengan CampaignSummaryCards / NegotiationSummaryCards */
-/* ---------------------------------- */
-interface SummaryCardProps {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  label: string;
-  value: string;
-  note: string;
-  iconBg: string;
-  iconColor: string;
-  iconBorder: string;
-}
-
-function SummaryCard({ icon: Icon, label, value, note, iconBg, iconColor, iconBorder }: SummaryCardProps) {
-  return (
-    <div className="relative min-w-0 p-3.5 sm:p-4.5 border border-neutral-200/80 rounded-2xl sm:rounded-[22px] bg-gradient-to-b from-white to-neutral-50/50 shadow-3xs transition-all duration-300 hover:-translate-y-1 hover:shadow-md hover:border-primary-500/20 group">
-      <div className="flex items-center justify-between gap-3 mb-2.5 sm:mb-3.5">
-        <div
-          className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-[14px] grid place-items-center border shadow-3xs transition-transform duration-300 group-hover:scale-105"
-          style={{ background: iconBg, borderColor: iconBorder, color: iconColor }}
-        >
-          <div className="block sm:hidden"><Icon size={14} /></div>
-          <div className="hidden sm:block"><Icon size={18} /></div>
-        </div>
-      </div>
-      <div className="text-[0.66rem] sm:text-[0.74rem] font-extrabold text-neutral-500 tracking-wide uppercase">
-        {label}
-      </div>
-      <div className="font-display text-[1.2rem] sm:text-[1.35rem] lg:text-[1.5rem] font-black text-neutral-900 tracking-tight leading-none mt-1 sm:mt-1.5 break-all">
-        {value}
-      </div>
-      <div className="text-[0.68rem] sm:text-[0.74rem] text-neutral-400 font-semibold mt-1 sm:mt-1.5 leading-none">
-        {note}
-      </div>
-    </div>
-  );
 }
 
 export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps) {
@@ -323,7 +286,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                 "inline-flex items-center gap-2 min-h-[46px] px-[22px] rounded-xl font-[800] text-[.9rem] tracking-[-0.012em] transition-all duration-200 cursor-pointer whitespace-nowrap",
                 isWithdrawDisabled
                   ? "bg-neutral-100 text-neutral-400 border border-neutral-200 cursor-not-allowed"
-                  : "border border-orange-900/20 bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white shadow-[0_14px_34px_rgba(234,88,12,.22),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_18px_40px_rgba(234,88,12,.30)] hover:-translate-y-px"
+                  : "border border-orange-900/20 bg-gradient-to-b from-finance-action to-primary-600 text-white shadow-finance-action hover:shadow-finance-action-hover hover:-translate-y-px"
               )}
             >
               <ArrowDownToLine size={17} />
@@ -336,7 +299,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                 <>
                   {/* Saldo Tersedia — hero card, full width on mobile */}
-                  <div className="col-span-2 sm:col-span-1 relative overflow-hidden rounded-2xl sm:rounded-[22px] border border-orange-900/20 bg-gradient-to-br from-[#fb7a18] to-primary-600 p-5 sm:p-6 text-white shadow-[0_14px_34px_rgba(234,88,12,.22)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_rgba(234,88,12,.30)] group">
+                  <div className="col-span-2 sm:col-span-1 relative overflow-hidden rounded-2xl sm:rounded-[22px] border border-orange-900/20 bg-gradient-to-br from-finance-action to-primary-600 p-5 sm:p-6 text-white shadow-finance-action transition-all duration-300 hover:-translate-y-1 hover:shadow-finance-action-hover group">
                     <div
                       className="absolute inset-0 pointer-events-none opacity-70"
                       style={{
@@ -367,50 +330,40 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                     </div>
                   </div>
 
-                  <SummaryCard
-                    icon={Clock}
+                  <MetricCard
+                    icon={<Clock />}
                     label="Pending Payout"
                     value={formatCurrency(walletMetrics.pendingPayouts)}
-                    note="Menunggu audit/validasi views"
-                    iconBg="#fffbeb"
-                    iconColor="#d97706"
-                    iconBorder="rgba(217,119,6,.18)"
+                    helper="Menunggu audit/validasi views"
+                    tone="warning"
                   />
-                  <SummaryCard
-                    icon={TrendingUp}
+                  <MetricCard
+                    icon={<TrendingUp />}
                     label="Total Pendapatan"
                     value={formatCurrency(walletMetrics.totalEarnings || 0)}
-                    note="Akumulasi seluruh pendapatan"
-                    iconBg="#f1fbf5"
-                    iconColor="#16a34a"
-                    iconBorder="rgba(22,163,74,.18)"
+                    helper="Akumulasi seluruh pendapatan"
+                    tone="success"
                   />
-                  <SummaryCard
-                    icon={Calendar}
+                  <MetricCard
+                    icon={<Calendar />}
                     label="Pendapatan Bulan Ini"
                     value={formatCurrency(walletMetrics.thisMonthEarnings || 0)}
-                    note="Bulan berjalan"
-                    iconBg="#f0f6ff"
-                    iconColor="#2563eb"
-                    iconBorder="rgba(37,99,235,.18)"
+                    helper="Bulan berjalan"
+                    tone="info"
                   />
-                  <SummaryCard
-                    icon={Megaphone}
+                  <MetricCard
+                    icon={<Megaphone />}
                     label="Pendapatan Campaign"
                     value={formatCurrency(walletMetrics.campaignEarnings || 0)}
-                    note="Dari marketing pay-per-view"
-                    iconBg="#fff7ed"
-                    iconColor="#ea580c"
-                    iconBorder="rgba(234,88,12,.18)"
+                    helper="Dari marketing pay-per-view"
+                    tone="primary"
                   />
-                  <SummaryCard
-                    icon={BadgeDollarSign}
+                  <MetricCard
+                    icon={<BadgeDollarSign />}
                     label="Pendapatan Rate Card"
                     value={formatCurrency(walletMetrics.rateCardEarnings || 0)}
-                    note="Dari negosiasi premium"
-                    iconBg="#f7f3ff"
-                    iconColor="#7c3aed"
-                    iconBorder="rgba(124,58,237,.18)"
+                    helper="Dari negosiasi premium"
+                    tone="accent"
                   />
                 </>
             </div>
@@ -817,7 +770,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                           "flex-1 min-h-[44px] font-[800] text-xs rounded-xl transition-all duration-200 cursor-pointer",
                           !isAmountValid
                             ? "bg-neutral-100 text-neutral-400 border border-neutral-200 cursor-not-allowed"
-                            : "border border-orange-900/20 bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white shadow-[0_10px_24px_rgba(234,88,12,.22)] hover:shadow-[0_14px_30px_rgba(234,88,12,.30)] hover:-translate-y-px"
+                            : "border border-orange-900/20 bg-gradient-to-b from-finance-action to-primary-600 text-white shadow-finance-action-sm hover:shadow-finance-action-sm-hover hover:-translate-y-px"
                         )}
                       >
                         Lanjutkan
@@ -891,7 +844,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                     <button
                       onClick={handleConfirmWithdrawal}
                       disabled={isSubmittingWithdraw}
-                      className="flex-1 min-h-[44px] border border-orange-900/20 bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-[0_10px_24px_rgba(234,88,12,.22)] hover:shadow-[0_14px_30px_rgba(234,88,12,.30)] hover:-translate-y-px cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
+                      className="flex-1 min-h-[44px] border border-orange-900/20 bg-gradient-to-b from-finance-action to-primary-600 text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-finance-action-sm hover:shadow-finance-action-sm-hover hover:-translate-y-px cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
                     >
                       {isSubmittingWithdraw ? "Memproses…" : "Konfirmasi & Tarik"}
                     </button>
@@ -945,7 +898,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
 
                   <button
                     onClick={resetWithdrawForm}
-                    className="w-full min-h-[44px] bg-ink-950 hover:bg-primary text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-md hover:shadow-[0_10px_24px_rgba(234,88,12,.22)] hover:-translate-y-px cursor-pointer text-center"
+                    className="w-full min-h-[44px] bg-ink-950 hover:bg-primary text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-md hover:shadow-finance-action-sm hover:-translate-y-px cursor-pointer text-center"
                   >
                     Selesai
                   </button>
@@ -1051,7 +1004,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                 <div className="pt-4">
                   <button
                     onClick={() => setSelectedTx(null)}
-                    className="w-full min-h-[44px] bg-ink-950 hover:bg-primary text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-md hover:shadow-[0_10px_24px_rgba(234,88,12,.22)] hover:-translate-y-px cursor-pointer text-center"
+                    className="w-full min-h-[44px] bg-ink-950 hover:bg-primary text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-md hover:shadow-finance-action-sm hover:-translate-y-px cursor-pointer text-center"
                   >
                     Tutup Rincian
                   </button>

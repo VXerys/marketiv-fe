@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -20,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { LogoutConfirmDialog } from "@/components/features/dashboard/shared/LogoutConfirmDialog";
 import {
   Sidebar,
   SidebarContent,
@@ -30,6 +30,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { getCreatorActiveWorks } from "@/services/creator/creator-dashboard.service";
+import type { ClaimStatus } from "@/types/domain";
 
 interface CreatorSidebarItem {
   label: string;
@@ -53,6 +55,15 @@ interface CreatorDashboardSidebarProps {
   onCloseSidebar?: () => void;
 }
 
+/**
+ * Status klaim yang berarti pekerjaan masih berjalan — plus labelnya.
+ * `approved`/`rejected`/`expired` absen: itu pekerjaan yang sudah tutup.
+ */
+const CLAIM_IN_PROGRESS: Partial<Record<ClaimStatus, string>> = {
+  claimed: "Sedang Dikerjakan",
+  submitted: "Menunggu Validasi",
+};
+
 export function CreatorDashboardSidebar({
   creatorName,
   creatorHandle,
@@ -61,33 +72,51 @@ export function CreatorDashboardSidebar({
   const pathname = usePathname();
   const { state, toggleSidebar } = useSidebar();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const displayCreatorName = creatorName || "Profil belum dimuat";
 
+  /**
+   * Panel "Campaign Aktif".
+   *
+   * Sebelum `s5-sidebar-fabrikasi`, isinya dua baris hardcode di dalam useState
+   * (Dapur Sehat Sukabumi & Sambal Bu Rudi, logo Unsplash) yang tampil di setiap
+   * layar — termasuk pada akun kreator yang belum mengklaim apa pun.
+   *
+   * Sumber nyatanya `campaign_claims` lewat getCreatorActiveWorks().
+   */
   const [activeCampaigns, setActiveCampaigns] = useState<Array<{
     businessName: string;
     logoUrl: string;
     campaignTitle: string;
     status: string;
-  }>>([
-    {
-      businessName: "Dapur Sehat Sukabumi",
-      logoUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=80&h=80&q=80",
-      campaignTitle: "Rasa Nusantara Food Review",
-      status: "Proses Edit Video"
-    },
-    {
-      businessName: "Sambal Bu Rudi",
-      logoUrl: "https://images.unsplash.com/photo-1596797038530-2c107229654b?auto=format&fit=crop&w=80&h=80&q=80",
-      campaignTitle: "Glow & Beauty Care",
-      status: "Menunggu Validasi"
-    }
-  ]);
+  }>>([]);
+
+  useEffect(() => {
+    let active = true;
+    void getCreatorActiveWorks().then((res) => {
+      if (!active || !res.success || !res.data) return;
+      setActiveCampaigns(
+        res.data
+          .filter((w) => CLAIM_IN_PROGRESS[w.status] !== undefined)
+          .slice(0, 5)
+          .map((w) => ({
+            businessName: w.brandName,
+            logoUrl: w.brandAvatar,
+            campaignTitle: w.title,
+            status: CLAIM_IN_PROGRESS[w.status] as string,
+          }))
+      );
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
-    <Sidebar className="bg-[#0c172b] text-white border-r border-white/5 shadow-xl" collapsible="icon">
+    <Sidebar className="bg-kreator-ink-deep text-white border-r border-white/5 shadow-xl" collapsible="icon">
       {/* Protruding Tab Toggle Button (Shopeers/Dashify Style) — centered vertically on viewport */}
       <button
         onClick={toggleSidebar}
-        className="absolute z-50 flex items-center justify-center rounded-r-md cursor-pointer transition-all duration-250 bg-[#0c172b] text-white/60 hover:text-white border border-l-0 border-white/5 shadow-[2px_0_8px_rgba(0,0,0,0.15)]"
+        className="absolute z-50 flex items-center justify-center rounded-r-md cursor-pointer transition-all duration-250 bg-kreator-ink-deep text-white/60 hover:text-white border border-l-0 border-white/5 shadow-[2px_0_8px_rgb(0_0_0_/_0.15)]"
         style={{
           right: "-22px",
           top: "50%",
@@ -115,8 +144,8 @@ export function CreatorDashboardSidebar({
             className="w-9 h-9 rounded-[11px] shrink-0 flex items-center justify-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:rounded-[13px] transition-all duration-300"
             style={{
               background:
-                "radial-gradient(circle at 35% 25%, rgba(255,255,255,.92) 0 10%, transparent 11%), linear-gradient(135deg, #2563eb, #7c3aed)",
-              boxShadow: "0 8px 24px rgba(37,99,235,.32), 0 2px 6px rgba(0,0,0,.2)",
+                "radial-gradient(circle at 35% 25%, rgb(255 255 255 / 0.92) 0 10%, transparent 11%), linear-gradient(135deg, var(--color-kreator-gradient-start), var(--color-kreator-gradient-end))",
+              boxShadow: "var(--shadow-kreator-brand)",
             }}
           >
             <span className="font-extrabold text-[.88rem] text-white font-display group-data-[collapsible=icon]:text-[1rem]">
@@ -163,9 +192,9 @@ export function CreatorDashboardSidebar({
                       : "hover:text-white/90 hover:bg-white/5"
                   )}
                   style={isActive ? {
-                    background: "linear-gradient(135deg, rgba(37,99,235,.22) 0%, rgba(147,51,234,.14) 100%)",
-                    boxShadow: "inset 0 1px 0 rgba(255,255,255,.08), 0 4px 16px rgba(37,99,235,.12)",
-                    border: "1px solid rgba(37,99,235,.22)",
+                    background: "linear-gradient(135deg, color-mix(in srgb, var(--color-kreator-gradient-start) 22%, transparent) 0%, color-mix(in srgb, var(--color-kreator-600) 14%, transparent) 100%)",
+                    boxShadow: "inset 0 1px 0 rgb(255 255 255 / 0.08), 0 4px 16px color-mix(in srgb, var(--color-kreator-gradient-start) 12%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--color-kreator-gradient-start) 22%, transparent)",
                   } : {
                     border: "1px solid transparent",
                   }}
@@ -182,7 +211,7 @@ export function CreatorDashboardSidebar({
                     {isActive && (
                       <span
                         className="absolute left-0 top-[20%] bottom-[20%] w-[3px] rounded-r-full group-data-[collapsible=icon]:hidden"
-                        style={{ background: "linear-gradient(180deg, #2563eb, #7c3aed)" }}
+                        style={{ background: "linear-gradient(180deg, var(--color-kreator-gradient-start), var(--color-kreator-gradient-end))" }}
                         aria-hidden="true"
                       />
                     )}
@@ -229,7 +258,7 @@ export function CreatorDashboardSidebar({
                       alt={campaign.businessName}
                       className="w-full h-full object-cover"
                     />
-                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-[#0d1b2e] animate-pulse" />
+                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 rounded-full border border-kreator-ink-deep animate-pulse" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <span className="block text-[0.82rem] font-bold text-white/85 truncate group-hover:text-white transition-colors duration-150">
@@ -333,12 +362,12 @@ export function CreatorDashboardSidebar({
           className="w-9 h-9 shrink-0 rounded-[10px] flex items-center justify-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:rounded-[13px] transition-all duration-300"
           style={{
             background:
-              "radial-gradient(circle at 36% 28%, rgba(255,255,255,.82) 0 12%, transparent 13%), linear-gradient(135deg, #93c5fd, #2563eb)",
-            boxShadow: "0 4px 12px rgba(37,99,235,.20)",
+              "radial-gradient(circle at 36% 28%, rgb(255 255 255 / 0.82) 0 12%, transparent 13%), linear-gradient(135deg, var(--color-kreator-gradient-muted-start), var(--color-kreator-gradient-start))",
+            boxShadow: "var(--shadow-kreator-brand-sm)",
           }}
         >
           <span className="font-extrabold text-[.82rem] text-white/90 font-display leading-none group-data-[collapsible=icon]:text-[.88rem]">
-            {creatorName.slice(0, 1).toUpperCase()}
+            {displayCreatorName.slice(0, 1).toUpperCase()}
           </span>
         </div>
 
@@ -347,7 +376,7 @@ export function CreatorDashboardSidebar({
             className="block text-[0.84rem] text-white leading-[1.2] truncate"
             style={{ letterSpacing: "-.02em" }}
           >
-            {creatorName}
+            {displayCreatorName}
           </strong>
           <span className="flex items-center gap-1 mt-[2px]">
             <BadgeCheck size={10.5} className="text-emerald-400 shrink-0" />
@@ -359,57 +388,11 @@ export function CreatorDashboardSidebar({
       </div>
     </SidebarFooter>
 
-      {/* Logout Confirmation Modal */}
-      {showLogoutModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          {/* Backdrop overlay */}
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
-            onClick={() => setShowLogoutModal(false)}
-          />
-          
-          {/* Dialog Card container */}
-          <div className="relative bg-[#0d1527] border border-white/10 rounded-3xl w-full max-w-[340px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col">
-            {/* Top Illustration */}
-            <div className="relative w-full aspect-[16/10] bg-black/40 overflow-hidden border-b border-white/5">
-              <Image
-                src="/logout_exit_door.png"
-                alt="Exit Illustration"
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-            
-            {/* Texts */}
-            <div className="px-6 pt-5 pb-6 text-center space-y-2">
-              <h4 className="text-xl font-extrabold text-white tracking-tight">
-                Logout?
-              </h4>
-              <p className="text-xs text-neutral-400 font-semibold leading-relaxed">
-                Kamu yakin ingin keluar?
-              </p>
-            </div>
-            
-            {/* Actions */}
-            <div className="px-6 pb-6 flex flex-col gap-2.5">
-              <Link
-                href="/"
-                onClick={() => setShowLogoutModal(false)}
-                className="flex items-center justify-center min-h-[44px] px-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-red-500/10 hover:shadow-lg hover:shadow-red-500/15 active:scale-[0.98] transition-all duration-150 text-center no-underline cursor-pointer"
-              >
-                Logout
-              </Link>
-              <button
-                onClick={() => setShowLogoutModal(false)}
-                className="flex items-center justify-center min-h-[44px] px-4 bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-white/10 text-white font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150 text-center cursor-pointer outline-none"
-              >
-                Kembali
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <LogoutConfirmDialog
+        open={showLogoutModal}
+        onOpenChange={setShowLogoutModal}
+        accent="red"
+      />
     </Sidebar>
   );
 }

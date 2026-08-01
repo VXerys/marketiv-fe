@@ -3,7 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { Transaction, UmkmFinanceSummary, EscrowOverview } from "@/types/umkm-dashboard.types";
-import { getTransactions, getFinanceOverview } from "@/services/umkm/umkm-dashboard.service";
+import {
+  getTransactions,
+  getFinanceOverview,
+  cancelPayment,
+} from "@/services/umkm/umkm-dashboard.service";
+import { toast } from "sonner";
 import { FinanceHeader } from "./FinanceHeader";
 import { FinanceSummaryCards } from "./FinanceSummaryCards";
 import { EscrowOverviewCard } from "./EscrowOverviewCard";
@@ -12,7 +17,7 @@ import { TransactionHistorySection } from "./TransactionHistorySection";
 import { FinancePageSkeleton } from "./FinancePageSkeleton";
 import { FinanceErrorState } from "./FinanceErrorState";
 import { TransactionDetailModal } from "./modals/TransactionDetailModal";
-import { PaymentSimulationModal } from "./modals/PaymentSimulationModal";
+import { PendingPaymentModal } from "./modals/PendingPaymentModal";
 import { ExportFinanceReportModal } from "./modals/ExportFinanceReportModal";
 import { FinanceActionSuccessModal } from "./modals/FinanceActionSuccessModal";
 
@@ -126,39 +131,27 @@ export function FinanceOverviewPage() {
     setSortOrder("date_desc");
   };
 
-  // Payment simulated action completion handler
-  const handlePaymentSuccess = (txId: string) => {
+  /**
+   * Batalkan pembayaran yang masih `pending` lewat Function `cancel-payment`,
+   * lalu muat ulang.
+   *
+   * MENGGANTIKAN handlePaymentSuccess, yang menandai transaksi lunas di state
+   * lokal setelah `setTimeout` 1,5 detik — tanpa uang berpindah, dan statusnya
+   * hilang begitu halaman dimuat ulang. Nomor Midtrans-nya pun dikarang
+   * (`MID-DEMO-<id>`) saat kolom aslinya kosong.
+   *
+   * Melunasi pembayaran tidak bisa dilakukan dari sini: itu terjadi di halaman
+   * Snap Midtrans, dan statusnya diperbarui webhook.
+   */
+  const handleCancelPayment = async (paymentId: string) => {
+    const res = await cancelPayment(paymentId);
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal membatalkan pembayaran.");
+      return;
+    }
     setSelectedTxPayment(null);
-
-    // Update transactions status locally to simulate database updates
-    setTransactions((prev) =>
-      prev.map((tx) => {
-        if (tx.id === txId) {
-          // If transaction type is deposit or escrow, change status appropriately
-          return {
-            ...tx,
-            status: tx.referenceType === "rate_card" && tx.description.includes("escrow") ? "held" as const : "paid" as const,
-          };
-        }
-        return tx;
-      })
-    );
-
-    // Get the paid transaction info
-    const paidTx = transactions.find((tx) => tx.id === txId);
-
-    setSuccessDialog({
-      isOpen: true,
-      title: "Pembayaran Sukses Terverifikasi",
-      message: paidTx
-        ? `Pembayaran senilai ${new Intl.NumberFormat("id-ID", {
-            style: "currency",
-            currency: "IDR",
-            maximumFractionDigits: 0,
-          }).format(paidTx.amount)} untuk "${paidTx.description}" telah berhasil diproses oleh Midtrans.`
-        : "Pembayaran Anda telah berhasil diproses.",
-      details: `Midtrans Order ID: ${paidTx?.midtransOrderId || `MID-DEMO-${txId.toUpperCase()}`}`,
-    });
+    toast.success("Pembayaran dibatalkan.");
+    await loadData();
   };
 
   // Export success handler
@@ -230,11 +223,11 @@ export function FinanceOverviewPage() {
 
       {/* Dialog: Payment checkout Sandbox */}
       {selectedTxPayment && (
-        <PaymentSimulationModal
+        <PendingPaymentModal
           transaction={selectedTxPayment}
           isOpen={!!selectedTxPayment}
           onClose={() => setSelectedTxPayment(null)}
-          onPaymentSuccess={handlePaymentSuccess}
+          onCancelPayment={handleCancelPayment}
         />
       )}
 

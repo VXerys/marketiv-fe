@@ -28,14 +28,20 @@ export function CreatorProfileHero({ creator }: CreatorProfileHeroProps) {
         {/* Avatar — overlap ke atas menggunakan margin negatif kustom */}
         <div className="h-24 w-24 sm:h-28 sm:w-28 rounded-3xl bg-white p-1.5 shadow-md border border-neutral-100 shrink-0 relative overflow-hidden -mt-12 sm:-mt-16 z-10">
           <div className="h-full w-full rounded-2xl relative overflow-hidden bg-neutral-100">
-            <Image
-              src={creator.imageUrl}
-              alt={creator.name}
-              fill
-              className="object-cover"
-              sizes="112px"
-              priority
-            />
+            {creator.imageUrl ? (
+              <Image
+                src={creator.imageUrl}
+                alt={creator.name}
+                fill
+                className="object-cover"
+                sizes="112px"
+                priority
+              />
+            ) : (
+              <span className="absolute inset-0 flex items-center justify-center text-4xl font-black text-neutral-300">
+                {creator.name.charAt(0)}
+              </span>
+            )}
           </div>
         </div>
 
@@ -51,7 +57,7 @@ export function CreatorProfileHero({ creator }: CreatorProfileHeroProps) {
           </div>
 
           <p className="text-xs text-text-secondary font-semibold max-w-2xl leading-relaxed">
-            {creator.description} &bull; Spesialis pembuatan konten media sosial premium yang terarah dengan konversi audiens organik tinggi.
+            {creator.description}
           </p>
 
           <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs font-bold text-text-secondary pt-1">

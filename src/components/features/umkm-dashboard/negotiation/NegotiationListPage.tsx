@@ -11,17 +11,11 @@ import { NegotiationRoomCard } from "./NegotiationRoomCard";
 import { NegotiationListSkeleton } from "./NegotiationListSkeleton";
 import { NegotiationEmptyState } from "./NegotiationEmptyState";
 import { NegotiationErrorState } from "./NegotiationErrorState";
-import {
-  getMyConversations,
-  setConversationArchived,
-  conversationPairKey,
-  type ConversationFlag,
-} from "@/services/shared/conversation.service";
+import { setConversationArchived } from "@/services/shared/conversation.service";
 import { toast } from "sonner";
 
 export function NegotiationListPage() {
   const [negotiations, setNegotiations] = useState<NegotiationOrder[]>([]);
-  const [conversations, setConversations] = useState<ConversationFlag[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,17 +30,15 @@ export function NegotiationListPage() {
     setLoading(true);
     setError(null);
     try {
-      // Percakapan dimuat berbarengan: daftar ini di-key orderId sedangkan
-      // status arsip ada di `conversations`. Kegagalannya TIDAK menggagalkan
-      // halaman — tanpa data arsip semua baris tampil, itu degradasi yang aman.
-      const [res, convRes] = await Promise.all([getNegotiations(), getMyConversations()]);
+      // Satu panggilan saja. Dulu `conversations` harus dimuat terpisah karena
+      // daftar ini di-key orderId sementara status arsip ada di percakapan;
+      // sejak DTO di-key conversationId dan membawa `isArchived` sendiri,
+      // jembatan itu tidak diperlukan lagi.
+      const res = await getNegotiations();
       if (res.success && res.data) {
         setNegotiations(res.data);
       } else {
         setError(res.error || "Gagal memuat daftar negosiasi.");
-      }
-      if (convRes.success && convRes.data) {
-        setConversations(convRes.data);
       }
     } catch {
       setError("Terjadi kesalahan sistem saat memuat data.");
@@ -55,28 +47,15 @@ export function NegotiationListPage() {
     }
   };
 
-  /** Percakapan unik per pasangan umkm+creator — jembatan ke baris negosiasi. */
-  const conversationByPair = new Map(
-    conversations.map((c) => [conversationPairKey(c.umkmId, c.creatorId), c])
-  );
-
-  const findConversation = (order: NegotiationOrder) =>
-    conversationByPair.get(conversationPairKey(order.umkmId, order.creatorId));
-
   const handleToggleArchive = async (order: NegotiationOrder) => {
-    const conv = findConversation(order);
-    if (!conv) {
-      toast.error("Percakapan untuk negosiasi ini belum tersedia.");
-      return;
-    }
-    const next = !conv.isArchived;
-    const res = await setConversationArchived(conv.id, next);
+    const next = !order.isArchived;
+    const res = await setConversationArchived(order.conversationId, next);
     if (!res.success) {
       toast.error(res.error ?? "Gagal mengubah status arsip.");
       return;
     }
-    setConversations((prev) =>
-      prev.map((c) => (c.id === conv.id ? { ...c, isArchived: next } : c))
+    setNegotiations((prev) =>
+      prev.map((n) => (n.conversationId === order.conversationId ? { ...n, isArchived: next } : n))
     );
     toast.success(next ? "Percakapan diarsipkan." : "Percakapan dikembalikan ke inbox.");
   };
@@ -95,22 +74,22 @@ export function NegotiationListPage() {
 
   // Hitungan status mengikuti tab arsip yang sedang aktif — badge yang
   // menghitung baris tak terlihat akan menyesatkan.
-  const scopedNegotiations = negotiations.filter(
-    (n) => (findConversation(n)?.isArchived ?? false) === showArchived
-  );
-  const archivedCount = negotiations.filter(
-    (n) => findConversation(n)?.isArchived ?? false
-  ).length;
+  const scopedNegotiations = negotiations.filter((n) => n.isArchived === showArchived);
+  const archivedCount = negotiations.filter((n) => n.isArchived).length;
 
   const statusCounts: Partial<Record<string, number>> = {
     all: scopedNegotiations.length,
-    pending_payment: scopedNegotiations.filter((n) => n.status === "pending_payment").length,
-    in_progress: scopedNegotiations.filter((n) => n.status === "in_progress").length,
-    escrow: scopedNegotiations.filter((n) => n.status === "escrow").length,
-    revision: scopedNegotiations.filter((n) => n.status === "revision").length,
-    approved: scopedNegotiations.filter((n) => n.status === "approved").length,
-    completed: scopedNegotiations.filter((n) => n.status === "completed").length,
-    cancelled: scopedNegotiations.filter((n) => n.status === "cancelled").length,
+    chatting: scopedNegotiations.filter((n) => n.stage === "chatting").length,
+    offer_pending: scopedNegotiations.filter((n) => n.stage === "offer_pending").length,
+    offer_rejected: scopedNegotiations.filter((n) => n.stage === "offer_rejected").length,
+    awaiting_order: scopedNegotiations.filter((n) => n.stage === "awaiting_order").length,
+    pending_payment: scopedNegotiations.filter((n) => n.stage === "pending_payment").length,
+    in_progress: scopedNegotiations.filter((n) => n.stage === "in_progress").length,
+    escrow: scopedNegotiations.filter((n) => n.stage === "escrow").length,
+    revision: scopedNegotiations.filter((n) => n.stage === "revision").length,
+    approved: scopedNegotiations.filter((n) => n.stage === "approved").length,
+    completed: scopedNegotiations.filter((n) => n.stage === "completed").length,
+    cancelled: scopedNegotiations.filter((n) => n.stage === "cancelled").length,
   };
 
   // Filter & Sort operations
@@ -122,12 +101,9 @@ export function NegotiationListPage() {
         n.lastMessage.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchStatus =
-        selectedStatus === "all" || n.status.toLowerCase() === selectedStatus.toLowerCase();
+        selectedStatus === "all" || n.stage.toLowerCase() === selectedStatus.toLowerCase();
 
-      // Tanpa baris percakapan, anggap belum diarsipkan — baris tetap terlihat.
-      const isArchived = findConversation(n)?.isArchived ?? false;
-
-      return matchSearch && matchStatus && isArchived === showArchived;
+      return matchSearch && matchStatus && n.isArchived === showArchived;
     })
     .sort((a, b) => {
       if (sortBy === "newest") {
@@ -208,7 +184,7 @@ export function NegotiationListPage() {
             <NegotiationRoomCard
               key={order.id}
               order={order}
-              isArchived={findConversation(order)?.isArchived ?? false}
+              isArchived={order.isArchived}
               onToggleArchive={() => handleToggleArchive(order)}
             />
           ))}

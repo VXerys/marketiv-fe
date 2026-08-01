@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { UmkmPageWrapper } from "../../shared/UmkmPageWrapper";
 import { CampaignDetailHeader } from "./CampaignDetailHeader";
@@ -18,6 +19,7 @@ import {
   getCampaignSubmissions,
   getUmkmProfile,
   updateCampaignStatus,
+  reviewSubmission,
 } from "@/services/umkm/umkm-dashboard.service";
 import {
   Campaign,
@@ -39,6 +41,7 @@ interface CampaignDetailPageProps {
 }
 
 export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,46 +96,55 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
     loadData();
   }, [loadData]);
 
-  // Handle audit status updates locally
-  const handleReviewConfirm = (status: SubmissionStatus, notes: string) => {
+  /**
+   * Setujui / tolak submission.
+   *
+   * Reward TIDAK dihitung di sini. Sebelumnya nilainya dikarang di klien —
+   * termasuk fallback `|| 15000` views yang membuat angka rupiah muncul dari
+   * ketiadaan. Yang menghitung adalah `calculate-campaign-reward`, yang menyala
+   * pada update `campaign_submissions` dan menulis `spentAmount` /
+   * `remainingBudget` campaign sendiri.
+   *
+   * Karena Function itu berjalan asinkron, angka campaign dibaca ulang dari
+   * server alih-alih ditebak lokal — dengan jeda singkat supaya Function sempat
+   * selesai. Kalau belum sempat, angkanya menyusul di refresh berikutnya.
+   */
+  const handleReviewConfirm = async (status: SubmissionStatus, views: number, notes?: string) => {
     if (!activeReviewSubmission || !campaign) return;
+    if (status === "pending") return;
 
-    // Estimate released funds locally if approved (e.g. rate per 1000 views)
-    let releasedFund = 0;
-    if (status === "approved") {
-      releasedFund = Math.round(
-        (activeReviewSubmission.actualViews || 15000) *
-          (campaign.pricePerThousandViews / 1000)
-      );
-    }
-
-    // Update submissions list locally
-    const updatedSubmissions = submissions.map((sub) =>
-      sub.id === activeReviewSubmission.id
-        ? {
-            ...sub,
-            validationStatus: status,
-            releasedFund,
-            validatedAt: new Date().toISOString(),
-          }
-        : sub
-    );
-    setSubmissions(updatedSubmissions);
-
-    // Recompute total views & budget used for the campaign
-    const totalViews = updatedSubmissions.reduce((sum, s) => sum + s.actualViews, 0);
-    const usedBudget = updatedSubmissions
-      .filter((s) => s.validationStatus === "approved")
-      .reduce((sum, s) => sum + s.releasedFund, 0);
-
-    setCampaign({
-      ...campaign,
-      totalViews,
-      usedBudget,
+    const target = activeReviewSubmission;
+    const res = await reviewSubmission({
+      submissionId: target.id,
+      status,
+      views,
+      notes,
     });
 
-    const statusLabel = status === "approved" ? "Disetujui" : "Ditolak";
-    showToast(`Ulasan oleh "${activeReviewSubmission.creatorName}" berhasil ${statusLabel}. Catatan: ${notes || "-"}`);
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal menyimpan hasil review.");
+      throw new Error(res.error ?? "Gagal menyimpan hasil review.");
+    }
+
+    setSubmissions((prev) =>
+      prev.map((sub) =>
+        sub.id === target.id
+          ? {
+              ...sub,
+              validationStatus: status,
+              actualViews: status === "approved" ? views : sub.actualViews,
+            }
+          : sub
+      )
+    );
+
+    const statusLabel = status === "approved" ? "disetujui" : "ditolak";
+    showToast(`Submission dari "${target.creatorName}" berhasil ${statusLabel}.`);
+
+    // Beri ruang untuk calculate-campaign-reward sebelum membaca angka baru.
+    setTimeout(() => {
+      loadData();
+    }, 2500);
   };
 
   const handleCancelConfirm = async () => {
@@ -144,6 +156,21 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
       showToast(`Campaign "${target.title}" berhasil dijeda.`);
     } else {
       toast.error(res.error ?? "Gagal menjeda campaign.");
+    }
+  };
+
+  /**
+   * CTA utama campaign paused → aktifkan kembali (bukan edit).
+   * Guard status ada di backend — kalau sudah aktif, server menolak.
+   */
+  const handleResumeFromPause = async () => {
+    if (!campaign) return;
+    const res = await updateCampaignStatus(campaign.id, "active");
+    if (res.success && res.data) {
+      setCampaign(res.data);
+      showToast(`Campaign "${campaign.title}" berhasil diaktifkan kembali.`);
+    } else {
+      toast.error(res.error ?? "Gagal mengaktifkan campaign.");
     }
   };
 
@@ -175,7 +202,11 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
           campaign={campaign}
           onCancelClick={() => setIsCancelModalOpen(true)}
           onExportClick={() => setIsExportModalOpen(true)}
-          onEditClick={() => showToast(`Buka wizard edit campaign: ${campaign.title}`)}
+          onEditClick={
+            campaign.status === "paused"
+              ? handleResumeFromPause
+              : () => router.push(`/dashboard/umkm/campaign/${campaign.id}/edit`)
+          }
         />
 
         {/* Overview cards */}
@@ -247,6 +278,19 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
           <ExportReportModal
             isOpen={isExportModalOpen}
             onClose={() => setIsExportModalOpen(false)}
+            filename={`Laporan_${campaign?.title?.replace(/\s+/g, "_") ?? "Campaign"}_Marketiv`}
+            rows={submissions.map((s) => ({
+              "ID Submission": s.id,
+              "Kreator": s.creatorName,
+              "Platform": s.platform,
+              "URL Konten": s.contentUrl,
+              "Views": s.actualViews,
+              "Status": s.validationStatus,
+              "Fraud Status": s.fraudStatus,
+              "Dana Dicairkan (Rp)": s.releasedFund,
+              "Dikirim": s.submittedAt,
+              "Divalidasi": s.validatedAt ?? "-",
+            }))}
           />
         )}
 

@@ -1,67 +1,55 @@
-import * as React from "react";
-
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
-type DashboardProgressTone = "orange" | "green" | "yellow" | "red" | "blue";
-
-interface DashboardProgressProps {
+export interface DashboardProgressProps {
+  label: string;
   value: number;
-  max?: number;
-  label?: string;
+  max: number;
   valueLabel?: string;
-  tone?: DashboardProgressTone;
-  shimmer?: boolean;
+  tone?: "orange" | "green" | "blue" | "red" | "neutral";
   className?: string;
 }
 
-const toneClasses: Record<DashboardProgressTone, string> = {
-  orange: "bg-gradient-to-r from-orange-500 to-amber-400",
-  green: "bg-gradient-to-r from-green-500 to-emerald-400",
-  yellow: "bg-gradient-to-r from-amber-500 to-yellow-300",
-  red: "bg-gradient-to-r from-red-500 to-rose-400",
-  blue: "bg-gradient-to-r from-blue-500 to-cyan-400",
+const barColors: Record<NonNullable<DashboardProgressProps["tone"]>, string> = {
+  orange: "bg-primary",
+  green: "bg-success",
+  blue: "bg-info",
+  red: "bg-danger",
+  neutral: "bg-neutral-600",
 };
 
-/**
- * @deprecated Use Progress component from @/components/ui/progress instead.
- */
+const backgroundColors: Record<NonNullable<DashboardProgressProps["tone"]>, string> = {
+  orange: "bg-primary-50",
+  green: "bg-success-soft",
+  blue: "bg-info-soft",
+  red: "bg-danger-soft",
+  neutral: "bg-neutral-100",
+};
+
+/** Shared progress primitive for dashboard feature surfaces. */
 export function DashboardProgress({
-  value,
-  max = 100,
   label,
+  value,
+  max,
   valueLabel,
   tone = "orange",
-  shimmer = true,
   className,
 }: DashboardProgressProps) {
-  const percentage = max > 0 ? Math.min(Math.max((value / max) * 100, 0), 100) : 0;
+  const denominator = max <= 0 ? 1 : max;
+  const percentage = Math.min(100, Math.max(0, (value / denominator) * 100));
 
   return (
-    <div className={cn("space-y-2", className)}>
-      {label || valueLabel ? (
-        <div className="flex items-center justify-between gap-3 text-xs font-semibold text-neutral-500">
-          {label ? <span>{label}</span> : <span />}
-          {valueLabel ? <span className="text-neutral-700">{valueLabel}</span> : null}
-        </div>
-      ) : null}
-      <div className="relative overflow-hidden rounded-full bg-neutral-100 h-2.5">
-        <Progress
-          value={percentage}
-          className="h-full bg-neutral-100 border-none rounded-full"
-          style={{
-            // Directly style the Progress indicator via inline CSS variable if desired, or class
-            backgroundColor: "transparent",
-          }}
-        >
-          {/* Internal Progress Indicator override using tone class */}
-          <div
-            className={cn("h-full rounded-full transition-all duration-300", toneClasses[tone])}
-            style={{ width: `${percentage}%` }}
-          >
-            {shimmer ? <span className="absolute inset-0 bg-white/25 opacity-40 animate-pulse" /> : null}
-          </div>
-        </Progress>
+    <div className={cn("min-w-0 w-full space-y-1.5", className)}>
+      <div className="flex items-center justify-between gap-2 text-[10px] font-bold text-text-secondary">
+        <span className="truncate">{label}</span>
+        <span className="shrink-0 whitespace-nowrap text-text-primary">
+          {valueLabel || `${Math.round(percentage)}%`}
+        </span>
+      </div>
+      <div className={cn("h-2.5 w-full overflow-hidden rounded-full", backgroundColors[tone])}>
+        <div
+          className={cn("h-full rounded-full transition-all duration-500 ease-out", barColors[tone])}
+          style={{ width: `${percentage}%` }}
+        />
       </div>
     </div>
   );
