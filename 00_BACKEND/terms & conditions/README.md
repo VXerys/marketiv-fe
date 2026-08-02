@@ -8,16 +8,34 @@ Folder ini berisi seluruh dokumen terkait penyusunan, review, dan verifikasi Sya
 
 | File | Deskripsi | Status |
 |------|-----------|--------|
-| `syarat-dan-ketentuan-marketiv-v3-1.pdf` | T&C V3-1 — Draf gabungan Draf A + Draf B, terverifikasi thd backend docs | **DRAF — BELUM REVIEW LEGAL** |
-| `output/syarat-dan-ketentuan-marketiv-v3-1.md` | Konversi PDF ke markdown (via index.js) | Lengkap |
-| `output/syarat-dan-ketentuan-marketiv-v3-1.json` | Metadata PDF (heading, list, paragraf, bounding box) | Lengkap |
-| `output/syarat-dan-ketentuan-marketiv-v3-1.html` | Konversi PDF ke HTML | Lengkap |
-| `output/syarat-dan-ketentuan-marketiv-v3-1_annotated.pdf` | PDF dgn anotasi | Lengkap |
-| `midtrans-tnc-template-13-jan-2017-1.pdf` | Template T&C Midtrans (payment gateway) versi 13 Jan 2017 | **Gambar — perlu OCR** |
-| `review-tnc-marketiv-v3-cto.md` | Review CTO atas T&C V3 — 7 blocker P0, 25+ temuan P1 | **Final — CTO** |
-| *(inline)* | Review CAIO — Pasal 16.3, Pasal 18, catatan AI Generatif | **Telah diintegrasikan ke README ini** |
-| `index.js` | Script konversi PDF (OpenDataLoader) | Utilitas |
+| `referensi/syarat-dan-ketentuan-marketiv-v3-1.pdf` | T&C V3-1 — Draf gabungan Draf A + Draf B, terverifikasi thd backend docs | **DRAF — BELUM REVIEW LEGAL** |
+| `review/output/syarat-dan-ketentuan-marketiv-v3-1.md` | Konversi PDF ke markdown (via index.js) | Lengkap |
+| `review/output/syarat-dan-ketentuan-marketiv-v3-1.json` | Metadata PDF (heading, list, paragraf, bounding box) | Lengkap |
+| `review/output/syarat-dan-ketentuan-marketiv-v3-1.html` | Konversi PDF ke HTML | Lengkap |
+| `review/output/syarat-dan-ketentuan-marketiv-v3-1_annotated.pdf` | PDF dgn anotasi | Lengkap |
+| `referensi/midtrans-tnc-template-13-jan-2017-1.pdf` | Template T&C Midtrans (payment gateway) versi 13 Jan 2017 | **Gambar — perlu OCR** |
+| `review/review-tnc-marketiv-v3-cto.md` | Review CTO atas T&C V3 — 7 blocker P0, 25+ temuan P1 | **Final — CTO** |
+| `review/review-tnc-marketiv-v3-caio.md` | Review CAIO — Pasal 16.3, Pasal 18, catatan AI Generatif | **Final — CAIO** |
+| `review/audit-caio-cto-vs-backend.md` | Audit temuan CTO+CAIO thd docs+kode backend (verdict + bukti) | **Baru — 2026-08-02** |
+| `roadmap/tasks-backend-alignment-tnc.md` | Daftar tugas backend utk penyelarasan T&C | **Baru — 2026-08-02** |
+| `prompt/README-prompt-eksekusi.md` | Urutan eksekusi prompt + matriks bentrok file | **Baru — 2026-08-02** |
+| `prompt/prompt-*.md` (9 file) | Prompt eksekusi per-task backend (T-01 s/d T-19) | **Baru — 2026-08-02** |
+| `referensi/index.js` | Script konversi PDF (OpenDataLoader) | Utilitas |
 | `README.md` | **File ini** — penjelasan & navigasi | Aktif |
+
+---
+
+## Struktur Folder
+
+```
+terms & conditions/
+├── README.md          ← file ini (navigasi)
+├── referensi/         ← dokumen sumber & utilitas (PDF T&C, template Midtrans, index.js)
+├── review/            ← hasil review & audit (CTO, CAIO, audit vs backend)
+│   └── output/        ← artefak konversi PDF (md, json, html, annotated)
+├── roadmap/           ← daftar tugas penyelarasan backend (sumber konten prompt)
+└── prompt/            ← prompt eksekusi per-task + panduan urutan
+```
 
 ---
 
@@ -66,9 +84,9 @@ BAGIAN II — Lampiran Internal (HAFUS SEBELUM PUBLIKASI)
 | 13 | Fraud Detection | AI-based, low/medium/high, auto-reject hanya admin bisa buka |
 | 14 | **Dispute** | Via WhatsApp admin (manual), escrow freeze |
 | 15 | Refund | Rate Card pasca-bayar → dispute, refund ke Wallet UMKM |
-| 16 | **HKI + AI** | **CAIO:** Lisensi non-eksklusif Marketiv. Kepemilikan konten hasil kerja Kreator → **milik UMKM** (digunakan utk kebutuhan komersial). Konten buatan AI diperbolehkan, tanggung jawab Kreator |
+| 16 | **HKI + AI** | 16.5: lisensi non-eksklusif Marketiv utk operasional layanan (teks dokumen). **CAIO-01:** kepemilikan konten hasil kerja Kreator → **milik UMKM** setelah escrow release (kebutuhan komersial UMKM), kreditasi Kreator tetap. **CAIO-03:** konten AI diperbolehkan, pelanggaran HKI → tanggung jawab Kreator |
 | 17 | Privasi | UU PDP 27/2022, data kartu via Midtrans |
-| 18 | **Penangguhan Akun** | **CAIO:** Proporsional: peringatan → suspend → permanen. **WAJIB tambah mekanisme banding/klarifikasi** sebelum keputusan akhir (mitigasi false positive) |
+| 18 | **Penangguhan Akun** | Proporsional: peringatan → suspend → permanen. **CAIO-02:** **WAJIB tambah mekanisme banding/klarifikasi** sebelum keputusan akhir (mitigasi false positive) |
 | 19 | Ganti Rugi | "As is", cap liability [PLACEHOLDER] |
 | 20 | Hukum Berlaku | Hukum RI, [PN / BANI] |
 | 21 | Ketentuan Lain | Severability, waiver, larangan pengalihan |
@@ -158,7 +176,7 @@ BAGIAN II — Lampiran Internal (HAFUS SEBELUM PUBLIKASI)
 
 | Metadata | Nilai |
 |----------|-------|
-| File | `midtrans-tnc-template-13-jan-2017-1.pdf` |
+| File | `referensi/midtrans-tnc-template-13-jan-2017-1.pdf` |
 | Halaman | 10 |
 | Author | Stacy |
 | Tanggal | 13 Jan 2017 |
@@ -176,7 +194,10 @@ BAGIAN II — Lampiran Internal (HAFUS SEBELUM PUBLIKASI)
 ## 4. Ringkasan Review CAIO
 
 **Reviewer:** CAIO Marketiv  
+**Sumber:** `review/review-tnc-marketiv-v3-caio.md` (3 temuan + catatan AI)  
 **Scope:** Pasal 16.3 (HKI), Pasal 18 (penangguhan akun), catatan AI Generatif di seluruh T&C
+
+> **Catatan akurasi:** Seluruh redaksi saran pasal di bawah adalah **usulan dari revisi ini**, bukan teks asli CAIO. CAIO memberi keputusan arah; angka (durasi, SLA) yang belum disebut CAIO ditandai `[PLACEHOLDER — PERLU KEPUTUSAN]`.
 
 ### 3 Temuan CAIO
 
@@ -200,12 +221,12 @@ kesepakatan para pihak dalam brief atau Custom Offer.
 **Masalah:** Tidak ada default. Jika brief/Custom Offer tidak menyebut, terjadi vakum hukum.
 
 **Rekomendasi CAIO:**
-- Brief → tetap fungsinya sbg generator spesifikasi konten
-- Hak milik konten final → **UMKM** (karena digunakan utk kebutuhan komersial UMKM)
+- Brief → tetap fungsinya sbg generator spesifikasi konten (bukan tempat mengatur kepemilikan)
+- Hak milik konten final → **UMKM** (karena konten digunakan utk kebutuhan komersial UMKM)
 - Kreator tetap diakui sbg pembuat (attribution/moral rights)
 - Ini default — para pihak tetap bisa atur berbeda di Custom Offer
 
-**Redaksi saran:**
+**Redaksi saran (usulan revisi ini — bukan teks CAIO):**
 ```
 16.3 — Kepemilikan Konten Hasil Kerja. (a) Kecuali diperjanjikan lain secara
 tertulis dalam Custom Offer, seluruh konten hasil kerja Kreator yang dibuat
@@ -223,11 +244,11 @@ perundang-undangan yang berlaku.
 **Masalah:** False positive bisa terjadi, terutama jika sistem deteksi otomatis (AI-based fraud detection di Pasal 13) keliru. Pengguna kena suspend tanpa kesempatan klarifikasi.
 
 **Rekomendasi CAIO:**
-- Tambah mekanisme banding/klarifikasi sebelum keputusan akhir
-- Pengguna berhak ajukan peninjauan ulang dalam batas waktu tertentu
-- Admin wajib merespons dalam SLA tertentu
+- Tambah mekanisme banding/klarifikasi **sebelum keputusan akhir** ditetapkan
+- Pengguna berhak ajukan peninjauan ulang dalam batas waktu tertentu *(durasi: tidak disebut CAIO)*
+- Admin wajib merespons dalam SLA tertentu *(SLA: tidak disebut CAIO)*
 
-**Redaksi saran (ayat baru di Pasal 18):**
+**Redaksi saran (ayat baru di Pasal 18 — usulan revisi ini):**
 ```
 18.5 — Pengguna yang akunnya dikenai tindakan penangguhan atau penghentian
 berhak mengajukan banding kepada Marketiv dalam waktu [14] hari kalender
@@ -235,6 +256,8 @@ sejak pemberitahuan tindakan, disertai alasan dan bukti pendukung. Marketiv
 akan meninjau dan memberikan keputusan banding dalam waktu [7] hari kerja.
 Keputusan banding bersifat final di tingkat Platform.
 ```
+
+> **`[14]` & `[7]` = PLACEHOLDER — CAIO tidak menentukan angka.** Keputusan ada di Bagian Keputusan Sebelum Sign-off (item banding).
 
 #### CAIO-03 — Penggunaan AI Generatif dalam Konten
 
@@ -247,11 +270,11 @@ Keputusan banding bersifat final di tingkat Platform.
 
 **Rekomendasi CAIO:**
 - **AI diperbolehkan** (full atau partial) — tdk dilarang
-- **Wajib diungkapkan** jika UMKM meminta informasi penggunaan AI
+- **Wajib diungkapkan** jika UMKM meminta informasi penggunaan AI *(tambahan revisi ini — CAIO tdk sebut disclosure)*
 - **Tanggung jawab** atas pelanggaran hak cipta akibat AI tetap di Kreator
 - Sederhana, tidak perlu aturan teknis yg rigid
 
-**Redaksi saran (Pasal 12.3 — Larangan Umum, ayat baru):**
+**Redaksi saran (ayat baru 12.5 setelah 12.4 — usulan revisi ini):**
 ```
 12.5 — Kreator dapat menggunakan kecerdasan buatan (AI) generatif dalam
 pembuatan konten, sebagian atau seluruhnya, sepanjang tidak melanggar hak
@@ -274,7 +297,21 @@ Selain klausul di atas, AI bersinggungan dengan beberapa pasal lain:
 
 ---
 
-## 5. Placeholder Terbuka (Lampiran 3)
+## 5. Kebutuhan Backend dari Review CAIO
+
+Peta tiap temuan CAIO → kebutuhan yg harus dipenuhi backend → titik cek. Dipakai utk menjawab: apakah kebutuhan di backend sudah sesuai dgn hasil review CAIO.
+
+| Kode | Kebutuhan (dari CAIO) | Target di backend | Cek di backend |
+|------|----------------------|-------------------|----------------|
+| CAIO-01 | Kepemilikan konten hasil kerja beralih ke **UMKM** saat escrow release; kreditasi Kreator (attribution) tetap dipertahankan | Alur release escrow sbg titik peralihan kepemilikan; metadata pembuat/kreditasi konten | Apakah release escrow tercatat & terdokumentasi? Apakah metadata kreditasi Kreator tersimpan? |
+| CAIO-02 | Pengguna yg di-suspend/dihentikan bisa **mengajukan banding** sebelum keputusan final; batas waktu & SLA = `[PLACEHOLDER — perlu keputusan]` | Status akun + entitas appeal (pengajuan, deadline, SLA, notifikasi); timer otomatis | Apakah ada jalur banding di model data? field deadline? timer SLA? notifikasi ke admin? |
+| CAIO-03 | AI generatif **diperbolehkan** (full/partial) selama tdk melanggar HKI pihak lain; wajib diungkapkan bila diminta; pelanggaran → tanggung jawab Kreator | Metadata konten/brief utk penanda penggunaan AI; mekanisme disclosure ke UMKM | Apakah ada field/metadata AI? Apakah UMKM bisa meminta info penggunaan AI? |
+
+**Keterkaitan lintas pasal:** CAIO-02 juga menutup false positive dari Pasal 13 (fraud detection berbasis AI); CAIO-03 bersinggungan dgn Pasal 7.1.e (Bukti Tayang) & Pasal 16 — lihat tabel "Catatan Tambahan — AI di Seluruh T&C" di atas.
+
+---
+
+## 6. Placeholder Terbuka (Lampiran 3)
 
 ### A. Legal (wajib diisi founder/penasihat hukum)
 
@@ -316,14 +353,14 @@ Selain klausul di atas, AI bersinggungan dengan beberapa pasal lain:
 | 3 | Biaya platform refund dikembalikan/tidak | 15.3 |
 | 4 | Biaya Midtrans saat refund | 15.3 |
 | 5 | Pencairan Wallet UMKM (UMKM tdk punya withdrawal) | 15.1.c |
-| 6 | **Default kepemilikan konten** — **CAIO sudah putuskan:** milik UMKM setelah escrow release, attribution Kreator tetap diakui | 16.3 |
+| 6 | **Default kepemilikan konten** — **CAIO sudah putuskan:** brief tetap sbg generator spesifikasi konten; kepemilikan konten → **milik UMKM** setelah escrow release, attribution Kreator tetap diakui | 16.3 |
 | 7 | Mekanisme saldo saat akun ditutup | 18.3 |
 | 8 | Durasi pending → available | 7.1.g, 10 |
 | 9 | Collab Post vs escrow release urutan | Lampiran 3.C.10 |
 
 ---
 
-## 6. 13 Keputusan Sebelum Sign-off (CTO + CAIO)
+## 7. 13 Keputusan Sebelum Sign-off (CTO + CAIO)
 
 Beberapa keputusan sudah dijawab oleh CAIO. Sisanya tetap perlu diputuskan.
 
@@ -340,12 +377,12 @@ Beberapa keputusan sudah dijawab oleh CAIO. Sisanya tetap perlu diputuskan.
 | 9 | Verifikasi email wajib sebelum withdrawal | CTO | **Perlu keputusan** |
 | 10 | Durasi pending → available | CTO | **Perlu keputusan** |
 | 11 | **Kepemilikan konten: default milik UMKM?** (CAIO-01) | CAIO + Legal | ⬆️ **Diputuskan CAIO** — milik UMKM |
-| 12 | **Mekanisme banding suspend: berapa hari?** (CAIO-02) | CTO + CAIO | **Perlu keputusan** — durasi banding & SLA |
+| 12 | **Mekanisme banding suspend: berapa hari?** (CAIO-02) | CTO + CAIO | **Perlu keputusan** — durasi banding & SLA. CAIO tdk tentukan angka; redaksi saran pakai `[14]` hari kalender & `[7]` hari kerja sbg placeholder |
 | 13 | **Kebijakan AI Generatif: diizinkan?** (CAIO-03) | CAIO + Legal | ⬆️ **Diputuskan CAIO** — izinkan, tanggung jawab Kreator |
 
 ---
 
-## 7. Alur Penyusunan & Review
+## 8. Alur Penyusunan & Review
 
 ```mermaid
 flowchart LR
@@ -368,35 +405,35 @@ flowchart LR
 
 ---
 
-## 8. Langkah Selanjutnya
+## 9. Langkah Selanjutnya
 
 1. **Founder review** Lampiran 2 (B) & 3 (C) → putuskan semua item
 2. **CAIO review final** — konfirmasi redaksi Pasal 16.3 (kepemilikan UMKM), Pasal 18 (mekanisme banding), dan klausul AI Generatif baru (Pasal 12.5)
 3. **CTO sign-off** setelah 7 blocker P0 tertutup
 4. **Review legal** untuk placeholder A + buat Kebijakan Privasi
 5. **Sinkron dokumen** yg kalah (06-business-rules, technical-guidelines, dll)
-6. **Update index.js** untuk konversi Midtrans PDF (perlu OCR)
+6. **Update `referensi/index.js`** untuk konversi Midtrans PDF (perlu OCR)
 7. **Wiring** ke `src/app/syarat-ketentuan/page.tsx` setelah final
 8. **Hapus Bagian II** sebelum publikasi
 
 ---
 
-## 9. Script Konversi
+## 10. Script Konversi
 
-`index.js` menggunakan `@opendataloader/pdf` untuk konversi PDF ke JSON/HTML/Markdown.
+`referensi/index.js` menggunakan `@opendataloader/pdf` untuk konversi PDF ke JSON/HTML/Markdown. Jalankan dari folder `referensi/` — hasil masuk ke `review/output/`.
 
 ```js
 // Konversi Marketiv T&C
 await convert(["syarat-dan-ketentuan-marketiv-v3-1.pdf"], {
-  outputDir: "output/",
+  outputDir: "review/output/",
   format: "json,html,pdf,markdown",
 });
 
 // Konversi Midtrans T&C — perlu dijalankan
 await convert(["midtrans-tnc-template-13-jan-2017-1.pdf"], {
-  outputDir: "review-sechan/",
+  outputDir: "review/output/",
   format: "json,html,pdf,markdown",
 });
 ```
 
-**Catatan:** Folder `review-sechan/` belum ada — jalankan script.
+**Catatan:** Konversi Midtrans belum dijalankan (PDF 100% gambar — perlu OCR).
