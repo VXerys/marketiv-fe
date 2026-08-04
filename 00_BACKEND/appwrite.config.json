@@ -68,6 +68,29 @@
           "required": false,
           "array": false,
           "default": null
+        },
+        {
+          "key": "tos_version",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 20,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "tos_accepted_at",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "email_verified_at",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
         }
       ],
       "indexes": [

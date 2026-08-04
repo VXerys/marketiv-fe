@@ -80,7 +80,10 @@ const collections = [
             createStringAttr("status", true, 50),
             createStringAttr("email", true),
             createStringAttr("phone", false, 50),
-            createDatetimeAttr("createdAt", false)
+            createDatetimeAttr("createdAt", false),
+            createStringAttr("tos_version", false, 20),
+            createDatetimeAttr("tos_accepted_at", false),
+            createDatetimeAttr("email_verified_at", false)
         ],
         indexes: [
             createIndex("idx_userId", "unique", ["userId"]),

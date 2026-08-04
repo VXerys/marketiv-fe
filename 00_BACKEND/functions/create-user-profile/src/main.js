@@ -47,7 +47,8 @@ function getEnv(req) {
     usersCollectionId: process.env.USERS_COLLECTION_ID || process.env.NEXT_PUBLIC_USER_COLLECTION || "users",
     umkmProfilesCollectionId: process.env.UMKM_PROFILES_COLLECTION_ID || "umkm_profiles",
     creatorProfilesCollectionId: process.env.CREATOR_PROFILES_COLLECTION_ID || process.env.NEXT_PUBLIC_CREATOR_COLLECTION || "creator_profiles",
-    storageUsageCollectionId: process.env.USER_STORAGE_USAGE_COLLECTION_ID || "user_storage_usage"
+    storageUsageCollectionId: process.env.USER_STORAGE_USAGE_COLLECTION_ID || "user_storage_usage",
+    currentTosVersion: process.env.CURRENT_TOS_VERSION || "v3.1"
   };
 
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
@@ -81,6 +82,8 @@ async function ensureUserMirror(databases, env, user, userId, role) {
   const existing = await findByUserId(databases, env.databaseId, env.usersCollectionId, userId);
   if (existing) return existing;
 
+  const tos = getTosAgreement(user, env.currentTosVersion);
+
   return databases.createDocument(
     env.databaseId,
     env.usersCollectionId,
@@ -91,10 +94,23 @@ async function ensureUserMirror(databases, env, user, userId, role) {
       status: "active",
       email: user.email || "",
       phone: user.phone || user.prefs?.phone || null,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      tos_version: tos.version,
+      tos_accepted_at: tos.acceptedAt
     },
     [Permission.read(Role.user(userId)), Permission.update(Role.user(userId))]
   );
+}
+
+// Payload menyatakan setuju hanya bila versinya cocok dengan versi aktif.
+// Versi absen/lama → kolom kosong, user diarahkan re-consent via interstitial;
+// registrasi tetap jalan (mirror profil TIDAK boleh gagal karena T&C).
+function getTosAgreement(user, currentTosVersion) {
+  const payloadVersion = user.tos_version || user.tosVersion || user.prefs?.tos_version || user.prefs?.tosVersion || null;
+  if (payloadVersion && payloadVersion === currentTosVersion) {
+    return { version: payloadVersion, acceptedAt: new Date().toISOString() };
+  }
+  return { version: null, acceptedAt: null };
 }
 
 async function ensureUmkmProfile(databases, env, user, userId) {
