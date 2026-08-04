@@ -460,6 +460,83 @@ describe('calculate-campaign-reward function (FIX A: idempotency)', () => {
 });
 
 describe('request-withdrawal function (FIX B: atomic debit)', () => {
+  // ===== T-14 / T-15 gates =====
+  it('rejects withdrawal when creator has not accepted TOS v3.1', async () => {
+    (globalThis as any).fetch = () => ({ ok: true, status: 200, text: async () => '{}' });
+    process.env.WALLETS_COLLECTION_ID = 'wallets';
+    process.env.WITHDRAWALS_COLLECTION_ID = 'withdrawals';
+    process.env.TRANSACTIONS_COLLECTION_ID = 'transactions';
+    process.env.USERS_COLLECTION_ID = 'users';
+    process.env.MINIMUM_WITHDRAW = '50000';
+    process.env.CURRENT_TOS_VERSION = 'v3.1';
+    // creator has not set tos_version / tos_accepted_at
+    seed('users', [{ $id: 'uX', userId: 'user-X', role: 'creator', tos_version: 'v3.0' }]);
+    seed('wallets', [{ $id: 'wX', userId: 'user-X', balance: 100000 }]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({
+      headers: { 'x-appwrite-user-id': 'user-X' },
+      bodyJson: { amount: 50000, payoutMethod: 'bank', providerName: 'BCA', accountNumber: '1234567890', accountName: 'Panji', requestKey: 'req-key-tos' },
+    });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(403);
+    expect(res.calls[0].body.error).toBe('Setujui T&C terbaru terlebih dahulu.');
+    expect((store['withdrawals'] || [])).toHaveLength(0); // no audit row
+  });
+
+  it('rejects withdrawal when creator has not verified email (first withdrawal)', async () => {
+    (globalThis as any).fetch = () => ({ ok: true, status: 200, text: async () => '{}' });
+    process.env.WALLETS_COLLECTION_ID = 'wallets';
+    process.env.WITHDRAWALS_COLLECTION_ID = 'withdrawals';
+    process.env.TRANSACTIONS_COLLECTION_ID = 'transactions';
+    process.env.USERS_COLLECTION_ID = 'users';
+    process.env.MINIMUM_WITHDRAW = '50000';
+    process.env.CURRENT_TOS_VERSION = 'v3.1';
+    // creator passed TOS but email not verified
+    seed('users', [{ $id: 'uY', userId: 'user-Y', role: 'creator', tos_version: 'v3.1', tos_accepted_at: new Date().toISOString(), email_verified_at: null }]);
+    seed('wallets', [{ $id: 'wY', userId: 'user-Y', balance: 100000 }]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({
+      headers: { 'x-appwrite-user-id': 'user-Y' },
+      bodyJson: { amount: 50000, payoutMethod: 'bank', providerName: 'BCA', accountNumber: '1234567890', accountName: 'Panji', requestKey: 'req-key-email' },
+    });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(403);
+    expect(res.calls[0].body.error).toBe('Verifikasi email sebelum penarikan pertama.');
+    expect((store['withdrawals'] || [])).toHaveLength(0);
+  });
+
+  it('allows withdrawal when creator has passed both TOS and email verified', async () => {
+    (globalThis as any).fetch = () => ({ ok: true, status: 200, text: async () => '{}' });
+    process.env.WALLETS_COLLECTION_ID = 'wallets';
+    process.env.WITHDRAWALS_COLLECTION_ID = 'withdrawals';
+    process.env.TRANSACTIONS_COLLECTION_ID = 'transactions';
+    process.env.USERS_COLLECTION_ID = 'users';
+    process.env.MINIMUM_WITHDRAW = '50000';
+    process.env.CURRENT_TOS_VERSION = 'v3.1';
+    seed('users', [{ $id: 'uZ', userId: 'user-Z', role: 'creator', tos_version: 'v3.1', tos_accepted_at: new Date().toISOString(), email_verified_at: new Date().toISOString() }]);
+    seed('wallets', [{ $id: 'wZ', userId: 'user-Z', balance: 100000 }]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({
+      headers: { 'x-appwrite-user-id': 'user-Z' },
+      bodyJson: { amount: 50000, payoutMethod: 'bank', providerName: 'BCA', accountNumber: '1234567890', accountName: 'Panji', requestKey: 'req-key-pass' },
+    });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(200);
+    expect((store['withdrawals'] || [])).toHaveLength(1);
+    const wallet = (store['wallets'] || []).find((w) => w.$id === 'wZ');
+    expect(wallet.balance).toBe(50000); // 100000 - 50000
+  });
+
+  describe('create-order function (T-14 TOS gate)', () => {
   // Helper to mock TablesDB fetch for atomic operations
   const mockTablesDb = (url: string, init: any) => {
     const m = url.match(/\/tablesdb\/[^/]+\/tables\/([^/]+)\/rows\/([^/]+)\/([^/]+)\/(increment|decrement)$/);
