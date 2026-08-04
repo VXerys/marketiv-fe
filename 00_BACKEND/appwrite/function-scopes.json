@@ -1,4 +1,5 @@
 {
+  "accept-tos": ["documents.read", "documents.write"],
   "ai-brief": ["documents.read", "documents.write"],
   "ai-fraud-precheck": ["documents.read", "documents.write"],
   "calculate-campaign-reward": ["documents.read", "documents.write"],

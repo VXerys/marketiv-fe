@@ -833,6 +833,20 @@ const functions = [
         path: "../functions/create-user-profile"
     },
     {
+        $id: "accept-tos",
+        name: "Accept ToS",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/accept-tos"
+    },
+    {
         $id: "validate-and-upload",
         name: "Validate And Upload",
         runtime: "node-22",
