@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { Client, Databases, ID, Permission, Role } from "node-appwrite";
+import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -35,6 +35,25 @@ export default async ({ req, res, log, error }) => {
     }
 
     const databases = createDatabasesClient(env);
+
+    // T-14: order = aksi finansial, wajib setuju T&C terbaru. Pihak yang
+    // bertransaksi adalah kreator (menerima penawaran). Function ini
+    // event-driven — tidak ada user untuk dibalas 403, jadi order tidak
+    // dibuat dan UMKM diberi tahu agar alur tidak mati senyap.
+    const creator = await getUser(databases, env, offer.creatorId);
+    const agreedTos = creator?.tos_version === env.currentTosVersion && Boolean(creator?.tos_accepted_at);
+    if (!agreedTos) {
+      log(`Order untuk offer ${offer.$id} ditolak: kreator ${offer.creatorId} belum setuju T&C ${env.currentTosVersion}`);
+      await notify(databases, env, {
+        userId: offer.umkmId,
+        sourceId: offer.$id,
+        kind: "order_tos_blocked",
+        title: "Kreator Belum Setujui T&C",
+        message: "Kreator belum menyetujui T&C terbaru, jadi pesanan tidak dapat dibuat. Minta kreator menyetujui T&C dulu.",
+        type: "order_tos_blocked",
+      }, log);
+      return json(res, { status: "blocked", reason: "creator has not accepted current T&C" });
+    }
 
     let order;
     try {
@@ -141,10 +160,20 @@ function getEnv(req) {
     databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
     ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders",
     notificationsCollectionId: process.env.NOTIFICATIONS_COLLECTION_ID || "notifications",
+    usersCollectionId: process.env.USERS_COLLECTION_ID || "users",
   };
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
+  env.currentTosVersion = process.env.CURRENT_TOS_VERSION || "v3.1";
   return env;
+}
+
+async function getUser(databases, env, userId) {
+  const res = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
+    Query.equal("userId", userId),
+    Query.limit(1)
+  ]);
+  return res.documents[0] || null;
 }
 
 function createDatabasesClient(env) {
