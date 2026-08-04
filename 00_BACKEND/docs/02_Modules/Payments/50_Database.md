@@ -32,7 +32,7 @@ Payment intent lokal untuk pembayaran yang diproses oleh Midtrans. Relasi: Order
 | amount           | integer | yes      | nominal transaksi (sebelum fee)                                |
 | total_amount     | integer | yes      | nominal + fee platform (yang dibayar ke Midtrans)             |
 | fee_amount       | integer | no       | jumlah fee platform (2% dari amount)                          |
-| purpose          | enum    | yes      | `order\|topup\|campaign`                                      |
+| purpose          | enum    | yes      | `order\|campaign`                                      |
 | gateway          | enum    | yes      | `midtrans`                                                    |
 | gateway_reference| string  | yes      | `order_id` Midtrans, unik                                     |
 | snap_token       | string  | no       | token Snap Midtrans                                           |
@@ -54,7 +54,7 @@ Ledger mutasi saldo. Relasi: Wallet/User (1) → Transactions (N).
 | ------------- | ------- | -------- | -------------------------------------------------------- |
 | userId        | string  | yes      | FK → users                                               |
 | amount        | integer | yes      |                                                          |
-| type          | enum    | yes      | `deposit\|withdrawal\|payment\|refund\|release\|fee`     |
+| type          | enum    | yes      | `withdrawal\|payment\|refund\|release\|fee`     |
 | referenceId   | string  | no       | id dokumen terkait (order/escrow/withdrawal)             |
 | referenceType | string  | no       | jenis referensi                                          |
 | status        | enum    | yes      | status transaksi                                         |

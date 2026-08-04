@@ -3,24 +3,12 @@ import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
 import { incrementColumn } from "./atomic.js";
 
 /**
- * Mirror PLATFORM_FEE_RATE di 00_BACKEND/src/services/wallet.service.ts:6 dan
- * src/types/domain.ts:117. Jangan menuliskan angka fee di tempat lain.
- *
  * ADR-008: Rate Card Order memakai fee SELLER-SIDE — UMKM membayar persis harga
- * rate card, potongan 2% diambil dari pendapatan kreator saat escrow dirilis.
+ * rate card, potongan fee diambil dari pendapatan kreator saat escrow dirilis.
  * (Campaign PPV sebaliknya, buyer-side, ditangani create-payment.)
  *
- * Sebelum ini Function mengkredit escrow PENUH ke kreator sementara
- * get-creator-negotiations:138 sudah menampilkan potongan 2% ke layar kreator —
- * angka layar dan angka wallet tidak pernah cocok, dan platform tidak pernah
- * mencatat pendapatan apa pun dari Rate Card Mode.
- */
-const PLATFORM_FEE_RATE = 0.02;
-
-/**
- * Status order yang boleh menghasilkan pelepasan dana. Order `cancelled`,
- * `completed`, atau `pending_payment` tidak boleh ikut cair hanya karena ada
- * baris deliverable yang berpindah ke `approved`.
+ * Fee rate dibaca dari env FEE_RATE (default 0.02). Saat create-escrow, rate
+ * di-snapshot ke escrow.fee_rate — order lama pakai rate lama (stabilitas).
  */
 const RELEASABLE_ORDER_STATUSES = new Set(["in_progress", "revision"]);
 
@@ -53,7 +41,9 @@ export default async ({ req, res, log, error }) => {
     if (!wallet) throw new Error(`Wallet not found for creator ${creatorId}`);
 
     const escrowAmount = Number(escrow.amount);
-    const feeAmount = Math.floor(escrowAmount * PLATFORM_FEE_RATE);
+    // Snapshot fee_rate dari escrow (fallback 0.02 untuk escrow lama tanpa snapshot)
+    const rate = Number(escrow.fee_rate) || 0.02;
+    const feeAmount = Math.floor(escrowAmount * rate);
     // Sejajar calculateCreatorPayout() di src/services/wallet.service.ts:129.
     const creatorAmount = escrowAmount - feeAmount;
 
@@ -146,7 +136,8 @@ function getEnv(req) {
     transactionsCollectionId: process.env.TRANSACTIONS_COLLECTION_ID || process.env.NEXT_PUBLIC_TRANSACTION_COLLECTION || "transactions",
     escrowsCollectionId: process.env.ESCROWS_COLLECTION_ID || process.env.NEXT_PUBLIC_ESCROW_COLLECTION || "escrows",
     ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders",
-    notificationsCollectionId: process.env.NOTIFICATIONS_COLLECTION_ID || "notifications"
+    notificationsCollectionId: process.env.NOTIFICATIONS_COLLECTION_ID || "notifications",
+    feeRate: Number(process.env.FEE_RATE || 0.02)
   };
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);

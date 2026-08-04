@@ -59,3 +59,5 @@ Permintaan revisi atas sebuah order. Relasi: Order (1) → Revisions (N).
 **Permission**: Buyer · Seller · Admin.
 
 > Escrow milik order ada di modul Payments (`../Payments/50_Database.md`) — escrow & transaksi sengaja dipisah dari order. `offerId` → `../Offers/50_Database.md`; `packageId` → `../RateCards/50_Database.md`. Aturan status & versi: `30_Business_Rules.md`.
+>
+> **Refund (T-02)**: Order berstatus `cancelled`/`expired` memicu refund escrow via event `orders.*.update` → `refund-order`. Escrow status `held` → `refunded` (lihat `../Payments/50_Database.md` status `refunded`). Hanya order `pending_payment` yang bisa dibatalkan manual via `cancelOrder` (order.service.ts) — status `cancelled` tapi tidak punya escrow.

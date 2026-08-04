@@ -29,8 +29,8 @@ Mendefinisikan autentikasi Appwrite, onboarding awal, role-based access control,
 1. Guest membuka register.
 2. Guest memilih role UMKM atau KREATOR.
 3. Frontend membuat akun melalui Appwrite Auth.
-4. Backend/function membuat document `profiles`.
-5. User memverifikasi email.
+4. Backend/function membuat document `profiles` dengan `tos_version` = "v3.1" dan `tos_accepted_at` = timestamp (fungsi `create-user-profile`).
+5. User memverifikasi email (event `users.*.update` → fungsi `user-email-verified` menulis `email_verified_at` ke `profiles`).
 6. User login.
 7. Middleware membaca session dan profile role.
 8. User diarahkan sesuai role.
@@ -63,13 +63,17 @@ Mendefinisikan autentikasi Appwrite, onboarding awal, role-based access control,
 - ADMIN tidak boleh dibuat dari register publik.
 - Profile document wajib ada setelah register sukses.
 - Email verification wajib sebelum akses fitur finansial.
+- Saat register, `tos_version` = "v3.1" dan `tos_accepted_at` wajib diisi (T-14).
+- `email_verified_at` di-set oleh fungsi `user-email-verified` saat user verifikasi email (T-15).
 
 ## 9. Backend Responsibilities
-- Membuat profile document setelah user Auth dibuat.
+- Membuat profile document setelah user Auth dibuat (termasuk `tos_version`, `tos_accepted_at` via `create-user-profile`).
 - Assign label/team role bila dipakai.
 - Memvalidasi role pada setiap backend-only operation.
 - Menolak pembuatan ADMIN dari public endpoint.
 - Menjaga session dan token verification.
+- Fungsi `accept-tos` memperbarui `tos_version`/`tos_accepted_at` saat user consent ulang.
+- Fungsi `user-email-verified` sinkronisasi `email_verified_at` dari Appwrite Auth ke `profiles`.
 
 ## 10. Frontend Responsibilities
 - Menampilkan form register role-based.
@@ -90,6 +94,8 @@ Mendefinisikan autentikasi Appwrite, onboarding awal, role-based access control,
 - Auth user berhasil dibuat tetapi profile gagal dibuat.
 - Profile ada tetapi role kosong.
 - User belum verifikasi email mencoba pembayaran.
+- User belum setujui T&C v3.1 mencoba aksi finansial (withdrawal, order, claim) → diblokir 403.
+- Penarikan pertama: email belum diverifikasi → diblokir 403 ("Verifikasi email sebelum penarikan pertama.").
 - Session expired saat submit form.
 - User membuka route admin dari akun UMKM.
 

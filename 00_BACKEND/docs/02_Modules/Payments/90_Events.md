@@ -37,6 +37,19 @@ Automasi finansial berjalan event-driven via Appwrite Functions. Service yang me
 - **Aksi**: rilis escrow (status `released`) → saldo masuk wallet creator + catat `transactions` (type `release`) → order `completed`.
 - **Link**: alur order → `../Orders/90_Events.md`.
 
+## Order Cancelled/Expired → Refund Escrow (T-02)
+
+- **Trigger**: `orders.status` `in_progress|approved|...` → `cancelled`/`expired` (via `cancelOrder` atau kadaluarsa otomatis).
+- **Function**: `refund-order` (event `orders.*.update`).
+- **Aksi**: cari escrow `held` milik order → flip ke `refunded` → kredit `wallets.balance` UMKM `escrow.amount` utuh → ledger `refund` (type `refund`, referenceType `escrow`) → notifikasi UMKM.
+- **Fee**: tidak dikembalikan (fee seller-side dipotong saat release, fee buyer-side tidak pernah masuk escrow).
+
+## Campaign Budget Refund (T-02)
+
+- **Trigger**: campaign `cancelled`/`completed` dengan `remainingBudget > 0` (manual admin via `refund-order`).
+- **Function**: `refund-order` (manual, payload `{ campaignId }`).
+- **Aksi**: kredit `wallets.balance` UMKM `remainingBudget`, zero-kan `remainingBudget`, ledger `refund` (referenceType `campaign`), notifikasi UMKM.
+
 ## Withdraw Requested → Admin Review
 
 - **Trigger**: `withdrawals.create`.

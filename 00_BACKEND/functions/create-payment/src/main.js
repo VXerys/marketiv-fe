@@ -1,16 +1,6 @@
 import { Client, Databases, ID, Permission, Role } from "node-appwrite";
 
-const PURPOSES = new Set(["order", "topup", "campaign"]);
-
-/**
- * Kanon fee platform 2% — sejajar src/types/domain.ts (PLATFORM_FEE_RATE) dan
- * 00_BACKEND/src/services/wallet.service.ts. Math.floor sama seperti
- * calculatePlatformFee di frontend.
- *
- * Fee bersifat buyer-side HANYA untuk campaign: topup tanpa fee, dan fee order
- * rate card bersifat seller-side (dipotong saat release, calculateCreatorPayout).
- */
-const PLATFORM_FEE_RATE = 0.02;
+const PURPOSES = new Set(["order", "campaign"]);
 
 /**
  * Midtrans membatasi `transaction_details.order_id` 50 karakter.
@@ -25,7 +15,7 @@ const PLATFORM_FEE_RATE = 0.02;
  * (keduanya ter-index) sehingga tidak ada informasi yang hilang.
  */
 const MIDTRANS_ORDER_ID_MAX = 50;
-const PURPOSE_PREFIX = { order: "ord", topup: "top", campaign: "cmp" };
+const PURPOSE_PREFIX = { order: "ord", campaign: "cmp" };
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -85,7 +75,7 @@ export default async ({ req, res, log, error }) => {
     // `payments.total_amount` WAJIB (required, tanpa default) — sebelumnya tidak
     // pernah ditulis, sehingga createDocument selalu 400 untuk SEMUA purpose.
     const feeAmount =
-      payload.purpose === "campaign" ? Math.floor(amount * PLATFORM_FEE_RATE) : 0;
+      payload.purpose === "campaign" ? Math.floor(amount * env.feeRate) : 0;
     const totalAmount = amount + feeAmount;
 
     const payment = await databases.createDocument(
@@ -115,13 +105,11 @@ export default async ({ req, res, log, error }) => {
         gatewayReference,
         // Gateway menagih budget + fee, sama dengan yang ditampilkan UI.
         amount: totalAmount,
-        itemName:
+itemName:
           order?.title ||
-          (payload.purpose === "topup"
-            ? "Marketiv Wallet Top Up"
-            : payload.purpose === "campaign"
-              ? "Marketiv Campaign Escrow"
-              : "Marketiv Order Payment"),
+          (payload.purpose === "campaign"
+            ? "Marketiv Campaign Escrow"
+            : "Marketiv Order Payment"),
         userId,
         // Referensi tidak lagi memuat id campaign/order, jadi kaitannya
         // dititipkan di sini supaya dashboard Midtrans tetap bisa ditelusuri.
@@ -163,7 +151,8 @@ function getEnv(req) {
     ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders",
     campaignsCollectionId: process.env.CAMPAIGNS_COLLECTION_ID || process.env.NEXT_PUBLIC_CAMPAIGN_COLLECTION || "campaigns",
     midtransServerKey: process.env.MIDTRANS_SERVER_KEY,
-    midtransEnv: process.env.MIDTRANS_ENV || "sandbox"
+    midtransEnv: process.env.MIDTRANS_ENV || "sandbox",
+    feeRate: Number(process.env.FEE_RATE || 0.02)
   };
 
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
@@ -190,7 +179,6 @@ function validatePayload(payload) {
   if (!PURPOSES.has(payload?.purpose)) return "Invalid payment purpose";
   if (!Number.isInteger(Number(payload.amount)) || Number(payload.amount) <= 0) return "Invalid payment amount";
   if (payload.purpose === "order" && !payload.orderId) return "orderId is required for order payment";
-  if (payload.purpose === "topup" && payload.orderId) return "Top up must not include orderId";
   // campaign_id satu-satunya cara mengaitkan payment ke campaign; idx_campaign_id
   // ada justru untuk lookup itu.
   if (payload.purpose === "campaign" && !payload.campaignId) return "campaignId is required for campaign payment";

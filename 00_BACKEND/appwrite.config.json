@@ -2784,6 +2784,15 @@
           "size": 50,
           "default": null,
           "encrypt": false
+        },
+        {
+          "key": "fee_rate",
+          "type": "double",
+          "required": false,
+          "array": false,
+          "default": 0,
+          "min": 0,
+          "max": 999999999
         }
       ],
       "indexes": [
@@ -3503,7 +3512,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [],
-      "schedule": "0 * * * *",
+      "schedule": "0 */6 * * *",
       "timeout": 60,
       "enabled": true,
       "logging": true,
@@ -3910,6 +3919,44 @@
       ]
     },
     {
+      "$id": "refund-escrow",
+      "name": "Refund Escrow",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/refund-escrow",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "refund-order",
+      "name": "Refund Order",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [
+        "databases.6a4c8598001da3b0d7f0.tables.orders.rows.*.update"
+      ],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/refund-order",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
       "$id": "cancel-payment",
       "name": "Cancel Payment",
       "runtime": "node-22",
@@ -3924,6 +3971,24 @@
       "entrypoint": "src/main.js",
       "commands": "npm install",
       "path": "functions/cancel-payment",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "fee-rate-flip",
+      "name": "Fee Rate Flip Monitor",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [],
+      "schedule": "0 0 * * *",
+      "timeout": 30,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/fee-rate-flip",
       "scopes": [
         "documents.read",
         "documents.write"

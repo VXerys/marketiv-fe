@@ -11,9 +11,9 @@ export default async ({ req, res, log, error }) => {
 
     const databases = createDatabasesClient(env);
 
-    if (payment.purpose === "topup" || payment.purpose === "campaign") {
+    if (payment.purpose === "campaign") {
       const result = await completeTopup(databases, env, payment);
-      log(`Top up payment ${payment.$id} completed for ${payment.user_id}`);
+      log(`Campaign top-up payment ${payment.$id} completed for ${payment.user_id}`);
       return json(res, { status: "ok", ...result });
     }
 
@@ -26,7 +26,7 @@ export default async ({ req, res, log, error }) => {
       env.databaseId,
       env.escrowsCollectionId,
       ID.unique(),
-      { orderId: payment.order_id, amount: Number(payment.amount), status: "held" }
+      { orderId: payment.order_id, amount: Number(payment.amount), status: "held", fee_rate: env.feeRate }
     );
 
     await ensureTransaction(databases, env, {
@@ -61,7 +61,8 @@ function getEnv(req) {
     escrowsCollectionId: process.env.ESCROWS_COLLECTION_ID || process.env.NEXT_PUBLIC_ESCROW_COLLECTION || "escrows",
     ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders",
     campaignsCollectionId: process.env.CAMPAIGNS_COLLECTION_ID || process.env.NEXT_PUBLIC_CAMPAIGN_COLLECTION || "campaigns",
-    notificationsCollectionId: process.env.NOTIFICATIONS_COLLECTION_ID || "notifications"
+    notificationsCollectionId: process.env.NOTIFICATIONS_COLLECTION_ID || "notifications",
+    feeRate: Number(process.env.FEE_RATE || 0.02)
   };
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
@@ -80,7 +81,7 @@ function parseBody(req) {
 }
 
 /**
- * Top-up (reguler maupun campaign).
+ * Campaign top-up.
  *
  * Urutannya sengaja: baris ledger dibuat sebagai `pending` LEBIH DULU dengan id
  * deterministik, baru dana dikredit, baru ledger ditandai `completed`. Pola ini
@@ -94,51 +95,32 @@ function parseBody(req) {
  * Dengan penanda `pending`, retry justru MENYELESAIKAN kredit yang tertunda.
  */
 async function completeTopup(databases, env, payment) {
-  const isCampaign = payment.purpose === "campaign" && Boolean(payment.campaign_id);
-
-  // Wallet hanya relevan untuk top-up reguler. Jalur campaign tidak menyentuh
-  // wallet sama sekali (lihat V-2), jadi jangan gagalkan top-up campaign hanya
-  // karena UMKM belum punya baris wallet.
-  const wallet = isCampaign ? null : await findWallet(databases, env, payment.user_id);
-  if (!isCampaign && !wallet) throw new Error(`Wallet not found for user ${payment.user_id}`);
-
-  const type = isCampaign ? "payment" : "deposit";
-  const ledgerId = deterministicId(payment.$id, type);
+  // Campaign top-up: credit remainingBudget only — dana tidak masuk wallet bebas
+  const ledgerId = deterministicId(payment.$id, "payment");
 
   const claim = await claimLedgerRow(databases, env, {
     id: ledgerId,
     userId: payment.user_id,
     amount: Number(payment.amount),
-    type,
+    type: "payment",
     referenceId: payment.$id,
     referenceType: "payment"
   });
 
   if (claim.alreadyCompleted) {
-    return { walletId: wallet?.$id ?? null, status: "already_processed" };
+    return { walletId: null, status: "already_processed" };
   }
 
-  // Kedua cabang memakai increment atomik. Sebelumnya keduanya baca-ubah-tulis;
-  // "baca ulang tepat sebelum menulis" mempersempit jendela balapan tapi tidak
-  // menutupnya, dan webhook Midtrans memang bisa terkirim ulang.
-  if (isCampaign) {
-    // Campaign top-up: credit remainingBudget only — dana tidak masuk wallet bebas
-    await incrementColumn(
-      env, env.campaignsCollectionId, payment.campaign_id, "remainingBudget", Number(payment.amount)
-    );
-  } else {
-    const fresh = await findWallet(databases, env, payment.user_id);
-    if (!fresh) throw new Error(`Wallet not found for user ${payment.user_id}`);
-    await incrementColumn(
-      env, env.walletsCollectionId, fresh.$id, "balance", Number(payment.amount)
-    );
-  }
+  // Campaign top-up: credit remainingBudget only
+  await incrementColumn(
+    env, env.campaignsCollectionId, payment.campaign_id, "remainingBudget", Number(payment.amount)
+  );
 
   await databases.updateDocument(env.databaseId, env.transactionsCollectionId, ledgerId, {
     status: "completed"
   });
 
-  return { walletId: wallet?.$id ?? null };
+  return { walletId: null };
 }
 
 /**

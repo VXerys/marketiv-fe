@@ -91,6 +91,8 @@ Platform Marketiv membebankan **fee 2%** kepada UMKM saat melakukan top-up budge
 - Total yang dibayar UMKM = `budget + floor(budget × 2 / 100)`.
 - Fee dicatat sebagai transaksi `fee` di ledger.
 
+> Catatan: Top-up reguler (wallet UMKM) dihapus (T-19). `wallets.balance` UMKM hanya terisi via refund (T-02) atau sisa budget campaign yang tidak terpakai.
+
 ## Data Denormalisasi
 
 Pada `campaigns` disimpan counter denormalisasi agar dashboard cepat (tidak perlu agregasi runtime):

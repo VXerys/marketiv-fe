@@ -6,6 +6,6 @@
     ]
   },
   "plugin": [
-    ".opencode/plugins/graphify.js"
+    "/home/panjiangka1/Documents/dev/marketiv-web/00_BACKEND/.opencode/plugins/graphify.js"
   ]
 }

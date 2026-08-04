@@ -33,9 +33,8 @@
 
 ## Tipe Transaksi
 
-`deposit | withdrawal | payment | refund | release | fee | mature`
+`withdrawal | payment | refund | release | fee | mature`
 
-- `deposit` — dana masuk (top up).
 - `withdrawal` — pencairan dana keluar.
 - `payment` — pembayaran order oleh UMKM.
 - `mature` — pemindahan reward dari `pendingBalance` ke `balance`. Bukan pendapatan baru, jadi jangan ikut dijumlahkan sebagai earnings (`get-creator-dashboard-summary` hanya menghitung `release`).
@@ -50,6 +49,26 @@
 - `released` — dirilis ke creator saat deliverable di-approve.
 - `refunded` — dikembalikan ke UMKM (mis. order dibatalkan).
 - Escrow tidak boleh disentuh user (Admin/System only).
+
+## Refund (Pasal 15 T&C)
+
+Refund mengembalikan dana ke **Wallet UMKM** (Opsi B, locked). Fee platform **tidak dikembalikan** (biaya layanan terpakai, CTO-26).
+
+### Pemicu Refund
+
+| Pemicu | Jalur | Kredit ke UMKM |
+|--------|-------|----------------|
+| Order dibatalkan/expired (`cancelled`/`expired`) | Otomatis via event `orders.*.update` → `refund-order` | `escrow.amount` (utuh) |
+| Dispute admin | Manual via Console/CLI → `refund-escrow` / `refund-order` | `escrow.amount` (utuh) |
+| Sisa budget campaign (`cancelled`/`completed`) | Manual → `refund-order` (`campaignId`) | `remainingBudget` (utuh) |
+
+### Aturan Refund
+
+- **Fee tidak dikembalikan**: Fee seller-side 2% dipotong saat release dari pendapatan kreator; fee buyer-side campaign tidak pernah masuk escrow. Kredit UMKM = persis `escrow.amount` atau `remainingBudget`.
+- **Escrow status**: `held` → `refunded` (flip-first idempoten). `released`/`refunded` sudah tidak bisa di-refund.
+- **Ledger**: setiap refund membuat entry `transactions` baru bertipe `refund` (`referenceType: "escrow"` atau `"campaign"`). Koreksi = entry baru (T-17), tidak update/delete lama.
+- **Idempotensi**: ledger id deterministik (`tx` + sha256(`${refId}:refund`)) + guard status escrow.
+- **Wallet UMKM**: saldo refund masuk ke `wallets.balance`. Fitur withdrawal UMKM (T-06) memakai saldo ini — refund menyiapkan sumber saldonya.
 
 ## Platform Fee
 

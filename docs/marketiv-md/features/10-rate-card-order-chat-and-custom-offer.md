@@ -62,6 +62,7 @@ Mendefinisikan order Rate Card, chat realtime, custom offer, acceptance, payment
 - Offer hanya diterima/ditolak Kreator.
 - Offer terkunci setelah accepted.
 - Harga final harus > 0 dan deadline valid.
+- Order dibuat hanya jika kreator sudah setujui T&C v3.1 (`tos_version` = "v3.1" & `tos_accepted_at` terisi) → jika tidak, order tidak dibuat, UMKM diberi notifikasi "Kreator Belum Setujui T&C" (T-14).
 
 ## 9. Backend Responsibilities
 - Membuat order room.
@@ -70,6 +71,7 @@ Mendefinisikan order Rate Card, chat realtime, custom offer, acceptance, payment
 - Membuat payment transaction setelah offer accepted.
 - Mengubah status order setelah webhook payment.
 - Membuat audit log untuk offer accepted/payment/status.
+- Fungsi `create-order` (event `offers.*.update` status accepted) mengecek TOS kreator sebelum membuat order. Jika kreator belum setujui T&C v3.1, order tidak dibuat dan UMKM diberi notifikasi `order_tos_blocked`.
 
 ## 10. Frontend Responsibilities
 - Menampilkan chat realtime.
@@ -92,6 +94,7 @@ Mendefinisikan order Rate Card, chat realtime, custom offer, acceptance, payment
 - Payment berhasil tapi realtime belum update.
 - Kreator submit link non-collab post.
 - Order masuk dispute.
+- Kreator belum setujui T&C v3.1 saat menerima offer → order tidak dibuat, UMKM diberi notifikasi (T-14).
 
 ## 13. Error Handling
 - 401: arahkan user ke login dan hapus session lokal jika token tidak valid.

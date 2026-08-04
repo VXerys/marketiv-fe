@@ -245,12 +245,6 @@ describe('payment.service — validation', () => {
       .rejects.toMatchObject({ code: 'validation', message: 'Campaign wajib diisi untuk top-up campaign.' });
   });
 
-  it('createPayment throws when topup purpose with orderId', async () => {
-    const { createPayment } = await import('../../src/services/payment.service');
-    await expect(createPayment({ purpose: 'topup', amount: 1000, orderId: 'o1' }))
-      .rejects.toMatchObject({ code: 'validation', message: 'Top up tidak boleh memakai order.' });
-  });
-
   it('getPayment throws when paymentId empty', async () => {
     const { getPayment } = await import('../../src/services/payment.service');
     await expect(getPayment('')).rejects.toMatchObject({ code: 'validation', message: 'Payment ID wajib diisi.' });

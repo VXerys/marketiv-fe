@@ -48,17 +48,14 @@ import { Client, Databases, Query } from "node-appwrite";
  * `totalAmount` = nominal yang dibayar UMKM. Keduanya benar untuk pembacanya
  * masing-masing. Mengikuti calculateCreatorPayout() di
  * 00_BACKEND/src/services/wallet.service.ts:129.
+ *
+ * Fee rate dibaca dari env FEE_RATE (default 0.02) — display global.
+ * Nilai final per-order pakai escrow.fee_rate snapshot jika tersedia.
  */
 
 const PAGE_SIZE = 100;
 const MAX_DOCS = 5000;
 const IN_CHUNK = 100;
-
-/**
- * Mirror PLATFORM_FEE_RATE di 00_BACKEND/src/services/wallet.service.ts:6.
- * Jangan menuliskan angka fee di tempat lain dalam fungsi ini.
- */
-const PLATFORM_FEE_RATE = 0.02;
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -102,6 +99,7 @@ export default async ({ req, res, log, error }) => {
     if (conversations.length === 0) return json(res, []);
 
     const context = await loadContext(databases, env, conversations, userId);
+    context.feeRate = env.feeRate;
     const negotiations = conversations
       .map((conversation) => toNegotiation(conversation, context))
       // Percakapan tanpa pesan (`last_message_at` kosong) turun ke bawah, bukan
@@ -165,7 +163,7 @@ function toNegotiation(conversation, ctx) {
   // Nominal mengikuti order kalau sudah ada (itu yang mengikat), kalau belum
   // pakai harga offer yang sedang ditawar.
   const finalPrice = order ? number(order.amount) : number(offer?.price);
-  const platformFee = Math.floor(finalPrice * PLATFORM_FEE_RATE);
+  const platformFee = Math.floor(finalPrice * ctx.feeRate);
 
   return {
     // Kunci ruang = conversationId. `id` sengaja sama supaya route dan pemetaan
@@ -277,6 +275,7 @@ function getEnv(req) {
     messagesCollectionId: process.env.MESSAGES_COLLECTION_ID || process.env.NEXT_PUBLIC_MESSAGE_COLLECTION || "messages",
     escrowsCollectionId: process.env.ESCROWS_COLLECTION_ID || process.env.NEXT_PUBLIC_ESCROW_COLLECTION || "escrows",
     deliverablesCollectionId: process.env.DELIVERABLES_COLLECTION_ID || "deliverables",
+    feeRate: Number(process.env.FEE_RATE || 0.02)
   };
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);

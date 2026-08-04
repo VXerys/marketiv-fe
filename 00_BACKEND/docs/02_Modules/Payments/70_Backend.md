@@ -49,6 +49,22 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 - **Trigger**: `deliverables.status` → `approved`.
 - **Aksi**: rilis escrow, tambah balance wallet Creator, catat transaksi `release`, update order.
 
+### refund-escrow
+
+- **Trigger**: manual (admin/Console/CLI untuk dispute) — payload `{ escrowId }` atau `{ orderId }`. `execute: []` (server-only).
+- **Aksi**: escrow `held` → `refunded`, kredit `wallets.balance` UMKM sebesar `escrow.amount` utuh (fee TIDAK dikembalikan), catat ledger `refund` (deterministik, idempoten), notifikasi UMKM.
+- **Idempotensi**: flip-first (escrow dulu, baru ledger & kredit) + ledger id deterministik `tx` + sha256(`${escrow.$id}:refund`). Event ulang menemukan escrow `refunded` → skip.
+- **Rollback**: gagal kredit → hapus baris ledger `pending` (pola `request-withdrawal`).
+- **Fee**: TIDAK dikembalikan — fee seller-side 2% dipotong saat release dari pendapatan kreator; fee buyer-side campaign tidak pernah masuk escrow. Kredit = persis `escrow.amount`.
+
+### refund-order
+
+- **Trigger**: manual (`{ orderId }` atau `{ campaignId }`) + event `orders.*.update` (auto saat order jadi `cancelled`/`expired`).
+- **Aksi (orderId)**: order `cancelled`/`expired` → cari escrow `held` → refund sama dengan `refund-escrow`. Order `in_progress`/`completed` → 409.
+- **Aksi (campaignId)**: campaign `cancelled`/`completed` dengan `remainingBudget > 0` → kredit UMKM wallet `remainingBudget`, zero-kan budget, ledger `refund` (`referenceType: "campaign"`), idempoten via ledger deterministik.
+- **Event**: `databases.*.tables.orders.rows.*.update` — status jadi `cancelled`/`expired` DAN `oldStatus` berbeda → proses refund.
+- **Fee**: TIDAK dikembalikan (sama seperti di atas).
+
 ### mature-pending-balance
 
 - **Trigger**: terjadwal, `0 2 * * *` (harian pukul 02:00).

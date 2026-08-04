@@ -632,7 +632,8 @@ const collections = [
         attributes: [
             createStringAttr("orderId", true),
             createIntAttr("amount", true),
-            createStringAttr("status", true, 50)
+            createStringAttr("status", true, 50),
+            createFloatAttr("fee_rate", false, 0)
         ],
         indexes: [
             createIndex("idx_orderId", "unique", ["orderId"]),
@@ -1309,6 +1310,34 @@ const functions = [
         path: "../functions/notify-order-activity"
     },
     {
+        $id: "refund-escrow",
+        name: "Refund Escrow",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/refund-escrow"
+    },
+    {
+        $id: "refund-order",
+        name: "Refund Order",
+        runtime: "node-22",
+        execute: [],
+        events: ["databases.6a4c8598001da3b0d7f0.tables.orders.rows.*.update"],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/refund-order"
+    },
+{
         $id: "cancel-payment",
         name: "Cancel Payment",
         runtime: "node-22",
@@ -1322,7 +1351,20 @@ const functions = [
         commands: "npm install",
         path: "../functions/cancel-payment"
     },
-
+    {
+        $id: "fee-rate-flip",
+        name: "Fee Rate Flip Monitor",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "0 0 * * *",
+        timeout: 30,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/fee-rate-flip"
+    }
 ];
 
 const appwriteConfigPath = path.join(__dirname, '..', 'appwrite.config.json');
