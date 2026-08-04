@@ -43,6 +43,23 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Hanya kreator yang dapat menarik saldo." }, 403);
     }
 
+    // T-14: penarikan = aksi finansial, wajib setuju T&C terbaru. Fungsi
+    // `accept-tos` mencatat `tos_version`/`tos_accepted_at` saat user klaim.
+    const user = await getUser(databases, env, userId);
+    const agreedTos = user?.tos_version === env.currentTosVersion && Boolean(user?.tos_accepted_at);
+    if (!agreedTos) {
+      log(`Withdrawal ditolak untuk ${userId}: tos_version=${user?.tos_version || "none"}`);
+      return json(res, { error: "Setujui T&C terbaru terlebih dahulu." }, 403);
+    }
+
+    // T-15: penarikan pertama wajib email terverifikasi (ditulis fungsi
+    // `user-email-verified` dari event Auth). Hanya gate penarikan pertama —
+    // penarikan berikutnya tidak dicek ulang.
+    if (!(await hasWithdrawal(databases, env, userId)) && !user?.email_verified_at) {
+      log(`Withdrawal ditolak untuk ${userId}: email belum diverifikasi`);
+      return json(res, { error: "Verifikasi email sebelum penarikan pertama." }, 403);
+    }
+
     const wallet = await getWallet(databases, env, userId);
     if (!wallet) return json(res, { error: "Wallet tidak ditemukan" }, 404);
     if (Number(wallet.balance) < amount) {
@@ -202,6 +219,7 @@ function getEnv(req) {
   if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
 
   env.minimumWithdraw = Number(process.env.MINIMUM_WITHDRAW || 50000);
+  env.currentTosVersion = process.env.CURRENT_TOS_VERSION || "v3.1";
   return env;
 }
 
@@ -266,12 +284,17 @@ function deterministicId(userId, requestKey) {
  * baris tidak sama dengan id akun Auth. `getDocument` akan 404 lebih dulu —
  * persis jebakan yang membuat setiap klaim campaign gagal (B-3, fix 11ebfc3).
  */
-async function getUserRole(databases, env, userId) {
+async function getUser(databases, env, userId) {
   const res = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
     Query.equal("userId", userId),
     Query.limit(1)
   ]);
-  return res.documents[0]?.role || null;
+  return res.documents[0] || null;
+}
+
+async function getUserRole(databases, env, userId) {
+  const doc = await getUser(databases, env, userId);
+  return doc?.role || null;
 }
 
 async function getWallet(databases, env, userId) {
@@ -280,6 +303,15 @@ async function getWallet(databases, env, userId) {
     Query.limit(1)
   ]);
   return res.documents[0] || null;
+}
+
+/** True jika user pernah punya baris withdrawal (untuk gate email penarikan pertama). */
+async function hasWithdrawal(databases, env, userId) {
+  const res = await databases.listDocuments(env.databaseId, env.withdrawalsCollectionId, [
+    Query.equal("userId", userId),
+    Query.limit(1)
+  ]);
+  return res.documents.length > 0;
 }
 
 /** Withdrawal dengan nominal sama dari user yang sama dalam 60 detik terakhir. */
