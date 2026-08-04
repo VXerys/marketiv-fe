@@ -31,5 +31,6 @@
   "send-chat-notification": ["documents.read", "documents.write", "messages.write"],
   "send-message": ["documents.read", "documents.write"],
   "cancel-payment": ["documents.read", "documents.write"],
-  "validate-and-upload": ["documents.read", "documents.write", "files.read", "files.write"]
+  "validate-and-upload": ["documents.read", "documents.write", "files.read", "files.write"],
+  "user-email-verified": ["documents.read", "documents.write"]
 }

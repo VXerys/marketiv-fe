@@ -889,6 +889,20 @@ const functions = [
         path: "../functions/create-user-wallet"
     },
     {
+        $id: "user-email-verified",
+        name: "User Email Verified",
+        runtime: "node-22",
+        execute: [],
+        events: ["users.*.update"],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/user-email-verified"
+    },
+    {
         $id: "campaign-published",
         name: "Campaign Published",
         runtime: "node-22",
