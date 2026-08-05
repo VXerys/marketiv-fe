@@ -1689,6 +1689,29 @@
           "size": 1000,
           "default": null,
           "encrypt": false
+        },
+        {
+          "key": "creatorCredit",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "aiGenerated",
+          "type": "boolean",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "aiDisclosed",
+          "type": "boolean",
+          "required": false,
+          "array": false,
+          "default": null
         }
       ],
       "indexes": [
@@ -2538,6 +2561,22 @@
         {
           "key": "createdAt",
           "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "creatorCredit",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "aiGenerated",
+          "type": "boolean",
           "required": false,
           "array": false,
           "default": null

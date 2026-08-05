@@ -116,6 +116,10 @@ Konten yang dikirim creator. Dipakai AI Fraud Detection. Relasi: Claim (1) → S
 | fraudStatus | enum    | no       | `safe\|review\|rejected`         |
 | status      | enum    | yes      | `pending\|approved\|rejected`    |
 | reviewNotes | string  | no       | maks 1000 — catatan UMKM saat approve/reject |
+| creatorCredit | string | no      | maks 255 — username TikTok kreator (format kreditasi sesuai Pasal 16.3 T&C) |
+| aiGenerated | boolean | no      | null/true/false — (opsional, tanpa sanksi, Pasal 12.5) |
+| aiDisclosed | boolean | no      | null/true/false — (opsional, tanpa sanksi, Pasal 12.5) |
+
 
 **Index**: `claimId`, `creatorId`, `campaignId`, `status`, `fraudStatus`.
 

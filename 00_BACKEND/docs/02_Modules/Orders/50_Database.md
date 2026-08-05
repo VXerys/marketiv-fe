@@ -36,10 +36,14 @@ Draft/hasil kerja creator, berversi. Relasi: Order (1) → Deliverables (N). Fil
 | notes     | string  | no       | catatan creator                              |
 | version   | integer | yes      | nomor versi unggahan                         |
 | status    | enum    | yes      | `submitted\|revision_requested\|approved`    |
+| creatorCredit | string | no      | maks 255 — username TikTok kreator (format kreditasi Pasal 16.3 T&C) |
+| aiGenerated | boolean | no      | null/true/false — penanda buatan AI (opsional, tanpa sanksi) |
 
 **Index**: `orderId`, `createdAt DESC`.
 
 **Permission**: Buyer · Seller · Admin.
+
+> **Catatan Hukum (T&C)**: Titik peralihan kepemilikan konten (transfer lisensi) dari Kreator ke UMKM secara sah terjadi pada saat escrow dirilis (`release-escrow`), **bukan** saat deliverable dikirim/disubmit.
 
 ---
 

@@ -379,7 +379,10 @@ const collections = [
             createIntAttr("fraudScore", false),
             createStringAttr("fraudStatus", false, 50),
             createStringAttr("status", true, 50),
-            createStringAttr("reviewNotes", false, 1000)
+            createStringAttr("reviewNotes", false, 1000),
+            createStringAttr("creatorCredit", false, 255),
+            createBoolAttr("aiGenerated", false, null),
+            createBoolAttr("aiDisclosed", false, null)
         ],
         indexes: [
             createIndex("idx_claimId", "unique", ["claimId"]),
@@ -554,7 +557,9 @@ const collections = [
             createStringAttr("notes", false, 2000),
             createIntAttr("version", true),
             createStringAttr("status", true, 50),
-            createDatetimeAttr("createdAt", false)
+            createDatetimeAttr("createdAt", false),
+            createStringAttr("creatorCredit", false, 255),
+            createBoolAttr("aiGenerated", false, null)
         ],
         indexes: [
             createIndex("idx_orderId", "key", ["orderId"]),

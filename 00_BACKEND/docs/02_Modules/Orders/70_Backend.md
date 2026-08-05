@@ -32,6 +32,7 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 - Validasi kepemilikan: hanya UMKM terkait yang dapat approve/reject.
 - Deliverable `source = storage` wajib memiliki `fileId` yang valid dan milik creator seller.
 - Deliverable `source = external_url` wajib protokol `https`.
+- **Metadata Transparansi AI & Kreditasi**: Field `creatorCredit` dan `aiGenerated` pada `deliverables` merupakan metadata murni yang diisi oleh klien. Tidak ada validasi server maupun *guard* yang memblokir alur berdasarkan field ini.
 
 ## Functions
 - `track-order-review`: Tracks deliverables and sets review_deadline_at.
