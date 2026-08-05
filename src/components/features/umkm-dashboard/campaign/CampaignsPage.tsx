@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { UmkmPageWrapper } from "../shared/UmkmPageWrapper";
 import { CampaignsHeader } from "./CampaignsHeader";
@@ -59,7 +58,6 @@ export function CampaignsPage() {
   const [selectedNiche, setSelectedNiche] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
-  const { toolbarRef, isSticky: isToolbarSticky } = useStickyToolbar();
 
   // Modal states
   const [activeCancelCampaign, setActiveCancelCampaign] = useState<Campaign | null>(null);
@@ -242,8 +240,7 @@ export function CampaignsPage() {
         ) : null}
 
         {/* Toolbar — sticky direct grid child */}
-        <div ref={toolbarRef} style={{ position: "sticky", top: 0, zIndex: 30 }}>
-          <CampaignToolbar
+        <CampaignToolbar
             search={search}
             onSearchChange={setSearch}
             selectedStatus={selectedStatus}
@@ -257,9 +254,7 @@ export function CampaignsPage() {
             onClearFilters={handleClearFilters}
             hasActiveFilters={hasActiveFilters}
             statusCounts={statusCounts}
-            isSticky={isToolbarSticky}
           />
-        </div>
 
         {/* List Content */}
         {loading ? (

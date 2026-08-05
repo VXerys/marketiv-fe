@@ -3,14 +3,17 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useStickyToolbar } from "@/hooks/useStickyToolbar";
+import { SearchToolbar, type SearchToolbarFilter } from "@/components/features/dashboard/shared";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+} from "@/components/ui/responsive-modal";
 import {
   Briefcase,
   BadgeDollarSign,
   AlertTriangle,
   Clock,
   Users,
-  SlidersHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { CreatorJob } from "@/types/creator-dashboard";
@@ -254,14 +257,12 @@ interface JobPoolViewProps {
 
 export function JobPoolView({ initialJobs }: JobPoolViewProps) {
   const [jobs, setJobs] = useState<CreatorJob[]>(initialJobs);
-  const { toolbarRef, isSticky } = useStickyToolbar();
 
   // Filter states
   const [search, setSearch] = useState("");
   const [selectedNiche, setSelectedNiche] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
   const [filterAvailableOnly, setFilterAvailableOnly] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
 
   // Modal states
   const [claimingJob, setClaimingJob] = useState<CreatorJob | null>(null);
@@ -351,6 +352,28 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
   ];
 
   const hasActiveFilters = search !== "" || selectedNiche !== "all" || filterAvailableOnly;
+  const toolbarFilters: SearchToolbarFilter[] = [
+    {
+      label: "Kategori",
+      value: selectedNiche,
+      onChange: setSelectedNiche,
+      options: [
+        { value: "all", label: "Semua Kategori" },
+        { value: "kecantikan", label: "Kecantikan" },
+        { value: "kuliner", label: "Kuliner" },
+        { value: "fashion", label: "Fashion" },
+        { value: "pariwisata", label: "Pariwisata" },
+        { value: "edukasi", label: "Edukasi" },
+      ],
+    },
+    {
+      label: "Urutan",
+      value: sortBy,
+      onChange: setSortBy,
+      options: sortOptions,
+      prefix: "Urut",
+    },
+  ];
   const allRulesChecked  = isRulesChecked.brief && isRulesChecked.privacy && isRulesChecked.retention && isRulesChecked.views;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -398,106 +421,30 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
           </div>
 
           {/* Filter Toolbar — sticky when scrolling */}
-          <div ref={toolbarRef} className="mb-6 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8" style={{ position: "sticky", top: 0, zIndex: 30 }}>
-          <div
-            className="flex flex-col gap-3"
-            style={{
-              padding: isSticky ? "10px 14px" : "16px",
-              borderRadius: isSticky ? 18 : 16,
-              border: "1px solid rgba(17,24,39,.08)",
-              background: isSticky ? "rgba(255,255,255,.92)" : "rgba(255,255,255,.8)",
-              backdropFilter: isSticky ? "blur(24px)" : "none",
-              WebkitBackdropFilter: isSticky ? "blur(24px)" : "none",
-              boxShadow: isSticky ? "0 8px 30px rgba(15,23,42,.08), 0 1px 0 rgba(255,255,255,.8) inset" : "0 2px 8px rgba(15,23,42,.04)",
-              transition: "all .28s cubic-bezier(.2,.8,.2,1)",
-            }}
-          >
-            {/* Row 1: Search + mobile filter toggle */}
-            <div className="flex gap-2.5 items-center">
-              <div className="relative flex-1">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </span>
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Cari kampanye / brand..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium text-neutral-800 placeholder-neutral-400"
-                />
-              </div>
-              {/* Mobile filter toggle */}
-              <button
-                onClick={() => setFilterOpen((o) => !o)}
-                className={cn(
-                  "sm:hidden shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
-                  filterOpen || hasActiveFilters
-                    ? "bg-violet-50 text-violet-700 border-violet-200"
-                    : "bg-neutral-50/50 text-neutral-700 border-neutral-200/60"
-                )}
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                Filter
-                {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />}
-              </button>
-            </div>
-
-            {/* Row 2: All filters — always on sm+, collapsible on mobile */}
-            <div className={cn("items-center gap-2.5 flex-wrap", filterOpen ? "flex" : "hidden sm:flex")}>
-              <SlidersHorizontal className="w-3.5 h-3.5 text-neutral-400 shrink-0 hidden sm:block" />
-
-              <select
-                value={selectedNiche}
-                onChange={(e) => setSelectedNiche(e.target.value)}
-                className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[140px]"
-              >
-                <option value="all">Semua Kategori</option>
-                <option value="kecantikan">Kecantikan</option>
-                <option value="kuliner">Kuliner</option>
-                <option value="fashion">Fashion</option>
-                <option value="pariwisata">Pariwisata</option>
-                <option value="edukasi">Edukasi</option>
-              </select>
-
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[160px]"
-              >
-                {sortOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-
-              <button
-                onClick={() => setFilterAvailableOnly(!filterAvailableOnly)}
-                className={cn(
-                  "px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
-                  filterAvailableOnly
-                    ? "bg-primary text-white border-primary-600 shadow-sm"
-                    : "bg-neutral-50/50 text-neutral-700 border-neutral-200/60 hover:bg-neutral-100"
-                )}
-              >
-                Kuota Tersedia
-              </button>
-
-              {hasActiveFilters && (
+          <div className="mb-6">
+            <SearchToolbar
+              searchValue={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="Cari kampanye / brand..."
+              filters={toolbarFilters}
+              onClearFilters={handleClearFilters}
+              hasActiveFilters={hasActiveFilters}
+              extraActions={
                 <button
-                  onClick={handleClearFilters}
-                  className="flex items-center gap-1 px-3 py-2 text-xs font-bold text-neutral-500 hover:text-neutral-900 cursor-pointer transition-colors whitespace-nowrap ml-auto border border-neutral-200/60 rounded-xl hover:bg-neutral-50"
+                  type="button"
+                  onClick={() => setFilterAvailableOnly((value) => !value)}
+                  className={cn(
+                    "h-10 cursor-pointer whitespace-nowrap rounded-xl border px-3 text-xs font-bold transition-all",
+                    filterAvailableOnly
+                      ? "border-primary-600 bg-primary text-white shadow-sm"
+                      : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50",
+                  )}
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Reset
+                  Kuota Tersedia
                 </button>
-              )}
-            </div>
+              }
+            />
           </div>
-          </div>
-
           {/* Grid Content */}
           {filteredJobs.length === 0 ? (
             <CreatorEmptyState
@@ -529,8 +476,8 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
 
       {/* ── Claim Checklist Modal ──────────────────────────────────────────── */}
       {claimingJob && (
-        <div className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-neutral-200/50 shadow-2xl p-6 sm:p-8 max-w-md w-full animate-in fade-in zoom-in-95 duration-300">
+        <ResponsiveModal open={!!claimingJob} onOpenChange={(open) => !open && setClaimingJob(null)}>
+          <ResponsiveModalContent className="max-w-md w-full rounded-3xl border border-neutral-200/50 p-6 sm:p-8">
             <div className="flex justify-between items-start gap-4 mb-6">
               <div>
                 <h3 className="text-lg font-black text-neutral-900 leading-none">
@@ -602,14 +549,14 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+          </ResponsiveModalContent>
+        </ResponsiveModal>
       )}
 
       {/* ── Success Modal ─────────────────────────────────────────────────── */}
       {isSuccessOpen && (
-        <div className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-neutral-200/50 shadow-2xl p-6 sm:p-8 max-w-md w-full text-center animate-in fade-in zoom-in-95 duration-300">
+        <ResponsiveModal open={isSuccessOpen} onOpenChange={(open) => !open && setIsSuccessOpen(false)}>
+          <ResponsiveModalContent className="max-w-md w-full rounded-3xl border border-neutral-200/50 p-6 text-center sm:p-8">
             <div className="w-16 h-16 rounded-full bg-green-50 border border-green-100 flex items-center justify-center text-green-500 mx-auto mb-5 shadow-sm">
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -638,8 +585,8 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
                 Lihat Pekerjaan Aktif
               </Link>
             </div>
-          </div>
-        </div>
+          </ResponsiveModalContent>
+        </ResponsiveModal>
       )}
     </div>
   );

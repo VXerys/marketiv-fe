@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useStickyToolbar } from "@/hooks/useStickyToolbar";
+import { SearchToolbar, type SearchToolbarFilter } from "@/components/features/dashboard/shared";
 import { CreatorNegotiation } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
@@ -13,11 +13,9 @@ import {
   MessageSquare,
   ShieldCheck,
   ClipboardCheck,
-  Search,
   Tag,
   Hourglass,
   Clock3,
-  SlidersHorizontal,
   Archive,
   ArchiveRestore,
 } from "lucide-react";
@@ -233,8 +231,6 @@ export function NegosiasiView() {
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
-  const [filterOpen, setFilterOpen] = useState(false);
-  const { toolbarRef, isSticky } = useStickyToolbar();
 
   /**
    * Status arsip kini ikut di DTO `get-creator-negotiations` (`isArchived`
@@ -267,7 +263,10 @@ export function NegosiasiView() {
   }, []);
 
   useEffect(() => {
-    void loadNegotiations();
+    const id = window.setTimeout(() => {
+      void loadNegotiations();
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [loadNegotiations]);
 
   const handleClearFilters = () => {
@@ -314,6 +313,32 @@ export function NegosiasiView() {
     });
 
   const hasActiveFilters = search !== "" || selectedStatus !== "all";
+  const toolbarFilters: SearchToolbarFilter[] = [
+    {
+      label: "Status",
+      value: selectedStatus,
+      onChange: setSelectedStatus,
+      options: [
+        { value: "all", label: "Semua Status" },
+        { value: "negosiasi", label: "Negosiasi" },
+        { value: "menunggu-pembayaran", label: "Menunggu Pembayaran" },
+        { value: "escrow", label: "Escrow Aktif" },
+        { value: "selesai", label: "Selesai" },
+      ],
+    },
+    {
+      label: "Urutan",
+      value: sortBy,
+      onChange: setSortBy,
+      options: [
+        { value: "latest", label: "Terbaru" },
+        { value: "deadline", label: "Deadline Terdekat" },
+        { value: "price_desc", label: "Harga Tertinggi" },
+        { value: "unread", label: "Belum Dibaca" },
+      ],
+      prefix: "Urut",
+    },
+  ];
 
   const archivedCount = negotiations.filter((n) => n.isArchived).length;
 
@@ -392,90 +417,16 @@ export function NegosiasiView() {
           </div>
 
           {/* Toolbar — sticky when scrolling */}
-          <div ref={toolbarRef} className="mb-6 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8" style={{ position: "sticky", top: 0, zIndex: 30 }}>
-          <div
-            className="flex flex-col gap-3"
-            style={{
-              padding: isSticky ? "10px 14px" : "14px",
-              borderRadius: isSticky ? 18 : 20,
-              border: "1px solid rgba(17,24,39,.08)",
-              background: isSticky ? "rgba(255,255,255,.92)" : "rgba(255,255,255,.8)",
-              backdropFilter: isSticky ? "blur(24px)" : "none",
-              WebkitBackdropFilter: isSticky ? "blur(24px)" : "none",
-              boxShadow: isSticky ? "0 8px 30px rgba(15,23,42,.08), 0 1px 0 rgba(255,255,255,.8) inset" : "0 2px 8px rgba(15,23,42,.04)",
-              transition: "all .28s cubic-bezier(.2,.8,.2,1)",
-            }}
-          >
-            {/* Row 1: Search + mobile filter toggle */}
-            <div className="flex gap-2.5 items-center">
-              <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Cari UMKM / judul order..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all font-medium text-neutral-800 placeholder-neutral-400"
-                />
-              </div>
-              {/* Mobile filter toggle */}
-              <button
-                onClick={() => setFilterOpen((o) => !o)}
-                className={cn(
-                  "sm:hidden shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
-                  filterOpen || hasActiveFilters
-                    ? "bg-violet-50 text-violet-700 border-violet-200"
-                    : "bg-neutral-50/50 text-neutral-700 border-neutral-200/60"
-                )}
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                Filter
-                {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />}
-              </button>
-            </div>
-
-            {/* Row 2: All filters — always on sm+, collapsible on mobile */}
-            <div className={cn("items-center gap-3 flex-wrap", filterOpen ? "flex" : "hidden sm:flex")}>
-              <SlidersHorizontal className="w-3.5 h-3.5 text-neutral-400 shrink-0 hidden sm:block" />
-
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[170px]"
-              >
-                <option value="all">Semua Status</option>
-                <option value="negosiasi">Negosiasi</option>
-                <option value="menunggu-pembayaran">Menunggu Pembayaran</option>
-                <option value="escrow">Escrow Aktif</option>
-                <option value="selesai">Selesai</option>
-              </select>
-
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[130px]"
-              >
-                <option value="latest">Terbaru</option>
-                <option value="deadline">Deadline Terdekat</option>
-                <option value="price_desc">Harga Tertinggi</option>
-                <option value="unread">Belum Dibaca</option>
-              </select>
-
-              {hasActiveFilters && (
-                <button
-                  onClick={handleClearFilters}
-                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-neutral-500 hover:text-neutral-900 cursor-pointer transition-colors whitespace-nowrap ml-auto border border-neutral-200/60 rounded-xl hover:bg-neutral-50"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Reset
-                </button>
-              )}
-            </div>
+          <div className="mb-6">
+            <SearchToolbar
+              searchValue={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="Cari UMKM / judul order..."
+              filters={toolbarFilters}
+              onClearFilters={handleClearFilters}
+              hasActiveFilters={hasActiveFilters}
+            />
           </div>
-          </div>
-
           {/* Tab Inbox / Arsip */}
           <div className="flex items-center gap-2 mb-4">
             <button

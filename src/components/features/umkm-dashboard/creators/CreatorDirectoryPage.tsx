@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useTransition } from "react";
-import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { getCreators } from "@/services/umkm/umkm-dashboard.service";
 import type { CreatorProfile } from "@/types/umkm-dashboard.types";
 import { toCreatorView } from "./creator.adapter";
@@ -23,7 +22,6 @@ export function CreatorDirectoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
-  const { toolbarRef, isSticky: isToolbarSticky } = useStickyToolbar();
 
   // Fetch nyata lewat facade service (s1-creators) — bukan lagi src/data/creators.ts.
   const loadCreators = useCallback(async () => {
@@ -79,17 +77,14 @@ export function CreatorDirectoryPage() {
       <CreatorSummaryCards />
 
       {/* Sticky toolbar — direct grid child so sticky has full grid-container height to work with */}
-      <div ref={toolbarRef} style={{ position: "sticky", top: 0, zIndex: 30 }}>
-        <CreatorToolbar
+      <CreatorToolbar
           searchQuery={searchQuery}
           onSearchChange={(q) => startTransition(() => setSearchQuery(q))}
           selectedCategory={selectedCategory}
           onCategoryChange={(cat) => startTransition(() => setSelectedCategory(cat))}
           sortBy={sortBy}
           onSortByChange={(s) => startTransition(() => setSortBy(s))}
-          isSticky={isToolbarSticky}
         />
-      </div>
 
       {/* Creators Grid / Loading / Error / Empty State */}
       {loading ? (

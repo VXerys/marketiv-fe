@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -23,10 +23,72 @@ import { submitProof } from "@/services/creator/creator-dashboard.service";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-import { DashboardModal, DashboardButton, DashboardStateCard } from "@/components/features/dashboard/shared";
+import { DashboardButton, DashboardStateCard } from "@/components/features/dashboard/shared";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 
 interface ActiveWorkDetailViewProps {
   work: CreatorActiveWork | null;
+}
+
+function ModalFrame({
+  cancelLabel = "Tutup",
+  children,
+  confirmLabel,
+  description,
+  footer,
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+}: {
+  cancelLabel?: string;
+  children?: ReactNode;
+  confirmLabel?: string;
+  description?: string;
+  footer?: ReactNode;
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm?: () => void;
+  title: string;
+}) {
+  return (
+    <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ResponsiveModalContent className="max-w-lg rounded-t-3xl sm:rounded-3xl">
+        <ResponsiveModalHeader className="space-y-2 text-left">
+          <ResponsiveModalTitle className="text-xl font-bold text-neutral-950">
+            {title}
+          </ResponsiveModalTitle>
+          {description ? (
+            <ResponsiveModalDescription className="text-sm leading-6 text-neutral-500">
+              {description}
+            </ResponsiveModalDescription>
+          ) : null}
+        </ResponsiveModalHeader>
+        {children ? <div className="mt-2">{children}</div> : null}
+        <ResponsiveModalFooter className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          {footer ?? (
+            <>
+              <DashboardButton type="button" variant="outline" onClick={onClose} fullWidthOnMobile>
+                {cancelLabel}
+              </DashboardButton>
+              {confirmLabel && onConfirm ? (
+                <DashboardButton type="button" variant="primary" onClick={onConfirm} fullWidthOnMobile>
+                  {confirmLabel}
+                </DashboardButton>
+              ) : null}
+            </>
+          )}
+        </ResponsiveModalFooter>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
+  );
 }
 
 const CREATOR_DARK_GRADIENT =
@@ -846,7 +908,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
           </div>
 
       {/* Confirmation Modal */}
-      <DashboardModal
+      <ModalFrame
         isOpen={isConfirmOpen}
         title="Konfirmasi Pengiriman Bukti"
         description={`Yakin ingin mengirim URL ${platform === "tiktok" ? "TikTok" : "Instagram Reels"} berikut sebagai bukti tayang?`}
@@ -858,10 +920,10 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
         <div className="mt-3 bg-neutral-50 border border-neutral-200 rounded-[14px] p-4 break-all text-xs font-semibold text-kreator-600">
           {contentUrl}
         </div>
-      </DashboardModal>
+      </ModalFrame>
 
       {/* Success Modal */}
-      <DashboardModal
+      <ModalFrame
         isOpen={isSuccessOpen}
         title="Bukti Tayang Berhasil Dikirim!"
         description="Bukti tayang Anda sedang diverifikasi oleh admin. Anda akan mendapat notifikasi setelah proses selesai."
@@ -887,18 +949,26 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
             <CheckCircle className="w-8 h-8" />
           </div>
         </div>
-      </DashboardModal>
+      </ModalFrame>
 
       {isSubmitting && (
-        <div className="fixed inset-0 bg-neutral-900/30 backdrop-blur-[2px] z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-2xl shadow-xl flex items-center gap-3 border border-neutral-100">
+        <ResponsiveModal open={isSubmitting}>
+          <ResponsiveModalContent className="max-w-sm rounded-2xl border border-neutral-100 p-6">
+            <ResponsiveModalHeader className="sr-only">
+              <ResponsiveModalTitle>Mengirim Bukti</ResponsiveModalTitle>
+              <ResponsiveModalDescription>
+                Tautan bukti posting sedang dikirim.
+              </ResponsiveModalDescription>
+            </ResponsiveModalHeader>
+          <div className="flex items-center gap-3">
             <svg className="animate-spin h-5 w-5 text-kreator-600" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
             <span className="text-xs font-bold text-neutral-700">Mengirim tautan bukti posting...</span>
           </div>
-        </div>
+          </ResponsiveModalContent>
+        </ResponsiveModal>
       )}
     </div>
   );

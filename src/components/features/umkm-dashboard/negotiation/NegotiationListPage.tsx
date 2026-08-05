@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { getNegotiations } from "@/services/umkm/umkm-dashboard.service";
-import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { NegotiationOrder } from "@/types/umkm-dashboard.types";
 import { NegotiationHeader } from "./NegotiationHeader";
 import { NegotiationSummaryCards } from "./NegotiationSummaryCards";
@@ -24,7 +23,6 @@ export function NegotiationListPage() {
   const [sortBy, setSortBy] = useState("newest");
   const [showArchived, setShowArchived] = useState(false);
   const [, startTransition] = useTransition();
-  const { toolbarRef, isSticky: isToolbarSticky } = useStickyToolbar();
 
   const loadNegotiations = async () => {
     setLoading(true);
@@ -138,8 +136,7 @@ export function NegotiationListPage() {
       <NegotiationSummaryCards negotiations={negotiations} />
 
       {/* Toolbar filters — sticky direct child of space-y-6 container */}
-      <div ref={toolbarRef} style={{ position: "sticky", top: 0, zIndex: 30 }}>
-        <NegotiationToolbar
+      <NegotiationToolbar
           searchQuery={searchQuery}
           onSearchChange={(q) => startTransition(() => setSearchQuery(q))}
           selectedStatus={selectedStatus}
@@ -149,9 +146,7 @@ export function NegotiationListPage() {
           onClearFilters={handleClearFilters}
           hasActiveFilters={hasActiveFilters}
           statusCounts={statusCounts}
-          isSticky={isToolbarSticky}
         />
-      </div>
 
       {/* Tab Inbox / Arsip */}
       <div className="flex items-center gap-2">

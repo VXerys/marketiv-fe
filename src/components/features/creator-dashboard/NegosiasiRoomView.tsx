@@ -18,6 +18,13 @@ import type { Deliverable } from "@/types/umkm-dashboard.types";
 import { toast } from "sonner";
 import { CreatorEmptyState } from "./CreatorEmptyState";
 import { CreatorPageSkeleton } from "./CreatorPageSkeleton";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import { formatCurrency } from "@/lib/formatters";
 import { PLATFORM_FEE_RATE, calculatePlatformFee } from "@/types/domain";
 import { getEscrowStatusLabel } from "@/lib/creator-status";
@@ -35,6 +42,8 @@ import {
   Sparkles,
   Clock,
   CheckCircle2,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 
 interface NegosiasiRoomViewProps {
@@ -118,6 +127,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
   const [sending, setSending] = useState(false);
   const [answering, setAnswering] = useState(false);
   const [isQuickMenuOpen, setIsQuickMenuOpen] = useState(false);
+  const [isChatFullscreen, setIsChatFullscreen] = useState(false);
   const quickMenuRef = useRef<HTMLDivElement>(null);
 
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
@@ -445,22 +455,24 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-5 sm:pb-5 lg:pb-5 relative h-[calc(100vh-84px)] flex flex-col min-h-0 overflow-hidden">
-        <div className="flex-1 flex flex-col min-h-0 max-w-7xl w-full mx-auto">
+        <div className={cn("flex-1 flex flex-col min-h-0 w-full mx-auto", isChatFullscreen ? "max-w-none" : "max-w-7xl")}>
 
           {/* Back button */}
-          <Link
-            href="/dashboard/kreator/negosiasi"
-            className="inline-flex items-center gap-2 text-xs font-extrabold text-neutral-500 hover:text-violet-700 transition-colors mb-5 group cursor-pointer shrink-0 w-fit"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            Kembali ke Negosiasi
-          </Link>
+          {!isChatFullscreen && (
+            <Link
+              href="/dashboard/kreator/negosiasi"
+              className="inline-flex items-center gap-2 text-xs font-extrabold text-neutral-500 hover:text-violet-700 transition-colors mb-5 group cursor-pointer shrink-0 w-fit"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              Kembali ke Negosiasi
+            </Link>
+          )}
 
           {/* Main workspace grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 min-h-0 items-stretch">
+          <div className={cn("grid grid-cols-1 gap-5 flex-1 min-h-0 items-stretch", !isChatFullscreen && "lg:grid-cols-12")}>
 
             {/* ── LEFT: Chat pane (8 cols) ───────────────────────────────── */}
-            <div className="lg:col-span-8 bg-white border border-neutral-200/60 shadow-[0_4px_24px_rgba(15,23,42,.05)] rounded-[22px] flex flex-col min-h-0 overflow-hidden">
+            <div className={cn("bg-white border border-neutral-200/60 shadow-[0_4px_24px_rgba(15,23,42,.05)] rounded-[22px] flex flex-col min-h-0 overflow-hidden", !isChatFullscreen && "lg:col-span-8")}>
 
               {/* Chat header */}
               <div className="px-5 py-4 border-b border-neutral-100 flex items-center justify-between shrink-0 bg-white">
@@ -479,7 +491,18 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                     <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mt-0.5">{neg.projectTitle}</p>
                   </div>
                 </div>
-                <StatusPill status={neg.stage} />
+                <div className="flex items-center gap-2 shrink-0">
+                  <StatusPill status={neg.stage} />
+                  <button
+                    type="button"
+                    onClick={() => setIsChatFullscreen((v) => !v)}
+                    aria-label={isChatFullscreen ? "Keluar dari fullscreen chat" : "Fullscreen chat"}
+                    title={isChatFullscreen ? "Keluar fullscreen" : "Fullscreen chat"}
+                    className="w-9 h-9 rounded-[12px] border border-neutral-200/70 bg-white text-neutral-500 hover:text-violet-700 hover:border-violet-200 hover:bg-violet-50/60 flex items-center justify-center transition-colors cursor-pointer"
+                  >
+                    {isChatFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               {/* Warning banner */}
@@ -767,6 +790,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
             </div>
 
             {/* ── RIGHT: Info pane (4 cols) ──────────────────────────────── */}
+            {!isChatFullscreen && (
             <div className="lg:col-span-4 flex flex-col gap-3 overflow-y-auto px-4 py-4 -mx-4 -my-4 max-h-[calc(100%+32px)] pr-2 premium-scrollbar">
 
               {/* Contract details card */}
@@ -889,14 +913,21 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                 </div>
               </div>
             </div>
+            )}
 
           </div>
         </div>
 
       {/* ── Modal: Kirim Deliverable ─────────────────────────────────────── */}
       {isDeliverableModalOpen && (
-        <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[24px] border border-neutral-200/50 shadow-[0_32px_80px_rgba(15,23,42,.20)] p-6 sm:p-7 max-w-md w-full animate-in fade-in zoom-in-95 duration-300">
+        <ResponsiveModal open={isDeliverableModalOpen} onOpenChange={(open) => !open && setIsDeliverableModalOpen(false)}>
+          <ResponsiveModalContent className="max-w-md w-full rounded-[24px] border border-neutral-200/50 p-6 sm:p-7">
+            <ResponsiveModalHeader className="sr-only">
+              <ResponsiveModalTitle>Kirim Deliverable</ResponsiveModalTitle>
+              <ResponsiveModalDescription>
+                Kirim tautan atau berkas hasil kerja ke UMKM.
+              </ResponsiveModalDescription>
+            </ResponsiveModalHeader>
             <div className="flex justify-between items-start gap-4 mb-5">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -1029,8 +1060,8 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+          </ResponsiveModalContent>
+        </ResponsiveModal>
       )}
 
       {/*

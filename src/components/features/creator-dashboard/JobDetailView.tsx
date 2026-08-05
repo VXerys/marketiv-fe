@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -25,13 +25,59 @@ import { formatCurrency } from "@/lib/formatters";
 import { claimCampaign } from "@/services/creator/creator-dashboard.service";
 import { toast } from "sonner";
 import {
-  DashboardModal,
   DashboardButton,
   DashboardStateCard,
 } from "@/components/features/dashboard/shared";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 
 interface JobDetailViewProps {
   job: CreatorJob | null;
+}
+
+function ModalFrame({
+  children,
+  description,
+  footer,
+  isOpen,
+  onClose,
+  title,
+}: {
+  children: ReactNode;
+  description?: string;
+  footer?: ReactNode;
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+}) {
+  return (
+    <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ResponsiveModalContent className="max-w-lg rounded-t-3xl sm:rounded-3xl">
+        <ResponsiveModalHeader className="space-y-2 text-left">
+          <ResponsiveModalTitle className="text-xl font-bold text-neutral-950">
+            {title}
+          </ResponsiveModalTitle>
+          {description ? (
+            <ResponsiveModalDescription className="text-sm leading-6 text-neutral-500">
+              {description}
+            </ResponsiveModalDescription>
+          ) : null}
+        </ResponsiveModalHeader>
+        <div className="mt-2">{children}</div>
+        {footer ? (
+          <ResponsiveModalFooter className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            {footer}
+          </ResponsiveModalFooter>
+        ) : null}
+      </ResponsiveModalContent>
+    </ResponsiveModal>
+  );
 }
 
 const VIDEO_SUB_TABS = ["Semua", "Pending", "Approved", "Rejected", "Need Action", "Deleted"];
@@ -573,7 +619,7 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
       </div>
 
       {/* ═══ CLAIM MODAL ═══ */}
-      <DashboardModal
+      <ModalFrame
         isOpen={isClaimOpen && !!job}
         title="Klaim Campaign Ini?"
         description={job.title}
@@ -608,10 +654,10 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
             ))}
           </div>
         </div>
-      </DashboardModal>
+      </ModalFrame>
 
       {/* ═══ SUCCESS MODAL ═══ */}
-      <DashboardModal
+      <ModalFrame
         isOpen={isSuccessOpen}
         title="Campaign Berhasil Diklaim"
         description="Pekerjaan ini telah ditambahkan ke dashboard pengerjaan Anda. Silakan persiapkan video Anda sesuai brief."
@@ -630,7 +676,7 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
             </svg>
           </div>
         </div>
-      </DashboardModal>
+      </ModalFrame>
     </div>
   );
 }

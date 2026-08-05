@@ -21,11 +21,6 @@ export { DashboardButton } from "./DashboardButton";
 export { DashboardCard } from "./DashboardCard";
 
 
-/**
- * @deprecated Use Dialog from @/components/ui/dialog instead.
- */
-export { DashboardModal } from "./DashboardModal";
-
 /** Semantic progress primitive shared by dashboard feature surfaces. */
 export { DashboardProgress } from "./DashboardProgress";
 export type { DashboardProgressProps } from "./DashboardProgress";
@@ -34,3 +29,5 @@ export { DashboardStateCard } from "./DashboardStateCard";
 export { MarketplaceCard } from "./MarketplaceCard";
 export { ResponsiveDataRow } from "./ResponsiveDataRow";
 export type { ResponsiveDataCell } from "./ResponsiveDataRow";
+export { SearchToolbar } from "./SearchToolbar";
+export type { SearchToolbarFilter, SearchToolbarOption } from "./SearchToolbar";

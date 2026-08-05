@@ -3,6 +3,13 @@
 import { useState } from "react";
 import type { Transaction } from "@/types/umkm-dashboard.types";
 import { formatCurrency } from "@/lib/formatters";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 
 /**
  * Aksi untuk pembayaran yang masih `pending`.
@@ -31,8 +38,6 @@ export function PendingPaymentModal({
 }: PendingPaymentModalProps) {
   const [cancelling, setCancelling] = useState(false);
 
-  if (!isOpen) return null;
-
   const handleCancel = async () => {
     if (cancelling) return;
     setCancelling(true);
@@ -44,8 +49,14 @@ export function PendingPaymentModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-[24px] border border-neutral-200/50 shadow-[0_32px_80px_rgba(15,23,42,.20)] p-6 max-w-md w-full">
+    <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ResponsiveModalContent className="max-w-md w-full rounded-[24px] border border-neutral-200/50 p-6">
+        <ResponsiveModalHeader className="sr-only">
+          <ResponsiveModalTitle>Pembayaran Tertunda</ResponsiveModalTitle>
+          <ResponsiveModalDescription>
+            Lanjutkan atau batalkan pembayaran tertunda.
+          </ResponsiveModalDescription>
+        </ResponsiveModalHeader>
         <div className="flex justify-between items-start gap-4 mb-4">
           <div>
             <h3 className="text-base font-black text-[#182033]">Pembayaran Tertunda</h3>
@@ -108,7 +119,7 @@ export function PendingPaymentModal({
           Status pembayaran diperbarui otomatis oleh Midtrans setelah dana masuk. Muat ulang
           halaman beberapa saat setelah membayar.
         </p>
-      </div>
-    </div>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }

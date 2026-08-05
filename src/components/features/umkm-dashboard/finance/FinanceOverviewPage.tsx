@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { Transaction, UmkmFinanceSummary, EscrowOverview } from "@/types/umkm-dashboard.types";
 import {
   getTransactions,
@@ -34,7 +33,6 @@ export function FinanceOverviewPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [refFilter, setRefFilter] = useState("all");
   const [sortOrder, setSortOrder] = useState("date_desc");
-  const { toolbarRef, isSticky: isToolbarSticky } = useStickyToolbar();
 
   // Dialog / Modal States
   const [selectedTxDetail, setSelectedTxDetail] = useState<Transaction | null>(null);
@@ -185,8 +183,7 @@ export function FinanceOverviewPage() {
       {escrowOverview && <EscrowOverviewCard overview={escrowOverview} />}
 
       {/* Control bar / Toolbar — sticky direct child of space-y-6 container */}
-      <div ref={toolbarRef} style={{ position: "sticky", top: 0, zIndex: 30 }}>
-        <FinanceToolbar
+      <FinanceToolbar
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           statusFilter={statusFilter}
@@ -199,9 +196,7 @@ export function FinanceOverviewPage() {
           setSortOrder={setSortOrder}
           onClearAll={handleClearAllFilters}
           hasFilters={hasFilters}
-          isSticky={isToolbarSticky}
         />
-      </div>
 
       {/* Transaction list */}
       <TransactionHistorySection

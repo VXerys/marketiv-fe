@@ -341,6 +341,15 @@ PHASE_DEFINITIONS: list[dict] = [
             ("analitik-verify", "[FE] Validasi ulang di browser setelah perbaikan"),
         ],
     },
+    {
+        "phase_no": 110,
+        "name": "Fullscreen Chat",
+        "tasks": [
+            ("chat-fullscreen-umkm", "[FE] Tambah mode fullscreen ruang chat UMKM tanpa mengubah logic pesan/offer/payment"),
+            ("chat-fullscreen-kreator", "[FE] Tambah mode fullscreen ruang chat Kreator tanpa mengubah logic pesan/offer/deliverable"),
+            ("chat-fullscreen-verify", "[FE] Verifikasi typecheck dan pastikan panel kontrak/sidebar hanya disembunyikan saat fullscreen"),
+        ],
+    },
 ]
 
 # Batas antara trek Sprint (0–8, selesai) dan trek Tab (101+, berjalan).

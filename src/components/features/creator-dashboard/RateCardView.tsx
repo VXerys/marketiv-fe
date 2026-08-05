@@ -5,7 +5,13 @@ import { ClipboardList, BadgeDollarSign, ShoppingBag } from "lucide-react";
 import { CreatorRateCardPackage } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
-import { DashboardModal } from "@/components/features/dashboard/shared";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -264,6 +270,40 @@ function packageGridClass(count: number): string {
   if (count <= 1) return "grid grid-cols-1 gap-6";
   if (count === 2) return "grid grid-cols-1 sm:grid-cols-2 gap-6";
   return "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6";
+}
+
+function ModalFrame({
+  children,
+  className,
+  description,
+  isOpen,
+  onClose,
+  title,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  description?: string;
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+}) {
+  return (
+    <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ResponsiveModalContent className={cn("max-w-md max-h-[90vh] overflow-y-auto", className)}>
+        <ResponsiveModalHeader className="space-y-2 text-left">
+          <ResponsiveModalTitle className="text-xl font-bold text-neutral-950">
+            {title}
+          </ResponsiveModalTitle>
+          {description ? (
+            <ResponsiveModalDescription className="text-sm leading-6 text-neutral-500">
+              {description}
+            </ResponsiveModalDescription>
+          ) : null}
+        </ResponsiveModalHeader>
+        <div className="mt-2">{children}</div>
+      </ResponsiveModalContent>
+    </ResponsiveModal>
+  );
 }
 
 // ── Main view ─────────────────────────────────────────────────────────────────
@@ -550,12 +590,11 @@ export function RateCardView({ initialPackages, ordersCount }: RateCardViewProps
 
       {/* ════════════════ Modal: Create ════════════════ */}
       {isCreateOpen && (
-        <DashboardModal
+        <ModalFrame
           isOpen={isCreateOpen}
           title="Buat Paket Baru"
           description="Lengkapi spesifikasi jasa Rate Card"
           onClose={() => setIsCreateOpen(false)}
-          hideFooter
           className="max-w-md max-h-[90vh] overflow-y-auto"
         >
 
@@ -599,17 +638,16 @@ export function RateCardView({ initialPackages, ordersCount }: RateCardViewProps
                 <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-primary hover:bg-primary-600 text-white font-bold text-xs rounded-full transition-all border border-primary-600/10 shadow-md cursor-pointer disabled:opacity-60">{isSubmitting ? "Menyimpan…" : "Buat Paket"}</button>
               </div>
             </form>
-        </DashboardModal>
+        </ModalFrame>
       )}
 
       {/* ════════════════ Modal: Edit ════════════════ */}
       {isEditOpen && activePackage && (
-        <DashboardModal
+        <ModalFrame
           isOpen={isEditOpen}
           title="Ubah Paket Jasa"
           description={activePackage.name}
           onClose={() => { setIsEditOpen(false); setActivePackage(null); }}
-          hideFooter
           className="max-w-md max-h-[90vh] overflow-y-auto"
         >
 
@@ -653,17 +691,16 @@ export function RateCardView({ initialPackages, ordersCount }: RateCardViewProps
                 <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-primary hover:bg-primary-600 text-white font-bold text-xs rounded-full transition-all border border-primary-600/10 shadow-md cursor-pointer disabled:opacity-60">{isSubmitting ? "Menyimpan…" : "Simpan Perubahan"}</button>
               </div>
             </form>
-        </DashboardModal>
+        </ModalFrame>
       )}
 
       {/* ════════════════ Modal: Delete confirm ════════════════ */}
       {isDeleteOpen && activePackage && (
-        <DashboardModal
+        <ModalFrame
           isOpen={isDeleteOpen}
           title="Hapus Paket Jasa?"
           description="Tindakan ini tidak dapat dibatalkan."
           onClose={() => { setIsDeleteOpen(false); setActivePackage(null); }}
-          hideFooter
           className="max-w-sm"
         >
             <div className="w-14 h-14 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center text-red-500 mb-5 mx-auto">
@@ -696,7 +733,7 @@ export function RateCardView({ initialPackages, ordersCount }: RateCardViewProps
                 <button type="button" disabled={isSubmitting} onClick={executeDelete} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-full transition-all shadow-md cursor-pointer disabled:opacity-60">{isSubmitting ? "Menghapus…" : "Ya, Hapus Paket"}</button>
               </div>
             )}
-        </DashboardModal>
+        </ModalFrame>
       )}
 
     </div>

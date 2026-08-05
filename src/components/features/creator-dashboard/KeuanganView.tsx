@@ -8,7 +8,6 @@ import {
   Calendar,
   Megaphone,
   BadgeDollarSign,
-  Search,
   X,
   ChevronDown,
   ChevronRight,
@@ -17,12 +16,19 @@ import {
   CheckCircle2,
   Landmark,
   ReceiptText,
-  SlidersHorizontal,
 } from "lucide-react";
 import { CreatorMetric, CreatorTransaction } from "@/types/creator-dashboard";
 import { CreatorStatusBadge } from "./CreatorStatusBadge";
 import { CreatorEmptyState } from "./CreatorEmptyState";
 import { MetricCard } from "@/components/ui/metric-card";
+import { SearchToolbar, type SearchToolbarFilter } from "@/components/features/dashboard/shared";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { MINIMUM_WITHDRAW } from "@/types/domain";
@@ -81,7 +87,6 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
   const [isSubmittingWithdraw, setIsSubmittingWithdraw] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const [sortBy, setSortBy] = useState("latest"); // "latest" | "oldest" | "highest" | "lowest"
-  const [filterOpen, setFilterOpen] = useState(false);
 
   // Tidak ada biaya admin: Function request-withdrawal mendebit tepat `amount`
   // dan tidak menulis baris fee. ADMIN_FEE Rp2.500 sebelumnya karangan frontend.
@@ -196,6 +201,43 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
   };
 
   const isFilterActive = searchQuery !== "" || filterType !== "all" || filterStatus !== "all" || sortBy !== "latest";
+  const toolbarFilters: SearchToolbarFilter[] = [
+    {
+      label: "Sumber",
+      value: filterType,
+      onChange: setFilterType,
+      options: [
+        { value: "all", label: "Semua Sumber" },
+        { value: "campaign", label: "Campaign" },
+        { value: "rate card", label: "Rate Card" },
+        { value: "withdrawal", label: "Withdrawal" },
+      ],
+    },
+    {
+      label: "Status",
+      value: filterStatus,
+      onChange: setFilterStatus,
+      options: [
+        { value: "all", label: "Semua Status" },
+        { value: "success", label: "Success" },
+        { value: "pending", label: "Pending" },
+        { value: "processing", label: "Processing" },
+        { value: "failed", label: "Failed" },
+      ],
+    },
+    {
+      label: "Urutan",
+      value: sortBy,
+      onChange: setSortBy,
+      options: [
+        { value: "latest", label: "Terbaru" },
+        { value: "oldest", label: "Terlama" },
+        { value: "highest", label: "Jumlah Terbesar" },
+        { value: "lowest", label: "Jumlah Terkecil" },
+      ],
+      prefix: "Urut",
+    },
+  ];
 
   // Filter and sort transactions
   const processedTransactions = (() => {
@@ -384,103 +426,15 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                   </span>
                 </div>
 
-                {/* Toolbar filters */}
-                <div className="flex flex-col gap-2.5">
-                  {/* Row 1: Search + mobile filter toggle */}
-                  <div className="flex gap-2.5 items-center">
-                    <div className="relative flex-1">
-                      <span className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-neutral-400">
-                        <Search size={16} />
-                      </span>
-                      <input
-                        type="text"
-                        placeholder="Cari ID, deskripsi, atau campaign..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white border border-neutral-200 rounded-xl pl-9 pr-8 py-2 text-xs font-medium text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all shadow-3xs disabled:opacity-50"
-                      />
-                      {searchQuery && (
-                        <button
-                          onClick={() => setSearchQuery("")}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer"
-                          aria-label="Hapus pencarian"
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
-                    </div>
-                    {/* Mobile filter toggle */}
-                    <button
-                      onClick={() => setFilterOpen((o) => !o)}
-                      className={`md:hidden shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer disabled:opacity-50 ${
-                        filterOpen || isFilterActive
-                          ? "bg-primary-50 text-primary-600 border-primary-200"
-                          : "bg-white text-neutral-600 border-neutral-200"
-                      }`}
-                    >
-                      <SlidersHorizontal size={14} />
-                      Filter
-                      {isFilterActive && <span className="w-1.5 h-1.5 rounded-full bg-primary-500 shrink-0" />}
-                    </button>
-                  </div>
-
-                  {/* Row 2: Filter selects — always on md+, collapsible on mobile */}
-                  <div className={`items-center gap-2 flex-wrap ${filterOpen ? "flex" : "hidden md:flex"}`}>
-                    <div className="relative">
-                      <select
-                        value={filterType}
-                        onChange={(e) => setFilterType(e.target.value)}
-                        className="appearance-none bg-white border border-neutral-200 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-700 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all cursor-pointer shadow-3xs disabled:opacity-50"
-                      >
-                        <option value="all">Semua Sumber</option>
-                        <option value="campaign">Campaign</option>
-                        <option value="rate card">Rate Card</option>
-                        <option value="withdrawal">Withdrawal</option>
-                      </select>
-                      <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
-                    </div>
-
-                    <div className="relative">
-                      <select
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        className="appearance-none bg-white border border-neutral-200 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-700 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all cursor-pointer shadow-3xs disabled:opacity-50"
-                      >
-                        <option value="all">Semua Status</option>
-                        <option value="success">Success</option>
-                        <option value="pending">Pending</option>
-                        <option value="processing">Processing</option>
-                        <option value="failed">Failed</option>
-                      </select>
-                      <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
-                    </div>
-
-                    <div className="relative">
-                      <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="appearance-none bg-white border border-neutral-200 rounded-xl pl-3 pr-8 py-2 text-xs font-bold text-neutral-700 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all cursor-pointer shadow-3xs disabled:opacity-50"
-                      >
-                        <option value="latest">Terbaru</option>
-                        <option value="oldest">Terlama</option>
-                        <option value="highest">Jumlah Terbesar</option>
-                        <option value="lowest">Jumlah Terkecil</option>
-                      </select>
-                      <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
-                    </div>
-
-                    {isFilterActive && (
-                      <button
-                        onClick={handleResetFilters}
-                        className="inline-flex items-center gap-1 bg-red-50 hover:bg-red-100/80 border border-red-200 text-red-600 text-xs font-bold px-3 py-2 rounded-xl transition-all cursor-pointer shadow-3xs"
-                      >
-                        <X size={12} /> Reset
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <SearchToolbar
+                  searchValue={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  searchPlaceholder="Cari ID, deskripsi, atau campaign..."
+                  filters={toolbarFilters}
+                  onClearFilters={handleResetFilters}
+                  hasActiveFilters={isFilterActive}
+                />
               </div>
-
               {/* Ledger Table */}
               {processedTransactions.length === 0 ? (
                 <CreatorEmptyState
@@ -581,8 +535,14 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
 
         {/* Withdrawal Simulation Dual-Modal (Form -> Confirm -> Success) */}
         {isWithdrawOpen && (
-          <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-[26px] border border-neutral-200/50 shadow-2xl p-6 sm:p-8 max-w-md w-full animate-in fade-in zoom-in-95 duration-300 relative max-h-[90vh] overflow-y-auto">
+          <ResponsiveModal open={isWithdrawOpen} onOpenChange={(open) => !open && resetWithdrawForm()}>
+            <ResponsiveModalContent className="max-w-md w-full rounded-[26px] border border-neutral-200/50 p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+              <ResponsiveModalHeader className="sr-only">
+                <ResponsiveModalTitle>Tarik Saldo Wallet</ResponsiveModalTitle>
+                <ResponsiveModalDescription>
+                  Form penarikan saldo kreator.
+                </ResponsiveModalDescription>
+              </ResponsiveModalHeader>
 
               {/* Form Step */}
               {withdrawStep === "form" && (
@@ -905,14 +865,20 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                 </>
               )}
 
-            </div>
-          </div>
+            </ResponsiveModalContent>
+          </ResponsiveModal>
         )}
 
         {/* Transaction Detail Modal */}
         {selectedTx && (
-          <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-[26px] border border-neutral-200/50 shadow-2xl p-6 sm:p-8 max-w-md w-full animate-in fade-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto">
+          <ResponsiveModal open={!!selectedTx} onOpenChange={(open) => !open && setSelectedTx(null)}>
+            <ResponsiveModalContent className="max-w-md w-full rounded-[26px] border border-neutral-200/50 p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+              <ResponsiveModalHeader className="sr-only">
+                <ResponsiveModalTitle>Detail Transaksi Wallet</ResponsiveModalTitle>
+                <ResponsiveModalDescription>
+                  Rincian transaksi wallet kreator.
+                </ResponsiveModalDescription>
+              </ResponsiveModalHeader>
               <div className="flex justify-between items-start gap-4 mb-5">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-[14px] grid place-items-center bg-neutral-50 border border-neutral-200/60 text-neutral-500 shrink-0">
@@ -1010,8 +976,8 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
+            </ResponsiveModalContent>
+          </ResponsiveModal>
         )}
 
       </div>

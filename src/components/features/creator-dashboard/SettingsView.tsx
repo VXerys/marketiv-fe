@@ -26,7 +26,13 @@ import { toast } from "sonner";
 import { CreatorProfile, CreatorPortfolioItem, CreatorNiche } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
-import { DashboardModal } from "@/components/features/dashboard/shared";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import { cn } from "@/lib/utils";
 import {
   creatorProfileUpdateSchema,
@@ -102,16 +108,15 @@ function ModalFrame({
   title: string;
 }) {
   return (
-    <DashboardModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={title}
-      titleClassName="sr-only"
-      hideFooter
-      className={cn("max-h-[90vh] overflow-y-auto", maxW)}
-    >
-      {children}
-    </DashboardModal>
+    <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ResponsiveModalContent className={cn("max-h-[90vh] overflow-y-auto", maxW)}>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle className="sr-only">{title}</ResponsiveModalTitle>
+          <ResponsiveModalDescription className="sr-only">{title}</ResponsiveModalDescription>
+        </ResponsiveModalHeader>
+        {children}
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }
 

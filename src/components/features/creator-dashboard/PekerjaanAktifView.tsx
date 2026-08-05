@@ -3,10 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useStickyToolbar } from "@/hooks/useStickyToolbar";
 import { CreatorActiveWork } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
-import { DashboardStateCard } from "@/components/features/dashboard/shared";
+import { DashboardStateCard, SearchToolbar, type SearchToolbarFilter } from "@/components/features/dashboard/shared";
 import { MetricCard } from "@/components/ui/metric-card";
 import { formatCurrency } from "@/lib/formatters";
 import { getClaimStatusLabel, getFraudStatusLabel, getSubmissionStatusLabel } from "@/lib/creator-status";
@@ -19,9 +18,6 @@ import {
   AlertTriangle,
   PlayCircle,
   Clock,
-  Search,
-  SlidersHorizontal,
-  X,
   TriangleAlert,
 } from "lucide-react";
 
@@ -283,13 +279,11 @@ function ActiveJobCard({
 export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
   const [works, setWorks] = useState<CreatorActiveWork[]>(initialWorks);
   const [unclaimTarget, setUnclaimTarget] = useState<CreatorActiveWork | null>(null);
-  const { toolbarRef, isSticky } = useStickyToolbar();
 
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedDeadline, setSelectedDeadline] = useState("all");
   const [sortBy, setSortBy] = useState("nearest-deadline");
-  const [filterOpen, setFilterOpen] = useState(false);
 
 
 
@@ -374,6 +368,40 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
     });
 
   const hasActiveFilters = search !== "" || selectedStatus !== "all" || selectedDeadline !== "all";
+  const toolbarFilters: SearchToolbarFilter[] = [
+    {
+      label: "Status",
+      value: selectedStatus,
+      onChange: setSelectedStatus,
+      options: [
+        { value: "all", label: "Semua Status" },
+        { value: "belum-submit", label: "Belum Submit" },
+        { value: "pending", label: "Menunggu Validasi" },
+        { value: "valid", label: "Valid / Selesai" },
+        { value: "review-fraud", label: "Review / Fraud" },
+      ],
+    },
+    {
+      label: "Batas Waktu",
+      value: selectedDeadline,
+      onChange: setSelectedDeadline,
+      options: [
+        { value: "all", label: "Semua Batas Waktu" },
+        { value: "soon", label: "Segera (<= 5 hari)" },
+        { value: "later", label: "Masih Lama (> 5 hari)" },
+      ],
+    },
+    {
+      label: "Urutan",
+      value: sortBy,
+      onChange: setSortBy,
+      options: [
+        { value: "nearest-deadline", label: "Deadline Terdekat" },
+        { value: "latest-claimed", label: "Baru Diklaim" },
+      ],
+      prefix: "Urut",
+    },
+  ];
 
 
   return (
@@ -418,96 +446,16 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
           </div>
 
           {/* Toolbar — sticky when scrolling */}
-          <div ref={toolbarRef} className="mb-6 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8" style={{ position: "sticky", top: 0, zIndex: 30 }}>
-          <div
-            className="flex flex-col gap-3"
-            style={{
-              padding: isSticky ? "10px 14px" : "12px 16px",
-              borderRadius: isSticky ? 18 : 22,
-              border: "1px solid rgba(17,24,39,.08)",
-              background: isSticky ? "rgba(255,255,255,.92)" : "white",
-              backdropFilter: isSticky ? "blur(24px)" : "none",
-              WebkitBackdropFilter: isSticky ? "blur(24px)" : "none",
-              boxShadow: isSticky ? "0 8px 30px rgba(15,23,42,.08), 0 1px 0 rgba(255,255,255,.8) inset" : "0 2px 12px rgba(15,23,42,.04)",
-              transition: "all .28s cubic-bezier(.2,.8,.2,1)",
-            }}
-          >
-            {/* Row 1: Search + mobile filter toggle */}
-            <div className="flex gap-2.5 items-center">
-              <div className="relative flex-1">
-                <Search className="absolute inset-y-0 left-3.5 my-auto w-4 h-4 text-neutral-400 pointer-events-none" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Cari pekerjaan / brand..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-neutral-50 border border-neutral-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all font-medium text-neutral-800 placeholder-neutral-400"
-                />
-              </div>
-              {/* Mobile filter toggle — hidden on sm+ */}
-              <button
-                onClick={() => setFilterOpen((o) => !o)}
-                className={cn(
-                  "sm:hidden shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
-                  filterOpen || hasActiveFilters
-                    ? "bg-violet-50 text-violet-700 border-violet-200"
-                    : "bg-neutral-50 text-neutral-600 border-neutral-200/60"
-                )}
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                Filter
-                {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />}
-              </button>
-            </div>
-
-            {/* Row 2: All filter selects — always on sm+, collapsible on mobile */}
-            <div className={cn("items-center gap-3 flex-wrap", filterOpen ? "flex" : "hidden sm:flex")}>
-              <SlidersHorizontal className="w-3.5 h-3.5 text-neutral-400 shrink-0 hidden sm:block" />
-
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-3.5 py-2 bg-neutral-50 border border-neutral-200/60 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[150px]"
-              >
-                <option value="all">Semua Status</option>
-                <option value="belum-submit">Belum Submit</option>
-                <option value="pending">Menunggu Validasi</option>
-                <option value="valid">Valid / Selesai</option>
-                <option value="review-fraud">Review / Fraud</option>
-              </select>
-
-              <select
-                value={selectedDeadline}
-                onChange={(e) => setSelectedDeadline(e.target.value)}
-                className="px-3.5 py-2 bg-neutral-50 border border-neutral-200/60 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[150px]"
-              >
-                <option value="all">Semua Batas Waktu</option>
-                <option value="soon">Segera (≤ 5 hari)</option>
-                <option value="later">Masih Lama (&gt; 5 hari)</option>
-              </select>
-
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3.5 py-2 bg-neutral-50 border border-neutral-200/60 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[170px]"
-              >
-                <option value="nearest-deadline">Deadline Terdekat</option>
-                <option value="latest-claimed">Baru Diklaim</option>
-              </select>
-
-              {hasActiveFilters && (
-                <button
-                  onClick={handleClearFilters}
-                  className="ml-auto flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50 rounded-xl transition-all cursor-pointer border border-neutral-200/60"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  Reset Filter
-                </button>
-              )}
-            </div>
+          <div className="mb-6">
+            <SearchToolbar
+              searchValue={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="Cari pekerjaan / brand..."
+              filters={toolbarFilters}
+              onClearFilters={handleClearFilters}
+              hasActiveFilters={hasActiveFilters}
+            />
           </div>
-          </div>
-
           {/* Grid */}
           {filteredWorks.length === 0 ? (
             <DashboardStateCard

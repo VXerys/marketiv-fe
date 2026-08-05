@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 /**
  * Bingkai + stepper wizard onboarding, dipakai kedua role.
  *
- * Sengaja BUKAN DashboardModal: onboarding adalah halaman penuh yang dicapai
+ * Sengaja BUKAN modal dashboard: onboarding adalah halaman penuh yang dicapai
  * lewat pemantulan RoleGuard, bukan dialog di atas dashboard — dashboard-nya
  * justru belum boleh terlihat.
  */

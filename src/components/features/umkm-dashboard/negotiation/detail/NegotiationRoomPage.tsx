@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Maximize2, Minimize2 } from "lucide-react";
 import {
   getNegotiationById,
   getMessagesByConversationId,
@@ -20,6 +21,13 @@ import {
 import { markConversationRead } from "@/services/shared/conversation.service";
 import type { Deliverable } from "@/types/umkm-dashboard.types";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import { toast } from "sonner";
 import { NegotiationOrder, ChatMessage } from "@/types/umkm-dashboard.types";
 import { formatCurrency } from "@/lib/formatters";
@@ -76,6 +84,7 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isCancelOrderOpen, setIsCancelOrderOpen] = useState(false);
+  const [isChatFullscreen, setIsChatFullscreen] = useState(false);
 
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [isApproveOpen, setIsApproveOpen] = useState(false);
@@ -329,26 +338,28 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 pb-5 sm:pb-5 lg:pb-5 h-[calc(100svh-80px)] flex flex-col min-h-0 overflow-hidden">
-      <div className="flex-1 min-h-0 flex flex-col gap-3 max-w-7xl w-full mx-auto">
+      <div className={`flex-1 min-h-0 flex flex-col gap-3 w-full mx-auto ${isChatFullscreen ? "max-w-none" : "max-w-7xl"}`}>
       {/* Back link */}
-      <Link
-        href="/dashboard/umkm/negosiasi"
-        className="inline-flex items-center gap-1.5 text-xs font-bold text-[#737f91] hover:text-[#f97316] transition-colors w-fit group shrink-0"
-      >
-        <svg
-          className="w-4 h-4 shrink-0 group-hover:-translate-x-1 transition-transform"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth="2.5"
+      {!isChatFullscreen && (
+        <Link
+          href="/dashboard/umkm/negosiasi"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-[#737f91] hover:text-[#f97316] transition-colors w-fit group shrink-0"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-        Kembali ke Negosiasi
-      </Link>
+          <svg
+            className="w-4 h-4 shrink-0 group-hover:-translate-x-1 transition-transform"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2.5"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          Kembali ke Negosiasi
+        </Link>
+      )}
 
       {/* Main grid: chat left, sidebar right */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 flex-1 min-h-0 items-stretch">
+      <div className={`grid grid-cols-1 gap-4 flex-1 min-h-0 items-stretch ${isChatFullscreen ? "" : "lg:grid-cols-[1fr_360px]"}`}>
 
         {/* LEFT: Chat pane */}
         <div
@@ -405,6 +416,15 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
                 {statusCfg.label}
               </span>
               {renderHeaderCTA()}
+              <button
+                type="button"
+                onClick={() => setIsChatFullscreen((v) => !v)}
+                aria-label={isChatFullscreen ? "Keluar dari fullscreen chat" : "Fullscreen chat"}
+                title={isChatFullscreen ? "Keluar fullscreen" : "Fullscreen chat"}
+                className="w-9 h-9 rounded-[12px] border border-neutral-200/70 bg-white text-[#737f91] hover:text-[#f97316] hover:border-orange-200 hover:bg-orange-50/60 flex items-center justify-center transition-colors cursor-pointer"
+              >
+                {isChatFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
@@ -431,21 +451,23 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
         </div>
 
         {/* RIGHT: Sidebar cards */}
-        <div
-          className="flex flex-col gap-3 overflow-y-auto scrollbar-thin min-h-0"
-        >
-          <OrderSummaryCard order={order} onCancelOrder={() => setIsCancelOrderOpen(true)} />
-          <DeliverableReviewCard
-            deliverables={deliverables}
-            canReview={order.stage === "in_progress" || order.stage === "revision"}
-            busy={reviewing}
-            onApprove={() => setIsApproveOpen(true)}
-            onRequestRevision={() => setIsRevisionOpen(true)}
-          />
-          <EscrowStatusCard orderStatus={order.stage} />
-          <CreatorMiniProfileCard order={order} />
-          <DealChecklistCard stage={order.stage} />
-        </div>
+        {!isChatFullscreen && (
+          <div
+            className="flex flex-col gap-3 overflow-y-auto scrollbar-thin min-h-0"
+          >
+            <OrderSummaryCard order={order} onCancelOrder={() => setIsCancelOrderOpen(true)} />
+            <DeliverableReviewCard
+              deliverables={deliverables}
+              canReview={order.stage === "in_progress" || order.stage === "revision"}
+              busy={reviewing}
+              onApprove={() => setIsApproveOpen(true)}
+              onRequestRevision={() => setIsRevisionOpen(true)}
+            />
+            <EscrowStatusCard orderStatus={order.stage} />
+            <CreatorMiniProfileCard order={order} />
+            <DealChecklistCard stage={order.stage} />
+          </div>
+        )}
       </div>
       </div>
 
@@ -517,8 +539,14 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
       )}
 
       {isRevisionOpen && (
-        <div className="fixed inset-0 bg-neutral-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[24px] border border-neutral-200/50 shadow-[0_32px_80px_rgba(15,23,42,.20)] p-6 max-w-md w-full">
+        <ResponsiveModal open={isRevisionOpen} onOpenChange={(open) => !open && setIsRevisionOpen(false)}>
+          <ResponsiveModalContent className="max-w-md w-full rounded-[24px] border border-neutral-200/50 p-6">
+            <ResponsiveModalHeader className="sr-only">
+              <ResponsiveModalTitle>Minta Revisi</ResponsiveModalTitle>
+              <ResponsiveModalDescription>
+                Kirim permintaan revisi hasil kerja kreator.
+              </ResponsiveModalDescription>
+            </ResponsiveModalHeader>
             <div className="flex justify-between items-start gap-4 mb-4">
               <div>
                 <h3 className="text-base font-black text-[#182033]">Minta Revisi</h3>
@@ -576,8 +604,8 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+          </ResponsiveModalContent>
+        </ResponsiveModal>
       )}
     </div>
   );
