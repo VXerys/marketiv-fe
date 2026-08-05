@@ -505,6 +505,18 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                         </p>
                       </div>
 
+                      {/* C5: Reward formula info banner */}
+                      <div
+                        className="border rounded-xl px-3 py-2.5 text-[11px] text-violet-900 font-semibold leading-relaxed flex items-start gap-2"
+                        style={{ background: "color-mix(in srgb, var(--color-kreator-600) 4%, transparent)", borderColor: "color-mix(in srgb, var(--color-kreator-600) 15%, transparent)" }}
+                      >
+                        <Info className="w-4 h-4 shrink-0 text-violet-500 mt-0.5" />
+                        <div>
+                          <span className="block font-extrabold text-violet-700 mb-0.5">Cara Hitung Reward</span>
+                          <span>Reward = (jumlah views ÷ 1.000) × tarif per 1K views, dibulatkan ke bawah. Di bawah 1.000 views, reward = Rp0.</span>
+                        </div>
+                      </div>
+
                       {validationError && (
                         <div className="bg-red-50 border border-red-200/60 p-4 rounded-[14px] flex items-start gap-3 text-red-800 text-xs font-bold leading-relaxed">
                           <AlertCircle className="w-4 h-4 shrink-0 text-red-500 mt-0.5" />
@@ -681,7 +693,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                           style={{ background: "color-mix(in srgb, var(--color-kreator-600) 4%, transparent)", borderColor: "color-mix(in srgb, var(--color-kreator-600) 15%, transparent)" }}
                         >
                           <Info className="w-4 h-4 shrink-0 text-violet-500 mt-0.5" />
-                          <span>Dana reward dihitung berkala berdasarkan data views video yang disinkronkan oleh sistem audit admin Marketiv.</span>
+                          <span>Reward dihitung dari views yang diverifikasi UMKM saat menyetujui bukti tayang: floor(views ÷ 1.000) × tarif per 1K views. Views di bawah 1.000 = Rp0.</span>
                         </div>
                       </div>
                     </div>
@@ -825,7 +837,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                     <ul className="space-y-2 text-[10px] text-violet-900 font-semibold leading-relaxed">
                       {[
                         "Modul chat ditiadakan demi efisiensi pengerjaan.",
-                        "Audit views disinkronisasikan langsung melalui API publik media sosial.",
+                        "Verifikasi jumlah tayangan dilakukan oleh UMKM secara manual saat menyetujui bukti tayang.",
                         "Pertanyaan teknis dapat diajukan ke Admin via menu support.",
                       ].map((rule) => (
                         <li key={rule} className="flex items-start gap-1.5">
@@ -878,7 +890,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                           style={{ background: "color-mix(in srgb, var(--color-kreator-600) 4%, transparent)", borderColor: "color-mix(in srgb, var(--color-kreator-600) 15%, transparent)" }}
                         >
                           <Info className="w-4 h-4 shrink-0 text-violet-500 mt-0.5" />
-                          <span>Data tayangan (views) ditarik otomatis dari media sosial. Harap tidak menghapus video minimal 30 hari pasca audit agar reward tidak dibatalkan.</span>
+                          <span>UMKM akan memverifikasi jumlah views video ini saat menyetujui bukti tayang. Pastikan video tetap publik minimal 30 hari pasca persetujuan agar reward tidak dibatalkan.</span>
                         </div>
                       </div>
                     ) : (
@@ -897,9 +909,9 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
 
                 <div className="lg:col-span-4">
                   <div className="bg-neutral-50 border border-neutral-200/50 rounded-[22px] p-6 space-y-3">
-                    <h4 className="text-[10px] font-extrabold text-neutral-500 uppercase tracking-widest">Laporan Audit Views</h4>
+                    <h4 className="text-[10px] font-extrabold text-neutral-500 uppercase tracking-widest">Cara Kerja Verifikasi Views</h4>
                     <p className="text-[11px] text-neutral-500 font-semibold leading-relaxed">
-                      Sistem pemantau views beroperasi 24 jam untuk melacak performa konten. Views yang dihitung hanya views riil (bukan bot).
+                      UMKM memasukkan jumlah views video ini saat menyetujui bukti tayang. Angka tersebut dikunci dan menjadi dasar perhitungan reward.
                     </p>
                   </div>
                 </div>

@@ -70,8 +70,11 @@ export function CampaignSubmissionCard({
       {/* Cells */}
       <ResponsiveDataCell label="Views" className="w-full md:w-auto">
         <span className="font-extrabold text-text-primary text-xs sm:text-sm">
-          {formatCompactNumber(submission.actualViews)}
+          {submission.actualViews > 0 ? formatCompactNumber(submission.actualViews) : "—"}
         </span>
+        {submission.actualViews === 0 && submission.validationStatus !== "rejected" && (
+          <span className="block text-[10px] text-text-muted font-semibold leading-tight mt-0.5">Belum diverifikasi</span>
+        )}
       </ResponsiveDataCell>
 
       {/* Dana Cair */}

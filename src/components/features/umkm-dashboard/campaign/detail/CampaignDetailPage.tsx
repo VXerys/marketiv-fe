@@ -299,6 +299,7 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
             isOpen={!!activeReviewSubmission}
             onClose={() => setActiveReviewSubmission(null)}
             submission={activeReviewSubmission}
+            ratePerThousandViews={campaign?.pricePerThousandViews ?? 0}
             onConfirm={handleReviewConfirm}
           />
         )}

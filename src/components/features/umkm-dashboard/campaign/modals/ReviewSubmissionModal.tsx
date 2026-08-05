@@ -18,6 +18,7 @@ interface ReviewSubmissionModalProps {
   isOpen: boolean;
   onClose: () => void;
   submission: CampaignSubmission;
+  ratePerThousandViews: number;
   onConfirm: (status: SubmissionStatus, views: number, notes?: string) => void | Promise<void>;
 }
 
@@ -25,6 +26,7 @@ export function ReviewSubmissionModal({
   isOpen,
   onClose,
   submission,
+  ratePerThousandViews,
   onConfirm,
 }: ReviewSubmissionModalProps) {
   const [selectedStatus, setSelectedStatus] = useState<SubmissionStatus>(submission.validationStatus);
@@ -36,6 +38,7 @@ export function ReviewSubmissionModal({
 
   const views = Number(viewsInput.replace(/\D/g, ""));
   const viewsValid = Number.isInteger(views) && views > 0;
+  const rewardPreview = Math.floor(views / 1000) * ratePerThousandViews;
   // Views hanya relevan saat menyetujui — penolakan tidak menghasilkan reward.
   const canConfirm = selectedStatus === "rejected" || (selectedStatus === "approved" && viewsValid);
 
@@ -114,8 +117,11 @@ export function ReviewSubmissionModal({
               Views Terkumpul
             </span>
             <span className="text-base font-extrabold text-text-primary">
-              {formatCompactNumber(submission.actualViews)} Views
+              {submission.actualViews > 0 ? `${formatCompactNumber(submission.actualViews)} Views` : "—"}
             </span>
+            {submission.actualViews === 0 && (
+              <span className="block text-[10px] text-text-muted font-semibold mt-0.5">Belum diverifikasi</span>
+            )}
           </div>
 
           <div className="bg-neutral-50 p-3 rounded-xl border border-border-soft">
@@ -187,6 +193,25 @@ export function ReviewSubmissionModal({
             {!viewsValid && viewsInput.trim() !== "" && (
               <p className="mt-1 text-[11px] font-semibold text-danger">
                 Masukkan angka views lebih dari 0.
+              </p>
+            )}
+            {/* U3: sub-1000 warning */}
+            {viewsValid && views < 1000 && (
+              <p className="mt-1.5 text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200/60 rounded-lg px-2.5 py-1.5 leading-relaxed">
+                Views di bawah 1.000 — reward kreator akan Rp0.
+              </p>
+            )}
+            {/* U2: realtime reward preview */}
+            {viewsValid && views >= 1000 && (
+              <div className="mt-2 flex items-center justify-between bg-success-soft border border-success/20 rounded-xl px-3 py-2">
+                <span className="text-[11px] font-bold text-success-strong">Estimasi reward kreator</span>
+                <span className="text-sm font-extrabold text-success-strong">{formatCurrency(rewardPreview)}</span>
+              </div>
+            )}
+            {/* U4: locked note */}
+            {viewsValid && (
+              <p className="mt-1.5 text-[10px] text-text-muted font-semibold leading-relaxed">
+                Angka ini dikunci setelah disimpan dan menjadi dasar reward kreator.
               </p>
             )}
           </div>
