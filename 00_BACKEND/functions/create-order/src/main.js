@@ -13,6 +13,39 @@ export default async ({ req, res, log, error }) => {
     // menggandakan hal yang harus di-deploy dan dijaga tetap sinkron.
     if (offer.status === "rejected") {
       const databases = createDatabasesClient(env);
+    
+    const [umkm, creator] = await Promise.all([
+      getUser(databases, env, offer.umkmId),
+      getUser(databases, env, offer.creatorId)
+    ]);
+    
+    if (umkm?.status && umkm.status !== "active") {
+      log(`Order untuk offer ${offer.$id} ditolak: UMKM non-active (${umkm.status})`);
+      await notify(databases, env, {
+        userId: offer.creatorId,
+        sourceId: offer.$id,
+        kind: "order_blocked_umkm_suspended",
+        title: "Pembuatan Pesanan Dibatalkan",
+        message: "Pesanan tidak dapat dibuat karena akun UMKM sedang tidak aktif.",
+        type: "system",
+      }, log);
+      return json(res, { status: "ignored", reason: "UMKM is not active" });
+    }
+    
+    if (creator?.status && creator.status !== "active") {
+      log(`Order untuk offer ${offer.$id} ditolak: Kreator non-active (${creator.status})`);
+      await notify(databases, env, {
+        userId: offer.umkmId,
+        sourceId: offer.$id,
+        kind: "order_blocked_creator_suspended",
+        title: "Pembuatan Pesanan Dibatalkan",
+        message: "Pesanan tidak dapat dibuat karena akun Kreator sedang tidak aktif.",
+        type: "system",
+      }, log);
+      return json(res, { status: "ignored", reason: "Creator is not active" });
+    }
+
+
       await notify(databases, env, {
         userId: offer.umkmId,
         sourceId: offer.$id,
@@ -40,7 +73,6 @@ export default async ({ req, res, log, error }) => {
     // bertransaksi adalah kreator (menerima penawaran). Function ini
     // event-driven — tidak ada user untuk dibalas 403, jadi order tidak
     // dibuat dan UMKM diberi tahu agar alur tidak mati senyap.
-    const creator = await getUser(databases, env, offer.creatorId);
     const agreedTos = creator?.tos_version === env.currentTosVersion && Boolean(creator?.tos_accepted_at);
     if (!agreedTos) {
       log(`Order untuk offer ${offer.$id} ditolak: kreator ${offer.creatorId} belum setuju T&C ${env.currentTosVersion}`);

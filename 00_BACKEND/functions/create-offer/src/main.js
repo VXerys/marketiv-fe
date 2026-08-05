@@ -47,6 +47,17 @@ export default async ({ req, res, log, error }) => {
     if (invalid) return json(res, { error: invalid }, 400);
 
     const databases = createDatabasesClient(env);
+    
+    const usersRes = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
+      Query.equal("userId", userId),
+      Query.limit(1)
+    ]);
+    const userDoc = usersRes.documents[0] || null;
+    if (userDoc?.status && userDoc.status !== "active") {
+      log(`Create offer ditolak untuk ${userId}: status akun ${userDoc.status}`);
+      return json(res, { error: "Akun Anda sedang tidak aktif." }, 403);
+    }
+
 
     let conversation;
     try {
@@ -188,6 +199,7 @@ function getEnv(req) {
     appwriteProjectId: process.env.APPWRITE_FUNCTION_PROJECT_ID || process.env.APPWRITE_PROJECT_ID,
     appwriteApiKey: req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY,
     databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
+    usersCollectionId: process.env.USERS_COLLECTION_ID || "users",
     conversationsCollectionId:
       process.env.CONVERSATIONS_COLLECTION_ID ||
       process.env.NEXT_PUBLIC_CONVERSATION_COLLECTION ||

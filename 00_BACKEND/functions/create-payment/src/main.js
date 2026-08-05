@@ -1,4 +1,4 @@
-import { Client, Databases, ID, Permission, Role } from "node-appwrite";
+import { Client, Databases, ID, Permission, Role, Query } from "node-appwrite";
 
 const PURPOSES = new Set(["order", "campaign"]);
 
@@ -32,6 +32,17 @@ export default async ({ req, res, log, error }) => {
     if (validationError) return json(res, { error: validationError }, 400);
 
     const databases = createDatabasesClient(env);
+    
+    const usersRes = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
+      Query.equal("userId", userId),
+      Query.limit(1)
+    ]);
+    const userDoc = usersRes.documents[0] || null;
+    if (userDoc?.status && userDoc.status !== "active") {
+      log(`Payment ditolak untuk ${userId}: status akun ${userDoc.status}`);
+      return json(res, { error: "Akun Anda sedang tidak aktif." }, 403);
+    }
+
     const amount = Number(payload.amount);
     let order = null;
 
@@ -147,6 +158,7 @@ function getEnv(req) {
     appwriteProjectId: process.env.APPWRITE_FUNCTION_PROJECT_ID || process.env.APPWRITE_PROJECT_ID,
     appwriteApiKey: req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY,
     databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
+    usersCollectionId: process.env.USERS_COLLECTION_ID || "users",
     paymentsCollectionId: process.env.PAYMENTS_COLLECTION_ID || process.env.NEXT_PUBLIC_PAYMENT_COLLECTION || "payments",
     ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders",
     campaignsCollectionId: process.env.CAMPAIGNS_COLLECTION_ID || process.env.NEXT_PUBLIC_CAMPAIGN_COLLECTION || "campaigns",

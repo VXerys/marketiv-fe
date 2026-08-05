@@ -77,19 +77,45 @@ const collections = [
         attributes: [
             createStringAttr("userId", true),
             createStringAttr("role", true, 50),
-            createStringAttr("status", true, 50),
+            createEnumAttr("status", true, ["active", "suspended", "terminated"]),
             createStringAttr("email", true),
             createStringAttr("phone", false, 50),
             createDatetimeAttr("createdAt", false),
+            createDatetimeAttr("suspended_at", false),
             createStringAttr("tos_version", false, 20),
             createDatetimeAttr("tos_accepted_at", false),
-            createDatetimeAttr("email_verified_at", false)
+            createDatetimeAttr("email_verified_at", false),
+            createEnumAttr("kyc_status", false, ["none", "pending_wa", "verified"]),
+            createDatetimeAttr("kyc_verified_at", false)
         ],
         indexes: [
             createIndex("idx_userId", "unique", ["userId"]),
             createIndex("idx_email", "unique", ["email"]),
             createIndex("idx_role", "key", ["role"]),
             createIndex("idx_status", "key", ["status"])
+        ]
+    },
+    {
+        $id: "appeals",
+        name: "Appeals",
+        $permissions: ["create(\"users\")"],
+        documentSecurity: true,
+        enabled: true,
+        attributes: [
+            createStringAttr("userId", true, 255),
+            createStringAttr("actionRef", true, 255),
+            createStringAttr("reason", true, 1000),
+            createStringAttr("evidence", false, 2048),
+            createDatetimeAttr("deadlineAt", true),
+            createDatetimeAttr("slaDecidedAt", true),
+            createEnumAttr("status", true, ["submitted", "under_review", "approved", "rejected"]),
+            createStringAttr("decision", false, 1000),
+            createDatetimeAttr("decidedAt", false)
+        ],
+        indexes: [
+            createIndex("idx_userId", "key", ["userId"]),
+            createIndex("idx_status", "key", ["status"]),
+            createIndex("idx_userId_status", "key", ["userId", "status"])
         ]
     },
     {
@@ -656,8 +682,14 @@ const collections = [
             createStringAttr("providerName", true, 100),
             createStringAttr("accountNumber", true, 100),
             createStringAttr("accountName", true, 255),
-            createStringAttr("status", true, 50),
-            createDatetimeAttr("processedAt", true)
+            createEnumAttr("status", true, ["requested", "processing", "succeeded", "failed", "reversed"]),
+            createDatetimeAttr("processedAt", false),
+            createStringAttr("failure_reason", false, 500),
+            createDatetimeAttr("reversed_at", false),
+            createStringAttr("requester_role", false, 20),
+            createEnumAttr("source_origin", false, ["creator", "umkm_refund", "umkm_budget"]),
+            createEnumAttr("kyc_status", false, ["none", "pending_wa", "verified"]),
+            createStringAttr("iris_reference", false, 255)
         ],
         indexes: [
             createIndex("idx_userId", "key", ["userId"])
@@ -819,6 +851,70 @@ const buckets = [
 ];
 
 const functions = [
+    {
+        $id: "suspend-user",
+        name: "Suspend User",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        ignore: ["node_modules", ".env"],
+        path: "../functions/suspend-user",
+        scopes: ["documents.read", "documents.write"]
+    },
+    {
+        $id: "unsuspend-user",
+        name: "Unsuspend User",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        ignore: ["node_modules", ".env"],
+        path: "../functions/unsuspend-user",
+        scopes: ["documents.read", "documents.write"]
+    },
+    {
+        $id: "create-appeal",
+        name: "Create Appeal",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        ignore: ["node_modules", ".env"],
+        path: "../functions/create-appeal",
+        scopes: ["documents.read", "documents.write"]
+    },
+    {
+        $id: "review-appeal",
+        name: "Review Appeal",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        ignore: ["node_modules", ".env"],
+        path: "../functions/review-appeal",
+        scopes: ["documents.read", "documents.write"]
+    },
     {
         $id: "create-user-profile",
         name: "Create User Profile",
@@ -1056,6 +1152,34 @@ const functions = [
         entrypoint: "src/main.js",
         commands: "npm install",
         path: "../functions/midtrans-webhook"
+    },
+    {
+        $id: "withdrawal-callback",
+        name: "Withdrawal Callback",
+        runtime: "node-22",
+        execute: ["any"],
+        events: [],
+        schedule: "",
+        timeout: 30,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/withdrawal-callback"
+    },
+    {
+        $id: "verify-kyc",
+        name: "Verify KYC",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/verify-kyc"
     },
     {
         $id: "create-escrow",

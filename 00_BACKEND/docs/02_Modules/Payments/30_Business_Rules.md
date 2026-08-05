@@ -33,7 +33,7 @@
 
 ## Tipe Transaksi
 
-`withdrawal | payment | refund | release | fee | mature`
+`withdrawal | payment | refund | release | fee | mature | withdrawal_reversal`
 
 - `withdrawal` — pencairan dana keluar.
 - `payment` — pembayaran order oleh UMKM.
@@ -41,6 +41,7 @@
 - `refund` — pengembalian dana.
 - `release` — pelepasan escrow ke creator.
 - `fee` — biaya platform.
+- `withdrawal_reversal` — kredit balik saat withdrawal gagal (T-17 append-only, id deterministik). Bukan withdrawal baru, jangan dihitung sebagai pencairan.
 
 ## Escrow
 
@@ -116,6 +117,38 @@ Permintaan withdraw valid bila:
 - `balance ≥ amount`.
 - Tujuan pencairan wajib memakai `payoutMethod = bank` atau `ewallet`.
 - `providerName`, `accountNumber`, dan `accountName` wajib terisi untuk bank maupun e-wallet.
-- Withdrawal **langsung diproses** tanpa review admin. Dana langsung keluar dari wallet.
+- Wajib setuju T&C terbaru (T-14) dan email terverifikasi untuk penarikan pertama (T-15).
+
+### Alur 4-state (Pasal 11 T&C)
+
+- `requested` — audit row dibuat, saldo BELUM keluar.
+- `processing` — Midtrans Iris menerima transfer (dana keluar wallet platform).
+- `succeeded` — callback Iris: dana sampai rekening penerima.
+- `failed` — Iris menolak; saldo DIKREDIT BALIK via ledger `withdrawal_reversal`.
+- `reversed` — kredit balik sudah dieksekusi (marker idempoten).
+
+SLA pencairan maksimal **1×24 jam kerja** sejak `requested`. Reversal maksimal **3 hari kerja**.
+
+### KYC (Pasal 11.8)
+
+- Nominal ≥ `KYC_THRESHOLD` (Rp5.000.000) wajib `users.kyc_status = verified`.
+- Dokumen diverifikasi admin via WhatsApp; sistem hanya mencatat status (`verify-kyc`).
+- Saat ditolak, `kyc_status` di-set `pending_wa` sebagai penanda dokumen menunggu verifikasi.
+
+### Rate Limit & Cooling (Pasal 11, anti-fraud)
+
+- Maks **3 withdrawal/hari** per user (status `failed` tidak dihitung).
+- Ganti akun rekening → pending **3 hari** sebelum bisa tarik (anti pola ganti-rekening-lalu-tarik).
+
+### UMKM (Pasal 15.1.c)
+
+- UMKM BUKAN diblokir dari withdraw — boleh menarik saldo yang berasal dari **refund** atau **sisa budget campaign**.
+- Validasi pada SUMBER SALDO (ledger), bukan role: `sourceOrigin` ∈ `{umkm_refund, umkm_budget}` + terbukti di `transactions` (`refund` atau pembayaran campaign lunas).
+
+### Idempotensi
+
+- Document id deterministik `wd` + sha256(`${userId}:${requestKey}`) — retry requestKey sama → 409.
+- Debit saldo ATOMIK (`decrementColumn` min 0, Fix B) — baca-ubah-tulis bisa kehilangan mutasi saat dua request tumpang tindih.
+- Reversal idempoten: ledger `withdrawal_reversal` id deterministik `tx` + sha256(`${withdrawalId}:reversal`); kredit balik tidak pernah dobel.
 
 > Escrow & transactions disimpan terpisah (`50_Database.md`). Aggregate order: `../../04_Decisions/ADR-003.md`.

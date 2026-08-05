@@ -459,86 +459,10 @@ describe('calculate-campaign-reward function (FIX A: idempotency)', () => {
   });
 });
 
-describe('request-withdrawal function (FIX B: atomic debit)', () => {
-  // ===== T-14 / T-15 gates =====
-  it('rejects withdrawal when creator has not accepted TOS v3.1', async () => {
-    (globalThis as any).fetch = () => ({ ok: true, status: 200, text: async () => '{}' });
-    process.env.WALLETS_COLLECTION_ID = 'wallets';
-    process.env.WITHDRAWALS_COLLECTION_ID = 'withdrawals';
-    process.env.TRANSACTIONS_COLLECTION_ID = 'transactions';
-    process.env.USERS_COLLECTION_ID = 'users';
-    process.env.MINIMUM_WITHDRAW = '50000';
-    process.env.CURRENT_TOS_VERSION = 'v3.1';
-    // creator has not set tos_version / tos_accepted_at
-    seed('users', [{ $id: 'uX', userId: 'user-X', role: 'creator', tos_version: 'v3.0' }]);
-    seed('wallets', [{ $id: 'wX', userId: 'user-X', balance: 100000 }]);
-
-    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
-    const req = makeReq({
-      headers: { 'x-appwrite-user-id': 'user-X' },
-      bodyJson: { amount: 50000, payoutMethod: 'bank', providerName: 'BCA', accountNumber: '1234567890', accountName: 'Panji', requestKey: 'req-key-tos' },
-    });
-    const res = makeRes();
-    await main({ req, res, log: () => {}, error: () => {} });
-
-    expect(res.calls[0].status).toBe(403);
-    expect(res.calls[0].body.error).toBe('Setujui T&C terbaru terlebih dahulu.');
-    expect((store['withdrawals'] || [])).toHaveLength(0); // no audit row
-  });
-
-  it('rejects withdrawal when creator has not verified email (first withdrawal)', async () => {
-    (globalThis as any).fetch = () => ({ ok: true, status: 200, text: async () => '{}' });
-    process.env.WALLETS_COLLECTION_ID = 'wallets';
-    process.env.WITHDRAWALS_COLLECTION_ID = 'withdrawals';
-    process.env.TRANSACTIONS_COLLECTION_ID = 'transactions';
-    process.env.USERS_COLLECTION_ID = 'users';
-    process.env.MINIMUM_WITHDRAW = '50000';
-    process.env.CURRENT_TOS_VERSION = 'v3.1';
-    // creator passed TOS but email not verified
-    seed('users', [{ $id: 'uY', userId: 'user-Y', role: 'creator', tos_version: 'v3.1', tos_accepted_at: new Date().toISOString(), email_verified_at: null }]);
-    seed('wallets', [{ $id: 'wY', userId: 'user-Y', balance: 100000 }]);
-
-    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
-    const req = makeReq({
-      headers: { 'x-appwrite-user-id': 'user-Y' },
-      bodyJson: { amount: 50000, payoutMethod: 'bank', providerName: 'BCA', accountNumber: '1234567890', accountName: 'Panji', requestKey: 'req-key-email' },
-    });
-    const res = makeRes();
-    await main({ req, res, log: () => {}, error: () => {} });
-
-    expect(res.calls[0].status).toBe(403);
-    expect(res.calls[0].body.error).toBe('Verifikasi email sebelum penarikan pertama.');
-    expect((store['withdrawals'] || [])).toHaveLength(0);
-  });
-
-  it('allows withdrawal when creator has passed both TOS and email verified', async () => {
-    (globalThis as any).fetch = () => ({ ok: true, status: 200, text: async () => '{}' });
-    process.env.WALLETS_COLLECTION_ID = 'wallets';
-    process.env.WITHDRAWALS_COLLECTION_ID = 'withdrawals';
-    process.env.TRANSACTIONS_COLLECTION_ID = 'transactions';
-    process.env.USERS_COLLECTION_ID = 'users';
-    process.env.MINIMUM_WITHDRAW = '50000';
-    process.env.CURRENT_TOS_VERSION = 'v3.1';
-    seed('users', [{ $id: 'uZ', userId: 'user-Z', role: 'creator', tos_version: 'v3.1', tos_accepted_at: new Date().toISOString(), email_verified_at: new Date().toISOString() }]);
-    seed('wallets', [{ $id: 'wZ', userId: 'user-Z', balance: 100000 }]);
-
-    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
-    const req = makeReq({
-      headers: { 'x-appwrite-user-id': 'user-Z' },
-      bodyJson: { amount: 50000, payoutMethod: 'bank', providerName: 'BCA', accountNumber: '1234567890', accountName: 'Panji', requestKey: 'req-key-pass' },
-    });
-    const res = makeRes();
-    await main({ req, res, log: () => {}, error: () => {} });
-
-    expect(res.calls[0].status).toBe(200);
-    expect((store['withdrawals'] || [])).toHaveLength(1);
-    const wallet = (store['wallets'] || []).find((w) => w.$id === 'wZ');
-    expect(wallet.balance).toBe(50000); // 100000 - 50000
-  });
-
-  describe('create-order function (T-14 TOS gate)', () => {
-  // Helper to mock TablesDB fetch for atomic operations
-  const mockTablesDb = (url: string, init: any) => {
+describe('request-withdrawal function (FIX B: atomic debit, 4-state flow)', () => {
+  // Router fetch: TablesDB atomic ops update the in-memory store; Iris payouts
+  // can be forced to succeed or fail per test.
+  const mockFetch = (iris?: (url: string, init: any) => any) => (url: string, init: any) => {
     const m = url.match(/\/tablesdb\/[^/]+\/tables\/([^/]+)\/rows\/([^/]+)\/([^/]+)\/(increment|decrement)$/);
     if (m) {
       const [, table, rowId, column, op] = m;
@@ -558,49 +482,119 @@ describe('request-withdrawal function (FIX B: atomic debit)', () => {
       }
       return { ok: true, status: 200, text: async () => '{}' };
     }
+    if (url.includes('/iris/payouts')) {
+      return iris ? iris(url, init) : { ok: true, status: 201, json: async () => ({ payouts: [{ reference_no: 'REF-1', status: 'queued' }] }) };
+    }
     return { ok: true, status: 200, text: async () => '{}' };
   };
 
-  it('rejects withdrawal when balance is zero and leaves no withdrawals row', async () => {
-    (globalThis as any).fetch = mockTablesDb;
-
+  const envWithdrawal = () => {
     process.env.WALLETS_COLLECTION_ID = 'wallets';
     process.env.WITHDRAWALS_COLLECTION_ID = 'withdrawals';
     process.env.TRANSACTIONS_COLLECTION_ID = 'transactions';
     process.env.USERS_COLLECTION_ID = 'users';
+    process.env.NOTIFICATIONS_COLLECTION_ID = 'notifications';
     process.env.MINIMUM_WITHDRAW = '50000';
-    seed('users', [{ $id: 'u1', userId: 'user-1', role: 'creator' }]);
-    seed('wallets', [{ $id: 'w1', userId: 'user-1', balance: 0, pendingBalance: 0 }]);
+    process.env.CURRENT_TOS_VERSION = 'v3.1';
+    process.env.KYC_THRESHOLD = '5000000';
+    process.env.WITHDRAW_PER_DAY_LIMIT = '3';
+    process.env.WITHDRAW_COOLING_DAYS = '3';
+    process.env.MIDTRANS_IRIS_SERVER_KEY = 'iris_key';
+  };
+
+  const seedCreator = (uid: string, balance: number, over: any = {}) => {
+    seed('users', [{ $id: `u-${uid}`, userId: uid, role: 'creator', tos_version: 'v3.1', tos_accepted_at: new Date().toISOString(), email_verified_at: new Date().toISOString(), kyc_status: 'verified', ...over }]);
+    seed('wallets', [{ $id: `w-${uid}`, userId: uid, balance }]);
+  };
+
+  const payload = (requestKey: string, over: any = {}) => ({
+    amount: 50000, payoutMethod: 'bank', providerName: 'BCA',
+    accountNumber: '1234567890', accountName: 'Panji', requestKey,
+    ...over,
+  });
+
+  // ===== T-14 / T-15 gates =====
+  it('rejects withdrawal when creator has not accepted TOS v3.1', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seed('users', [{ $id: 'uX', userId: 'user-X', role: 'creator', tos_version: 'v3.0' }]);
+    seed('wallets', [{ $id: 'wX', userId: 'user-X', balance: 100000 }]);
+
     const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
-    const req = makeReq({
-      headers: { 'x-appwrite-user-id': 'user-1' },
-      bodyJson: { amount: 50000, payoutMethod: 'bank', providerName: 'BCA', accountNumber: '1234567890', accountName: 'Panji', requestKey: 'req-key-001' },
-    });
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-X' }, bodyJson: payload('req-key-tos') });
     const res = makeRes();
     await main({ req, res, log: () => {}, error: () => {} });
-    expect(res.calls[0].status).toBe(409);
+
+    expect(res.calls[0].status).toBe(403);
+    expect(res.calls[0].body.error).toBe('Setujui T&C terbaru terlebih dahulu.');
+    expect((store['withdrawals'] || [])).toHaveLength(0); // no audit row
+  });
+
+  it('rejects first withdrawal when email not verified', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seed('users', [{ $id: 'uY', userId: 'user-Y', role: 'creator', tos_version: 'v3.1', tos_accepted_at: new Date().toISOString(), email_verified_at: null }]);
+    seed('wallets', [{ $id: 'wY', userId: 'user-Y', balance: 100000 }]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-Y' }, bodyJson: payload('req-key-email') });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(403);
+    expect(res.calls[0].body.error).toBe('Verifikasi email sebelum penarikan pertama.');
     expect((store['withdrawals'] || [])).toHaveLength(0);
-    const wallet = (store['wallets'] || []).find((w) => w.$id === 'w1');
+  });
+
+  // ===== 4-state flow: requested -> processing =====
+  it('allows withdrawal when TOS + email verified, moves to processing with iris reference', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seedCreator('user-Z', 100000);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-Z' }, bodyJson: payload('req-key-pass') });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(200);
+    expect(res.calls[0].body.status).toBe('processing');
+    expect(res.calls[0].body.irisReference).toBe('REF-1');
+    expect((store['withdrawals'] || [])).toHaveLength(1);
+    expect((store['withdrawals'] || [])[0].status).toBe('processing');
+    const wallet = (store['wallets'] || []).find((w) => w.$id === 'w-user-Z');
+    expect(wallet.balance).toBe(50000); // 100000 - 50000 atomic debit
+  });
+
+  it('rejects withdrawal when balance is zero and leaves no withdrawals row', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seedCreator('user-1', 0);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-1' }, bodyJson: payload('req-key-001') });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(409);
+    expect(res.calls[0].body.error).toBe('Saldo tidak mencukupi');
+    expect((store['withdrawals'] || [])).toHaveLength(0);
+    const wallet = (store['wallets'] || []).find((w) => w.$id === 'w-user-1');
     expect(wallet.balance).toBe(0);
   });
 
   it('allows only the first of two identical withdrawals (same amount, same requestKey)', async () => {
-    (globalThis as any).fetch = mockTablesDb;
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seedCreator('user-1', 50000);
 
-    process.env.WALLETS_COLLECTION_ID = 'wallets';
-    process.env.WITHDRAWALS_COLLECTION_ID = 'withdrawals';
-    process.env.TRANSACTIONS_COLLECTION_ID = 'transactions';
-    process.env.USERS_COLLECTION_ID = 'users';
-    process.env.MINIMUM_WITHDRAW = '50000';
-    seed('users', [{ $id: 'u1', userId: 'user-1', role: 'creator' }]);
-    seed('wallets', [{ $id: 'w1', userId: 'user-1', balance: 50000, pendingBalance: 0 }]);
     const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
-    const body = { amount: 50000, payoutMethod: 'bank', providerName: 'BCA', accountNumber: '1234567890', accountName: 'Panji', requestKey: 'req-key-001' };
+    const body = payload('req-key-001');
 
     // First withdrawal
     const res1 = makeRes();
     await main({ req: makeReq({ headers: { 'x-appwrite-user-id': 'user-1' }, bodyJson: body }), res: res1, log: () => {}, error: () => {} });
-    expect(res1.calls[0].body.status).toBe('processed');
+    expect(res1.calls[0].body.status).toBe('processing');
 
     // Second withdrawal with same requestKey (duplicate guard)
     const res2 = makeRes();
@@ -608,8 +602,137 @@ describe('request-withdrawal function (FIX B: atomic debit)', () => {
     expect(res2.calls[0].status).toBe(409);
 
     // Balance should be 0 after first, second rejected
-    const wallet = (store['wallets'] || []).find((w) => w.$id === 'w1');
+    const wallet = (store['wallets'] || []).find((w) => w.$id === 'w-user-1');
     expect(wallet.balance).toBe(0);
+  });
+
+  // ===== UMKM source validation =====
+  it('rejects UMKM withdrawal without a valid source origin', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seed('users', [{ $id: 'uM', userId: 'user-M', role: 'umkm', tos_version: 'v3.1', tos_accepted_at: new Date().toISOString(), email_verified_at: new Date().toISOString(), kyc_status: 'verified' }]);
+    seed('wallets', [{ $id: 'wM', userId: 'user-M', balance: 100000 }]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-M' }, bodyJson: payload('req-key-umkm-x', { sourceOrigin: 'creator' }) });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(403);
+    expect((store['withdrawals'] || [])).toHaveLength(0);
+  });
+
+  it('rejects UMKM withdrawal when no refund/budget source exists in ledger', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seed('users', [{ $id: 'uM2', userId: 'user-M2', role: 'umkm', tos_version: 'v3.1', tos_accepted_at: new Date().toISOString(), email_verified_at: new Date().toISOString(), kyc_status: 'verified' }]);
+    seed('wallets', [{ $id: 'wM2', userId: 'user-M2', balance: 100000 }]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-M2' }, bodyJson: payload('req-key-umkm-n', { sourceOrigin: 'umkm_refund' }) });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(403);
+    expect((store['withdrawals'] || [])).toHaveLength(0);
+  });
+
+  it('allows UMKM withdrawal backed by a refund ledger entry', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seed('users', [{ $id: 'uM3', userId: 'user-M3', role: 'umkm', tos_version: 'v3.1', tos_accepted_at: new Date().toISOString(), email_verified_at: new Date().toISOString(), kyc_status: 'verified' }]);
+    seed('wallets', [{ $id: 'wM3', userId: 'user-M3', balance: 100000 }]);
+    seed('transactions', [{ $id: 'tx-refund-1', userId: 'user-M3', type: 'refund', amount: 60000, status: 'completed' }]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-M3' }, bodyJson: payload('req-key-umkm-y', { sourceOrigin: 'umkm_refund' }) });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(200);
+    expect(res.calls[0].body.status).toBe('processing');
+    const wd = (store['withdrawals'] || [])[0];
+    expect(wd.source_origin).toBe('umkm_refund');
+    expect(wd.requester_role).toBe('umkm');
+  });
+
+  // ===== KYC (Pasal 11.8) =====
+  it('requires KYC verified for amount at or above threshold and marks pending_wa', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seedCreator('user-K', 10000000, { kyc_status: 'none' });
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-K' }, bodyJson: payload('req-key-kyc', { amount: 6000000 }) });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(403);
+    expect(res.calls[0].body.error).toBe('Verifikasi KYC dulu melalui WhatsApp admin.');
+    expect((store['withdrawals'] || [])).toHaveLength(0);
+    const user = (store['users'] || []).find((u) => u.userId === 'user-K');
+    expect(user.kyc_status).toBe('pending_wa');
+  });
+
+  // ===== Rate limit + cooling (T-18, Pasal 11) =====
+  it('enforces 3 withdrawals/day rate limit', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seedCreator('user-R', 500000);
+    seed('withdrawals', [
+      { $id: 'wd-a', userId: 'user-R', amount: 50000, status: 'succeeded', accountNumber: '1234567890', providerName: 'BCA', $createdAt: new Date().toISOString() },
+      { $id: 'wd-b', userId: 'user-R', amount: 50000, status: 'succeeded', accountNumber: '1234567890', providerName: 'BCA', $createdAt: new Date().toISOString() },
+      { $id: 'wd-c', userId: 'user-R', amount: 50000, status: 'succeeded', accountNumber: '1234567890', providerName: 'BCA', $createdAt: new Date().toISOString() },
+    ]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-R' }, bodyJson: payload('req-key-rate') });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(429);
+    expect(res.calls[0].body.error).toBe('Batas penarikan harian tercapai (3/hari).');
+    expect((store['withdrawals'] || [])).toHaveLength(3); // no 4th row
+  });
+
+  it('enforces 3-day cooling when account number changed recently', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seedCreator('user-C', 500000);
+    // recent withdrawal on a DIFFERENT account -> cooling block
+    seed('withdrawals', [
+      { $id: 'wd-old', userId: 'user-C', amount: 50000, status: 'succeeded', accountNumber: '9999999999', providerName: 'BNI', $createdAt: new Date().toISOString() },
+    ]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-C' }, bodyJson: payload('req-key-cool') });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(429);
+    expect(res.calls[0].body.error).toBe('Akun penarikan baru perlu pending 3 hari.');
+  });
+
+  // ===== Iris failure -> failed + reversal (idempotent) =====
+  it('credits balance back and marks reversed when Iris payout fails', async () => {
+    const irisFail = () => ({ ok: false, status: 400, json: async () => ({ error_messages: ['invalid beneficiary account'] }) });
+    (globalThis as any).fetch = mockFetch(irisFail);
+    envWithdrawal();
+    seedCreator('user-F', 100000);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-F' }, bodyJson: payload('req-key-fail') });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].body.status).toBe('failed');
+    expect(res.calls[0].body.failureReason).toBeDefined();
+    const wallet = (store['wallets'] || []).find((w) => w.$id === 'w-user-F');
+    expect(wallet.balance).toBe(100000); // debited then credited back
+    const wd = (store['withdrawals'] || []).find((d) => d.$id === res.calls[0].body.withdrawalId);
+    expect(wd.status).toBe('reversed');
+    const reversals = (store['transactions'] || []).filter((t) => t.type === 'withdrawal_reversal');
+    expect(reversals).toHaveLength(1);
   });
 });
 
@@ -1004,6 +1127,165 @@ describe('refund-order function (T-02)', () => {
     // Fee tidak dikembalikan — kredit = persis escrow.amount
     expect(wallet.balance).toBe(100000);
     expect(wallet.balance).not.toBe(102000); // bukan amount + 2% fee
+  });
+});
+
+describe('withdrawal-callback function (4-state close, Iris webhook)', () => {
+  const mockTablesDb = (url: string, init: any) => {
+    const m = url.match(/\/tablesdb\/[^/]+\/tables\/([^/]+)\/rows\/([^/]+)\/([^/]+)\/(increment|decrement)$/);
+    if (m) {
+      const [, table, rowId, column, op] = m;
+      const doc = (store[table] || []).find((d: any) => d.$id === rowId);
+      if (doc) {
+        const body = JSON.parse(init.body);
+        const value = Number(body.value);
+        if (op === 'increment') {
+          doc[column] = Number(doc[column] || 0) + value;
+        } else {
+          const next = Number(doc[column] || 0) - value;
+          if (typeof body.min === 'number' && next < body.min) {
+            return { ok: false, status: 409, text: async () => 'min exceeded' };
+          }
+          doc[column] = next;
+        }
+      }
+      return { ok: true, status: 200, text: async () => '{}' };
+    }
+    return { ok: true, status: 200, text: async () => '{}' };
+  };
+
+  const envCallback = () => {
+    process.env.WALLETS_COLLECTION_ID = 'wallets';
+    process.env.WITHDRAWALS_COLLECTION_ID = 'withdrawals';
+    process.env.TRANSACTIONS_COLLECTION_ID = 'transactions';
+    process.env.NOTIFICATIONS_COLLECTION_ID = 'notifications';
+  };
+
+  it('moves processing -> succeeded when Iris reports completed', async () => {
+    (globalThis as any).fetch = mockTablesDb;
+    envCallback();
+    seed('withdrawals', [{ $id: 'wd1', userId: 'u1', amount: 50000, status: 'processing', iris_reference: 'REF-1' }]);
+    seed('wallets', [{ $id: 'w1', userId: 'u1', balance: 0 }]);
+
+    const main = (await import('../../functions/withdrawal-callback/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ bodyJson: { reference_no: 'REF-1', status: 'completed' } }), res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].body.status).toBe('ok');
+    expect(res.calls[0].body.withdrawalStatus).toBe('succeeded');
+    const wd = (store['withdrawals'] || []).find((d) => d.$id === 'wd1');
+    expect(wd.status).toBe('succeeded');
+    expect(wd.processedAt).toBeDefined();
+    expect(wd.reversed_at).toBeUndefined();
+    // no reversal on success
+    expect((store['transactions'] || []).filter((t) => t.type === 'withdrawal_reversal')).toHaveLength(0);
+  });
+
+  it('moves processing -> failed and credits balance back when Iris reports failed', async () => {
+    (globalThis as any).fetch = mockTablesDb;
+    envCallback();
+    seed('withdrawals', [{ $id: 'wd2', userId: 'u2', amount: 50000, status: 'processing', iris_reference: 'REF-2' }]);
+    seed('wallets', [{ $id: 'w2', userId: 'u2', balance: 0 }]);
+
+    const main = (await import('../../functions/withdrawal-callback/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ bodyJson: { reference_no: 'REF-2', status: 'failed', status_message: 'account not found' } }), res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].body.withdrawalStatus).toBe('failed');
+    const wallet = (store['wallets'] || []).find((w) => w.$id === 'w2');
+    expect(wallet.balance).toBe(50000); // credited back
+    const wd = (store['withdrawals'] || []).find((d) => d.$id === 'wd2');
+    expect(wd.status).toBe('reversed');
+    expect(wd.failure_reason).toBe('account not found');
+    const reversals = (store['transactions'] || []).filter((t) => t.type === 'withdrawal_reversal');
+    expect(reversals).toHaveLength(1);
+  });
+
+  it('is idempotent: duplicate failed callback does not double credit', async () => {
+    (globalThis as any).fetch = mockTablesDb;
+    envCallback();
+    seed('withdrawals', [{ $id: 'wd3', userId: 'u3', amount: 50000, status: 'processing', iris_reference: 'REF-3' }]);
+    seed('wallets', [{ $id: 'w3', userId: 'u3', balance: 0 }]);
+
+    const main = (await import('../../functions/withdrawal-callback/src/main.js')).default;
+    const body = { reference_no: 'REF-3', status: 'failed' };
+
+    const res1 = makeRes();
+    await main({ req: makeReq({ bodyJson: body }), res: res1, log: () => {}, error: () => {} });
+    expect(res1.calls[0].body.withdrawalStatus).toBe('failed');
+
+    // second delivery: withdrawal already terminal (reversed) -> no-op
+    const res2 = makeRes();
+    await main({ req: makeReq({ bodyJson: body }), res: res2, log: () => {}, error: () => {} });
+    expect(res2.calls[0].body.withdrawalStatus).toBe('reversed');
+
+    const wallet = (store['wallets'] || []).find((w) => w.$id === 'w3');
+    expect(wallet.balance).toBe(50000); // credited exactly once
+    expect((store['transactions'] || []).filter((t) => t.type === 'withdrawal_reversal')).toHaveLength(1);
+  });
+
+  it('ignores terminal succeeded withdrawal when late failed callback arrives', async () => {
+    (globalThis as any).fetch = mockTablesDb;
+    envCallback();
+    seed('withdrawals', [{ $id: 'wd4', userId: 'u4', amount: 50000, status: 'succeeded', iris_reference: 'REF-4' }]);
+    seed('wallets', [{ $id: 'w4', userId: 'u4', balance: 0 }]);
+
+    const main = (await import('../../functions/withdrawal-callback/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ bodyJson: { reference_no: 'REF-4', status: 'failed' } }), res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].body.withdrawalStatus).toBe('succeeded'); // unchanged, no reversal
+    const wallet = (store['wallets'] || []).find((w) => w.$id === 'w4');
+    expect(wallet.balance).toBe(0);
+    expect((store['transactions'] || []).filter((t) => t.type === 'withdrawal_reversal')).toHaveLength(0);
+  });
+
+  it('returns 404 when iris reference unknown', async () => {
+    (globalThis as any).fetch = mockTablesDb;
+    envCallback();
+
+    const main = (await import('../../functions/withdrawal-callback/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ bodyJson: { reference_no: 'REF-UNKNOWN', status: 'completed' } }), res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(404);
+  });
+});
+
+describe('verify-kyc function (Pasal 11.8)', () => {
+  const envKyc = () => {
+    process.env.USERS_COLLECTION_ID = 'users';
+    process.env.NOTIFICATIONS_COLLECTION_ID = 'notifications';
+  };
+
+  it('marks user kyc_status verified and notifies', async () => {
+    envKyc();
+    seed('users', [{ $id: 'u1', userId: 'user-KYC-1', role: 'creator', kyc_status: 'pending_wa' }]);
+
+    const main = (await import('../../functions/verify-kyc/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ bodyJson: { userId: 'user-KYC-1' } }), res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].body.status).toBe('ok');
+    expect(res.calls[0].body.kyc_status).toBe('verified');
+    const user = (store['users'] || []).find((u) => u.$id === 'u1');
+    expect(user.kyc_status).toBe('verified');
+    expect(user.kyc_verified_at).toBeDefined();
+    expect((store['notifications'] || []).some((n) => n.title.includes('KYC'))).toBe(true);
+  });
+
+  it('is idempotent when already verified (no duplicate notification)', async () => {
+    envKyc();
+    seed('users', [{ $id: 'u2', userId: 'user-KYC-2', role: 'creator', kyc_status: 'verified', kyc_verified_at: new Date().toISOString() }]);
+
+    const main = (await import('../../functions/verify-kyc/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ bodyJson: { userId: 'user-KYC-2' } }), res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].body.status).toBe('ok');
+    expect((store['notifications'] || [])).toHaveLength(0); // no new notification
+    const user = (store['users'] || []).find((u) => u.$id === 'u2');
+    expect(user.kyc_status).toBe('verified');
   });
 });
 

@@ -71,6 +71,16 @@ export default async ({ req, res, log, error }) => {
     // 404, bukan 403 — membedakan keduanya membocorkan submission milik UMKM lain.
     if (!parent.documents[0]) return json(res, { error: "Submission tidak ditemukan." }, 404);
 
+    const userRes = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
+      Query.equal("userId", userId),
+      Query.limit(1)
+    ]);
+    const userDoc = userRes.documents[0] || null;
+    if (userDoc?.status && userDoc.status !== "active") {
+      log(`Review ditolak untuk ${userId}: status akun ${userDoc.status}`);
+      return json(res, { error: "Akun Anda sedang tidak aktif." }, 403);
+    }
+
     await databases.updateDocument(env.databaseId, env.submissionsCollectionId, submissionId, {
       status,
       views: status === "approved" ? views : Number(submission.views) || 0,
@@ -144,6 +154,7 @@ function getEnv(req) {
     appwriteProjectId: process.env.APPWRITE_FUNCTION_PROJECT_ID || process.env.APPWRITE_PROJECT_ID,
     appwriteApiKey: req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY,
     databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
+    usersCollectionId: process.env.USERS_COLLECTION_ID || "users",
     campaignsCollectionId: process.env.CAMPAIGNS_COLLECTION_ID || "campaigns",
     submissionsCollectionId: process.env.CAMPAIGN_SUBMISSIONS_COLLECTION_ID || "campaign_submissions",
     claimsCollectionId: process.env.CAMPAIGN_CLAIMS_COLLECTION_ID || "campaign_claims",

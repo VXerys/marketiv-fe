@@ -1,39 +1,173 @@
 {
-  "accept-tos": ["documents.read", "documents.write"],
-  "ai-brief": ["documents.read", "documents.write"],
-  "ai-fraud-precheck": ["documents.read", "documents.write"],
-  "calculate-campaign-reward": ["documents.read", "documents.write"],
-  "campaign-claimed": ["documents.read", "documents.write"],
-  "campaign-published": ["documents.read", "documents.write"],
-  "create-conversation": ["documents.read", "documents.write"],
-  "create-escrow": ["documents.read", "documents.write"],
-  "create-offer": ["documents.read", "documents.write"],
-  "create-order": ["documents.read", "documents.write"],
-  "create-payment": ["documents.read", "documents.write"],
-  "create-user-profile": ["documents.read", "documents.write"],
-  "create-user-wallet": ["documents.read", "documents.write"],
-  "delete-file": ["documents.read", "documents.write", "files.read", "files.write"],
-  "expire-stale-claims": ["documents.read", "documents.write"],
-  "fee-rate-flip": ["documents.read", "documents.write"],
-  "get-creator-dashboard-summary": ["documents.read"],
-  "get-creator-directory": ["documents.read"],
-  "get-creator-negotiations": ["documents.read"],
-  "get-creator-profile": ["documents.read", "users.read"],
-  "get-umkm-dashboard-summary": ["documents.read"],
-  "get-umkm-finance-summary": ["documents.read"],
-  "get-umkm-negotiations": ["documents.read"],
-  "get-umkm-profile": ["documents.read", "users.read"],
-  "mature-pending-balance": ["documents.read", "documents.write"],
-  "notify-order-activity": ["documents.read", "documents.write"],
-  "midtrans-webhook": ["documents.read", "documents.write"],
-  "refund-escrow": ["documents.read", "documents.write"],
-  "refund-order": ["documents.read", "documents.write"],
-  "release-escrow": ["documents.read", "documents.write"],
-  "request-withdrawal": ["documents.read", "documents.write"],
-  "review-submission": ["documents.read", "documents.write"],
-  "send-chat-notification": ["documents.read", "documents.write", "messages.write"],
-  "send-message": ["documents.read", "documents.write"],
-  "cancel-payment": ["documents.read", "documents.write"],
-  "validate-and-upload": ["documents.read", "documents.write", "files.read", "files.write"],
-  "user-email-verified": ["documents.read", "documents.write"]
+  "accept-tos": [
+    "documents.read",
+    "documents.write"
+  ],
+  "ai-brief": [
+    "documents.read",
+    "documents.write"
+  ],
+  "ai-fraud-precheck": [
+    "documents.read",
+    "documents.write"
+  ],
+  "calculate-campaign-reward": [
+    "documents.read",
+    "documents.write"
+  ],
+  "campaign-claimed": [
+    "documents.read",
+    "documents.write"
+  ],
+  "campaign-published": [
+    "documents.read",
+    "documents.write"
+  ],
+  "create-conversation": [
+    "documents.read",
+    "documents.write"
+  ],
+  "create-escrow": [
+    "documents.read",
+    "documents.write"
+  ],
+  "create-offer": [
+    "documents.read",
+    "documents.write"
+  ],
+  "create-order": [
+    "documents.read",
+    "documents.write"
+  ],
+  "create-payment": [
+    "documents.read",
+    "documents.write"
+  ],
+  "create-user-profile": [
+    "documents.read",
+    "documents.write"
+  ],
+  "create-user-wallet": [
+    "documents.read",
+    "documents.write"
+  ],
+  "delete-file": [
+    "documents.read",
+    "documents.write",
+    "files.read",
+    "files.write"
+  ],
+  "expire-stale-claims": [
+    "documents.read",
+    "documents.write"
+  ],
+  "fee-rate-flip": [
+    "documents.read",
+    "documents.write"
+  ],
+  "get-creator-dashboard-summary": [
+    "documents.read"
+  ],
+  "get-creator-directory": [
+    "documents.read"
+  ],
+  "get-creator-negotiations": [
+    "documents.read"
+  ],
+  "get-creator-profile": [
+    "documents.read",
+    "users.read"
+  ],
+  "get-umkm-dashboard-summary": [
+    "documents.read"
+  ],
+  "get-umkm-finance-summary": [
+    "documents.read"
+  ],
+  "get-umkm-negotiations": [
+    "documents.read"
+  ],
+  "get-umkm-profile": [
+    "documents.read",
+    "users.read"
+  ],
+  "mature-pending-balance": [
+    "documents.read",
+    "documents.write"
+  ],
+  "notify-order-activity": [
+    "documents.read",
+    "documents.write"
+  ],
+  "midtrans-webhook": [
+    "documents.read",
+    "documents.write"
+  ],
+  "refund-escrow": [
+    "documents.read",
+    "documents.write"
+  ],
+  "refund-order": [
+    "documents.read",
+    "documents.write"
+  ],
+  "release-escrow": [
+    "documents.read",
+    "documents.write"
+  ],
+  "request-withdrawal": [
+    "documents.read",
+    "documents.write"
+  ],
+  "verify-kyc": [
+    "documents.read",
+    "documents.write"
+  ],
+  "withdrawal-callback": [
+    "documents.read",
+    "documents.write"
+  ],
+  "review-submission": [
+    "documents.read",
+    "documents.write"
+  ],
+  "send-chat-notification": [
+    "documents.read",
+    "documents.write",
+    "messages.write"
+  ],
+  "send-message": [
+    "documents.read",
+    "documents.write"
+  ],
+  "cancel-payment": [
+    "documents.read",
+    "documents.write"
+  ],
+  "validate-and-upload": [
+    "documents.read",
+    "documents.write",
+    "files.read",
+    "files.write"
+  ],
+  "user-email-verified": [
+    "documents.read",
+    "documents.write"
+  ],
+  "suspend-user": [
+    "documents.read",
+    "documents.write"
+  ],
+  "unsuspend-user": [
+    "documents.read",
+    "documents.write"
+  ],
+  "create-appeal": [
+    "documents.read",
+    "documents.write"
+  ],
+  "review-appeal": [
+    "documents.read",
+    "documents.write"
+  ]
 }

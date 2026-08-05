@@ -32,3 +32,9 @@
 
 - Saat UMKM **approve** deliverable, escrow dirilis: saldo pindah ke wallet creator dan order menjadi `completed`.
 - Escrow dikelola modul Payments; lihat `90_Events.md` dan `../Payments/`. Aggregate order: `../../04_Decisions/ADR-003.md`.
+
+## Akun Suspended / Terminated
+
+- Jika akun UMKM atau Creator berstatus non-active (suspended/terminated), pembuatan `order` baru dan `offer` baru akan diblokir.
+- Pembuatan `payment` baru untuk membayar order juga diblokir.
+- Dana yang sudah berada di escrow untuk order berjalan akan tetap diproses secara standar (tidak dibekukan selamanya) dan dapat cair/refund jika syarat pelepasan terpenuhi, kecuali ada sengketa manual.
