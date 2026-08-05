@@ -1,7 +1,7 @@
 # T-03: Implementasi Status Akun & Mekanisme Banding (Pasal 18 T&C) — Laporan Hasil
 
 **Tanggal:** 2026-08-05  
-**Commit:** Menunggu commit selanjutnya  
+**Commit:** a65d963 (feat(backend): implement T-03 account status and appeals mechanism)  
 **Branch:** staging  
 **Status:** SELESAI ✅
 
