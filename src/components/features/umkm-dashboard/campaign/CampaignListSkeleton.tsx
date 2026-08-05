@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function CampaignSummaryCardsSkeleton() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
       {Array.from({ length: 6 }).map((_, i) => (
         <div key={i} className="bg-white border border-border-soft rounded-[22px] p-4 shadow-xs">
           <div className="flex justify-between items-center mb-3">

@@ -1017,22 +1017,30 @@ html {
 .campaign-card-cover {
   position: relative;
   width: 100%;
-  height: 160px;
+  height: 110px;
   overflow: hidden;
   flex-shrink: 0;
 }
 
+@media (min-width: 640px) {
+  .campaign-card-cover { height: 160px; }
+}
+
 .campaign-card-body {
   display: grid;
-  gap: 12px;
-  padding: 16px 18px;
+  gap: 8px;
+  padding: 12px;
   flex: 1;
   min-width: 0;
 }
 
+@media (min-width: 640px) {
+  .campaign-card-body { gap: 12px; padding: 16px 18px; }
+}
+
 .campaign-card-title {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 0.875rem;
   line-height: 1.28;
   letter-spacing: -0.04em;
   font-weight: 760;
@@ -1041,6 +1049,10 @@ html {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .campaign-card-title { font-size: 1.05rem; }
 }
 
 .campaign-card-meta {
@@ -1178,15 +1190,15 @@ html {
   .bento-grid { gap: 24px; }
 }
 
-/* --- Responsive Card Grid (1→2→3→4 columns) --- */
+/* --- Responsive Card Grid (2→3→4 columns; 2-col starts at mobile) --- */
 .responsive-card-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 @media (min-width: 640px) {
-  .responsive-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+  .responsive-card-grid { gap: 20px; }
 }
 
 @media (min-width: 1024px) {
@@ -1200,8 +1212,8 @@ html {
 /* Variant: 2-column max (for narrower grids like kreator directory etc.) */
 .responsive-card-grid-2 {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 @media (min-width: 640px) {

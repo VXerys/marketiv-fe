@@ -157,8 +157,8 @@ function ActiveJobCard({
       </div>
 
       {/* Card body — same compact density as Job Pool */}
-      <div className="p-4 flex flex-col gap-3 flex-1">
-        <h4 className="text-sm font-extrabold text-kreator-ink leading-snug line-clamp-2">{work.title}</h4>
+      <div className="p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 flex-1">
+        <h4 className="text-[0.8rem] sm:text-sm font-extrabold text-kreator-ink leading-snug line-clamp-2">{work.title}</h4>
 
         {/* CPM Rate row */}
         <div className="flex items-center justify-between">
@@ -474,7 +474,7 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
               }
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
               {filteredWorks.map((work) => (
                 <ActiveJobCard
                   key={work.id}

@@ -173,8 +173,8 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
       </div>
 
       {/* Card body */}
-      <div className="p-4 flex flex-col gap-3 flex-1">
-        <h4 className="text-sm font-extrabold text-kreator-ink leading-snug line-clamp-2">{job.title}</h4>
+      <div className="p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 flex-1">
+        <h4 className="text-[0.8rem] sm:text-sm font-extrabold text-kreator-ink leading-snug line-clamp-2">{job.title}</h4>
 
         {/* Rate display */}
         <div className="flex items-baseline gap-1.5">
@@ -202,7 +202,7 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
 
         {/* Quota progress bar */}
         <div className="space-y-1.5">
-          <div className="flex justify-between text-[9px] font-bold text-neutral-400 uppercase tracking-wider">
+          <div className="hidden sm:flex justify-between text-[9px] font-bold text-neutral-400 uppercase tracking-wider">
             <span>Kuota Kreator</span>
             <span>{job.usedQuota} / {job.quota} Klaim</span>
           </div>
@@ -466,7 +466,7 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
               }
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {filteredJobs.map((job) => (
                 <CampaignCard key={job.id} job={job} onClaim={openClaimModal} />
               ))}

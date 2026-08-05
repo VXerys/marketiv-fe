@@ -268,8 +268,8 @@ function PackageCard({ pkg, onToggle, onEdit, onDelete, busy }: PackageCardProps
 
 function packageGridClass(count: number): string {
   if (count <= 1) return "grid grid-cols-1 gap-6";
-  if (count === 2) return "grid grid-cols-1 sm:grid-cols-2 gap-6";
-  return "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6";
+  if (count === 2) return "grid grid-cols-2 gap-4 sm:gap-6";
+  return "grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6";
 }
 
 function ModalFrame({
