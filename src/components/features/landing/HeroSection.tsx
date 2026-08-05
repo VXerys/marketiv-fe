@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import landingPageBg from "@/assets/images/landing-page.png";
+import heroMobileBg from "@/assets/images/hero-mobile.png";
 import { LANDING_CONTENT } from "@/data/content";
 import { routes } from "@/lib/constants/routes";
 
@@ -8,8 +9,11 @@ export function HeroSection() {
   const { hero } = LANDING_CONTENT;
   return (
     <section className="relative w-full min-h-screen flex flex-col items-center justify-center overflow-hidden pt-16">
-      {/* Background Image */}
-      <Image src={landingPageBg} alt="UMKM dan Konten Kreator berkolaborasi" fill priority className="object-cover object-center" sizes="100vw" quality={100} />
+      {/* Background Image (Desktop/Tablet) */}
+      <Image src={landingPageBg} alt="UMKM dan Konten Kreator berkolaborasi" fill priority className="hidden md:block object-cover object-center" sizes="100vw" quality={100} />
+
+      {/* Background Image (Mobile) */}
+      <Image src={heroMobileBg} alt="UMKM dan Konten Kreator berkolaborasi" fill priority className="block md:hidden object-cover object-center" sizes="100vw" quality={100} />
 
       {/* Gradient Overlay Matching Figma */}
       <div
@@ -32,7 +36,7 @@ export function HeroSection() {
           <Button variant="primary" size="xl" href={routes.registerWithRole("umkm")}>
             {hero.ctaUmkm}
           </Button>
-          <Button variant="outline" size="xl" href={routes.registerWithRole("creator")}>
+          <Button variant="outline" size="xl" href={routes.registerWithRole("creator")} className="!bg-white/20 !backdrop-blur-md !border-white/40 !text-white font-semibold hover:!bg-white/40 hover:!border-white/70 transition-all duration-300">
             {hero.ctaCreator}
           </Button>
         </div>
