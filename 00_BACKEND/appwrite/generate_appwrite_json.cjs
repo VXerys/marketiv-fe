@@ -371,6 +371,10 @@ const collections = [
             createStringAttr("postUrl", true, 2048),
             createStringAttr("caption", false, 1000),
             createIntAttr("views", true),
+            createIntAttr("views_count", false, null),
+            createDatetimeAttr("views_captured_at", false),
+            createEnumAttr("views_source", false, ["api", "scrape", "manual_admin"], null),
+            createBoolAttr("views_final", false, false),
             createIntAttr("engagement", false),
             createIntAttr("fraudScore", false),
             createStringAttr("fraudStatus", false, 50),
@@ -513,7 +517,12 @@ const collections = [
             createStringAttr("umkmId", true),
             createIntAttr("amount", true),
             createStringAttr("status", true, 50),
-            createDatetimeAttr("createdAt", false)
+            createDatetimeAttr("createdAt", false),
+            createDatetimeAttr("review_deadline_at", false),
+            createBoolAttr("auto_approved", false, false),
+            createIntAttr("revision_count", false, 0),
+            createIntAttr("revision_limit", false, 0),
+            createDatetimeAttr("reminder_sent_at", false)
         ],
         indexes: [
             createIndex("idx_offerId", "unique", ["offerId"]),

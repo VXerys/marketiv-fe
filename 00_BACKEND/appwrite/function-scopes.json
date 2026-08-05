@@ -169,5 +169,13 @@
   "review-appeal": [
     "documents.read",
     "documents.write"
+  ],
+  "track-order-review": [
+    "documents.read",
+    "documents.write"
+  ],
+  "auto-approve-orders": [
+    "documents.read",
+    "documents.write"
   ]
 }

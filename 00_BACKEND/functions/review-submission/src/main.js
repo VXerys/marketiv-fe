@@ -84,6 +84,12 @@ export default async ({ req, res, log, error }) => {
     await databases.updateDocument(env.databaseId, env.submissionsCollectionId, submissionId, {
       status,
       views: status === "approved" ? views : Number(submission.views) || 0,
+      ...(status === "approved" ? {
+        views_count: views,
+        views_captured_at: new Date().toISOString(),
+        views_source: "manual_admin",
+        views_final: true
+      } : {}),
       ...(notes ? { reviewNotes: notes } : {}),
     });
 
@@ -112,6 +118,9 @@ export default async ({ req, res, log, error }) => {
       }, log);
     }
 
+    if (status === "approved") {
+      log(`Views captured: source=manual_admin, views=${views}, submission=${submissionId}`);
+    }
     log(`Submission ${submissionId} di-${status} oleh ${userId}`);
     return json(res, { success: true, campaignId: str(submission.campaignId), status });
   } catch (err) {

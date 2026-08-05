@@ -32,3 +32,7 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 - Validasi kepemilikan: hanya UMKM terkait yang dapat approve/reject.
 - Deliverable `source = storage` wajib memiliki `fileId` yang valid dan milik creator seller.
 - Deliverable `source = external_url` wajib protokol `https`.
+
+## Functions
+- `track-order-review`: Tracks deliverables and sets review_deadline_at.
+- `auto-approve-orders`: Cron function to auto-approve orders past deadline.

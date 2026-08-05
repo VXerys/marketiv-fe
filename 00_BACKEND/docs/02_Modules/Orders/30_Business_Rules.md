@@ -38,3 +38,6 @@
 - Jika akun UMKM atau Creator berstatus non-active (suspended/terminated), pembuatan `order` baru dan `offer` baru akan diblokir.
 - Pembuatan `payment` baru untuk membayar order juga diblokir.
 - Dana yang sudah berada di escrow untuk order berjalan akan tetap diproses secara standar (tidak dibekukan selamanya) dan dapat cair/refund jika syarat pelepasan terpenuhi, kecuali ada sengketa manual.
+
+## Review Process
+1 permintaan = 1 revisi, timer reset.

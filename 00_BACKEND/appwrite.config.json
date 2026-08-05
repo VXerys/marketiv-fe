@@ -1608,6 +1608,44 @@
           "max": 999999999
         },
         {
+          "key": "views_count",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": null,
+          "min": 0,
+          "max": 999999999
+        },
+        {
+          "key": "views_captured_at",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "views_source",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "api",
+            "scrape",
+            "manual_admin"
+          ],
+          "size": 12,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "views_final",
+          "type": "boolean",
+          "required": false,
+          "array": false,
+          "default": false
+        },
+        {
           "key": "engagement",
           "type": "integer",
           "required": false,
@@ -2310,6 +2348,45 @@
         },
         {
           "key": "createdAt",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "review_deadline_at",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "auto_approved",
+          "type": "boolean",
+          "required": false,
+          "array": false,
+          "default": false
+        },
+        {
+          "key": "revision_count",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": 0,
+          "min": 0,
+          "max": 999999999
+        },
+        {
+          "key": "revision_limit",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": 0,
+          "min": 0,
+          "max": 999999999
+        },
+        {
+          "key": "reminder_sent_at",
           "type": "datetime",
           "required": false,
           "array": false,
@@ -4359,6 +4436,44 @@
         "documents.read",
         "documents.write"
       ]
+    },
+    {
+      "$id": "track-order-review",
+      "name": "track-order-review",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [
+        "databases.6a4c8598001da3b0d7f0.collections.deliverables.documents.*.create"
+      ],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ],
+      "path": "functions/track-order-review"
+    },
+    {
+      "$id": "auto-approve-orders",
+      "name": "auto-approve-orders",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [],
+      "schedule": "0 * * * *",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ],
+      "path": "functions/auto-approve-orders"
     }
   ]
 }

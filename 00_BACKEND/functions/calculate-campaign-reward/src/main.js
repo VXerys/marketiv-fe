@@ -37,7 +37,7 @@ export default async ({ req, res, log, error }) => {
       env.databaseId, env.campaignsCollectionId, doc.campaignId
     );
 
-    const views = Number(doc.views) || 0;
+    const views = (doc.views_final ? Number(doc.views_count) : Number(doc.views)) || 0;
     const rewardPer1000Views = Number(campaign.rewardPer1000Views) || 0;
     const remainingBudget = Number(campaign.remainingBudget) || 0;
 
