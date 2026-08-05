@@ -177,7 +177,7 @@ export default function FAQRulesDashboardPage() {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="flex justify-between items-center border-b border-neutral-200/60 pb-3">
                 <h2 className="text-[1.05rem] font-[800] text-ink-900 font-display">
-                  Aturan Kreator Konten.com
+                  Aturan Platform Marketiv
                 </h2>
                 <span className="text-[0.74rem] font-bold text-ink-400">
                   Versi: 13 Mei 2026
@@ -221,7 +221,7 @@ export default function FAQRulesDashboardPage() {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="flex justify-between items-center border-b border-neutral-200/60 pb-3">
                 <h2 className="text-[1.05rem] font-[800] text-ink-900 font-display">
-                  FAQ Kreator Konten.com
+                  FAQ Marketiv
                 </h2>
                 <span className="text-[0.74rem] font-bold text-ink-400">
                   Versi: 13 Mei 2026
@@ -282,7 +282,7 @@ export default function FAQRulesDashboardPage() {
               <div className="rounded-[26px] border border-neutral-200/60 bg-white p-6 shadow-[0_4px_16px_rgba(15,23,42,.05)] space-y-6 text-[0.86rem] leading-relaxed text-ink-700 font-semibold">
                 <div className="space-y-1 border-b border-neutral-100 pb-4">
                   <h3 className="text-[0.98rem] font-bold text-ink-900">
-                    Konten.com: Syarat & Ketentuan untuk Kreator
+                    Marketiv: Syarat & Ketentuan untuk Kreator
                   </h3>
                   <span className="block text-[0.72rem] text-ink-400 font-bold">
                     Berlaku Efektif: 25 Juni 2026
@@ -304,10 +304,10 @@ export default function FAQRulesDashboardPage() {
                     1. Pendahuluan
                   </h4>
                   <p>
-                    Syarat dan Ketentuan ini (&quot;S&K&quot;) mengatur penggunaan platform Konten.com (&quot;Platform&quot;) yang dioperasikan oleh PT Konten Kreasi Media (&quot;Perusahaan&quot;, &quot;kami&quot;) oleh Anda sebagai Kreator (&quot;Anda&quot; atau &quot;Kreator&quot;). Dengan mendaftar akun dan menggunakan Platform, Anda menyetujui seluruh isi S&K ini.
+                    Syarat dan Ketentuan ini (&quot;S&K&quot;) mengatur penggunaan platform Marketiv (&quot;Platform&quot;) yang dioperasikan oleh PT Marketiv Kreasi Media (&quot;Perusahaan&quot;, &quot;kami&quot;) oleh Anda sebagai Kreator (&quot;Anda&quot; atau &quot;Kreator&quot;). Dengan mendaftar akun dan menggunakan Platform, Anda menyetujui seluruh isi S&K ini.
                   </p>
                   <p>
-                    Konten.com adalah platform marketplace yang menghubungkan Brand (pengiklan) dengan pembuat konten (&quot;Kreator&quot;) yang mendistribusikan konten video pendek di TikTok, Instagram Reels, dan YouTube Shorts. Kreator memperoleh penghasilan berdasarkan jumlah views terverifikasi yang dihasilkan oleh klip mereka pada kampanye yang aktif.
+                    Marketiv adalah platform marketplace yang menghubungkan Brand (pengiklan) dengan pembuat konten (&quot;Kreator&quot;) yang mendistribusikan konten video pendek di TikTok, Instagram Reels, dan YouTube Shorts. Kreator memperoleh penghasilan berdasarkan jumlah views terverifikasi yang dihasilkan oleh klip mereka pada kampanye yang aktif.
                   </p>
                 </div>
 

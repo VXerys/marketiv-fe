@@ -326,7 +326,12 @@ export function PengaturanClient() {
                 <label className="text-[0.74rem] font-[800] text-ink-600 flex items-center gap-1.5">
                   <Phone size={12} className="text-ink-400" /> Nomor WhatsApp
                 </label>
-                <input type="text" value={account.phone} readOnly className={readOnlyCls} />
+                <input
+                  type="text"
+                  value={account.phone || "—"}
+                  readOnly
+                  className={readOnlyCls}
+                />
                 <span className="text-[0.68rem] font-bold text-ink-400">
                   Dikelola akun — hubungi support untuk mengubah.
                 </span>

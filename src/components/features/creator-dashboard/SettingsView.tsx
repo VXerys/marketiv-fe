@@ -1046,28 +1046,47 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               <p className="text-[0.68rem] font-[600] text-neutral-300">Dikelola via sistem autentikasi</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3.5 rounded-[14px] bg-blue-50 border border-blue-200/60">
-            <CheckCircle2 size={16} className="text-blue-600 shrink-0" />
-            <div>
-              <p className="text-[0.82rem] font-[700] text-blue-800">Akun Terverifikasi</p>
-              <p className="text-[0.72rem] font-[500] text-blue-600 mt-0.5">
-                Identitas Anda telah diverifikasi oleh tim Marketiv
-              </p>
+          {profile.isVerified ? (
+            <div className="flex items-center gap-3 p-3.5 rounded-[14px] bg-blue-50 border border-blue-200/60">
+              <CheckCircle2 size={16} className="text-blue-600 shrink-0" />
+              <div>
+                <p className="text-[0.82rem] font-[700] text-blue-800">Akun Terverifikasi</p>
+                <p className="text-[0.72rem] font-[500] text-blue-600 mt-0.5">
+                  Identitas Anda telah diverifikasi oleh tim Marketiv
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center gap-3 p-3.5 rounded-[14px] bg-neutral-50 border border-neutral-200/60">
+              <CheckCircle2 size={16} className="text-neutral-300 shrink-0" />
+              <div>
+                <p className="text-[0.82rem] font-[700] text-neutral-600">Verifikasi Tertunda</p>
+                <p className="text-[0.72rem] font-[500] text-neutral-400 mt-0.5">
+                  Tim Marketiv sedang memproses verifikasi identitas Anda
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </SettingsCard>
 
       <SettingsCard>
-        <CardSectionHeader title="Ubah Password" />
-        <div className="p-6 space-y-4">
+        <CardSectionHeader
+          title="Ubah Password"
+          action={
+            <span className="px-2.5 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-[0.66rem] font-[800] text-neutral-400 uppercase tracking-wider">
+              Segera tersedia
+            </span>
+          }
+        />
+        <div className="p-6 space-y-4 opacity-50 pointer-events-none select-none" aria-hidden="true">
           <div className="space-y-1.5">
             <label className="block text-[0.68rem] font-[900] text-neutral-400 uppercase tracking-wider">
               Password Saat Ini
             </label>
             <div className="relative">
               <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-300" />
-              <input type="password" placeholder="••••••••" className={cn(inputCls, "pl-10")} />
+              <input type="password" placeholder="••••••••" disabled className={cn(inputCls, "pl-10")} />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1077,7 +1096,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               </label>
               <div className="relative">
                 <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-300" />
-                <input type="password" placeholder="Min. 8 karakter" className={cn(inputCls, "pl-10")} />
+                <input type="password" placeholder="Min. 8 karakter" disabled className={cn(inputCls, "pl-10")} />
               </div>
             </div>
             <div className="space-y-1.5">
@@ -1086,41 +1105,31 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               </label>
               <div className="relative">
                 <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-300" />
-                <input type="password" placeholder="Ulangi password baru" className={cn(inputCls, "pl-10")} />
+                <input type="password" placeholder="Ulangi password baru" disabled className={cn(inputCls, "pl-10")} />
               </div>
             </div>
           </div>
           <div className="flex justify-end pt-2">
-            <CreatorBtn onClick={() => showToast("Fitur ubah password akan segera tersedia!")}>
-              Ubah Password
-            </CreatorBtn>
+            <CreatorBtn disabled>Ubah Password</CreatorBtn>
           </div>
         </div>
       </SettingsCard>
 
       <SettingsCard>
-        <CardSectionHeader title="Sesi & Aktivitas Login" />
-        <div className="p-6">
-          <div className="flex items-start gap-4 p-4 rounded-[16px] bg-neutral-50 border border-neutral-200/60">
-            <div
-              className="w-10 h-10 rounded-[13px] flex items-center justify-center shrink-0"
-              style={{
-                background: CREATOR_GRADIENT_SOFT,
-                border: "1px solid color-mix(in srgb, var(--color-kreator-gradient-start) 18%, transparent)",
-              }}
-            >
-              <ShieldCheck size={17} className="text-blue-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[0.9rem] font-[700] text-neutral-800">Sesi Aktif Saat Ini</p>
-              <p className="text-[0.76rem] font-[500] text-neutral-400 mt-0.5">
-                Chrome · Windows · Jakarta, Indonesia
-              </p>
-              <p className="text-[0.68rem] font-[600] text-emerald-600 mt-1">● Online sekarang</p>
-            </div>
-            <span className="shrink-0 text-[0.68rem] font-[800] text-neutral-300 uppercase tracking-wider">
-              Ini Anda
+        <CardSectionHeader
+          title="Sesi & Aktivitas Login"
+          action={
+            <span className="px-2.5 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-[0.66rem] font-[800] text-neutral-400 uppercase tracking-wider">
+              Segera tersedia
             </span>
+          }
+        />
+        <div className="p-6">
+          <div className="flex items-center gap-3 p-3.5 rounded-[14px] bg-neutral-50 border border-neutral-200/60">
+            <ShieldCheck size={16} className="text-neutral-300 shrink-0" />
+            <p className="text-[0.82rem] font-[600] text-neutral-400">
+              Riwayat sesi akan ditampilkan di sini setelah fitur aktif.
+            </p>
           </div>
         </div>
       </SettingsCard>
