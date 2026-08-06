@@ -49,9 +49,88 @@ export const STEP_TIPS: Record<number, string> = {
   5: "Periksa kembali semua data sebelum simulasi pembayaran.",
 };
 
-export const BRIEF_SUGGESTIONS = [
-  "Tampilkan proses pembuatan produk secara higienis",
-  "Highlight 3 manfaat utama menggunakan produk ini",
-  "Gunakan gaya daily vlog santai saat mengonsumsi produk",
-  "Tutup video dengan call-to-action promosi yang jelas",
+export interface QuickDirectionItem {
+  id: string;
+  label: string;
+  category: "product" | "experience" | "value" | "behind_the_product";
+  categoryLabel: string;
+  niches?: string[];
+}
+
+export const QUICK_DIRECTIONS: QuickDirectionItem[] = [
+  // Produk
+  { id: "show_product", label: "Tampilkan produk", category: "product", categoryLabel: "Produk", niches: ["kuliner", "fashion", "kecantikan", "edukasi", "pariwisata", "lainnya"] },
+  { id: "show_texture", label: "Tekstur produk", category: "product", categoryLabel: "Produk", niches: ["kuliner", "kecantikan"] },
+  { id: "show_packaging", label: "Detail kemasan", category: "product", categoryLabel: "Produk", niches: ["kuliner", "kecantikan", "fashion"] },
+  { id: "show_variants", label: "Varian produk", category: "product", categoryLabel: "Produk", niches: ["kuliner", "fashion"] },
+  { id: "show_portion", label: "Ukuran & porsi", category: "product", categoryLabel: "Produk", niches: ["kuliner"] },
+  { id: "show_fit", label: "Fit di badan", category: "product", categoryLabel: "Produk", niches: ["fashion"] },
+  { id: "show_stitching", label: "Detail jahitan", category: "product", categoryLabel: "Produk", niches: ["fashion"] },
+
+  // Pengalaman (Experience)
+  { id: "try_product", label: "Coba produknya", category: "experience", categoryLabel: "Pengalaman", niches: ["kuliner", "kecantikan"] },
+  { id: "first_reaction", label: "Reaksi saat mencoba", category: "experience", categoryLabel: "Pengalaman", niches: ["kuliner", "kecantikan"] },
+  { id: "usage_howto", label: "Cara penggunaan", category: "experience", categoryLabel: "Pengalaman", niches: ["kecantikan", "edukasi"] },
+  { id: "before_after", label: "Hasil pemakaian", category: "experience", categoryLabel: "Pengalaman", niches: ["kecantikan"] },
+  { id: "outfit_styling", label: "Outfit styling", category: "experience", categoryLabel: "Pengalaman", niches: ["fashion"] },
+  { id: "place_ambiance", label: "Suasana tempat", category: "experience", categoryLabel: "Pengalaman", niches: ["pariwisata"] },
+  { id: "place_spots", label: "Fasilitas & spot foto", category: "experience", categoryLabel: "Pengalaman", niches: ["pariwisata"] },
+
+  // Nilai / Keunggulan (Value)
+  { id: "highlight_benefits", label: "Keunggulan produk", category: "value", categoryLabel: "Nilai & Keunggulan", niches: ["kuliner", "fashion", "edukasi", "lainnya"] },
+  { id: "key_ingredients", label: "Bahan utama", category: "value", categoryLabel: "Nilai & Keunggulan", niches: ["kuliner", "kecantikan"] },
+  { id: "price_promo", label: "Harga & promo", category: "value", categoryLabel: "Nilai & Keunggulan", niches: ["kuliner", "pariwisata", "lainnya"] },
+  { id: "target_audience", label: "Siapa yang cocok", category: "value", categoryLabel: "Nilai & Keunggulan", niches: ["edukasi", "fashion"] },
+  { id: "course_perks", label: "Manfaat materi", category: "value", categoryLabel: "Nilai & Keunggulan", niches: ["edukasi"] },
+
+  // Proses & Cerita (Behind the product)
+  { id: "process_making", label: "Proses pembuatan", category: "behind_the_product", categoryLabel: "Proses & Cerita", niches: ["kuliner"] },
+  { id: "process_serving", label: "Proses penyajian", category: "behind_the_product", categoryLabel: "Proses & Cerita", niches: ["kuliner"] },
+  { id: "brand_story", label: "Cerita brand", category: "behind_the_product", categoryLabel: "Proses & Cerita", niches: ["pariwisata", "lainnya"] },
+  { id: "location_access", label: "Akses & lokasi usaha", category: "behind_the_product", categoryLabel: "Proses & Cerita", niches: ["pariwisata", "kuliner"] },
 ];
+
+export function getRecommendedDirections(nicheId?: string): QuickDirectionItem[] {
+  if (!nicheId) return QUICK_DIRECTIONS.slice(0, 5);
+  const normNiche = nicheId.toLowerCase();
+  const matched = QUICK_DIRECTIONS.filter((item) => item.niches?.includes(normNiche));
+  if (matched.length >= 4) return matched.slice(0, 5);
+  return QUICK_DIRECTIONS.slice(0, 5);
+}
+
+export interface CreatorGuidelineItem {
+  id: string;
+  label: string;
+  type: "required" | "restriction";
+  niches?: string[];
+}
+
+export const CREATOR_GUIDELINES: CreatorGuidelineItem[] = [
+  // Wajib Ditampilkan (Required)
+  { id: "req_product_clear", label: "Produk terlihat jelas", type: "required", niches: ["kuliner", "fashion", "kecantikan", "edukasi", "pariwisata", "lainnya"] },
+  { id: "req_packaging", label: "Kemasan produk", type: "required", niches: ["kuliner", "kecantikan", "fashion"] },
+  { id: "req_brand_name", label: "Nama brand", type: "required", niches: ["kuliner", "fashion", "kecantikan", "edukasi", "pariwisata", "lainnya"] },
+  { id: "req_texture", label: "Tekstur / isi produk", type: "required", niches: ["kuliner", "kecantikan"] },
+  { id: "req_try_process", label: "Proses mencicipi/mencoba", type: "required", niches: ["kuliner", "kecantikan"] },
+  { id: "req_usage", label: "Cara penggunaan", type: "required", niches: ["kecantikan", "edukasi"] },
+  { id: "req_color_accurate", label: "Warna produk akurat", type: "required", niches: ["fashion"] },
+  { id: "req_fit_show", label: "Tampilkan fit produk", type: "required", niches: ["fashion"] },
+  { id: "req_material_detail", label: "Detail bahan produk", type: "required", niches: ["fashion"] },
+  { id: "req_location", label: "Lokasi & alamat usaha", type: "required", niches: ["pariwisata"] },
+
+  // Perlu Dihindari (Restrictions)
+  { id: "res_no_competitor", label: "Sebut kompetitor", type: "restriction", niches: ["kuliner", "fashion", "kecantikan", "edukasi", "pariwisata", "lainnya"] },
+  { id: "res_no_overclaim", label: "Klaim berlebihan", type: "restriction", niches: ["kuliner", "kecantikan", "edukasi", "lainnya"] },
+  { id: "res_no_wrong_price", label: "Info harga yang salah", type: "restriction", niches: ["kuliner", "pariwisata", "lainnya"] },
+  { id: "res_no_harsh_language", label: "Bahasa kasar / tidak sopan", type: "restriction", niches: ["kuliner", "fashion", "kecantikan", "edukasi", "pariwisata", "lainnya"] },
+  { id: "res_no_fake_fact", label: "Mengubah fakta produk", type: "restriction", niches: ["kuliner", "fashion", "kecantikan", "edukasi", "lainnya"] },
+  { id: "res_no_exact_size_promise", label: "Menjanjikan ukuran pasti", type: "restriction", niches: ["fashion"] },
+  { id: "res_no_medical_claim", label: "Klaim medis berlebihan", type: "restriction", niches: ["kecantikan"] },
+];
+
+export function getRecommendedGuidelines(nicheId?: string): { required: CreatorGuidelineItem[]; restrictions: CreatorGuidelineItem[] } {
+  const normNiche = (nicheId || "").toLowerCase();
+  const reqs = CREATOR_GUIDELINES.filter((item) => item.type === "required" && (item.niches?.includes(normNiche) || item.niches?.includes("lainnya"))).slice(0, 4);
+  const rests = CREATOR_GUIDELINES.filter((item) => item.type === "restriction" && (item.niches?.includes(normNiche) || item.niches?.includes("lainnya"))).slice(0, 3);
+  return { required: reqs, restrictions: rests };
+}

@@ -32,9 +32,19 @@ export function BudgetCalculatorCard({
   const effectivenessPercent = Math.min(100, Math.max(25, (estimatedViews / 500000) * 100));
 
   return (
-    <div className="panel bg-neutral-50/45 p-5.5 space-y-4">
-      <div className="flex items-center justify-between gap-4 border-b border-border-soft/50 pb-3">
-        <span className="text-[10px] font-extrabold text-text-secondary uppercase tracking-wider">
+    <div
+      className="rounded-2xl overflow-hidden p-4 space-y-3.5"
+      style={{
+        border: "1px solid rgba(17,24,39,.08)",
+        background: "rgba(255,255,255,.95)",
+        boxShadow: "0 2px 8px rgba(15,23,42,.04)",
+      }}
+    >
+      <div
+        className="flex items-center justify-between gap-4 pb-3"
+        style={{ borderBottom: "1px solid rgba(17,24,39,.07)" }}
+      >
+        <span className="text-[.74rem] font-[800] text-ink-700 uppercase tracking-[.08em]">
           Kalkulasi Estimasi Anggaran
         </span>
         <DashboardBadge type="tone" tone="green" className="text-[9px] h-4.5 px-2">

@@ -52,7 +52,7 @@ export const campaignStepSchemas: Record<1 | 2 | 3 | 4 | 5, z.ZodType> = {
       .max(2000, "Deskripsi produk maksimal 2000 karakter."),
   }),
   2: z.object({
-    brief: z.string().trim().min(50, "Brief utama minimal 50 karakter."),
+    brief: z.string().trim().optional(),
     videoStyle: z.string().min(1, "Gaya/tone video wajib dipilih."),
     callToAction: z.string().min(1, "Call to Action (CTA) wajib dipilih."),
   }),

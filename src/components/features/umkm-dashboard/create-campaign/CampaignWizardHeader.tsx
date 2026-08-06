@@ -55,10 +55,10 @@ export function CampaignWizardHeader({ onSaveDraft, onCancel }: CampaignWizardHe
         <button
           type="button"
           onClick={onSaveDraft}
-          className="inline-flex items-center gap-1.5 min-h-[38px] px-4 rounded-xl border border-orange-200/80 bg-orange-50 text-orange-700 text-[.82rem] font-[800] hover:bg-orange-100 hover:-translate-y-px transition-all duration-150 cursor-pointer"
+          className="inline-flex items-center gap-2 min-h-[40px] px-4.5 rounded-xl border border-orange-200 bg-gradient-to-b from-orange-50 to-orange-100/70 text-orange-700 text-[.82rem] font-[800] tracking-[.01em] shadow-[0_2px_8px_rgba(234,88,12,0.08)] hover:bg-orange-100 hover:border-orange-300 hover:-translate-y-px active:scale-[.98] transition-all duration-150 cursor-pointer"
         >
-          <Save size={13} />
-          Simpan Draft
+          <Save size={14} className="text-orange-600 shrink-0" />
+          <span>Simpan Draft</span>
         </button>
       </div>
     </div>

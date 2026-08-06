@@ -168,14 +168,25 @@ export function CreateCampaignWizard({ campaignId, initialState, initialMeta }: 
    * videoStyle/callToAction karena itu pilihan enumerated user (AI mengembalikan
    * prosa, bukan id opsi).
    */
-  const handleGenerateAiBrief = async () => {
+  /**
+   * Aksi eksplisit "Bantu dengan AI". Mengisi brief + poin wajib; TIDAK menimpa
+   * videoStyle/callToAction karena itu pilihan enumerated user (AI mengembalikan
+   * prosa, bukan id opsi).
+   */
+  const handleGenerateAiBrief = async (selectedDirections?: string[]) => {
     if (brief.trim() && !window.confirm("Brief yang sudah Anda tulis akan ditimpa. Lanjutkan?")) {
       return;
     }
     setAiError(null);
     setIsGeneratingAi(true);
+
+    let fullDescription = description;
+    if (selectedDirections && selectedDirections.length > 0) {
+      fullDescription += `\n\nPoin utama yang ingin ditekankan:\n- ${selectedDirections.join("\n- ")}`;
+    }
+
     const res = await generateCampaignBrief({
-      description,
+      description: fullDescription,
       type: (type as CampaignType) || "ugc",
       productName: title || undefined,
       targetMarket: location || undefined,
@@ -449,6 +460,8 @@ export function CreateCampaignWizard({ campaignId, initialState, initialMeta }: 
             isGeneratingAi={isGeneratingAi}
             aiError={aiError}
             canGenerateAi={description.trim().length >= 30}
+            productCategory={category}
+            aiGenerated={aiGenerated}
           />
         );
       case 3:
