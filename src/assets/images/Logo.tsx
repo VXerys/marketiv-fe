@@ -8,18 +8,15 @@ interface LogoProps {
 
 export function Logo({ className }: LogoProps) {
   return (
-    <div className={cn("inline-flex items-center gap-2.5", className)}>
+    <div className={cn("inline-flex items-center", className)}>
       <Image
         src={logoMarketivRemoveBgPng}
         alt="Marketiv Logo"
-        width={34}
-        height={34}
-        className="object-contain"
+        width={140}
+        height={36}
+        className="h-9 w-auto object-contain"
         priority
       />
-      <span className="font-display text-xl font-[900] tracking-tight text-ink-900">
-        Marketiv
-      </span>
     </div>
   );
 }
