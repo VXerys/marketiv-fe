@@ -12,6 +12,9 @@ Kredensial diambil dari env (`APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`,
 | `audit-live.mjs` | tidak | `node appwrite/ops/audit-live.mjs` |
 | `drift.mjs` | tidak | `npm run fn:drift` |
 | `check-deployments.mjs` | tidak | `node appwrite/ops/check-deployments.mjs` |
+| `audit-google-oauth.mjs` | tidak | `node appwrite/ops/audit-google-oauth.mjs` |
+| `ensure-localhost-platform.mjs` | ya | `node appwrite/ops/ensure-localhost-platform.mjs` lalu `--apply` |
+| `configure-google-oauth.mjs` | ya | `GOOGLE_OAUTH_CLIENT_ID=... GOOGLE_OAUTH_CLIENT_SECRET=... node appwrite/ops/configure-google-oauth.mjs --apply` |
 | `ensure-buckets.mjs` | ya | `node appwrite/ops/ensure-buckets.mjs --dry` |
 | `ensure-columns.mjs` | ya | `node appwrite/ops/ensure-columns.mjs --dry` |
 | `fix-function-vars.mjs` | ya | `node appwrite/ops/fix-function-vars.mjs --dry` |

@@ -12,6 +12,9 @@
     "fn:drift": "node appwrite/ops/drift.mjs",
     "fn:sync:dry": "node appwrite/ops/sync-functions.mjs --dry",
     "fn:sync": "node appwrite/ops/sync-functions.mjs",
+    "oauth:google:audit": "node appwrite/ops/audit-google-oauth.mjs",
+    "oauth:google:ensure-localhost": "node appwrite/ops/ensure-localhost-platform.mjs",
+    "oauth:google:configure": "node appwrite/ops/configure-google-oauth.mjs",
     "sync:scopes": "tsx appwrite/sync-scopes.ts"
   },
   "dependencies": {
