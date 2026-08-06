@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { logoMarketivPng } from "@/assets/icons";
+import { logoMarketivRemoveBgPng } from "@/assets/icons";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
@@ -10,7 +10,7 @@ export function Logo({ className }: LogoProps) {
   return (
     <div className={cn("inline-flex items-center gap-2.5", className)}>
       <Image
-        src={logoMarketivPng}
+        src={logoMarketivRemoveBgPng}
         alt="Marketiv Logo"
         width={34}
         height={34}

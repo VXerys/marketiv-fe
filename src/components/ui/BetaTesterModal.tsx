@@ -124,7 +124,7 @@ export function BetaTesterModal() {
 
           <button
             onClick={handleClose}
-            className="w-full min-h-[46px] rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-violet-600 hover:opacity-95 text-xs font-[850] text-white shadow-md shadow-orange-500/20 transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+            className="w-full min-h-[46px] rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-violet-600 hover:opacity-95 text-xs font-[850] text-white border-0 outline-none ring-0 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-md shadow-orange-500/20 transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
           >
             Mengerti & Lanjutkan
           </button>
