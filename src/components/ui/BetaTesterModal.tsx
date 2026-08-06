@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, Check, ShieldCheck, Zap, MessageSquareHeart } from "lucide-react";
+import { Sparkles, Check, Store, Video, Info } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-const STORAGE_KEY = "marketiv_beta_dont_show_again_aug2026";
+const STORAGE_KEY = "marketiv_beta_dismissed_aug2026";
 
 export function BetaTesterModal() {
   const [open, setOpen] = useState(false);
@@ -41,85 +41,99 @@ export function BetaTesterModal() {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-[92vw] max-w-[420px] rounded-2xl border border-neutral-200/80 bg-white p-6 sm:p-7 shadow-2xl transition-all duration-300">
-        {/* Top Header Badge Icon */}
-        <div className="mx-auto mb-4 flex flex-col items-center">
-          <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-violet-600 text-white shadow-lg shadow-orange-500/20">
-            <Sparkles className="h-7 w-7 animate-pulse" />
-            <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-violet-600 text-[9px] font-extrabold text-white border border-white">
+      <DialogContent className="w-[92vw] sm:w-[620px] max-w-[640px] max-h-[90vh] overflow-y-auto sm:overflow-hidden rounded-2xl border border-neutral-200/80 bg-white p-4.5 sm:p-5.5 shadow-2xl transition-all duration-300">
+        {/* Top Header Icon */}
+        <div className="mx-auto mb-1 flex flex-col items-center">
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/20">
+            <Sparkles className="h-5 w-5 animate-pulse" />
+            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-slate-900 text-[8px] font-black text-white border-2 border-white">
               β
             </span>
           </div>
         </div>
 
-        {/* Title & Body */}
-        <DialogHeader className="text-center space-y-2">
-          <div className="mx-auto inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-3 py-1 text-[0.72rem] font-extrabold text-orange-600 border border-orange-500/20">
+        {/* Header Title & Subtitle */}
+        <DialogHeader className="text-center space-y-1">
+          <div className="mx-auto inline-flex items-center gap-1 rounded-full bg-orange-50 px-2.5 py-0.5 text-[9px] sm:text-[10px] font-extrabold text-orange-600 border border-orange-200/80 uppercase tracking-wide">
             <span>UJI COBA TERBATAS</span>
             <span>•</span>
-            <span>s.d 31 AGUSTUS 2026</span>
+            <span>AGUSTUS 2026</span>
           </div>
 
-          <DialogTitle className="font-display text-xl font-black tracking-tight text-ink-950 pt-1">
-            Platform Versi Beta 🚀
+          <DialogTitle className="font-display text-base sm:text-xl font-black tracking-tight text-ink-950 pt-0.5">
+            Selamat Datang di Marketiv
           </DialogTitle>
 
-          <DialogDescription className="text-xs font-semibold leading-relaxed text-text-muted">
-            Selamat datang di Marketiv! Uji coba terbatas ini untuk menyempurnakan fitur sebelum peluncuran resmi.
+          <DialogDescription className="text-xs sm:text-sm font-semibold leading-relaxed text-text-primary max-w-lg mx-auto">
+            Marketiv menghubungkan UMKM dengan kreator untuk membantu promosi produk.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Highlight Bullets */}
-        <div className="mt-4 space-y-2.5 rounded-xl border border-neutral-200/60 bg-neutral-50 p-3.5 text-xs text-text-primary">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-orange-500/15 text-orange-600">
-              <Zap size={13} />
+        {/* Dual Role Grid (2 Columns on Desktop) */}
+        <div className="mt-2.5 sm:mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+          {/* For UMKM */}
+          <div className="rounded-xl border border-neutral-200/80 bg-neutral-50/80 p-3 sm:p-3.5 flex items-start gap-2.5">
+            <div className="h-6.5 w-6.5 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center shrink-0 mt-0.5 border border-orange-200/60">
+              <Store className="w-3.5 h-3.5" strokeWidth={2.5} />
             </div>
-            <span className="font-semibold text-xs">
-              Fitur Kampanye & Rate Card Aktif
-            </span>
+            <div className="min-w-0">
+              <span className="block text-xs font-extrabold text-ink-950 uppercase tracking-wide">
+                Untuk Pemilik Usaha (UMKM)
+              </span>
+              <span className="block text-xs text-text-muted mt-0.5 leading-snug font-medium">
+                Promosikan produk melalui kreator berdasarkan hasil tayangan.
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600">
-              <ShieldCheck size={13} />
+
+          {/* For Content Creator */}
+          <div className="rounded-xl border border-neutral-200/80 bg-neutral-50/80 p-3 sm:p-3.5 flex items-start gap-2.5">
+            <div className="h-6.5 w-6.5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center shrink-0 mt-0.5 border border-blue-200/60">
+              <Video className="w-3.5 h-3.5" strokeWidth={2.5} />
             </div>
-            <span className="font-semibold text-xs">
-              Sistem Pembayaran Tersimpan Aman
-            </span>
-          </div>
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-violet-500/15 text-violet-600">
-              <MessageSquareHeart size={13} />
+            <div className="min-w-0">
+              <span className="block text-xs font-extrabold text-ink-950 uppercase tracking-wide">
+                Untuk Kreator Konten
+              </span>
+              <span className="block text-xs text-text-muted mt-0.5 leading-snug font-medium">
+                Temukan kampanye, buat konten, dan dapatkan bayaran.
+              </span>
             </div>
-            <span className="font-semibold text-xs">
-              Masukan Anda sangat berharga bagi kami
-            </span>
           </div>
         </div>
 
-        {/* Checkbox & Action */}
-        <div className="mt-5 space-y-4">
-          <label className="flex items-center gap-2.5 text-xs font-semibold text-text-muted cursor-pointer select-none">
+        {/* Single Consolidated Beta & Sandbox Notice */}
+        <div className="mt-2.5 rounded-xl border border-orange-200/80 bg-orange-50/60 p-2.5 sm:p-3 flex items-start gap-2.5 text-text-muted">
+          <Info className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
+          <div className="text-xs text-orange-950 leading-relaxed font-medium">
+            <strong className="font-extrabold text-orange-950">Versi uji coba:</strong> Beberapa fitur masih dapat berubah. Pembayaran saat ini menggunakan simulasi sandbox. Masukan Anda membantu kami menyempurnakan Marketiv.
+          </div>
+        </div>
+
+        {/* Checkbox (UNCHECKED BY DEFAULT) & Action Button */}
+        <div className="mt-3 sm:mt-3.5 space-y-2.5">
+          <label className="flex items-center gap-2 text-xs font-semibold text-text-muted cursor-pointer select-none">
             <div
               onClick={() => setDontShowAgain(!dontShowAgain)}
-              className={`flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-md border transition-all cursor-pointer ${
+              className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-all cursor-pointer ${
                 dontShowAgain
                   ? "border-orange-600 bg-orange-600 text-white"
                   : "border-neutral-300 bg-white hover:border-neutral-400"
               }`}
             >
-              {dontShowAgain && <Check size={12} strokeWidth={3} />}
+              {dontShowAgain && <Check size={11} strokeWidth={3} />}
             </div>
             <span className="text-xs text-text-secondary font-medium">
-              Jangan tampilkan pengumuman ini lagi
+              Jangan tampilkan lagi selama masa uji coba
             </span>
           </label>
 
           <button
+            type="button"
             onClick={handleClose}
-            className="w-full min-h-[44px] rounded-full border border-orange-900/20 bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white text-xs sm:text-sm font-extrabold shadow-[0_10px_28px_rgba(234,88,12,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(234,88,12,.36)] hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer"
+            className="w-full min-h-[42px] rounded-full border-0 bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white text-xs sm:text-sm font-extrabold shadow-[0_8px_20px_rgba(234,88,12,.25)] hover:shadow-[0_12px_28px_rgba(234,88,12,.32)] active:scale-[.98] transition-all cursor-pointer focus:outline-none focus:ring-0 outline-none"
           >
-            Mengerti & Lanjutkan
+            Mulai Jelajahi Marketiv
           </button>
         </div>
       </DialogContent>

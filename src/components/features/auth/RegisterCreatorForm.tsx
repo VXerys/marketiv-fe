@@ -101,10 +101,10 @@ export function RegisterCreatorForm() {
 
         {/* Header */}
         <div className="mb-6 space-y-1">
-          <h1 className="font-display text-xl font-[900] leading-tight tracking-tight text-ink-900">
+          <h1 className="font-display text-xl font-black leading-tight tracking-tight text-ink-950">
             Daftar sebagai Konten Kreator
           </h1>
-          <p className="text-xs font-medium text-ink-500">
+          <p className="text-xs font-medium text-text-muted">
             Buat akun untuk mengambil campaign dan menjual rate card kamu.
           </p>
         </div>
@@ -150,7 +150,7 @@ export function RegisterCreatorForm() {
           <button
             type="submit"
             disabled={pending}
-            className="min-h-[46px] w-full rounded-2xl bg-gradient-to-r from-violet-600 to-blue-600 px-6 text-sm font-[800] text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:from-violet-700 hover:to-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500/40 disabled:pointer-events-none disabled:opacity-60 active:translate-y-0"
+            className="min-h-[46px] w-full rounded-full border-0 bg-gradient-to-b from-violet-600 to-blue-600 px-6 text-xs sm:text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(124,58,237,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(124,58,237,.36)] hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-60"
           >
             {pending ? "Mendaftarkan…" : "Daftar sebagai Konten Kreator"}
           </button>
@@ -158,9 +158,9 @@ export function RegisterCreatorForm() {
 
         <GoogleButton disabled={pending} label="Daftar dengan Google" role="creator" />
 
-        <p className="mt-6 border-t border-neutral-200/60 pt-5 text-center text-xs font-semibold text-ink-500">
+        <p className="mt-6 border-t border-neutral-200/60 pt-5 text-center text-xs font-semibold text-text-muted">
           Sudah punya akun?{" "}
-          <Link href={routes.login} className="font-[800] text-orange-600 hover:underline">
+          <Link href={routes.login} className="font-extrabold text-orange-600 hover:underline">
             Masuk
           </Link>
         </p>

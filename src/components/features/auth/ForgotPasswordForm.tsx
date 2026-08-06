@@ -39,23 +39,20 @@ export function ForgotPasswordForm() {
     setSent(true);
   }
 
-  // Appwrite sengaja tidak membedakan email terdaftar dan tidak (anti-enumeration),
-  // jadi layar ini muncul pada SETIAP sukses. Jangan pernah memberi tahu apakah
-  // email itu ada di sistem.
   if (sent) {
     return (
       <AuthCard
         title="Cek email kamu"
         description="Kalau email tersebut terdaftar, kami sudah mengirim tautan untuk mengatur ulang password."
         footer={
-          <Link href={routes.login} className="font-[800] text-orange-600 hover:underline">
+          <Link href={routes.login} className="font-extrabold text-orange-600 hover:underline">
             Kembali ke halaman masuk
           </Link>
         }
       >
         <div className="flex gap-3 rounded-xl border border-emerald-200/70 bg-emerald-50 px-4 py-3">
           <MailCheck size={16} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden="true" />
-          <p className="text-[0.76rem] font-semibold leading-relaxed text-emerald-800">
+          <p className="text-xs font-semibold leading-relaxed text-emerald-800">
             Tautan berlaku terbatas. Kalau belum masuk dalam beberapa menit, cek
             folder spam sebelum meminta tautan baru.
           </p>
@@ -71,7 +68,7 @@ export function ForgotPasswordForm() {
       footer={
         <>
           Ingat passwordnya?{" "}
-          <Link href={routes.login} className="font-[800] text-orange-600 hover:underline">
+          <Link href={routes.login} className="font-extrabold text-orange-600 hover:underline">
             Masuk
           </Link>
         </>
@@ -95,7 +92,7 @@ export function ForgotPasswordForm() {
         <button
           type="submit"
           disabled={pending}
-          className="min-h-[46px] w-full rounded-xl bg-orange-500 px-6 text-sm font-[800] text-white transition-all hover:-translate-y-0.5 hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500/40 disabled:pointer-events-none disabled:opacity-60 active:translate-y-0"
+          className="min-h-[46px] w-full rounded-full border-0 bg-gradient-to-b from-[#fb7a18] to-primary-600 px-6 text-xs sm:text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(234,88,12,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(234,88,12,.36)] hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-60"
         >
           {pending ? "Mengirim…" : "Kirim tautan pemulihan"}
         </button>

@@ -56,7 +56,7 @@ export function ResetPasswordForm({
       title="Buat Password Baru"
       description="Masukkan password baru untuk akun kamu."
       footer={
-        <Link href={routes.login} className="font-[800] text-orange-600 hover:underline">
+        <Link href={routes.login} className="font-extrabold text-orange-600 hover:underline">
           Kembali ke halaman masuk
         </Link>
       }
@@ -90,7 +90,7 @@ export function ResetPasswordForm({
         <button
           type="submit"
           disabled={pending}
-          className="min-h-[46px] w-full rounded-xl bg-orange-500 px-6 text-sm font-[800] text-white transition-all hover:-translate-y-0.5 hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500/40 disabled:pointer-events-none disabled:opacity-60 active:translate-y-0"
+          className="min-h-[46px] w-full rounded-full border-0 bg-gradient-to-b from-[#fb7a18] to-primary-600 px-6 text-xs sm:text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(234,88,12,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(234,88,12,.36)] hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-60"
         >
           {pending ? "Menyimpan…" : "Simpan password baru"}
         </button>
@@ -106,14 +106,14 @@ export function InvalidRecoveryLink() {
       title="Tautan tidak valid"
       description="Tautan pemulihan ini tidak lengkap atau sudah kedaluwarsa. Minta tautan baru untuk melanjutkan."
       footer={
-        <Link href={routes.login} className="font-[800] text-orange-600 hover:underline">
+        <Link href={routes.login} className="font-extrabold text-orange-600 hover:underline">
           Kembali ke halaman masuk
         </Link>
       }
     >
       <Link
         href={routes.forgotPassword}
-        className="flex min-h-[46px] w-full items-center justify-center rounded-xl bg-orange-500 px-6 text-sm font-[800] text-white transition-all hover:-translate-y-0.5 hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500/40 active:translate-y-0"
+        className="flex min-h-[46px] w-full items-center justify-center rounded-full border-0 bg-gradient-to-b from-[#fb7a18] to-primary-600 px-6 text-xs sm:text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(234,88,12,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(234,88,12,.36)] hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer"
       >
         Minta tautan baru
       </Link>

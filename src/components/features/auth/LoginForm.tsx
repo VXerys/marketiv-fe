@@ -16,30 +16,29 @@ import { routes, dashboardByRole } from "@/lib/constants/routes";
 
 const ROLE_CONFIG = {
   umkm: {
-    heroTitle: "Selamat datang kembali",
-    heroTagline: "Kelola campaign, cari kreator, dan pantau performa kontenmu.",
+    heroTitle: "Selamat Datang di Marketiv",
+    heroTagline: "Kelola promosi usaha, temukan kreator handal, dan pantau hasil penayangan produkmu.",
     heroBullets: [
-      { icon: "📣", text: "Buat & kelola campaign konten" },
-      { icon: "🤝", text: "Kolaborasi dengan kreator pilihan" },
-      { icon: "💰", text: "Pembayaran aman via escrow" },
+      { icon: "📣", text: "Promosi produk via video kreator pilihan" },
+      { icon: "🤝", text: "Pencocokan sesuai kategori usahamu" },
+      { icon: "💰", text: "Sistem garansi pembayaran aman & terukur" },
     ],
     title: "Masuk sebagai Pemilik UMKM",
     description: "Lanjutkan ke dashboard bisnis kamu.",
-    btnClass: "bg-orange-500 hover:bg-orange-600 focus-visible:outline-orange-500/40",
+    btnClass: "bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white shadow-[0_10px_28px_rgba(234,88,12,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(234,88,12,.36)]",
     registerHref: routes.registerWithRole("umkm"),
   },
   creator: {
-    heroTitle: "Selamat datang kembali",
-    heroTagline: "Ambil campaign, monetisasi konten, dan terima pembayaran dengan mudah.",
+    heroTitle: "Selamat Datang di Marketiv",
+    heroTagline: "Temukan kampanye UMKM, buat konten kreatif, dan dapatkan bayaran resmi.",
     heroBullets: [
-      { icon: "🎬", text: "Ambil campaign PPV dari UMKM" },
-      { icon: "💼", text: "Jual rate card paketmu" },
-      { icon: "💸", text: "Cairkan penghasilan kapan saja" },
+      { icon: "🎬", text: "Terima pekerjaan promosi video dari UMKM" },
+      { icon: "💼", text: "Tawarkan paket rate card kreator kamu" },
+      { icon: "💸", text: "Pencairan penghasilan cepat & transparan" },
     ],
     title: "Masuk sebagai Konten Kreator",
     description: "Lanjutkan ke dashboard kreatormu.",
-    btnClass:
-      "bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 focus-visible:outline-violet-500/40",
+    btnClass: "bg-gradient-to-b from-violet-600 to-blue-600 text-white shadow-[0_10px_28px_rgba(124,58,237,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(124,58,237,.36)]",
     registerHref: routes.registerWithRole("creator"),
   },
 } as const satisfies Record<AuthRole, object>;
@@ -105,13 +104,13 @@ export function LoginForm({ next, role: initialRole = "umkm" }: LoginFormProps) 
         footer={
           <button
             onClick={() => setSuspended(false)}
-            className="font-[800] text-orange-600 hover:underline"
+            className="font-extrabold text-orange-600 hover:underline"
           >
             Coba akun lain
           </button>
         }
       >
-        <div className="rounded-xl border border-red-200/70 bg-red-50 px-4 py-3 text-[0.78rem] font-semibold text-red-700">
+        <div className="rounded-xl border border-red-200/70 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
           Sesi sudah diakhiri otomatis demi keamanan.
         </div>
       </AuthCard>
@@ -132,10 +131,10 @@ export function LoginForm({ next, role: initialRole = "umkm" }: LoginFormProps) 
         <AuthRoleTabs activeRole={activeRole} onRoleChange={handleRoleChange} />
 
         <div className="mb-6 space-y-1">
-          <h1 className="font-display text-xl font-[900] leading-tight tracking-tight text-ink-900">
+          <h1 className="font-display text-xl font-black leading-tight tracking-tight text-ink-950">
             {cfg.title}
           </h1>
-          <p className="text-xs font-medium text-ink-500">{cfg.description}</p>
+          <p className="text-xs font-medium text-text-muted">{cfg.description}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -167,7 +166,7 @@ export function LoginForm({ next, role: initialRole = "umkm" }: LoginFormProps) 
           <div className="flex justify-end">
             <Link
               href={routes.forgotPassword}
-              className="text-[0.74rem] font-[800] text-ink-500 transition-colors hover:text-orange-600 hover:underline"
+              className="text-xs font-extrabold text-text-muted transition-colors hover:text-orange-600 hover:underline"
             >
               Lupa password?
             </Link>
@@ -176,7 +175,7 @@ export function LoginForm({ next, role: initialRole = "umkm" }: LoginFormProps) 
           <button
             type="submit"
             disabled={pending}
-            className={`min-h-[46px] w-full rounded-2xl px-6 text-sm font-[800] text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:opacity-60 active:translate-y-0 ${cfg.btnClass}`}
+            className={`min-h-[46px] w-full rounded-full border-0 px-6 text-xs sm:text-sm font-extrabold hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-60 ${cfg.btnClass}`}
           >
             {pending ? "Memproses…" : `Masuk ${activeRole === "umkm" ? "UMKM" : "Kreator"}`}
           </button>
@@ -184,9 +183,9 @@ export function LoginForm({ next, role: initialRole = "umkm" }: LoginFormProps) 
 
         <GoogleButton next={next} disabled={pending} role={activeRole} />
 
-        <p className="mt-6 border-t border-neutral-200/60 pt-5 text-center text-xs font-semibold text-ink-500">
+        <p className="mt-6 border-t border-neutral-200/60 pt-5 text-center text-xs font-semibold text-text-muted">
           Belum punya akun?{" "}
-          <Link href={cfg.registerHref} className="font-[800] text-orange-600 hover:underline">
+          <Link href={cfg.registerHref} className="font-extrabold text-orange-600 hover:underline">
             Daftar sekarang
           </Link>
         </p>

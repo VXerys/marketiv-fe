@@ -119,10 +119,10 @@ export function RegisterUmkmForm() {
 
         {/* Header */}
         <div className="mb-6 space-y-1">
-          <h1 className="font-display text-xl font-[900] leading-tight tracking-tight text-ink-900">
+          <h1 className="font-display text-xl font-black leading-tight tracking-tight text-ink-950">
             Daftar sebagai Pemilik UMKM
           </h1>
-          <p className="text-xs font-medium text-ink-500">
+          <p className="text-xs font-medium text-text-muted">
             Buat akun untuk mulai membuat campaign dan bekerja sama dengan kreator.
           </p>
         </div>
@@ -132,7 +132,7 @@ export function RegisterUmkmForm() {
 
           {/* Section: Info Usaha */}
           <div className="space-y-3.5">
-            <p className="text-[0.68rem] font-[800] uppercase tracking-widest text-ink-400">
+            <p className="text-[0.68rem] font-extrabold uppercase tracking-widest text-text-muted">
               Info Usaha
             </p>
             <AuthField
@@ -158,11 +158,11 @@ export function RegisterUmkmForm() {
           </div>
 
           {/* Divider */}
-          <div className="border-t border-neutral-100" />
+          <div className="border-t border-neutral-200/60" />
 
           {/* Section: Akun */}
           <div className="space-y-3.5">
-            <p className="text-[0.68rem] font-[800] uppercase tracking-widest text-ink-400">
+            <p className="text-[0.68rem] font-extrabold uppercase tracking-widest text-text-muted">
               Akun
             </p>
             <AuthField
@@ -205,17 +205,17 @@ export function RegisterUmkmForm() {
           <button
             type="submit"
             disabled={pending}
-            className="min-h-[46px] w-full rounded-2xl bg-orange-500 px-6 text-sm font-[800] text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500/40 disabled:pointer-events-none disabled:opacity-60 active:translate-y-0"
+            className="min-h-[46px] w-full rounded-full border-0 bg-gradient-to-b from-[#fb7a18] to-primary-600 px-6 text-xs sm:text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(234,88,12,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(234,88,12,.36)] hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-60"
           >
             {pending ? "Mendaftarkan…" : "Daftar sebagai Pemilik UMKM"}
           </button>
         </form>
 
-        <p className="mt-6 border-t border-neutral-200/60 pt-5 text-center text-xs font-semibold text-ink-500">
+        <p className="mt-6 border-t border-neutral-200/60 pt-5 text-center text-xs font-semibold text-text-muted">
           Sudah punya akun?{" "}
           <Link
             href={routes.login}
-            className="font-[800] text-orange-600 hover:underline"
+            className="font-extrabold text-orange-600 hover:underline"
           >
             Masuk
           </Link>
