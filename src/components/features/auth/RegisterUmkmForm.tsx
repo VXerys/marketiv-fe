@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { AuthCard } from "@/components/auth/AuthCard";
+import { AuthSplit } from "@/components/auth/AuthSplit";
 import {
   AuthField,
   AuthSelectField,
@@ -13,19 +13,13 @@ import {
 } from "@/components/auth/AuthField";
 import { GoogleButton } from "./GoogleButton";
 import { ProfileProvisionNotice } from "./ProfileProvisionNotice";
-import { registerUmkm } from "@/services/auth/auth.service";
+import { EmailVerificationPending } from "./EmailVerificationPending";
+import { registerUmkm, requestEmailVerification } from "@/services/auth/auth.service";
 import { registerUmkmSchema, PASSWORD_MIN } from "@/lib/validations/auth.schema";
 import { parseOrErrors } from "@/lib/validations/to-field-errors";
 import { routes } from "@/lib/constants/routes";
 import { NICHE_OPTIONS } from "@/components/features/umkm-dashboard/create-campaign/create-campaign.constants";
 
-/**
- * Field mengikuti 30_Business_Rules.md: Nama Usaha, Kategori, Email,
- * Nomor HP (WAJIB untuk UMKM), Password.
- *
- * Kategori memakai NICHE_OPTIONS — daftar yang sama dengan halaman pengaturan
- * dan wizard campaign, supaya nilainya cocok dengan campaigns.category.
- */
 const CATEGORY_OPTIONS = NICHE_OPTIONS.map((o) => ({
   value: o.id,
   label: `${o.label} — ${o.desc}`,
@@ -48,6 +42,7 @@ export function RegisterUmkmForm() {
   const [banner, setBanner] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [provisionFailed, setProvisionFailed] = useState<string | null>(null);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   const set =
     (k: keyof typeof EMPTY) =>
@@ -74,8 +69,6 @@ export function RegisterUmkmForm() {
       return;
     }
 
-    // Akun sudah ada dan sesi hidup, hanya profilnya yang belum. JANGAN redirect
-    // ke dashboard — RoleGuard akan memantulkannya balik ke sini (§A-1).
     if (!res.data.profileProvisioned) {
       setPending(false);
       setProvisionFailed(
@@ -84,102 +77,144 @@ export function RegisterUmkmForm() {
       return;
     }
 
+    // Kirim verifikasi email; gagal tidak menghalangi alur (akun sudah ada)
+    await requestEmailVerification();
     await refresh();
-    // Sama seperti sisi kreator: akun baru selalu belum lengkap, jadi langsung
-    // ke wizard daripada lewat dashboard yang akan memantulkan balik.
-    router.replace(routes.onboarding);
+    setVerificationSent(true);
+    setPending(false);
   }
 
   if (provisionFailed) {
     return <ProfileProvisionNotice role="umkm" message={provisionFailed} />;
   }
 
+  if (verificationSent) {
+    return (
+      <EmailVerificationPending
+        email={form.email}
+        onContinue={() => router.replace(routes.onboarding)}
+      />
+    );
+  }
+
   return (
-    <AuthCard
-      title="Daftar sebagai UMKM"
-      description="Buat akun untuk mulai membuat campaign dan bekerja sama dengan kreator."
-      footer={
-        <>
+    <AuthSplit
+      role="umkm"
+      heroTitle="Gabung sebagai UMKM"
+      heroTagline="Reach yang lebih luas untuk bisnismu lewat kreator konten terpercaya."
+      heroBullets={[
+        { icon: "📣", text: "Buat campaign dengan budget fleksibel" },
+        { icon: "🎯", text: "Temukan kreator yang tepat untuk nicemu" },
+        { icon: "🔒", text: "Pembayaran aman via sistem escrow" },
+      ]}
+    >
+      <div className="w-full max-w-sm">
+        {/* Header */}
+        <div className="mb-6 space-y-1">
+          <h1 className="font-display text-[1.25rem] font-[900] leading-tight tracking-tight text-ink-900">
+            Daftar sebagai UMKM
+          </h1>
+          <p className="text-[0.82rem] font-medium text-ink-500">
+            Buat akun untuk mulai membuat campaign dan bekerja sama dengan kreator.
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          {banner && <AuthErrorBanner message={banner} />}
+
+          {/* Section: Info Usaha */}
+          <div className="space-y-3.5">
+            <p className="text-[0.68rem] font-[800] uppercase tracking-widest text-ink-400">
+              Info Usaha
+            </p>
+            <AuthField
+              label="Nama Usaha"
+              name="businessName"
+              autoComplete="organization"
+              placeholder="Dapur Sehat Sukabumi"
+              value={form.businessName}
+              onChange={set("businessName")}
+              error={errors.businessName}
+              disabled={pending}
+            />
+            <AuthSelectField
+              label="Kategori Usaha"
+              name="category"
+              placeholder="Pilih kategori…"
+              options={CATEGORY_OPTIONS}
+              value={form.category}
+              onChange={set("category")}
+              error={errors.category}
+              disabled={pending}
+            />
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-neutral-100" />
+
+          {/* Section: Akun */}
+          <div className="space-y-3.5">
+            <p className="text-[0.68rem] font-[800] uppercase tracking-widest text-ink-400">
+              Akun
+            </p>
+            <AuthField
+              label="Email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="nama@usaha.id"
+              value={form.email}
+              onChange={set("email")}
+              error={errors.email}
+              disabled={pending}
+            />
+            <AuthField
+              label="Nomor WhatsApp"
+              name="phone"
+              type="tel"
+              autoComplete="tel"
+              inputMode="tel"
+              placeholder="08xxxxxxxxxx"
+              value={form.phone}
+              onChange={set("phone")}
+              error={errors.phone}
+              hint="Dipakai untuk konfirmasi pesanan dan pencairan dana."
+              disabled={pending}
+            />
+            <PasswordField
+              label="Password"
+              name="password"
+              autoComplete="new-password"
+              placeholder="••••••••"
+              value={form.password}
+              onChange={set("password")}
+              error={errors.password}
+              hint={`Minimal ${PASSWORD_MIN} karakter.`}
+              disabled={pending}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={pending}
+            className="min-h-[46px] w-full rounded-[15px] bg-orange-500 px-6 text-sm font-[800] text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500/40 disabled:pointer-events-none disabled:opacity-60 active:translate-y-0"
+          >
+            {pending ? "Mendaftarkan…" : "Daftar sebagai UMKM"}
+          </button>
+        </form>
+
+        <GoogleButton disabled={pending} label="Daftar dengan Google" role="umkm" />
+
+        <p className="mt-5 border-t border-neutral-200/60 pt-5 text-center text-[0.78rem] font-semibold text-ink-500">
           Sudah punya akun?{" "}
-          <Link href={routes.login} className="font-[800] text-orange-600 hover:underline">
+          <Link
+            href={routes.login}
+            className="font-[800] text-orange-600 hover:underline"
+          >
             Masuk
           </Link>
-        </>
-      }
-    >
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        {banner && <AuthErrorBanner message={banner} />}
-
-        <AuthField
-          label="Nama Usaha"
-          name="businessName"
-          autoComplete="organization"
-          placeholder="Dapur Sehat Sukabumi"
-          value={form.businessName}
-          onChange={set("businessName")}
-          error={errors.businessName}
-          disabled={pending}
-        />
-
-        <AuthSelectField
-          label="Kategori Usaha"
-          name="category"
-          placeholder="Pilih kategori…"
-          options={CATEGORY_OPTIONS}
-          value={form.category}
-          onChange={set("category")}
-          error={errors.category}
-          disabled={pending}
-        />
-
-        <AuthField
-          label="Email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="nama@usaha.id"
-          value={form.email}
-          onChange={set("email")}
-          error={errors.email}
-          disabled={pending}
-        />
-
-        <AuthField
-          label="Nomor WhatsApp"
-          name="phone"
-          type="tel"
-          autoComplete="tel"
-          inputMode="tel"
-          placeholder="08xxxxxxxxxx"
-          value={form.phone}
-          onChange={set("phone")}
-          error={errors.phone}
-          hint="Dipakai untuk konfirmasi pesanan dan pencairan dana."
-          disabled={pending}
-        />
-
-        <PasswordField
-          label="Password"
-          name="password"
-          autoComplete="new-password"
-          placeholder="••••••••"
-          value={form.password}
-          onChange={set("password")}
-          error={errors.password}
-          hint={`Minimal ${PASSWORD_MIN} karakter.`}
-          disabled={pending}
-        />
-
-        <button
-          type="submit"
-          disabled={pending}
-          className="min-h-[46px] w-full rounded-xl bg-orange-500 px-6 text-sm font-[800] text-white transition-all hover:-translate-y-0.5 hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500/40 disabled:pointer-events-none disabled:opacity-60 active:translate-y-0"
-        >
-          {pending ? "Mendaftarkan…" : "Daftar sebagai UMKM"}
-        </button>
-      </form>
-
-      <GoogleButton disabled={pending} label="Daftar dengan Google" />
-    </AuthCard>
+        </p>
+      </div>
+    </AuthSplit>
   );
 }

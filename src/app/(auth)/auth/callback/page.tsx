@@ -8,10 +8,12 @@ export const metadata: Metadata = {
 export default async function OAuthCallbackPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; role?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, role } = await searchParams;
   const safeNext = next?.startsWith("/") && !next.startsWith("//") ? next : undefined;
+  const safeRole =
+    role === "umkm" || role === "creator" ? (role as "umkm" | "creator") : undefined;
 
-  return <OAuthCallback next={safeNext} />;
+  return <OAuthCallback next={safeNext} role={safeRole} />;
 }

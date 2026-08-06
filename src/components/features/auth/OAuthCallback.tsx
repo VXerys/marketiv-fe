@@ -5,21 +5,29 @@ import { useRouter } from "next/navigation";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { provisionUserProfile } from "@/services/auth/auth.service";
+import {
+  provisionUserProfile,
+  setOAuthAccountPrefs,
+} from "@/services/auth/auth.service";
 import { routes, dashboardByRole } from "@/lib/constants/routes";
 
 /**
  * Pendaratan setelah OAuth Google.
  *
- * Sengaja setipis mungkin (§C-6): ini cabang yang paling mungkin salah saat
- * pertama kali bertemu provider nyata, dan providernya belum bisa kami uji.
- *
- * OAuth tidak melewati account.updatePrefs, jadi akun baru sampai di sini tanpa
- * role. Satu percobaan provisioning dijalankan (idempoten, aman untuk akun lama);
- * kalau tetap tidak ada profil, user diarahkan memilih role lewat /register —
- * bukan ditebak rolenya.
+ * Alur berdasarkan `role` yang diteruskan via success URL:
+ *   - Akun lama (user sudah ada):    → next || dashboard sesuai role
+ *   - Akun baru + role=creator:      → set prefs → provision → onboarding
+ *   - Akun baru + role=umkm:         → redirect ke /auth/oauth-complete untuk
+ *                                       mengumpulkan businessName, category, phone
+ *   - Akun baru tanpa role:          → /register (pilih role dulu)
  */
-export function OAuthCallback({ next }: { next?: string }) {
+export function OAuthCallback({
+  next,
+  role,
+}: {
+  next?: string;
+  role?: "umkm" | "creator";
+}) {
   const router = useRouter();
   const { user, loading, errorCode, refresh } = useAuth();
   const [settled, setSettled] = useState(false);
@@ -38,6 +46,7 @@ export function OAuthCallback({ next }: { next?: string }) {
   useEffect(() => {
     if (!settled || loading) return;
 
+    // Akun lama sudah punya profil lengkap.
     if (user) {
       router.replace(next || dashboardByRole[user.role]);
       return;
@@ -45,22 +54,40 @@ export function OAuthCallback({ next }: { next?: string }) {
 
     if (errorCode === "not_found") {
       void (async () => {
-        const res = await provisionUserProfile();
-        if (res.success) {
-          await refresh();
+        if (role === "umkm") {
+          // UMKM butuh data tambahan (nama usaha, kategori, telepon) sebelum
+          // profil bisa di-provision. Arahkan ke form khusus.
+          router.replace(`/auth/oauth-complete?role=umkm`);
           return;
         }
-        // Belum punya role — biarkan user memilihnya sendiri.
+
+        if (role === "creator") {
+          // Kreator tidak butuh data tambahan — set role di prefs lalu provision.
+          await setOAuthAccountPrefs("creator");
+          const provision = await provisionUserProfile();
+          if (provision.success) {
+            await refresh();
+            router.replace(routes.onboarding);
+          } else {
+            router.replace(routes.register);
+          }
+          return;
+        }
+
+        // Tidak ada role — biarkan user pilih sendiri.
         router.replace(routes.register);
       })();
       return;
     }
 
     router.replace(`${routes.login}?error=oauth`);
-  }, [settled, loading, user, errorCode, next, router, refresh]);
+  }, [settled, loading, user, errorCode, next, role, router, refresh]);
 
   return (
-    <AuthCard title="Menyiapkan akun kamu…" description="Sebentar ya, kami sedang memverifikasi sesi Google kamu.">
+    <AuthCard
+      title="Menyiapkan akun kamu…"
+      description="Sebentar ya, kami sedang memverifikasi sesi Google kamu."
+    >
       <div className="space-y-3">
         <Skeleton className="h-[44px] w-full rounded-xl" />
         <Skeleton className="h-[44px] w-2/3 rounded-xl" />

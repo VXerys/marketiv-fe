@@ -31,6 +31,7 @@ import {
   type SessionUser,
 } from "./session.service";
 import { clearOnboardingSkip } from "@/lib/onboarding-skip";
+import { routes } from "@/lib/constants/routes";
 import type { ServiceResult, ServiceErrorCode, UserRole } from "@/types/domain";
 
 /**
@@ -436,6 +437,76 @@ export async function completePasswordRecovery(
 }
 
 // ---------------------------------------------------------------------------
+// Verifikasi email
+// ---------------------------------------------------------------------------
+
+/**
+ * Minta Appwrite kirim email berisi tautan verifikasi ke alamat akun aktif.
+ *
+ * Hanya bisa dipanggil saat ada sesi aktif. Dipakai setelah register berhasil
+ * dan dari tombol "kirim ulang" di EmailVerificationPending.
+ *
+ * Appwrite tidak membedakan "sudah terverifikasi" vs "belum" dalam respons —
+ * selalu balik ok(null) jika panggilan berhasil.
+ */
+export async function requestEmailVerification(): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return ok(null);
+  }
+
+  try {
+    await account.createVerification({
+      url: `${window.location.origin}${routes.verifyEmail}`,
+    });
+    return ok(null);
+  } catch (err) {
+    return fail(
+      authMessage(err, "Gagal mengirim email verifikasi. Coba lagi."),
+      mapWriteErrorCode(err),
+      noData<null>()
+    );
+  }
+}
+
+/**
+ * Konfirmasi verifikasi email dengan userId + secret dari tautan yang dikirim Appwrite.
+ *
+ * Dipanggil dari halaman /verify-email setelah user klik tautan dari email.
+ * Setelah sukses, email user dianggap terverifikasi oleh Appwrite Auth.
+ */
+export async function confirmEmailVerification(args: {
+  userId: string;
+  secret: string;
+}): Promise<ServiceResult<null>> {
+  if (!args.userId || !args.secret) {
+    return failValidation(
+      "Tautan verifikasi tidak lengkap. Coba klik tautan di email lagi.",
+      noData<null>()
+    );
+  }
+
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return ok(null);
+  }
+
+  try {
+    await account.updateVerification({
+      userId: args.userId,
+      secret: args.secret,
+    });
+    return ok(null);
+  } catch (err) {
+    return fail(
+      authMessage(err, "Tautan verifikasi tidak valid atau sudah kedaluwarsa. Minta tautan baru."),
+      mapWriteErrorCode(err),
+      noData<null>()
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Google OAuth (di balik flag — provider belum dikonfigurasi, §A-3)
 // ---------------------------------------------------------------------------
 
@@ -446,10 +517,13 @@ export function isGoogleOAuthEnabled(): boolean {
 /**
  * Mulai alur OAuth Google. Sinkron: memanggilnya meninggalkan halaman ini.
  *
- * Gagal tertutup — kalau flag mati, tidak melakukan apa pun. Pemanggil sudah
- * menyembunyikan tombolnya lewat isGoogleOAuthEnabled(); ini lapis keduanya.
+ * `role` diteruskan via query string ke success URL supaya OAuthCallback tahu
+ * apakah ini pendaftaran baru UMKM (→ form data tambahan) atau Kreator (→
+ * langsung provision).
+ *
+ * Gagal tertutup — kalau flag mati, tidak melakukan apa pun.
  */
-export function startGoogleOAuth(next?: string): void {
+export function startGoogleOAuth(role?: string, next?: string): void {
   if (!AUTH_CONFIG.googleOAuthEnabled) {
     console.warn(
       "[auth] Google OAuth dimatikan (NEXT_PUBLIC_ENABLE_GOOGLE_OAUTH). Provider belum dikonfigurasi di konsol Appwrite."
@@ -459,13 +533,41 @@ export function startGoogleOAuth(next?: string): void {
   if (typeof window === "undefined") return;
 
   const origin = window.location.origin;
-  const success = next
-    ? `${origin}${AUTH_CONFIG.oauthSuccessPath}?next=${encodeURIComponent(next)}`
-    : `${origin}${AUTH_CONFIG.oauthSuccessPath}`;
+  const params = new URLSearchParams();
+  if (next) params.set("next", next);
+  if (role) params.set("role", role);
+  const qs = params.toString();
+  const success = `${origin}${AUTH_CONFIG.oauthSuccessPath}${qs ? `?${qs}` : ""}`;
 
   account.createOAuth2Session({
     provider: OAuthProvider.Google,
     success,
     failure: `${origin}${AUTH_CONFIG.oauthFailurePath}`,
   });
+}
+
+/**
+ * Tulis prefs role+opsional data profil UMKM ke akun yang sedang login.
+ * Dipakai setelah Google OAuth saat akun baru belum punya prefs role.
+ */
+export async function setOAuthAccountPrefs(
+  role: "umkm" | "creator",
+  extra?: { businessName?: string; category?: string; phone?: string; displayName?: string }
+): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(200);
+    return ok(null);
+  }
+  try {
+    await account.updatePrefs({
+      prefs: { role, ...(extra ?? {}) },
+    });
+    return ok(null);
+  } catch (err) {
+    return fail(
+      "Gagal menyimpan role akun. Coba lagi.",
+      mapWriteErrorCode(err),
+      noData<null>()
+    );
+  }
 }

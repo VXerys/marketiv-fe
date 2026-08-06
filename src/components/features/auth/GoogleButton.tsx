@@ -11,10 +11,12 @@ import { isGoogleOAuthEnabled, startGoogleOAuth } from "@/services/auth/auth.ser
  */
 export function GoogleButton({
   next,
+  role,
   disabled,
   label = "Lanjutkan dengan Google",
 }: {
   next?: string;
+  role?: "umkm" | "creator";
   disabled?: boolean;
   label?: string;
 }) {
@@ -33,8 +35,8 @@ export function GoogleButton({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => startGoogleOAuth(next)}
-        className="flex min-h-[44px] w-full items-center justify-center gap-2.5 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-[800] text-ink-900 transition-all hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-3xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500/40 disabled:pointer-events-none disabled:opacity-60 active:translate-y-0"
+        onClick={() => startGoogleOAuth(role, next)}
+        className="flex min-h-[44px] w-full items-center justify-center gap-2.5 rounded-xl border border-neutral-200 bg-white px-4 text-sm font-[800] text-ink-900 transition-all hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-soft-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500/40 disabled:pointer-events-none disabled:opacity-60 active:translate-y-0"
       >
         <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
           <path
