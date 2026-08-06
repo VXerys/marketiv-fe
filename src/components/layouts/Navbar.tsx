@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { Sparkles } from "lucide-react";
 import { Logo } from "@/assets/images";
 import { cn } from "@/lib/utils";
 import { NAVBAR_CONTENT } from "@/data/content";
