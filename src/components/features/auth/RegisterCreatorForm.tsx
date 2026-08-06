@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AuthSplit } from "@/components/auth/AuthSplit";
+import { AuthRoleTabs, AuthRole } from "@/components/auth/AuthRoleTabs";
 import { AuthField, PasswordField, AuthErrorBanner } from "@/components/auth/AuthField";
 import { GoogleButton } from "./GoogleButton";
 import { ProfileProvisionNotice } from "./ProfileProvisionNotice";
@@ -29,6 +30,12 @@ export function RegisterCreatorForm() {
 
   const set = (k: keyof typeof EMPTY) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  const handleRoleChange = (newRole: AuthRole) => {
+    if (newRole === "umkm") {
+      router.push(routes.registerWithRole("umkm"), { scroll: false });
+    }
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -80,7 +87,7 @@ export function RegisterCreatorForm() {
   return (
     <AuthSplit
       role="creator"
-      heroTitle="Gabung sebagai Kreator"
+      heroTitle="Gabung sebagai Konten Kreator"
       heroTagline="Monetisasi kontenmu dan raih penghasilan dari UMKM yang butuh kreator sepertimu."
       heroBullets={[
         { icon: "🎯", text: "Ambil campaign PPV dari UMKM aktif" },
@@ -88,13 +95,16 @@ export function RegisterCreatorForm() {
         { icon: "💸", text: "Cairkan penghasilan kapan saja" },
       ]}
     >
-      <div className="w-full max-w-sm">
+      <div className="mx-auto w-full max-w-sm">
+        {/* Radix UI Role Tabs Switcher */}
+        <AuthRoleTabs activeRole="creator" onRoleChange={handleRoleChange} />
+
         {/* Header */}
         <div className="mb-6 space-y-1">
-          <h1 className="font-display text-[1.25rem] font-[900] leading-tight tracking-tight text-ink-900">
-            Daftar sebagai Kreator
+          <h1 className="font-display text-xl font-[900] leading-tight tracking-tight text-ink-900">
+            Daftar sebagai Konten Kreator
           </h1>
-          <p className="text-[0.82rem] font-medium text-ink-500">
+          <p className="text-xs font-medium text-ink-500">
             Buat akun untuk mengambil campaign dan menjual rate card kamu.
           </p>
         </div>
@@ -140,15 +150,15 @@ export function RegisterCreatorForm() {
           <button
             type="submit"
             disabled={pending}
-            className="min-h-[46px] w-full rounded-[15px] bg-gradient-to-r from-violet-600 to-blue-600 px-6 text-sm font-[800] text-white transition-all duration-200 hover:-translate-y-0.5 hover:from-violet-700 hover:to-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500/40 disabled:pointer-events-none disabled:opacity-60 active:translate-y-0"
+            className="min-h-[46px] w-full rounded-2xl bg-gradient-to-r from-violet-600 to-blue-600 px-6 text-sm font-[800] text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:from-violet-700 hover:to-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500/40 disabled:pointer-events-none disabled:opacity-60 active:translate-y-0"
           >
-            {pending ? "Mendaftarkan…" : "Daftar sebagai Kreator"}
+            {pending ? "Mendaftarkan…" : "Daftar sebagai Konten Kreator"}
           </button>
         </form>
 
         <GoogleButton disabled={pending} label="Daftar dengan Google" role="creator" />
 
-        <p className="mt-5 border-t border-neutral-200/60 pt-5 text-center text-[0.78rem] font-semibold text-ink-500">
+        <p className="mt-6 border-t border-neutral-200/60 pt-5 text-center text-xs font-semibold text-ink-500">
           Sudah punya akun?{" "}
           <Link href={routes.login} className="font-[800] text-orange-600 hover:underline">
             Masuk

@@ -1,11 +1,7 @@
-import { AuthBrand } from "@/components/auth/AuthCard";
-
 /**
- * Shell halaman auth.
+ * Shell halaman auth ultra-premium.
  *
- * Tidak membungkus <RedirectIfAuthenticated> di sini: tiap halaman butuh `next`
- * dari searchParams-nya sendiri, dan searchParams tidak tersedia di layout.
- * Halaman yang memanggilnya sendiri (login/register/forgot/reset).
+ * Menggunakan background gradient halus dan flex centering untuk kenyamanan pengguna.
  */
 export default function AuthLayout({
   children,
@@ -13,9 +9,15 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center px-4 py-10">
-      <AuthBrand />
-      {children}
+    <main className="relative flex min-h-svh flex-col items-center justify-center bg-gradient-to-br from-neutral-50 via-orange-50/15 to-neutral-100/80 px-4 py-8 sm:py-12">
+      {/* Decorative ambient glow in background */}
+      <div
+        className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 h-72 w-full max-w-4xl bg-orange-400/10 blur-3xl rounded-full"
+        aria-hidden="true"
+      />
+      <div className="relative z-10 w-full flex justify-center">
+        {children}
+      </div>
     </main>
   );
 }

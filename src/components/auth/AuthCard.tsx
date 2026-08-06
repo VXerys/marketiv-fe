@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { MarketivLogo } from "@/components/ui/MarketivLogo";
 
 /**
  * Bingkai kartu halaman auth — centered layout untuk hub/forgot/reset.
@@ -56,12 +57,7 @@ export function AuthBrand() {
       href="/"
       className="mb-6 inline-flex items-center gap-2 rounded-xl px-2 py-1 transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-500/40"
     >
-      <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 text-sm font-[900] text-white shadow-sm">
-        M
-      </span>
-      <span className="font-display text-[1.1rem] font-[900] tracking-tight text-ink-900">
-        Marketiv
-      </span>
+      <MarketivLogo size={36} />
     </Link>
   );
 }

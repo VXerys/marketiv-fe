@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { logoMarketivPng } from "@/assets/icons";
 import {
   LayoutDashboard,
   Megaphone,
@@ -154,17 +156,14 @@ export function DashboardSidebar({
       >
         <div className="flex items-center gap-3 min-w-0 group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:justify-center">
           {/* Logo mark */}
-          <div
-            className="w-9 h-9 rounded-[11px] shrink-0 flex items-center justify-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:rounded-[13px] transition-all duration-300"
-            style={{
-              background:
-                "radial-gradient(circle at 35% 25%, rgba(255,255,255,.92) 0 10%, transparent 11%), linear-gradient(135deg, #f97316, #c2410c)",
-              boxShadow: "0 8px 24px rgba(249,115,22,.32), 0 2px 6px rgba(0,0,0,.2)",
-            }}
-          >
-            <span className="font-extrabold text-[.88rem] text-white font-display group-data-[collapsible=icon]:text-[1rem]">
-              M
-            </span>
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-white p-1.5 shadow-sm border border-white/10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:rounded-[14px] transition-all duration-300">
+            <Image
+              src={logoMarketivPng}
+              alt="Marketiv Logo"
+              width={36}
+              height={36}
+              className="h-full w-full object-contain"
+            />
           </div>
 
           {/* Brand text */}

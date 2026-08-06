@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { RedirectIfAuthenticated } from "@/components/auth/RedirectIfAuthenticated";
 import { LoginForm } from "@/components/features/auth/LoginForm";
-import { LoginRoleHub } from "@/components/features/auth/LoginRoleHub";
 import { registrableRoleSchema } from "@/lib/validations/auth.schema";
 
 const TITLES: Record<string, string> = {
@@ -24,9 +23,8 @@ export async function generateMetadata({
 }
 
 /**
- * Login page dengan dua mode:
- * - Tanpa ?role=  → LoginRoleHub (pilih peran dulu)
- * - ?role=umkm/creator → LoginForm role-spesifik dengan split-screen
+ * Login page:
+ * Langsung menampilkan form login split-screen tanpa kartu hub pemilih peran.
  */
 export default async function LoginPage({
   searchParams,
@@ -40,11 +38,7 @@ export default async function LoginPage({
 
   return (
     <RedirectIfAuthenticated next={safeNext}>
-      {parsedRole.success ? (
-        <LoginForm next={safeNext} role={parsedRole.data} />
-      ) : (
-        <LoginRoleHub />
-      )}
+      <LoginForm next={safeNext} role={parsedRole.success ? parsedRole.data : "umkm"} />
     </RedirectIfAuthenticated>
   );
 }

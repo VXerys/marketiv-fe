@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Menu } from "lucide-react";
+import { logoMarketivPng } from "@/assets/icons";
 import { useSidebar } from "@/components/ui/sidebar";
 import { getNotifications } from "@/services/shared/notification.service";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
@@ -155,14 +156,14 @@ export function DashboardTopbar({}: DashboardTopbarProps) {
 
         {/* Mobile: Marketiv brand mark */}
         <div className="flex items-center gap-2.5 md:hidden min-w-0">
-          <div
-            className="w-9 h-9 rounded-[11px] shrink-0 flex items-center justify-center shadow-[0_6px_16px_rgba(249,115,22,.24)]"
-            style={{
-              background:
-                "radial-gradient(circle at 35% 25%, rgba(255,255,255,.9) 0 9%, transparent 10%), linear-gradient(135deg, #f97316, #c2410c)",
-            }}
-          >
-            <span className="font-extrabold text-[.85rem] text-white font-display">M</span>
+          <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-3xs border border-neutral-200/80">
+            <Image
+              src={logoMarketivPng}
+              alt="Marketiv Logo"
+              width={28}
+              height={28}
+              className="h-full w-full object-contain"
+            />
           </div>
           <div className="min-w-0">
             <strong className="block text-[.92rem] font-extrabold text-ink-900 leading-none tracking-[-0.03em] font-display truncate">

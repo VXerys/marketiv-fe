@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { AuthSplit } from "@/components/auth/AuthSplit";
+import { AuthRoleTabs, AuthRole } from "@/components/auth/AuthRoleTabs";
 import {
   AuthField,
   AuthSelectField,
   PasswordField,
   AuthErrorBanner,
 } from "@/components/auth/AuthField";
-import { GoogleButton } from "./GoogleButton";
 import { ProfileProvisionNotice } from "./ProfileProvisionNotice";
 import { EmailVerificationPending } from "./EmailVerificationPending";
 import { registerUmkm, requestEmailVerification } from "@/services/auth/auth.service";
@@ -49,6 +49,12 @@ export function RegisterUmkmForm() {
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
       setForm((f) => ({ ...f, [k]: e.target.value }));
 
+  const handleRoleChange = (newRole: AuthRole) => {
+    if (newRole === "creator") {
+      router.push(routes.registerWithRole("creator"), { scroll: false });
+    }
+  };
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBanner(null);
@@ -77,7 +83,6 @@ export function RegisterUmkmForm() {
       return;
     }
 
-    // Kirim verifikasi email; gagal tidak menghalangi alur (akun sudah ada)
     await requestEmailVerification();
     await refresh();
     setVerificationSent(true);
@@ -100,7 +105,7 @@ export function RegisterUmkmForm() {
   return (
     <AuthSplit
       role="umkm"
-      heroTitle="Gabung sebagai UMKM"
+      heroTitle="Gabung sebagai Pemilik UMKM"
       heroTagline="Reach yang lebih luas untuk bisnismu lewat kreator konten terpercaya."
       heroBullets={[
         { icon: "📣", text: "Buat campaign dengan budget fleksibel" },
@@ -108,13 +113,16 @@ export function RegisterUmkmForm() {
         { icon: "🔒", text: "Pembayaran aman via sistem escrow" },
       ]}
     >
-      <div className="w-full max-w-sm">
+      <div className="mx-auto w-full max-w-sm">
+        {/* Radix UI Role Tabs Switcher */}
+        <AuthRoleTabs activeRole="umkm" onRoleChange={handleRoleChange} />
+
         {/* Header */}
         <div className="mb-6 space-y-1">
-          <h1 className="font-display text-[1.25rem] font-[900] leading-tight tracking-tight text-ink-900">
-            Daftar sebagai UMKM
+          <h1 className="font-display text-xl font-[900] leading-tight tracking-tight text-ink-900">
+            Daftar sebagai Pemilik UMKM
           </h1>
-          <p className="text-[0.82rem] font-medium text-ink-500">
+          <p className="text-xs font-medium text-ink-500">
             Buat akun untuk mulai membuat campaign dan bekerja sama dengan kreator.
           </p>
         </div>
@@ -197,15 +205,13 @@ export function RegisterUmkmForm() {
           <button
             type="submit"
             disabled={pending}
-            className="min-h-[46px] w-full rounded-[15px] bg-orange-500 px-6 text-sm font-[800] text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500/40 disabled:pointer-events-none disabled:opacity-60 active:translate-y-0"
+            className="min-h-[46px] w-full rounded-2xl bg-orange-500 px-6 text-sm font-[800] text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500/40 disabled:pointer-events-none disabled:opacity-60 active:translate-y-0"
           >
-            {pending ? "Mendaftarkan…" : "Daftar sebagai UMKM"}
+            {pending ? "Mendaftarkan…" : "Daftar sebagai Pemilik UMKM"}
           </button>
         </form>
 
-        <GoogleButton disabled={pending} label="Daftar dengan Google" role="umkm" />
-
-        <p className="mt-5 border-t border-neutral-200/60 pt-5 text-center text-[0.78rem] font-semibold text-ink-500">
+        <p className="mt-6 border-t border-neutral-200/60 pt-5 text-center text-xs font-semibold text-ink-500">
           Sudah punya akun?{" "}
           <Link
             href={routes.login}

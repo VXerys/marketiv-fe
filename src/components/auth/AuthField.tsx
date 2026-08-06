@@ -1,5 +1,6 @@
 "use client";
 
+import * as Label from "@radix-ui/react-label";
 import { useId, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -7,15 +8,14 @@ import { cn } from "@/lib/utils";
 /**
  * Field form auth.
  *
- * Kelasnya sengaja meniru inputCls/errCls di PengaturanClient supaya form auth
- * terlihat sama dengan form dashboard yang sudah ada — bukan varian baru.
+ * Menggunakan Radix UI Label untuk aksesibilitas murni & styling premium.
  * Tinggi 44px memenuhi aturan tap target minimum (Studio System v5.8).
  */
 
 const inputCls =
-  "w-full min-h-[44px] px-4 py-2.5 bg-neutral-50/50 border border-neutral-200 rounded-xl text-sm font-semibold text-ink-900 outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/10 transition-all shadow-3xs disabled:cursor-not-allowed disabled:opacity-60";
+  "w-full min-h-[44px] px-4 py-2.5 bg-neutral-50/70 border border-neutral-200/90 rounded-xl text-sm font-semibold text-ink-900 outline-none focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15 transition-all shadow-3xs disabled:cursor-not-allowed disabled:opacity-60";
 const errCls = "text-[0.7rem] font-bold text-red-600";
-const labelCls = "text-[0.74rem] font-[800] text-ink-600";
+const labelCls = "text-[0.74rem] font-[800] text-ink-700 select-none cursor-pointer";
 
 interface AuthFieldProps extends Omit<React.ComponentProps<"input">, "id"> {
   label: string;
@@ -35,9 +35,9 @@ export function AuthField({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className={labelCls}>
+      <Label.Root htmlFor={id} className={labelCls}>
         {label}
-      </label>
+      </Label.Root>
       <input
         {...props}
         id={id}
@@ -71,9 +71,9 @@ export function PasswordField({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className={labelCls}>
+      <Label.Root htmlFor={id} className={labelCls}>
         {label}
-      </label>
+      </Label.Root>
       <div className="relative">
         <input
           {...props}
@@ -126,9 +126,9 @@ export function AuthSelectField({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className={labelCls}>
+      <Label.Root htmlFor={id} className={labelCls}>
         {label}
-      </label>
+      </Label.Root>
       <select
         {...props}
         id={id}
@@ -177,9 +177,9 @@ export function AuthTextareaField({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className={labelCls}>
+      <Label.Root htmlFor={id} className={labelCls}>
         {label}
-      </label>
+      </Label.Root>
       <textarea
         {...props}
         id={id}

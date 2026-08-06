@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Bell, Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { logoMarketivPng } from "@/assets/icons";
 import { useSidebar } from "@/components/ui/sidebar";
 import { getNotifications } from "@/services/shared/notification.service";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
@@ -18,63 +19,45 @@ interface BreadcrumbItem {
 function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
   const parts = pathname.split("/").filter(Boolean);
   const items: BreadcrumbItem[] = [{ label: "Dashboard", href: "/dashboard/kreator" }];
-  
-  if (parts.length <= 2) {
-    return items;
+
+  if (parts.length > 2) {
+    const sub = parts[2];
+    if (sub === "job-pool") items.push({ label: "Job Pool" });
+    else if (sub === "pekerjaan-aktif") items.push({ label: "Pekerjaan Aktif" });
+    else if (sub === "rate-card") items.push({ label: "Rate Card" });
+    else if (sub === "negosiasi") items.push({ label: "Negosiasi" });
+    else if (sub === "keuangan") items.push({ label: "Keuangan" });
+    else if (sub === "pengaturan") items.push({ label: "Pengaturan" });
   }
-  
-  const mainModule = parts[2];
-  const labelMap: Record<string, string> = {
-    "job-pool": "Job Pool",
-    "pekerjaan-aktif": "Pekerjaan Aktif",
-    "rate-card": "Rate Card",
-    negosiasi: "Negosiasi",
-    keuangan: "Keuangan",
-    settings: "Pengaturan",
-    panduan: "FAQ & Peraturan",
-    notifikasi: "Notifikasi",
-  };
-  
-  if (labelMap[mainModule]) {
-    items.push({
-      label: labelMap[mainModule],
-      href: `/dashboard/kreator/${mainModule}`
-    });
-  } else {
-    items.push({
-      label: mainModule.charAt(0).toUpperCase() + mainModule.slice(1)
-    });
-  }
-  
-  if (parts.length > 3) {
-    items.push({ label: "Detail" });
-  }
-  
+
   return items;
 }
 
 interface CreatorDashboardTopbarProps {
-  creatorName: string;
+  creatorName?: string;
   creatorAvatar?: string;
   onOpenSidebar?: () => void;
 }
 
-export function CreatorDashboardTopbar({
-  creatorName,
-  creatorAvatar,
-}: CreatorDashboardTopbarProps) {
+export function CreatorDashboardTopbar({}: CreatorDashboardTopbarProps = {}) {
   const pathname = usePathname();
-  const breadcrumbs = getBreadcrumbs(pathname);
   const { toggleSidebar } = useSidebar();
-  const activeTitle = breadcrumbs[breadcrumbs.length - 1]?.label || "Dashboard";
+  const breadcrumbs = getBreadcrumbs(pathname);
+
+  const activeTitle =
+    breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length - 1].label : "Overview";
+
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const loadUnreadCount = useCallback(() => {
-    void getNotifications("creator").then((result) => {
-      if (result.success && result.data) {
-        setUnreadCount(result.data.filter((notification) => !notification.isRead).length);
+  const loadUnreadCount = useCallback(async () => {
+    try {
+      const res = await getNotifications("creator");
+      if (res.success && res.data) {
+        setUnreadCount(res.data.filter((n) => !n.isRead).length);
       }
-    });
+    } catch {
+      setUnreadCount(0);
+    }
   }, []);
 
   useEffect(() => {
@@ -100,7 +83,7 @@ export function CreatorDashboardTopbar({
         boxShadow: "0 4px 20px -2px rgba(15, 23, 42, 0.02), 0 1px 0 rgba(17, 24, 39, 0.03)",
       }}
     >
-      {/* ── Left side ─────────────────────────────────────────── */}
+      {/* Left side */}
       <div className="flex items-center gap-3 min-w-0 flex-1">
         {/* Mobile hamburger — hidden on md+ */}
         <button
@@ -111,17 +94,16 @@ export function CreatorDashboardTopbar({
           <Menu size={20} strokeWidth={2} />
         </button>
 
-        {/* Mobile: Marketiv brand mark (blue/purple) */}
+        {/* Mobile: Marketiv brand mark */}
         <div className="flex items-center gap-2.5 md:hidden min-w-0">
-          <div
-            className="w-9 h-9 rounded-[11px] shrink-0 flex items-center justify-center shadow-kreator-brand-sm"
-            style={{
-              background:
-                "radial-gradient(circle at 35% 25%, rgb(255 255 255 / 0.9) 0 9%, transparent 10%), linear-gradient(135deg, var(--color-kreator-gradient-start), var(--color-kreator-gradient-end))",
-              boxShadow: "var(--shadow-kreator-brand-sm)",
-            }}
-          >
-            <span className="font-extrabold text-[.85rem] text-white font-display">M</span>
+          <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-3xs border border-neutral-200/80">
+            <Image
+              src={logoMarketivPng}
+              alt="Marketiv Logo"
+              width={28}
+              height={28}
+              className="h-full w-full object-contain"
+            />
           </div>
           <div className="min-w-0">
             <strong className="block text-[.92rem] font-extrabold text-ink-900 leading-none tracking-[-0.03em] font-display truncate">
@@ -158,9 +140,8 @@ export function CreatorDashboardTopbar({
         </nav>
       </div>
 
-      {/* ── Right: actions ────────────────────────────────────── */}
+      {/* Right: actions */}
       <div className="flex items-center gap-3 shrink-0">
-        {/* Active job quick check button */}
         <Link
           href="/dashboard/kreator/job-pool"
           className="hidden md:inline-flex bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold text-xs px-5 py-2.5 rounded-full hover:shadow-kreator-brand hover:-translate-y-0.5 active:translate-y-0 transition-all border border-white/20 shadow-sm"
@@ -171,38 +152,14 @@ export function CreatorDashboardTopbar({
         {/* Notifications Icon */}
         <Link
           href="/dashboard/kreator/notifikasi"
-          className="relative w-11 h-11 flex items-center justify-center rounded-xl text-ink-500 hover:bg-neutral-100 hover:text-ink-800 active:scale-95 transition-all duration-150 cursor-pointer border border-neutral-200/60 bg-white/70 shadow-3xs hover:shadow-2xs"
-          aria-label={unreadCount > 0 ? `Notifikasi, ${unreadCount} belum dibaca` : "Notifikasi"}
+          className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-neutral-100/70 hover:bg-neutral-200/60 active:scale-95 transition-all text-neutral-600 hover:text-neutral-900"
+          aria-label="Notifikasi"
         >
-          <Bell size={20} strokeWidth={2} />
-          {/* Unread dot */}
+          <Bell size={18} />
           {unreadCount > 0 && (
-            <span
-              className="absolute top-[12px] right-[12px] w-[8px] h-[8px] rounded-full border-[1.5px] border-white bg-blue-600 shadow-kreator-brand-sm"
-              aria-hidden="true"
-            />
-          )}
-        </Link>
-
-        {/* Creator profile photo */}
-        <Link
-          href="/dashboard/kreator/settings"
-          className="w-11 h-11 rounded-xl border border-neutral-200/70 shadow-3xs overflow-hidden hover:scale-105 hover:shadow-kreator-brand-sm active:scale-95 transition-all duration-200 relative block shrink-0 cursor-pointer"
-          aria-label="Pengaturan akun"
-        >
-          {creatorAvatar ? (
-            <Image
-              alt={creatorName || "Profil kreator"}
-              className="w-full h-full object-cover"
-              src={creatorAvatar}
-              width={44}
-              height={44}
-              sizes="44px"
-              quality={85}
-            />
-          ) : (
-            <span className="grid h-full w-full place-items-center bg-violet-100 text-sm font-black text-violet-700">
-              {(creatorName || "K").slice(0, 1).toUpperCase()}
+            <span className="absolute top-2 right-2 flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-600" />
             </span>
           )}
         </Link>

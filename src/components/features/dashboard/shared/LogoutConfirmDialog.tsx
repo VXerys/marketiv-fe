@@ -3,101 +3,157 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Store, Video, LogOut } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { routes } from "@/lib/constants/routes";
 import { cn } from "@/lib/utils";
 
-/**
- * Konfirmasi logout — satu komponen untuk kedua sidebar.
- *
- * Sebelumnya markup ini diduplikasi persis di DashboardSidebar dan
- * CreatorDashboardSidebar, dan tombol konfirmasinya adalah <Link href="/">:
- * ia hanya bernavigasi, sesi Appwrite tetap hidup. Siapa pun yang membuka
- * /dashboard lagi langsung masuk tanpa login ulang.
- *
- * Dibangun di atas Radix Dialog supaya dapat focus trap, Escape, outside-click,
- * dan role="dialog" — yang semuanya tidak dimiliki versi hand-roll.
- */
-const ACCENTS = {
-  orange:
-    "bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-orange-500/10 hover:shadow-orange-500/15",
-  red: "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-red-500/10 hover:shadow-red-500/15",
-} as const;
+type LogoutAccent = "orange" | "purple" | "red";
 
+interface LogoutConfirmDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  accent?: LogoutAccent;
+}
+
+const DIALOG_CONFIG = {
+  orange: {
+    heroImage: "/umkm_logout_hero.jpg",
+    badgeLabel: "Pemilik UMKM",
+    badgeIcon: Store,
+    badgeClass: "bg-orange-500/80 text-white border-orange-300/40",
+    title: "Keluar dari Dashboard UMKM?",
+    description:
+      "Sesi bisnis kamu akan diakhiri. Kamu perlu masuk kembali untuk mengelola campaign, pesanan, dan escrow.",
+    btnClass:
+      "bg-orange-500 hover:bg-orange-600 focus-visible:outline-orange-500/40 shadow-orange-500/25",
+    btnLabel: "Ya, Keluar Akun UMKM",
+  },
+  purple: {
+    heroImage: "/kreator_logout_hero.jpg",
+    badgeLabel: "Konten Kreator",
+    badgeIcon: Video,
+    badgeClass: "bg-violet-600/80 text-white border-violet-300/40",
+    title: "Keluar dari Dashboard Kreator?",
+    description:
+      "Sesi kreator kamu akan diakhiri. Kamu perlu masuk kembali untuk mengambil job pool, rate card, dan pencairan saldo.",
+    btnClass:
+      "bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 focus-visible:outline-violet-500/40 shadow-violet-500/25",
+    btnLabel: "Ya, Keluar Akun Kreator",
+  },
+  red: {
+    heroImage: "/umkm_logout_hero.jpg",
+    badgeLabel: "Marketiv Account",
+    badgeIcon: LogOut,
+    badgeClass: "bg-red-500/80 text-white border-red-300/40",
+    title: "Keluar dari Marketiv?",
+    description: "Sesi kamu akan diakhiri. Kamu perlu masuk kembali untuk mengakses akun kamu.",
+    btnClass:
+      "bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-red-500/25",
+    btnLabel: "Ya, Keluar Akun",
+  },
+} as const satisfies Record<LogoutAccent, object>;
+
+/**
+ * Dialog Konfirmasi Logout Spesifik Peran (UMKM vs Kreator).
+ *
+ * Menampilkan header visual 3D spesifik peran dengan rounded border halus,
+ * badge identitas peran, serta CTA action role-spesifik.
+ */
 export function LogoutConfirmDialog({
   open,
   onOpenChange,
   accent = "orange",
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  accent?: keyof typeof ACCENTS;
-}) {
+}: LogoutConfirmDialogProps) {
   const router = useRouter();
   const { logout } = useAuth();
   const [pending, setPending] = useState(false);
 
+  const config = DIALOG_CONFIG[accent] || DIALOG_CONFIG.orange;
+  const BadgeIcon = config.badgeIcon;
+
   async function handleLogout() {
     setPending(true);
-    await logout();
-    // Redirect tinggal di pemanggil, bukan di AuthProvider — provider harus
-    // tetap agnostik routing.
-    router.replace(routes.login);
+    try {
+      await logout();
+      router.replace(routes.login);
+    } catch {
+      setPending(false);
+    }
   }
 
   return (
-    <Dialog open={open} onOpenChange={pending ? undefined : onOpenChange}>
-      <DialogContent
-        className={cn(
-          "flex max-w-[340px] flex-col gap-0 overflow-hidden rounded-3xl border-white/10 bg-[#0d1527] p-0",
-          "[&>button:last-child]:text-white/60 [&>button:last-child]:hover:text-white"
-        )}
-      >
-        <div className="relative aspect-[16/10] w-full overflow-hidden border-b border-white/5 bg-black/40">
+    <AlertDialog open={open} onOpenChange={pending ? undefined : onOpenChange}>
+      <AlertDialogContent className="w-full max-w-[420px] overflow-hidden rounded-[2.2rem] border border-neutral-200/90 bg-white p-0 shadow-2xl transition-all duration-300">
+        {/* Top Visual Header Banner with Role-Specific 3D Illustration */}
+        <div className="relative aspect-[16/9] w-full overflow-hidden bg-neutral-900 select-none">
           <Image
-            src="/logout_exit_door.png"
-            alt=""
+            src={config.heroImage}
+            alt="Logout Banner"
             fill
-            className="object-cover"
+            className="object-cover transition-transform duration-500 hover:scale-105"
             priority
           />
+          {/* Subtle gradient vignette overlays */}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-white via-transparent to-black/30" />
+
+          {/* Top Role Badge */}
+          <div className="absolute top-3.5 left-4 z-10">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[0.72rem] font-[800] backdrop-blur-md shadow-sm",
+                config.badgeClass
+              )}
+            >
+              <BadgeIcon className="h-3.5 w-3.5" />
+              <span>{config.badgeLabel}</span>
+            </span>
+          </div>
         </div>
 
-        <div className="space-y-2 px-6 pt-5 pb-6 text-center">
-          <DialogTitle className="text-xl font-extrabold tracking-tight text-white">
-            Logout?
-          </DialogTitle>
-          <DialogDescription className="text-xs font-semibold leading-relaxed text-neutral-400">
-            Kamu yakin ingin keluar? Sesi kamu akan diakhiri.
-          </DialogDescription>
-        </div>
+        {/* Text Content */}
+        <div className="px-6 pt-4 pb-2 sm:px-7">
+          <AlertDialogHeader className="text-left space-y-2">
+            <AlertDialogTitle className="font-display text-xl font-[900] tracking-tight text-ink-900">
+              {config.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs font-semibold leading-relaxed text-ink-500">
+              {config.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
 
-        <div className="flex flex-col gap-2.5 px-6 pb-6">
-          <button
-            onClick={handleLogout}
-            disabled={pending}
-            className={cn(
-              "flex min-h-[44px] items-center justify-center rounded-xl px-4 text-xs font-extrabold text-white shadow-md transition-all duration-150 hover:shadow-lg active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60",
-              ACCENTS[accent]
-            )}
-          >
-            {pending ? "Mengeluarkan…" : "Logout"}
-          </button>
-          <button
-            onClick={() => onOpenChange(false)}
-            disabled={pending}
-            className="flex min-h-[44px] items-center justify-center rounded-xl border border-white/5 bg-white/[0.03] px-4 text-xs font-extrabold text-white outline-none transition-all duration-150 hover:border-white/10 hover:bg-white/[0.06] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
-          >
-            Kembali
-          </button>
+          {/* Action Buttons */}
+          <AlertDialogFooter className="mt-6 pb-6 flex flex-col-reverse sm:flex-row gap-2.5 sm:gap-2.5">
+            <AlertDialogCancel
+              disabled={pending}
+              className="w-full sm:flex-1 min-h-[46px] rounded-2xl border border-neutral-200/90 bg-neutral-100/80 hover:bg-neutral-200/80 text-xs font-[800] text-ink-700 outline-none transition-all m-0"
+            >
+              Batal
+            </AlertDialogCancel>
+
+            <AlertDialogAction
+              onClick={handleLogout}
+              disabled={pending}
+              className={cn(
+                "w-full sm:flex-1 min-h-[46px] rounded-2xl text-xs font-[800] text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 m-0",
+                config.btnClass
+              )}
+            >
+              {pending ? "Mengeluarkan…" : config.btnLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </div>
-      </DialogContent>
-    </Dialog>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
