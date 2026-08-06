@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { DashboardButton } from "../../shared";
 import {
   ResponsiveModal,
   ResponsiveModalContent,
   ResponsiveModalHeader,
   ResponsiveModalTitle,
   ResponsiveModalDescription,
-  ResponsiveModalFooter,
 } from "@/components/ui/responsive-modal";
+import { PauseCircle } from "lucide-react";
 
 interface CancelCampaignModalProps {
   isOpen: boolean;
@@ -18,13 +17,6 @@ interface CancelCampaignModalProps {
   onConfirm: () => Promise<void>;
 }
 
-/**
- * "Jeda Campaign" — bukan pembatalan+refund. CampaignStatus tidak punya nilai
- * "cancelled" dan tak ada Function refund escrow; status hanya berpindah ke
- * "paused". Pembatalan sejati + refund diusulkan ke backend sebagai konsep
- * terpisah (lihat handoff Sprint 3). Reason dihapus — campaigns tak punya
- * kolomnya, field yang membuang input diam-diam lebih buruk daripada tak ada.
- */
 export function CancelCampaignModal({
   isOpen,
   onClose,
@@ -47,47 +39,55 @@ export function CancelCampaignModal({
 
   return (
     <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <ResponsiveModalContent className="max-w-md w-full p-6">
-        <ResponsiveModalHeader>
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-warning-soft text-warning mb-4">
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+      <ResponsiveModalContent className="max-w-md w-full p-6 rounded-2xl border border-neutral-200/80 bg-white shadow-xl">
+        <ResponsiveModalHeader className="flex flex-col items-center text-center">
+          <div className="h-12 w-12 rounded-full bg-amber-50 text-amber-600 border border-amber-200/80 flex items-center justify-center mx-auto shadow-2xs mb-3">
+            <PauseCircle className="w-6 h-6" strokeWidth={2.5} />
           </div>
-          <ResponsiveModalTitle className="text-lg font-bold text-text-primary">
-            Jeda Campaign?
+          <ResponsiveModalTitle className="text-base sm:text-lg font-extrabold text-ink-950 text-center">
+            Hentikan Sementara Kampanye?
           </ResponsiveModalTitle>
-          <ResponsiveModalDescription className="text-sm text-text-secondary leading-relaxed">
-            Campaign <span className="font-semibold text-text-primary">&quot;{campaignTitle}&quot;</span> akan dijeda: kreator tidak bisa mengajukan klaim baru, tetapi dana escrow tetap tersimpan aman. Anda bisa mengaktifkannya kembali kapan saja.
+          <ResponsiveModalDescription className="text-xs text-text-muted leading-relaxed text-center mt-1">
+            Kampanye <strong className="text-ink-950">&quot;{campaignTitle}&quot;</strong> akan dihentikan sementara. Kreator baru tidak bisa mendaftar, namun sisa dana Anda tetap tersimpan aman di Marketiv.
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
-        <div className="mt-4 mb-5 rounded-xl border border-border-soft bg-neutral-50 p-3.5 text-[11px] text-text-muted leading-relaxed">
-          Pembatalan permanen beserta pengembalian dana (refund) escrow belum tersedia dan sedang disiapkan bersama tim. Untuk saat ini campaign hanya bisa dijeda.
+        <div className="my-4 rounded-xl border border-neutral-200/60 bg-neutral-50 p-3.5 text-xs text-text-muted leading-relaxed">
+          Kampanye yang dihentikan sementara dapat diaktifkan kembali kapan saja melalui halaman detail kampanye.
         </div>
 
         {/* Confirmation Checkbox */}
-        <label className="flex items-start gap-2.5 mb-6 cursor-pointer select-none">
+        <label className="flex items-start gap-2.5 mb-5 cursor-pointer select-none">
           <input
             type="checkbox"
-            className="mt-1 h-4 w-4 rounded border-border-strong text-primary focus:ring-primary accent-primary cursor-pointer border"
+            className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-orange-600 focus:ring-orange-500 accent-orange-600 cursor-pointer"
             checked={isConfirmed}
             onChange={(e) => setIsConfirmed(e.target.checked)}
           />
-          <span className="text-xs text-text-secondary leading-normal">
-            Saya mengerti campaign akan dijeda dan dana escrow tetap tersimpan.
+          <span className="text-xs font-medium text-text-secondary leading-snug">
+            Saya mengerti kampanye ini akan dihentikan sementara dan dana saya tetap aman.
           </span>
         </label>
 
-        {/* Buttons */}
-        <ResponsiveModalFooter className="flex items-center justify-end gap-3">
-          <DashboardButton variant="secondary" size="md" onClick={onClose} disabled={busy} className="text-xs">
-            Kembali
-          </DashboardButton>
-          <DashboardButton variant="primary" size="md" disabled={!isConfirmed || busy} onClick={handleConfirm} className="text-xs">
-            {busy ? "Menjeda…" : "Jeda Campaign"}
-          </DashboardButton>
-        </ResponsiveModalFooter>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2.5 w-full">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+            className="flex-1 min-h-[44px] px-4 rounded-full border border-neutral-200/80 bg-white text-ink-950 text-xs font-bold shadow-2xs hover:bg-neutral-50 active:scale-[.98] transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
+          >
+            Batal
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={!isConfirmed || busy}
+            className="flex-1 min-h-[44px] px-4 rounded-full border border-orange-900/20 bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white text-xs font-extrabold shadow-[0_10px_28px_rgba(234,88,12,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(234,88,12,.36)] hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none"
+          >
+            {busy ? "Memproses…" : "Hentikan Sementara"}
+          </button>
+        </div>
       </ResponsiveModalContent>
     </ResponsiveModal>
   );

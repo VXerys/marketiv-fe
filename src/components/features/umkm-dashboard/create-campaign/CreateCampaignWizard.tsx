@@ -33,7 +33,8 @@ import {
 } from "@/services/umkm/umkm-dashboard.service";
 import type { RehydratedWizard } from "./create-campaign.rehydrate";
 import { loadSnap } from "@/lib/midtrans/snap";
-import type { CampaignType } from "@/types/domain";
+import { type CampaignType, calculateTotalPayment } from "@/types/domain";
+import { formatCurrency } from "@/lib/formatters";
 import { toast } from "sonner";
 
 // Modals
@@ -146,8 +147,8 @@ export function CreateCampaignWizard({ campaignId, initialState, initialMeta }: 
         setCurrentStep((prev) => prev + 1);
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
-        // Last step: open payment simulation modal
-        setIsPaymentOpen(true);
+        // Last step: Langsung buat pembayaran & buka Midtrans Snap!
+        void handleConfirmPayment();
       }
     }
   };
@@ -592,6 +593,7 @@ export function CreateCampaignWizard({ campaignId, initialState, initialMeta }: 
             onBack={handleBack}
             onNext={handleNext}
             isSubmitting={isSubmitting}
+            totalPaymentText={formatCurrency(calculateTotalPayment(totalBudgetEscrow))}
           />
         </div>
       </CampaignWizardLayout>

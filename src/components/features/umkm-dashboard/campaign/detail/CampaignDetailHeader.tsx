@@ -24,13 +24,13 @@ export function CampaignDetailHeader({
       case "draft":
         return { label: "Lanjutkan Draft", onClick: onEditClick };
       case "active":
-        return { label: "Ekspor Performa", onClick: onExportClick };
+        return { label: "Unduh Laporan Kampanye", onClick: onExportClick };
       case "paused":
-        return { label: "Lanjutkan Campaign", onClick: onEditClick };
+        return { label: "Aktifkan Kembali Kampanye", onClick: onEditClick };
       case "completed":
         return { label: "Unduh Laporan Selesai", onClick: onExportClick };
       default:
-        return { label: "Ekspor Performa", onClick: onExportClick };
+        return { label: "Unduh Laporan Kampanye", onClick: onExportClick };
     }
   };
 
@@ -48,7 +48,7 @@ export function CampaignDetailHeader({
           <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          Kembali ke Daftar Campaign
+          Kembali ke Daftar Kampanye
         </Link>
 
         {/* Cover Info */}
@@ -77,7 +77,7 @@ export function CampaignDetailHeader({
                 onClick={onCancelClick}
                 className="text-xs"
               >
-                Batalkan Campaign
+                Hentikan Kampanye
               </DashboardButton>
             )}
             <DashboardButton

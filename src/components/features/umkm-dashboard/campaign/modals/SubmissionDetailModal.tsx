@@ -3,14 +3,13 @@
 import Image from "next/image";
 import { CampaignSubmission } from "@/types/umkm-dashboard.types";
 import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/formatters";
-import { DashboardButton, DashboardBadge } from "../../shared";
+import { DashboardBadge } from "../../shared";
 import {
   ResponsiveModal,
   ResponsiveModalContent,
   ResponsiveModalHeader,
   ResponsiveModalTitle,
   ResponsiveModalDescription,
-  ResponsiveModalFooter,
 } from "@/components/ui/responsive-modal";
 
 interface SubmissionDetailModalProps {
@@ -26,17 +25,19 @@ export function SubmissionDetailModal({
 }: SubmissionDetailModalProps) {
   return (
     <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <ResponsiveModalContent className="max-w-lg w-full p-6">
-        <ResponsiveModalHeader>
-          <ResponsiveModalTitle className="text-lg font-bold text-text-primary">
-            Detail Submission
+      <ResponsiveModalContent className="max-w-lg w-full p-6 rounded-2xl border border-neutral-200/80 bg-white shadow-xl">
+        <ResponsiveModalHeader className="border-b border-neutral-200/50 pb-3 mb-4">
+          <ResponsiveModalTitle className="text-base sm:text-lg font-extrabold text-ink-950">
+            Detail Bukti Konten Kreator
           </ResponsiveModalTitle>
-          <ResponsiveModalDescription className="hidden" />
+          <ResponsiveModalDescription className="text-xs text-text-muted mt-0.5">
+            Rincian postingan video dan riwayat pemeriksaan.
+          </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
         {/* Creator Info Header */}
-        <div className="flex items-center gap-3 mb-6 mt-4">
-          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-border-soft bg-neutral-200">
+        <div className="flex items-center gap-3 mb-5 p-3.5 bg-neutral-50 rounded-xl border border-neutral-200/60">
+          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-neutral-200 bg-neutral-200">
             {submission.creatorAvatarUrl ? (
               <Image
                 src={submission.creatorAvatarUrl}
@@ -52,8 +53,8 @@ export function SubmissionDetailModal({
             )}
           </div>
           <div>
-            <h4 className="font-bold text-text-primary text-sm leading-none">{submission.creatorName}</h4>
-            <span className="text-[10px] text-text-muted mt-1 inline-block">Platform: {submission.platform}</span>
+            <h4 className="font-extrabold text-ink-950 text-xs sm:text-sm leading-none">{submission.creatorName}</h4>
+            <span className="text-[11px] text-text-muted mt-1 inline-block">Platform: {submission.platform}</span>
           </div>
           <div className="ml-auto">
             <DashboardBadge type="status" value={submission.validationStatus} />
@@ -61,124 +62,81 @@ export function SubmissionDetailModal({
         </div>
 
         {/* Grid Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-neutral-50 p-3 rounded-xl border border-border-soft">
+        <div className="grid grid-cols-2 gap-3.5 mb-5">
+          <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60">
             <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-              Views Terkumpul
+              Tayangan Terkumpul
             </span>
-            <span className="text-base font-extrabold text-text-primary">
+            <span className="text-sm font-black text-text-primary font-display">
               {submission.actualViews.toLocaleString("id-ID")}
             </span>
           </div>
-          <div className="bg-neutral-50 p-3 rounded-xl border border-border-soft">
+          <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60">
             <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-              Fraud Status
+              Status Pemeriksaan
             </span>
             <span className="text-xs font-extrabold text-text-primary capitalize">
-              {submission.fraudStatus || "—"}
+              {submission.fraudStatus || "Normal"}
             </span>
           </div>
-          <div className="bg-neutral-50 p-3 rounded-xl border border-border-soft">
+          <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60">
             <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-              Dana Dicairkan
+              Dana Dibayarkan
             </span>
-            <span className="text-base font-extrabold text-success-strong">
+            <span className="text-sm font-black text-emerald-700 font-display">
               {formatCurrency(submission.releasedFund)}
             </span>
           </div>
-          <div className="bg-neutral-50 p-3 rounded-xl border border-border-soft">
+          <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60">
             <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-              Tanggal Submit
+              Tanggal Dikirim
             </span>
-            <span className="text-xs font-semibold text-text-primary mt-1 block">
+            <span className="text-xs font-semibold text-text-primary mt-0.5 block">
               {formatDate(submission.submittedAt)}
             </span>
           </div>
         </div>
 
         {/* Post Link */}
-        <div className="mb-6">
-          <span className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
-            Tautan Konten Publik
+        <div className="mb-5">
+          <span className="block text-xs font-extrabold text-text-primary uppercase tracking-wide mb-2">
+            Tautan Video Sosial Media
           </span>
-          <div className="flex items-center justify-between p-3.5 bg-neutral-50 rounded-xl border border-border-soft gap-2 min-w-0">
-            <span className="text-xs text-text-primary truncate font-medium flex-1 min-w-0">
+          <div className="flex items-center justify-between p-3.5 bg-neutral-50 rounded-xl border border-neutral-200/60 gap-2 min-w-0">
+            <span className="text-xs text-text-primary truncate font-medium flex-1 min-w-0 font-mono">
               {submission.contentUrl}
             </span>
             <a
               href={submission.contentUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-primary font-bold hover:underline shrink-0"
+              className="text-xs text-orange-600 font-extrabold hover:underline shrink-0"
             >
-              Kunjungi Postingan
+              Buka Video ↗
             </a>
-          </div>
-        </div>
-
-        {/* Timeline of Submission */}
-        <div className="mb-6">
-          <span className="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-3">
-            Riwayat Aktivitas
-          </span>
-          <div className="space-y-4 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-neutral-200">
-            {/* Step 1: Submit */}
-            <div className="flex gap-4 relative">
-              <div className="h-6 w-6 rounded-full bg-primary-100 flex items-center justify-center text-primary z-10 border border-primary-200">
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-text-primary">Konten disubmit oleh Kreator</p>
-                <p className="text-[10px] text-text-muted mt-0.5">{formatRelativeTime(submission.submittedAt)}</p>
-              </div>
-            </div>
-
-            {/* Step 2: Validation */}
-            {submission.validationStatus !== "pending" && (
-              <div className="flex gap-4 relative">
-                <div className={`h-6 w-6 rounded-full flex items-center justify-center z-10 border ${
-                  submission.validationStatus === "approved" ? "bg-success-soft text-success border-success/30" : "bg-danger-soft text-danger border-danger/30"
-                }`}>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-text-primary">
-                    {submission.validationStatus === "approved"
-                      ? "Konten disetujui & dana dicairkan"
-                      : submission.fraudStatus === "rejected"
-                        ? "Konten ditolak — terindikasi fraud"
-                        : "Konten ditolak oleh UMKM"
-                    }
-                  </p>
-                  {submission.validatedAt && (
-                    <p className="text-[10px] text-text-muted mt-0.5">{formatRelativeTime(submission.validatedAt)}</p>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Catatan Validator */}
         {submission.rejectedReason && (
-          <div className="mb-6 p-3.5 bg-amber-50 border border-amber-200/60 rounded-xl">
-            <span className="block text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1">
-              Catatan Validator
+          <div className="mb-5 p-3.5 bg-amber-50 border border-amber-200/80 rounded-xl">
+            <span className="block text-[10px] font-extrabold text-amber-900 uppercase tracking-wide mb-1">
+              Catatan Alasan Penolakan
             </span>
-            <p className="text-xs text-amber-900 font-medium leading-relaxed">{submission.rejectedReason}</p>
+            <p className="text-xs text-amber-950 font-medium leading-relaxed">{submission.rejectedReason}</p>
           </div>
         )}
 
         {/* Buttons */}
-        <ResponsiveModalFooter className="flex items-center justify-end gap-3 border-t border-border-soft pt-4">
-          <DashboardButton variant="secondary" size="md" onClick={onClose} className="text-xs">
+        <div className="flex items-center justify-end w-full pt-2 border-t border-neutral-200/50">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full sm:w-auto min-h-[44px] px-8 rounded-full border border-neutral-200/80 bg-white text-ink-950 text-xs font-bold shadow-2xs hover:bg-neutral-50 active:scale-[.98] transition-all cursor-pointer"
+          >
             Tutup
-          </DashboardButton>
-        </ResponsiveModalFooter>
+          </button>
+        </div>
       </ResponsiveModalContent>
     </ResponsiveModal>
   );

@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { ChevronRight, Save } from "lucide-react";
+import { Save } from "lucide-react";
 
 interface CampaignWizardHeaderProps {
   onSaveDraft: () => void;
@@ -10,24 +9,9 @@ interface CampaignWizardHeaderProps {
 
 export function CampaignWizardHeader({ onSaveDraft, onCancel }: CampaignWizardHeaderProps) {
   return (
-    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 mb-6"
-      style={{ borderBottom: "1px solid rgba(17,24,39,.08)" }}
-    >
-      {/* Left: breadcrumb + title */}
+    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-6 mb-6 border-b border-neutral-200/80">
+      {/* Left: Section label & title */}
       <div>
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-1 text-[.7rem] text-ink-400 font-[700] uppercase tracking-[.08em] mb-2.5">
-          <Link href="/dashboard/umkm" className="hover:text-primary transition-colors">
-            Dashboard
-          </Link>
-          <ChevronRight size={10} className="text-ink-300 shrink-0" />
-          <Link href="/dashboard/umkm/campaign" className="hover:text-primary transition-colors">
-            Campaign Saya
-          </Link>
-          <ChevronRight size={10} className="text-ink-300 shrink-0" />
-          <span className="text-ink-700 font-[800]">Buat Campaign</span>
-        </div>
-
         {/* Section label */}
         <div className="inline-flex items-center gap-2 text-orange-600 text-[.72rem] font-[900] tracking-[.12em] uppercase mb-1.5">
           <span className="block w-[16px] h-0.5 rounded-full bg-orange-500 shrink-0" />
@@ -48,14 +32,14 @@ export function CampaignWizardHeader({ onSaveDraft, onCancel }: CampaignWizardHe
         <button
           type="button"
           onClick={onCancel}
-          className="inline-flex items-center min-h-[38px] px-4 rounded-xl border border-neutral-200/80 bg-white text-ink-700 text-[.82rem] font-[700] shadow-3xs hover:bg-neutral-50 hover:-translate-y-px transition-all duration-150 cursor-pointer"
+          className="inline-flex items-center min-h-[42px] px-5 rounded-full border border-neutral-200/80 bg-white text-ink-950 text-[.84rem] font-bold shadow-2xs hover:bg-neutral-50 active:scale-[.98] transition-all cursor-pointer"
         >
           Kembali
         </button>
         <button
           type="button"
           onClick={onSaveDraft}
-          className="inline-flex items-center gap-2 min-h-[40px] px-4.5 rounded-xl border border-orange-200 bg-gradient-to-b from-orange-50 to-orange-100/70 text-orange-700 text-[.82rem] font-[800] tracking-[.01em] shadow-[0_2px_8px_rgba(234,88,12,0.08)] hover:bg-orange-100 hover:border-orange-300 hover:-translate-y-px active:scale-[.98] transition-all duration-150 cursor-pointer"
+          className="inline-flex items-center gap-2 min-h-[42px] px-5 rounded-full border border-orange-200 bg-gradient-to-b from-orange-50 to-orange-100/70 text-orange-700 text-[.84rem] font-extrabold tracking-[.01em] shadow-[0_2px_8px_rgba(234,88,12,0.08)] hover:bg-orange-100 hover:border-orange-300 hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer"
         >
           <Save size={14} className="text-orange-600 shrink-0" />
           <span>Simpan Draft</span>

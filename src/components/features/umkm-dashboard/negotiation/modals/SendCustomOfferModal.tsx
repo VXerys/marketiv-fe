@@ -5,7 +5,6 @@ import {
   ResponsiveModal,
   ResponsiveModalContent,
   ResponsiveModalDescription,
-  ResponsiveModalFooter,
 } from "@/components/ui/responsive-modal";
 
 interface SendCustomOfferModalProps {
@@ -48,26 +47,15 @@ export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }
 
   return (
     <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <ResponsiveModalContent className="max-w-lg w-full p-0 overflow-hidden">
+      <ResponsiveModalContent className="max-w-lg w-full p-0 overflow-hidden rounded-2xl border border-neutral-200/80 bg-white shadow-xl">
         {/* Header */}
-        <div className="px-6 py-4.5 bg-gradient-to-r from-primary-50/20 to-white border-b border-border-subtle flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-neutral-200/50 flex items-center justify-between">
           <div>
-            <h3 className="text-xs sm:text-sm font-extrabold text-text-primary uppercase tracking-wider">
-              Kirim Custom Offer
+            <span className="text-[10px] font-extrabold text-text-muted uppercase tracking-wide">Kesepakatan Kerja</span>
+            <h3 className="text-base font-extrabold text-ink-950 tracking-tight mt-0.5">
+              Kirim Penawaran ke {creatorName}
             </h3>
-            <p className="text-[10px] text-text-muted mt-0.5 font-semibold">
-              Ajukan kontrak penawaran khusus ke {creatorName}
-            </p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-text-muted hover:text-text-primary transition-colors cursor-pointer select-none p-1 rounded-lg hover:bg-neutral-100"
-          >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
         </div>
 
         {/* Form */}
@@ -76,27 +64,28 @@ export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }
 
           {/* Scope input */}
           <div className="space-y-1.5">
-            <label htmlFor="modal-scope" className="block text-[10px] font-extrabold text-text-secondary uppercase tracking-wider">
-              Lingkup Pekerjaan (Scope) <span className="text-primary">*</span>
+            <label htmlFor="modal-scope" className="block text-xs font-extrabold text-text-primary uppercase tracking-wide">
+              Rincian Pekerjaan & Konten <span className="text-orange-600">*</span>
             </label>
             <textarea
               id="modal-scope"
               required
               rows={3}
+              placeholder="Jelaskan detail video yang diminta, durasi, dan hal yang harus ditampilkan..."
               value={scope}
               onChange={(e) => setScope(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-neutral-50 border border-border-strong rounded-xl text-xs text-text-primary focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary resize-none leading-relaxed"
+              className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200/80 rounded-xl text-xs text-text-primary focus:outline-none focus:border-orange-500 resize-none leading-relaxed"
             />
           </div>
 
           {/* Pricing & Revisions grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div className="space-y-1.5 sm:col-span-2">
-              <label htmlFor="modal-price" className="block text-[10px] font-extrabold text-text-secondary uppercase tracking-wider">
-                Harga Penawaran <span className="text-primary">*</span>
+              <label htmlFor="modal-price" className="block text-xs font-extrabold text-text-primary uppercase tracking-wide">
+                Harga Kesepakatan <span className="text-orange-600">*</span>
               </label>
               <div className="relative flex items-center">
-                <span className="absolute left-3 text-xs font-bold text-text-muted">Rp</span>
+                <span className="absolute left-3.5 text-xs font-extrabold text-text-muted">Rp</span>
                 <input
                   id="modal-price"
                   type="number"
@@ -104,13 +93,13 @@ export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }
                   min={10000}
                   value={price}
                   onChange={(e) => setPrice(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-full pl-9 pr-3 py-2 bg-neutral-50 border border-border-strong rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                  className="w-full pl-10 pr-3.5 py-2.5 bg-neutral-50 border border-neutral-200/80 rounded-xl text-xs font-extrabold text-ink-950 focus:outline-none focus:border-orange-500 font-display"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <label htmlFor="modal-revisions" className="block text-[10px] font-extrabold text-text-secondary uppercase tracking-wider">
+              <label htmlFor="modal-revisions" className="block text-xs font-extrabold text-text-primary uppercase tracking-wide">
                 Batas Revisi
               </label>
               <input
@@ -119,15 +108,15 @@ export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }
                 min={0}
                 value={revisions}
                 onChange={(e) => setRevisions(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-full px-3.5 py-2 bg-neutral-50 border border-border-strong rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200/80 rounded-xl text-xs font-extrabold text-ink-950 focus:outline-none focus:border-orange-500"
               />
             </div>
           </div>
 
           {/* Deadline */}
           <div className="space-y-1.5">
-            <label htmlFor="modal-deadline" className="block text-[10px] font-extrabold text-text-secondary uppercase tracking-wider">
-              Batas Waktu Deadline <span className="text-primary">*</span>
+            <label htmlFor="modal-deadline" className="block text-xs font-extrabold text-text-primary uppercase tracking-wide">
+              Batas Waktu Selesai <span className="text-orange-600">*</span>
             </label>
             <input
               id="modal-deadline"
@@ -136,46 +125,46 @@ export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }
               min={todayStr}
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
-              className="w-full px-3.5 py-2 bg-neutral-50 border border-border-strong rounded-xl text-xs font-bold text-text-primary focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+              className="w-full px-3.5 py-2.5 bg-neutral-50 border border-neutral-200/80 rounded-xl text-xs font-extrabold text-ink-950 focus:outline-none focus:border-orange-500"
             />
           </div>
 
           {/* Agreement Checkbox */}
-          <label className="flex items-start gap-3 cursor-pointer pt-2">
+          <label className="flex items-start gap-3 cursor-pointer pt-1">
             <input
               type="checkbox"
               required
               checked={agreed}
               onChange={(e) => setAgreed(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-primary focus:ring-primary accent-primary cursor-pointer shrink-0"
+              className="mt-0.5 h-4 w-4 rounded border-neutral-300 text-orange-600 focus:ring-orange-500 accent-orange-600 cursor-pointer shrink-0"
             />
-            <span className="text-[10px] text-text-secondary leading-relaxed font-semibold">
-              Saya menyatakan bahwa rincian harga, deadline, dan lingkup deliverables di atas telah dinegosiasikan bersama dan disetujui secara informal dengan kreator.
+            <span className="text-xs text-text-secondary leading-relaxed font-medium">
+              Saya telah menyepakati rincian harga dan pekerjaan di atas bersama kreator.
             </span>
           </label>
 
           {submitError && (
-            <p className="text-[10px] font-bold text-danger text-center px-1">{submitError}</p>
+            <p className="text-xs font-bold text-red-600 text-center px-1">{submitError}</p>
           )}
 
           {/* Actions */}
-          <ResponsiveModalFooter className="flex items-center gap-3 pt-3 border-t border-border-soft">
+          <div className="flex items-center gap-2.5 pt-3 border-t border-neutral-200/50">
             <button
               type="button"
               onClick={onClose}
               disabled={submitting}
-              className="flex-1 py-2.5 rounded-xl border border-neutral-200 hover:bg-neutral-50 text-text-secondary text-xs font-bold transition-all duration-200 cursor-pointer select-none text-center disabled:opacity-50"
+              className="flex-1 min-h-[44px] px-4 rounded-full border border-neutral-200/80 bg-white text-ink-950 text-xs font-bold shadow-2xs hover:bg-neutral-50 active:scale-[.98] transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={!agreed || submitting}
-              className="flex-1 py-2.5 rounded-xl bg-primary disabled:opacity-50 hover:bg-primary-600 text-white text-xs font-bold transition-all duration-200 cursor-pointer border border-primary disabled:border-neutral-200 hover:border-primary-600 shadow-xs text-center select-none"
+              className="flex-1 min-h-[44px] px-4 rounded-full border border-orange-900/20 bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white text-xs font-extrabold shadow-[0_10px_28px_rgba(234,88,12,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(234,88,12,.36)] hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer whitespace-nowrap disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none"
             >
               {submitting ? "Mengirim…" : "Kirim Penawaran"}
             </button>
-          </ResponsiveModalFooter>
+          </div>
         </form>
       </ResponsiveModalContent>
     </ResponsiveModal>

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { CampaignSubmission, SubmissionStatus } from "@/types/umkm-dashboard.types";
 import { CampaignSubmissionCard } from "./CampaignSubmissionCard";
-import { DashboardBadge } from "../../shared";
 
 interface CampaignSubmissionSectionProps {
   submissions: CampaignSubmission[];
@@ -23,11 +22,10 @@ export function CampaignSubmissionSection({
       ? submissions
       : submissions.filter((s) => s.validationStatus === filterTab);
 
-  // Tabs layout configuration
   const tabs: { label: string; value: "all" | SubmissionStatus; count: number }[] = [
     { label: "Semua", value: "all", count: submissions.length },
     {
-      label: "Pending",
+      label: "Menunggu Diperiksa",
       value: "pending",
       count: submissions.filter((s) => s.validationStatus === "pending").length,
     },
@@ -44,55 +42,63 @@ export function CampaignSubmissionSection({
   ];
 
   return (
-    <div className="panel overflow-hidden">
-      <div className="p-6 border-b border-border-soft space-y-4">
+    <div className="rounded-2xl border border-neutral-200/80 bg-white shadow-2xs overflow-hidden">
+      <div className="p-5 sm:p-6 border-b border-neutral-200/50 space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h3 className="text-sm font-extrabold text-text-primary uppercase tracking-wider">
-              Review Bukti Tayang
+            <h3 className="text-xs sm:text-sm font-extrabold text-text-primary uppercase tracking-wide">
+              Periksa Bukti Konten Kreator
             </h3>
             <p className="text-xs text-text-muted">
-              Pantau URL konten kreator dan validasi hasil pekerjaan.
+              Periksa link video TikTok atau Instagram dari kreator dan setujui jika sesuai.
             </p>
           </div>
-          <span className="text-[10px] font-bold text-primary bg-primary-soft/10 px-2.5 py-1 rounded-md shrink-0">
-            {submissions.length} Submission
+          <span className="text-[11px] font-extrabold text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200/80 uppercase tracking-wide shrink-0">
+            {submissions.length} BUKTI KONTEN
           </span>
         </div>
         
-        {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-1.5 w-full">
-          {tabs.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setFilterTab(tab.value)}
-              className={`px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                filterTab === tab.value
-                  ? "bg-primary text-white shadow-xs"
-                  : "bg-neutral-50 text-text-secondary hover:bg-neutral-100 border border-border-soft/60"
-              }`}
-            >
-              <span>{tab.label}</span>
-              <DashboardBadge
-                type="count"
-                className={filterTab === tab.value ? "bg-white/20 text-white border-transparent" : "bg-neutral-200/80 text-text-secondary"}
+        {/* Navigation Filter Tabs */}
+        <div className="flex flex-wrap gap-2 w-full pt-1">
+          {tabs.map((tab) => {
+            const isActive = filterTab === tab.value;
+            return (
+              <button
+                key={tab.value}
+                onClick={() => setFilterTab(tab.value)}
+                className={`px-4 py-1.5 rounded-full text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+                  isActive
+                    ? "bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white shadow-xs"
+                    : "bg-neutral-50 text-text-secondary hover:bg-neutral-100 border border-neutral-200/80"
+                }`}
               >
-                {tab.count}
-              </DashboardBadge>
-            </button>
-          ))}
+                <span>{tab.label}</span>
+                <span
+                  className={`inline-flex items-center justify-center font-extrabold rounded-full px-2 py-0.5 text-[11px] leading-none shrink-0 ${
+                    isActive
+                      ? "bg-white text-orange-600 shadow-2xs"
+                      : "bg-neutral-200/80 text-text-primary"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
-      <div className="p-6">
-        
+
+      <div className="p-5 sm:p-6">
         {/* Submissions List */}
         {filteredSubmissions.length === 0 ? (
-          <div className="text-center py-10">
-            <svg className="w-10 h-10 mx-auto text-neutral-300 mb-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+          <div className="text-center py-10 bg-neutral-50/60 rounded-xl border border-neutral-200/60">
+            <svg className="w-10 h-10 mx-auto text-neutral-400 mb-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
-            <h5 className="text-xs font-bold text-text-primary mb-0.5">Belum ada submission</h5>
-            <p className="text-[10px] text-text-muted">Tidak ada bukti postingan yang berstatus ini.</p>
+            <h5 className="text-xs sm:text-sm font-extrabold text-text-primary mb-1">Belum Ada Bukti Konten</h5>
+            <p className="text-xs text-text-muted max-w-sm mx-auto">
+              Kreator yang bergabung belum mengirimkan link postingan video.
+            </p>
           </div>
         ) : (
           <div className="space-y-3.5">
@@ -107,42 +113,26 @@ export function CampaignSubmissionSection({
           </div>
         )}
 
-        {/* Validation Guide Panel */}
-        <div className="mt-6 pt-5 border-t border-border-soft">
-          <span className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2.5">
-            Panduan Validasi Bukti Posting
+        {/* Audit guide notes */}
+        <div className="mt-6 pt-5 border-t border-neutral-200/50">
+          <span className="block text-[11px] font-extrabold text-text-muted uppercase tracking-wider mb-3">
+            Petunjuk Cara Memeriksa Konten
           </span>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[10px] text-text-muted leading-tight">
-            <div className="flex items-start gap-2 bg-neutral-50/50 p-3 rounded-xl border border-border-soft/60">
-              <svg className="w-3.5 h-3.5 text-success shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              <div>
-                <span className="font-bold text-text-secondary block mb-0.5">Tautan Publik</span>
-                Pastikan tautan TikTok/Instagram bisa dibuka oleh publik.
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60 text-xs">
+              <strong className="text-text-primary block font-bold mb-0.5">✓ Tautan Dapat Dibuka</strong>
+              <span className="text-text-muted text-[11px]">Pastikan tautan video TikTok atau Instagram bisa dilihat.</span>
             </div>
-            <div className="flex items-start gap-2 bg-neutral-50/50 p-3 rounded-xl border border-border-soft/60">
-              <svg className="w-3.5 h-3.5 text-success shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              <div>
-                <span className="font-bold text-text-secondary block mb-0.5">Kesesuaian Data</span>
-                Cocokkan views di konten dengan angka laporan platform.
-              </div>
+            <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60 text-xs">
+              <strong className="text-text-primary block font-bold mb-0.5">✓ Kesesuaian Produk</strong>
+              <span className="text-text-muted text-[11px]">Periksa apakah produk Anda tampil dalam video kreator.</span>
             </div>
-            <div className="flex items-start gap-2 bg-neutral-50/50 p-3 rounded-xl border border-border-soft/60">
-              <svg className="w-3.5 h-3.5 text-success shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              <div>
-                <span className="font-bold text-text-secondary block mb-0.5">Audit Anti-Fraud</span>
-                Periksa pola likes, comments, dan views untuk indikasi bot.
-              </div>
+            <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60 text-xs">
+              <strong className="text-text-primary block font-bold mb-0.5">✓ Pemeriksaan Keamanan</strong>
+              <span className="text-text-muted text-[11px]">Sistem otomatis memeriksa jumlah penonton secara berkala.</span>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );

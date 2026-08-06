@@ -1,6 +1,7 @@
 "use client";
 
 import { Campaign } from "@/types/umkm-dashboard.types";
+import { Check, AlertTriangle, Info, X } from "lucide-react";
 
 interface CampaignHealthChecklistCardProps {
   campaign: Campaign;
@@ -18,75 +19,67 @@ export function CampaignHealthChecklistCard({
 
   const checklistItems = [
     {
-      label: "Brief & Deskripsi Lengkap",
+      label: "Arahan & Deskripsi Produk",
       status: isBriefValid ? "success" : "warning",
-      desc: isBriefValid ? "Deskripsi brief terisi dengan baik." : "Deskripsi brief terlalu pendek.",
+      desc: isBriefValid ? "Petunjuk untuk kreator terisi dengan baik." : "Petunjuk untuk kreator belum terisi.",
     },
     {
-      label: "Link Aset Media Tersedia",
+      label: "Tautan Foto & Video Produk",
       status: isAssetValid ? "success" : "error",
-      desc: isAssetValid ? "Aset eksternal tersambung valid." : "Aset eksternal kosong/tidak valid.",
+      desc: isAssetValid ? "Tautan Google Drive/OneDrive tersambung." : "Tautan folder foto & video belum ada.",
     },
     {
-      label: "Jaminan Dana Escrow Aman",
+      label: "Pembayaran Kampanye Tersimpan Aman",
       status: isBudgetSecured ? "success" : "error",
-      desc: isBudgetSecured ? "Dana terkunci 100% di sistem." : "Dana belum didepositkan.",
+      desc: isBudgetSecured ? "Dana tersimpan aman dalam sistem Marketiv." : "Pembayaran belum dilakukan.",
     },
     {
       label: "Kuota Kreator Tersedia",
       status: isQuotaAvailable ? "success" : "info",
       desc: isQuotaAvailable
-        ? `${campaign.creatorQuota - campaign.usedQuota} slot terbuka di Job Pool.`
-        : "Seluruh kuota konten terisi penuh.",
+        ? `Masih tersedia ${campaign.creatorQuota - campaign.usedQuota} slot untuk kreator baru.`
+        : "Seluruh kuota kreator sudah terisi penuh.",
     },
     {
-      label: "Audit Bukti Tayang (Submissions)",
+      label: "Pemeriksaan Bukti Konten",
       status: pendingCount > 0 ? "warning" : "success",
       desc: pendingCount > 0
-        ? `Ada ${pendingCount} submission menunggu validasi Anda.`
-        : "Semua submission selesai ditinjau.",
+        ? `Ada ${pendingCount} bukti video baru yang perlu Anda periksa.`
+        : "Semua bukti video telah selesai diperiksa.",
     },
   ];
 
   const statusIcons = {
     success: (
-      <div className="h-5 w-5 rounded-full bg-success-soft text-success flex items-center justify-center shrink-0 border border-success-soft">
-        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-        </svg>
+      <div className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-extrabold text-xs shrink-0">
+        <Check className="w-3.5 h-3.5" strokeWidth={3} />
       </div>
     ),
     warning: (
-      <div className="h-5 w-5 rounded-full bg-warning-soft text-warning flex items-center justify-center shrink-0 border border-warning-soft">
-        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-        </svg>
+      <div className="w-5 h-5 rounded-full bg-amber-100 text-amber-800 flex items-center justify-center font-extrabold text-xs shrink-0">
+        <AlertTriangle className="w-3.5 h-3.5" strokeWidth={3} />
       </div>
     ),
     info: (
-      <div className="h-5 w-5 rounded-full bg-info-soft text-info flex items-center justify-center shrink-0 border border-info-soft">
-        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
+      <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-extrabold text-xs shrink-0">
+        <Info className="w-3.5 h-3.5" strokeWidth={3} />
       </div>
     ),
     error: (
-      <div className="h-5 w-5 rounded-full bg-danger-soft text-danger flex items-center justify-center shrink-0 border border-danger-soft">
-        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
+      <div className="w-5 h-5 rounded-full bg-red-100 text-red-800 flex items-center justify-center font-extrabold text-xs shrink-0">
+        <X className="w-3.5 h-3.5" strokeWidth={3} />
       </div>
     ),
   };
 
   return (
-    <div className="panel">
-      <div className="p-5 border-b border-border-soft">
-        <h3 className="text-xs font-extrabold text-text-primary uppercase tracking-wider">
-          Campaign Health Checklist
+    <div className="rounded-2xl border border-neutral-200/80 bg-white p-5 sm:p-6 shadow-2xs space-y-4">
+      <div className="border-b border-neutral-200/50 pb-3">
+        <h3 className="text-xs sm:text-sm font-extrabold text-text-primary uppercase tracking-wide">
+          Status Kesiapan Kampanye
         </h3>
       </div>
-      <div className="p-5 space-y-4">
+      <div className="space-y-3.5">
         {checklistItems.map((item, i) => (
           <div key={i} className="flex gap-3 items-start min-w-0">
             {statusIcons[item.status as keyof typeof statusIcons]}
@@ -94,7 +87,7 @@ export function CampaignHealthChecklistCard({
               <span className="block text-xs font-bold text-text-primary truncate">
                 {item.label}
               </span>
-              <span className="block text-[10px] text-text-muted mt-0.5 leading-relaxed truncate">
+              <span className="block text-[11px] text-text-muted mt-0.5 leading-relaxed truncate">
                 {item.desc}
               </span>
             </div>

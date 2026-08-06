@@ -14,9 +14,9 @@ export function CampaignOverviewCards({
 
   const cardData = [
     {
-      label: "Total Views",
+      label: "Total Tayangan Video",
       value: campaign.totalViews,
-      helper: "Views saat ini",
+      helper: "Jumlah penonton tayangan",
       tone: "info" as const,
       icon: (
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -26,11 +26,12 @@ export function CampaignOverviewCards({
       ),
     },
     {
-      label: "Budget Escrow",
+      label: "Dana Kampanye",
       value: campaign.totalBudgetEscrow,
       currency: "full" as const,
-      helper: "Dana diamankan",
+      helper: "Dana awal yang disiapkan",
       tone: "primary" as const,
+      highlight: true,
       icon: (
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -38,10 +39,10 @@ export function CampaignOverviewCards({
       ),
     },
     {
-      label: "Budget Terpakai",
+      label: "Dana Dibayarkan",
       value: campaign.usedBudget,
       currency: "full" as const,
-      helper: "Dana dicairkan",
+      helper: "Telah diterima kreator",
       tone: "danger" as const,
       icon: (
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -50,11 +51,12 @@ export function CampaignOverviewCards({
       ),
     },
     {
-      label: "Sisa Budget",
+      label: "Sisa Dana Kampanye",
       value: remainingBudget,
       currency: "full" as const,
-      helper: "Sisa di escrow",
+      helper: "Tersimpan aman",
       tone: "success" as const,
+      highlight: true,
       icon: (
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -62,9 +64,9 @@ export function CampaignOverviewCards({
       ),
     },
     {
-      label: "Kreator Tergabung",
+      label: "Kreator Mendaftar",
       value: `${campaign.usedQuota} / ${campaign.creatorQuota}`,
-      helper: "Klaim aktif",
+      helper: "Kreator yang bergabung",
       tone: "default" as const,
       icon: (
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -73,9 +75,9 @@ export function CampaignOverviewCards({
       ),
     },
     {
-      label: "Submission Pending",
+      label: "Perlu Diperiksa",
       value: pendingSubmissionsCount,
-      helper: "Perlu validasi",
+      helper: "Bukti postingan baru",
       tone: "warning" as const,
       icon: (
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -96,6 +98,7 @@ export function CampaignOverviewCards({
           icon={card.icon}
           currency={card.currency}
           tone={card.tone}
+          highlight={card.highlight}
         />
       ))}
     </div>
