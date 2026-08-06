@@ -96,7 +96,7 @@ export function CreatorDashboardTopbar({}: CreatorDashboardTopbarProps = {}) {
 
         {/* Mobile: Marketiv brand mark */}
         <div className="flex items-center gap-2.5 md:hidden min-w-0">
-          <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-3xs border border-neutral-200/80">
+          <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1 shadow-3xs border border-neutral-200/80">
             <Image
               src={logoMarketivPng}
               alt="Marketiv Logo"

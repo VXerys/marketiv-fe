@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { logoMarketivRemoveBgPng } from "@/assets/icons";
+import { logoMarketivPng } from "@/assets/icons";
 import {
   LayoutDashboard,
   Megaphone,
@@ -156,9 +156,9 @@ export function DashboardSidebar({
       >
         <div className="flex items-center gap-3 min-w-0 group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:justify-center">
           {/* Logo mark */}
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 transition-all duration-300">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1 shadow-sm border border-white/10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:rounded-lg transition-all duration-300">
             <Image
-              src={logoMarketivRemoveBgPng}
+              src={logoMarketivPng}
               alt="Marketiv Logo"
               width={40}
               height={40}

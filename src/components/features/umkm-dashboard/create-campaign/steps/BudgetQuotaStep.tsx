@@ -27,7 +27,7 @@ export function BudgetQuotaStep({
   validationErrors = {},
 }: BudgetQuotaStepProps) {
   const [customPriceActive, setCustomPriceActive] = useState(
-    ![3000, 5000, 8000].includes(pricePerThousandViews)
+    pricePerThousandViews > 0 && ![3000, 5000, 8000].includes(pricePerThousandViews)
   );
 
   const handlePriceSelect = (price: number) => {
@@ -151,8 +151,9 @@ export function BudgetQuotaStep({
             <input
               type="number"
               min={1}
-              value={creatorQuota}
-              onChange={(e) => onChangeCreatorQuota(Math.max(1, parseInt(e.target.value) || 1))}
+              placeholder="1"
+              value={creatorQuota || ""}
+              onChange={(e) => onChangeCreatorQuota(Math.max(0, parseInt(e.target.value) || 0))}
               className="h-10 w-16 text-center bg-transparent text-xs font-bold text-text-primary focus:outline-none border-x border-border-strong [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
             <button
@@ -201,7 +202,7 @@ export function BudgetQuotaStep({
               type="number"
               min={MINIMUM_CAMPAIGN_BUDGET}
               placeholder="3200000"
-              value={totalBudgetEscrow}
+              value={totalBudgetEscrow || ""}
               onChange={(e) => onChangeTotalBudgetEscrow(Math.max(0, parseInt(e.target.value) || 0))}
               error={validationErrors.totalBudgetEscrow}
               className="pl-9"

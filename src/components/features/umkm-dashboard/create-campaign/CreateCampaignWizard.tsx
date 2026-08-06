@@ -70,9 +70,9 @@ export function CreateCampaignWizard({ campaignId, initialState, initialMeta }: 
   const [hashtags, setHashtags] = useState(initialState?.hashtags ?? "");
   const [externalAssetUrl, setExternalAssetUrl] = useState(initialState?.externalAssetUrl ?? "");
   const [assetNotes, setAssetNotes] = useState(initialState?.assetNotes ?? "");
-  const [pricePerThousandViews, setPricePerThousandViews] = useState(initialState?.pricePerThousandViews ?? 5000);
-  const [totalBudgetEscrow, setTotalBudgetEscrow] = useState(initialState?.totalBudgetEscrow ?? 3200000);
-  const [creatorQuota, setCreatorQuota] = useState(initialState?.creatorQuota ?? 4);
+  const [pricePerThousandViews, setPricePerThousandViews] = useState(initialState?.pricePerThousandViews ?? 0);
+  const [totalBudgetEscrow, setTotalBudgetEscrow] = useState(initialState?.totalBudgetEscrow ?? 0);
+  const [creatorQuota, setCreatorQuota] = useState(initialState?.creatorQuota ?? 0);
   const [termsAgreed, setTermsAgreed] = useState(false); // sengaja tidak di-seed — user wajib centang ulang
 
   // Validation state

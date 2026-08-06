@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { logoMarketivRemoveBgPng } from "@/assets/icons";
+import { logoMarketivPng } from "@/assets/icons";
 import { cn } from "@/lib/utils";
 
 interface MarketivLogoProps {
@@ -16,11 +16,11 @@ export function MarketivLogo({
   return (
     <div className={cn("inline-flex items-center gap-2.5", className)}>
       <div
-        className="flex shrink-0 items-center justify-center overflow-hidden"
+        className="flex shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1 shadow-sm border border-neutral-200/60"
         style={{ width: size, height: size }}
       >
         <Image
-          src={logoMarketivRemoveBgPng}
+          src={logoMarketivPng}
           alt="Marketiv Logo"
           width={size}
           height={size}

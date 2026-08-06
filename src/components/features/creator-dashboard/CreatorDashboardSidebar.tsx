@@ -122,7 +122,7 @@ export function CreatorDashboardSidebar({
       >
         <div className="flex items-center gap-3 min-w-0 group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:justify-center">
           {/* Logo mark */}
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[12px] bg-white p-1.5 shadow-sm border border-white/10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:rounded-[14px] transition-all duration-300">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1 shadow-sm border border-white/10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:rounded-lg transition-all duration-300">
             <Image
               src={logoMarketivPng}
               alt="Marketiv Logo"
