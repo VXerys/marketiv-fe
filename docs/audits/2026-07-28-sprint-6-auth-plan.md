@@ -84,21 +84,22 @@ Function-nya sudah idempoten (`ensureUserMirror`, `ensureUmkmProfile`, `ensureCr
 
 ## B. Daftar Task
 
-| Key | Judul | Bergantung pada |
+| Key | Judul | Status |
 |---|---|---|
-| `s6-session-fix` | Perbaiki `getSession()` — query `userId`, bukan `$id` | — |
-| `s6-auth-service` | Buat `src/services/auth/auth.service.ts` — register/login/OAuth/recovery, pola `ServiceResult` + cabang mock | `s6-session-fix` |
-| `s6-zod-auth` | Skema Zod `src/lib/validations/auth.schema.ts` — login, register UMKM, register Kreator, forgot, reset | — |
-| `s6-route-group` | Route group `src/app/(auth)/` + layout + `loading.tsx`, redirect ke dashboard bila sudah punya sesi | — |
-| `s6-login` | Halaman `/login` — email + password, "Login dengan Google", tautan lupa password, hormati `?next=` | `s6-auth-service`, `s6-zod-auth`, `s6-route-group` |
-| `s6-register` | Halaman `/register` — form dinamis dari `?role=umkm\|creator`, plus alur sinkron §A-2 | sda |
-| `s6-forgot` | Halaman `/forgot-password` — `createRecovery()` + layar konfirmasi "cek email" | sda |
-| `s6-reset` | Halaman `/reset-password` — baca `userId` & `secret` dari query, `updateRecovery()` | `s6-forgot` |
-| `s6-oauth-google` | `createOAuth2Session` + halaman callback; UMKM diarahkan melengkapi Nama Usaha/Kategori/No. HP, Kreator langsung masuk | `s6-register` |
-| `s6-guard-redirect` | `RoleGuard` redirect ke `/login?next=<path>` (bukan `/`); hapus bypass mock supaya guard benar-benar teruji | `s6-login` |
-| `s6-logout` | Sambungkan modal logout kedua sidebar ke `logout()` + redirect `/login` | `s6-login` |
-| `s6-navbar-cta` | Navbar & landing: `Masuk` → `/login`, `Daftar UMKM` → `/register?role=umkm`, `Daftar Kreator` → `/register?role=creator` | `s6-login`, `s6-register` |
-| `s6-status-suspended` | Tolak login akun `suspended` dengan pesan eksplisit, sejalan dengan cabang yang sudah ada di `RoleGuard` | `s6-auth-service` |
+| `s6-session-fix` | Perbaiki `getSession()` — query `userId`, bukan `$id` | ✅ DONE |
+| `s6-auth-service` | Buat `src/services/auth/auth.service.ts` — register/login/OAuth/recovery, pola `ServiceResult` + cabang mock | ✅ DONE |
+| `s6-zod-auth` | Skema Zod `src/lib/validations/auth.schema.ts` — login, register UMKM, register Kreator, forgot, reset | ✅ DONE |
+| `s6-route-group` | Route group `src/app/(auth)/` + layout + `loading.tsx`, redirect ke dashboard bila sudah punya sesi | ✅ DONE |
+| `s6-login` | Halaman `/login` — email + password, Direct Login UI, "Login dengan Google" | ✅ DONE |
+| `s6-register` | Halaman `/register` — form dinamis dari `?role=umkm\|creator`, RoleChooser tab switcher Radix UI | ✅ DONE |
+| `s6-auth-ui-polish` | Polish UI Auth — Radix UI Tabs/Label, Dark Luxury Glassmorphism hero, Logo Marketiv PNG | ✅ DONE |
+| `s6-forgot` | Halaman `/forgot-password` — `createRecovery()` + layar konfirmasi "cek email" | ✅ DONE |
+| `s6-reset` | Halaman `/reset-password` — baca `userId` & `secret` dari query, `updateRecovery()` | ✅ DONE |
+| `s6-oauth-google` | `createOAuth2Session` + halaman callback (Google OAuth di Login & Register Kreator) | ✅ DONE |
+| `s6-guard-redirect` | `RoleGuard` redirect ke `/login?next=<path>` | ✅ DONE |
+| `s6-logout` | Sambungkan modal logout kedua sidebar ke `logout()` + modal konfirmasi 3D per role (UMKM & Kreator) | ✅ DONE |
+| `s6-navbar-cta` | Navbar & landing: `Masuk` → `/login`, `Daftar UMKM` → `/register?role=umkm`, `Daftar Kreator` → `/register?role=creator` | ✅ DONE |
+| `s6-status-suspended` | Tolak login akun `suspended` dengan pesan eksplisit | ✅ DONE |
 | `s6-backend-handoff` | Handoff ke tim backend: execute permission `create-user-profile`, verifikasi `users.*.create` tetap idempoten, konfigurasi OAuth Google + URL recovery per environment | `s6-register` |
 | `s6-e2e-2akun` | E2E: daftar 1 UMKM + 1 Kreator dari nol dengan mock OFF, keduanya masuk dashboard yang benar, lalu jalankan §E handoff Alur B | semua |
 
