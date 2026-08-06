@@ -15,7 +15,7 @@ interface DuplicateCampaignModalProps {
   isOpen: boolean;
   onClose: () => void;
   originalTitle: string;
-  onConfirm: (newTitle: string, options: { copyBrief: boolean; copyBudget: boolean; copyAssets: boolean }) => void;
+  onConfirm: (newTitle: string, options: { copyBrief: boolean; copyBudget: boolean; copyAssets: boolean }) => Promise<void>;
 }
 
 export function DuplicateCampaignModal({
@@ -30,11 +30,17 @@ export function DuplicateCampaignModal({
     copyBudget: true,
     copyAssets: true,
   });
+  const [busy, setBusy] = useState(false);
 
-  const handleConfirm = () => {
-    if (!newTitle.trim()) return;
-    onConfirm(newTitle, options);
-    onClose();
+  const handleConfirm = async () => {
+    if (!newTitle.trim() || busy) return;
+    setBusy(true);
+    try {
+      await onConfirm(newTitle, options);
+      onClose();
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -102,11 +108,11 @@ export function DuplicateCampaignModal({
 
         {/* Buttons */}
         <ResponsiveModalFooter className="flex items-center justify-end gap-3">
-          <DashboardButton variant="secondary" size="md" onClick={onClose} className="text-xs">
+          <DashboardButton variant="secondary" size="md" onClick={onClose} disabled={busy} className="text-xs">
             Batal
           </DashboardButton>
-          <DashboardButton variant="primary" size="md" disabled={!newTitle.trim()} onClick={handleConfirm} className="text-xs">
-            Duplikasi
+          <DashboardButton variant="primary" size="md" disabled={!newTitle.trim() || busy} onClick={handleConfirm} className="text-xs">
+            {busy ? "Menduplikasi…" : "Duplikasi"}
           </DashboardButton>
         </ResponsiveModalFooter>
       </ResponsiveModalContent>

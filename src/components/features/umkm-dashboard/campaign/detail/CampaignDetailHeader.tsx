@@ -8,6 +8,7 @@ interface CampaignDetailHeaderProps {
   onCancelClick: () => void;
   onExportClick: () => void;
   onEditClick: () => void;
+  isResuming?: boolean;
 }
 
 export function CampaignDetailHeader({
@@ -15,6 +16,7 @@ export function CampaignDetailHeader({
   onCancelClick,
   onExportClick,
   onEditClick,
+  isResuming = false,
 }: CampaignDetailHeaderProps) {
   // Primary CTA based on status
   const getPrimaryAction = () => {
@@ -82,9 +84,10 @@ export function CampaignDetailHeader({
               variant="primary"
               size="md"
               onClick={primaryAction.onClick}
+              disabled={isResuming}
               className="text-xs"
             >
-              {primaryAction.label}
+              {isResuming ? "Mengaktifkan…" : primaryAction.label}
             </DashboardButton>
           </div>
         </div>

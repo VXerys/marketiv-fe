@@ -15,7 +15,7 @@ interface CancelCampaignModalProps {
   isOpen: boolean;
   onClose: () => void;
   campaignTitle: string;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
 }
 
 /**
@@ -32,11 +32,17 @@ export function CancelCampaignModal({
   onConfirm,
 }: CancelCampaignModalProps) {
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  const handleConfirm = () => {
-    if (!isConfirmed) return;
-    onConfirm();
-    onClose();
+  const handleConfirm = async () => {
+    if (!isConfirmed || busy) return;
+    setBusy(true);
+    try {
+      await onConfirm();
+      onClose();
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -75,11 +81,11 @@ export function CancelCampaignModal({
 
         {/* Buttons */}
         <ResponsiveModalFooter className="flex items-center justify-end gap-3">
-          <DashboardButton variant="secondary" size="md" onClick={onClose} className="text-xs">
+          <DashboardButton variant="secondary" size="md" onClick={onClose} disabled={busy} className="text-xs">
             Kembali
           </DashboardButton>
-          <DashboardButton variant="primary" size="md" disabled={!isConfirmed} onClick={handleConfirm} className="text-xs">
-            Jeda Campaign
+          <DashboardButton variant="primary" size="md" disabled={!isConfirmed || busy} onClick={handleConfirm} className="text-xs">
+            {busy ? "Menjeda…" : "Jeda Campaign"}
           </DashboardButton>
         </ResponsiveModalFooter>
       </ResponsiveModalContent>

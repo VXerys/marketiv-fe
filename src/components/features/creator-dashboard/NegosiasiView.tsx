@@ -112,10 +112,12 @@ const UNKNOWN_STAGE_STYLE: StageStyle = {
 function NegotiationCard({
   neg,
   isArchived,
+  isToggling,
   onToggleArchive,
 }: {
   neg: CreatorNegotiation;
   isArchived: boolean;
+  isToggling: boolean;
   onToggleArchive: () => void;
 }) {
   // Fallback ke konstanta, bukan ke entri lain di peta — kalau kuncinya salah
@@ -198,11 +200,15 @@ function NegotiationCard({
       <div className="self-end sm:self-center flex items-center gap-2 shrink-0">
         <button
           onClick={onToggleArchive}
+          disabled={isToggling}
           title={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
           aria-label={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
-          className="flex items-center justify-center h-9 w-9 rounded-[12px] border border-neutral-200 text-neutral-400 hover:text-kreator-600 hover:border-violet-200 transition-colors cursor-pointer"
+          className="flex items-center justify-center h-9 w-9 rounded-[12px] border border-neutral-200 text-neutral-400 hover:text-kreator-600 hover:border-violet-200 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
         >
-          {isArchived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+          {isToggling
+            ? <span className="w-3.5 h-3.5 border-2 border-neutral-300 border-t-violet-500 rounded-full animate-spin" />
+            : isArchived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />
+          }
         </button>
         <Link
           href={`/dashboard/kreator/negosiasi/${neg.id}`}
@@ -227,6 +233,7 @@ export function NegosiasiView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -238,8 +245,11 @@ export function NegosiasiView() {
    * penjodohan per-umkmId yang dulu ada di sini tidak diperlukan lagi.
    */
   const handleToggleArchive = async (neg: CreatorNegotiation) => {
+    if (togglingId === neg.conversationId) return;
     const next = !neg.isArchived;
+    setTogglingId(neg.conversationId);
     const res = await setConversationArchived(neg.conversationId, next);
+    setTogglingId(null);
     if (!res.success) {
       toast.error(res.error ?? "Gagal mengubah status arsip.");
       return;
@@ -483,6 +493,7 @@ export function NegosiasiView() {
                   key={neg.id}
                   neg={neg}
                   isArchived={neg.isArchived}
+                  isToggling={togglingId === neg.conversationId}
                   onToggleArchive={() => handleToggleArchive(neg)}
                 />
               ))}

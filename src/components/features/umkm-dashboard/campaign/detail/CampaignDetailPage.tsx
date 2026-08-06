@@ -50,6 +50,8 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [submissions, setSubmissions] = useState<CampaignSubmission[]>([]);
 
+  const [isResuming, setIsResuming] = useState(false);
+
   // Modals visibility states
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -164,8 +166,10 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
    * Guard status ada di backend — kalau sudah aktif, server menolak.
    */
   const handleResumeFromPause = async () => {
-    if (!campaign) return;
+    if (!campaign || isResuming) return;
+    setIsResuming(true);
     const res = await updateCampaignStatus(campaign.id, "active");
+    setIsResuming(false);
     if (res.success && res.data) {
       setCampaign(res.data);
       showToast(`Campaign "${campaign.title}" berhasil diaktifkan kembali.`);
@@ -207,6 +211,7 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
               ? handleResumeFromPause
               : () => router.push(`/dashboard/umkm/campaign/${campaign.id}/edit`)
           }
+          isResuming={isResuming}
         />
 
         {/* Overview cards */}

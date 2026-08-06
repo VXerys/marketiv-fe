@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { formatCurrency } from "@/lib/formatters";
 
 import {
@@ -14,7 +15,7 @@ import {
 interface PaymentSimulationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
   finalPrice: number;
 }
 
@@ -24,6 +25,17 @@ export function PaymentSimulationModal({
   onConfirm,
   finalPrice,
 }: PaymentSimulationModalProps) {
+  const [isPaying, setIsPaying] = useState(false);
+
+  const handleConfirm = async () => {
+    if (isPaying) return;
+    setIsPaying(true);
+    try {
+      await onConfirm();
+    } finally {
+      setIsPaying(false);
+    }
+  };
 
   return (
     <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -83,16 +95,18 @@ export function PaymentSimulationModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl border border-neutral-200 hover:bg-neutral-50 text-text-secondary text-xs font-bold transition-all duration-200 cursor-pointer select-none text-center"
+            disabled={isPaying}
+            className="flex-1 py-2.5 rounded-xl border border-neutral-200 hover:bg-neutral-50 text-text-secondary text-xs font-bold transition-all duration-200 cursor-pointer select-none text-center disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Batal
           </button>
           <button
             type="button"
-            onClick={onConfirm}
-            className="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary-600 text-white text-xs font-bold transition-all duration-200 cursor-pointer border border-primary hover:border-primary-600 shadow-xs text-center select-none"
+            onClick={handleConfirm}
+            disabled={isPaying}
+            className="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary-600 text-white text-xs font-bold transition-all duration-200 cursor-pointer border border-primary hover:border-primary-600 shadow-xs text-center select-none disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Konfirmasi Deposit
+            {isPaying ? "Memproses…" : "Konfirmasi Deposit"}
           </button>
         </ResponsiveModalFooter>
       </ResponsiveModalContent>

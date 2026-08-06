@@ -735,16 +735,18 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                           <>
                             <button
                               type="button"
+                              disabled={answering}
                               onClick={() => { handleAcceptOrder(); setIsQuickMenuOpen(false); }}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-left text-[11px] font-extrabold text-neutral-800 hover:bg-neutral-50 transition-colors cursor-pointer"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-left text-[11px] font-extrabold text-neutral-800 hover:bg-neutral-50 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               <span className="text-sm shrink-0">✅</span>
                               <span>Terima Penawaran</span>
                             </button>
                             <button
                               type="button"
+                              disabled={answering}
                               onClick={() => { handleRejectOffer(); setIsQuickMenuOpen(false); }}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-left text-[11px] font-extrabold text-neutral-800 hover:bg-neutral-50 transition-colors cursor-pointer"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-[10px] text-left text-[11px] font-extrabold text-neutral-800 hover:bg-neutral-50 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                               <span className="text-sm shrink-0">✋</span>
                               <span>Tolak Penawaran</span>
@@ -780,10 +782,14 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                   />
                   <button
                     type="submit"
-                    className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0 cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0"
+                    disabled={sending || !inputMessage.trim()}
+                    className="w-11 h-11 rounded-[14px] flex items-center justify-center shrink-0 cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
                     style={{ background: CREATOR_ACTION_GRADIENT, boxShadow: "var(--shadow-kreator)" }}
                   >
-                    <Send className="w-4 h-4 text-white" />
+                    {sending
+                      ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      : <Send className="w-4 h-4 text-white" />
+                    }
                   </button>
                 </form>
               </div>

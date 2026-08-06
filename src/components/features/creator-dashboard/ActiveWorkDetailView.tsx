@@ -595,7 +595,8 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
 
                         <button
                           type="submit"
-                          className="w-full py-4 text-center text-white font-black text-sm rounded-full transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+                          disabled={isSubmitting}
+                          className="w-full py-4 text-center text-white font-black text-sm rounded-full transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none"
                           style={{
                             background: CREATOR_ACTION_GRADIENT,
                             boxShadow: "var(--shadow-kreator-cta)",

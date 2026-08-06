@@ -93,9 +93,10 @@ function MetricTile({ label, value, helper, icon, iconClass, highlight }: Metric
 interface CampaignCardProps {
   job: CreatorJob;
   onClaim: (job: CreatorJob) => void;
+  hasClaimed?: boolean;
 }
 
-function CampaignCard({ job, onClaim }: CampaignCardProps) {
+function CampaignCard({ job, onClaim, hasClaimed = false }: CampaignCardProps) {
   const isFull       = job.usedQuota >= job.quota;
   const isNearLimit  = job.quota - job.usedQuota <= 1 && !isFull;
   const isHighReward = job.ratePerThousandViews >= 6000;
@@ -228,20 +229,20 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
             Detail
           </Link>
           <button
-            onClick={() => !isFull && onClaim(job)}
-            disabled={isFull}
+            onClick={() => !isFull && !hasClaimed && onClaim(job)}
+            disabled={isFull || hasClaimed}
             className={cn(
               "flex-[2] py-2.5 rounded-[12px] text-[10px] font-extrabold transition-all duration-200",
-              isFull
+              isFull || hasClaimed
                 ? "bg-neutral-100 text-neutral-400 cursor-not-allowed"
                 : "text-white hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
             )}
-            style={isFull ? undefined : {
+            style={isFull || hasClaimed ? undefined : {
               background: CREATOR_ACTION_GRADIENT,
               boxShadow: "var(--shadow-kreator)",
             }}
           >
-            {isFull ? "Kuota Penuh" : "Klaim Job"}
+            {hasClaimed ? "Sudah Diklaim ✓" : isFull ? "Kuota Penuh" : "Klaim Job"}
           </button>
         </div>
       </div>
@@ -268,6 +269,7 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
   const [claimingJob, setClaimingJob] = useState<CreatorJob | null>(null);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [claimedJobIds, setClaimedJobIds] = useState<Set<string>>(new Set());
   const [isRulesChecked, setIsRulesChecked] = useState({
     brief: false,
     privacy: false,
@@ -318,6 +320,7 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
         job.id === claimingJob.id ? { ...job, usedQuota: job.usedQuota + 1 } : job
       )
     );
+    setClaimedJobIds(prev => new Set(prev).add(claimingJob.id));
     setClaimingJob(null);
     setIsSuccessOpen(true);
   };
@@ -468,7 +471,7 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {filteredJobs.map((job) => (
-                <CampaignCard key={job.id} job={job} onClaim={openClaimModal} />
+                <CampaignCard key={job.id} job={job} onClaim={openClaimModal} hasClaimed={claimedJobIds.has(job.id)} />
               ))}
             </div>
           )}
