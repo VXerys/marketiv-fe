@@ -498,11 +498,13 @@ export function CreateCampaignWizard({ campaignId, initialState, initialMeta }: 
             callToAction={callToAction}
             hashtags={hashtags}
             externalAssetUrl={externalAssetUrl}
+            assetNotes={assetNotes}
             pricePerThousandViews={pricePerThousandViews}
             totalBudgetEscrow={totalBudgetEscrow}
             creatorQuota={creatorQuota}
             termsAgreed={termsAgreed}
             onChangeTermsAgreed={setTermsAgreed}
+            onJumpToStep={setCurrentStep}
             validationErrors={validationErrors}
           />
         );
