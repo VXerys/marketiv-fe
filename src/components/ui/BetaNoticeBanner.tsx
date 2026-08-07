@@ -23,10 +23,12 @@ export function BetaNoticeBanner({
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
-    const isDismissed = localStorage.getItem(STORAGE_KEY);
-    if (!isDismissed) {
-      setDismissed(false);
-    }
+    void Promise.resolve().then(() => {
+      const isDismissed = localStorage.getItem(STORAGE_KEY);
+      if (!isDismissed) {
+        setDismissed(false);
+      }
+    });
   }, []);
 
   function handleDismiss() {

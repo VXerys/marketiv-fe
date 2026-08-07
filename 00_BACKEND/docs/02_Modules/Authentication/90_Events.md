@@ -39,6 +39,11 @@ cek-dulu-baru-tulis), jadi eksekusi ganda tidak menghasilkan duplikat.
 Konsekuensinya: setiap register meninggalkan **satu eksekusi gagal 400 di log**
 sebelum yang sinkron berhasil. Itu diharapkan, bukan gejala kerusakan.
 
+Pada Google OAuth, sesi Appwrite bisa sudah aktif sebelum mirror `users`
+tersedia. Callback harus membaca `getSession()`; bila hasilnya `not_found`,
+artinya provisioning profil belum selesai. Cabang itu memicu recovery sinkron
+sesuai role, bukan menganggap user belum login.
+
 > **Welcome Notification — tidak ada.** Dokumen ini sebelumnya menyebut
 > `create-user-wallet` mengirim notifikasi `type: system` bertajuk "Selamat
 > datang di Marketiv" sebagai "Efek 3". Function itu tidak pernah menulis

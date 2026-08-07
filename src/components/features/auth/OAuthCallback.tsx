@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthCard } from "@/components/auth/AuthCard";
+import { AuthErrorBanner } from "@/components/auth/AuthField";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/providers/AuthProvider";
 import {
   provisionUserProfile,
   setOAuthAccountPrefs,
 } from "@/services/auth/auth.service";
-import { routes, dashboardByRole } from "@/lib/constants/routes";
+import { resolveOAuthCallbackDecision } from "@/services/auth/oauth-callback.service";
+import { routes } from "@/lib/constants/routes";
 
 /**
  * Pendaratan setelah OAuth Google.
@@ -29,59 +31,102 @@ export function OAuthCallback({
   role?: "umkm" | "creator";
 }) {
   const router = useRouter();
-  const { user, loading, errorCode, refresh } = useAuth();
-  const [settled, setSettled] = useState(false);
+  const { refresh, logout } = useAuth();
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
   const ranRef = useRef(false);
+
+  const resolve = useCallback(async () => {
+    setRecoveryError(null);
+    const session = await refresh();
+    let decision = resolveOAuthCallbackDecision({
+      user: session.success ? session.data : null,
+      errorCode: session.success ? null : session.code,
+      next,
+      role,
+    });
+
+    if (decision.action === "provision_creator") {
+      const prefs = await setOAuthAccountPrefs("creator");
+      const provision = prefs.success ? await provisionUserProfile() : prefs;
+      if (!provision.success) {
+        decision = resolveOAuthCallbackDecision({
+          user: null,
+          errorCode: "not_found",
+          role: "creator",
+          provisioningSucceeded: false,
+        });
+        setRecoveryError(
+          provision.error ??
+            "Akun Google sudah terhubung, tetapi profil Marketiv belum bisa dibuat. Coba lagi atau hubungi admin."
+        );
+      } else {
+        await refresh();
+        decision = resolveOAuthCallbackDecision({
+          user: null,
+          errorCode: "not_found",
+          role: "creator",
+          provisioningSucceeded: true,
+        });
+      }
+    }
+
+    if (decision.action === "redirect") {
+      router.replace(decision.href);
+      return;
+    }
+
+    setRecoveryError(
+      "Akun Google sudah terhubung, tetapi profil Marketiv belum bisa dibuat. Coba lagi atau hubungi admin."
+    );
+  }, [next, role, router, refresh]);
 
   useEffect(() => {
     if (ranRef.current) return;
     ranRef.current = true;
 
-    void (async () => {
-      await refresh();
-      setSettled(true);
-    })();
-  }, [refresh]);
+    void Promise.resolve().then(resolve);
+  }, [resolve]);
 
-  useEffect(() => {
-    if (!settled || loading) return;
+  async function handleRetry() {
+    setRetrying(true);
+    await resolve();
+    setRetrying(false);
+  }
 
-    // Akun lama sudah punya profil lengkap.
-    if (user) {
-      router.replace(next || dashboardByRole[user.role]);
-      return;
-    }
+  async function handleLogout() {
+    await logout();
+    router.replace(routes.login);
+  }
 
-    if (errorCode === "not_found") {
-      void (async () => {
-        if (role === "umkm") {
-          // UMKM butuh data tambahan (nama usaha, kategori, telepon) sebelum
-          // profil bisa di-provision. Arahkan ke form khusus.
-          router.replace(`/auth/oauth-complete?role=umkm`);
-          return;
-        }
-
-        if (role === "creator") {
-          // Kreator tidak butuh data tambahan — set role di prefs lalu provision.
-          await setOAuthAccountPrefs("creator");
-          const provision = await provisionUserProfile();
-          if (provision.success) {
-            await refresh();
-            router.replace(routes.onboarding);
-          } else {
-            router.replace(routes.register);
-          }
-          return;
-        }
-
-        // Tidak ada role — biarkan user pilih sendiri.
-        router.replace(routes.register);
-      })();
-      return;
-    }
-
-    router.replace(`${routes.login}?error=oauth`);
-  }, [settled, loading, user, errorCode, next, role, router, refresh]);
+  if (recoveryError) {
+    return (
+      <AuthCard
+        title="Profil belum bisa dibuat"
+        description="Akun Google sudah masuk, tetapi data profil Marketiv belum tersedia."
+      >
+        <div className="space-y-4">
+          <AuthErrorBanner message={recoveryError} />
+          <button
+            type="button"
+            onClick={handleRetry}
+            disabled={retrying}
+            className="min-h-[46px] w-full rounded-full bg-orange-500 px-6 text-sm font-extrabold text-white transition-all hover:bg-orange-600 disabled:pointer-events-none disabled:opacity-60"
+          >
+            {retrying ? "Mencoba lagi…" : "Coba lagi buat profil"}
+          </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={retrying}
+            className="min-h-[46px] w-full rounded-full border border-neutral-200 px-6 text-sm font-extrabold text-ink-700 transition-all hover:bg-neutral-50 disabled:pointer-events-none disabled:opacity-60"
+          >
+            Keluar dan pakai akun lain
+          </button>
+        </div>
+      </AuthCard>
+    );
+  }
 
   return (
     <AuthCard

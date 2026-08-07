@@ -96,6 +96,10 @@ Login via Google OAuth menggunakan `account.createOAuth2Session()` dari Appwrite
 
 - UMKM: setelah redirect, user harus mengisi data tambahan (Nama Usaha, Kategori, Nomor HP)
 - Creator: langsung jadi tanpa isi data tambahan
+- Callback OAuth selalu memanggil `getSession()`. Sukses Auth tanpa baris `users` menghasilkan `code: "not_found"` dan diperlakukan sebagai `profile_missing`, bukan login gagal.
+- Creator dengan `profile_missing` mencoba `account.updatePrefs({ role: "creator" })`, menjalankan `create-user-profile`, lalu refresh session dan masuk `/onboarding`.
+- UMKM dengan `profile_missing` diarahkan ke `/auth/oauth-complete?role=umkm`, lalu form menyimpan prefs UMKM dan menjalankan `create-user-profile`.
+- Jika provisioning gagal karena 401/403/500, UI menampilkan pesan recovery dan tombol retry/logout.
 
 ### `logoutUser()` — [Client SDK]
 
@@ -104,6 +108,8 @@ Hapus session aktif via `account.deleteSession('current')`.
 ### `getCurrentUser()` — [Client SDK]
 
 Mengembalikan data user dari Appwrite Auth (`account.get()`) atau `null` jika tidak login.
+
+Catatan: UI Marketiv tidak memakai `account.get()` saja sebagai bukti login siap. Sumber role/status tetap collection `users` lewat `getSession()`.
 
 ---
 

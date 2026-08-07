@@ -14,6 +14,8 @@ Pilih metode:
   B. Google OAuth: Klik "Daftar dengan Google" → Google Auth
                       ↓
                  Isi data tambahan: Nama Usaha, Kategori, Nomor HP
+                      ↓
+                 create-user-profile
 ↓
 Submit
 ↓
@@ -35,7 +37,9 @@ Daftar Creator (/register?role=creator)
 ↓
 Pilih metode:
   A. Manual: Isi Nama Lengkap, Email, Password
-  B. Google OAuth: Klik "Daftar dengan Google" → langsung jadi
+  B. Google OAuth: Klik "Daftar dengan Google" → Google Auth
+                      ↓
+                 create-user-profile
 ↓
 Submit
 ↓
@@ -55,12 +59,20 @@ Login (/login)
 ↓
 Email + Password ATAU Google Login
 ↓
-Success
+Appwrite Auth session aktif
+↓
+users mirror ditemukan
 ↓
 Dashboard
 ```
 
 - Login manual dan Google Login berlaku untuk kedua role.
+- Appwrite Auth session saja belum cukup untuk dianggap siap masuk dashboard.
+- `getSession()` wajib menemukan baris `users` berdasarkan `userId`.
+- `not_found` setelah OAuth berarti profil Marketiv belum selesai dibuat, bukan credential Google salah.
+- Creator OAuth tanpa mirror mencoba ulang `setOAuthAccountPrefs("creator")` dan `create-user-profile`.
+- UMKM OAuth tanpa mirror diarahkan ke `/auth/oauth-complete` untuk data usaha tambahan.
+- Provisioning gagal menampilkan recovery dengan tombol coba ulang dan keluar, bukan redirect diam-diam ke form login/register.
 
 ## Forgot Password
 

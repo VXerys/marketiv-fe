@@ -61,7 +61,7 @@ export function CreatorDashboardTopbar({}: CreatorDashboardTopbarProps = {}) {
   }, []);
 
   useEffect(() => {
-    loadUnreadCount();
+    void Promise.resolve().then(loadUnreadCount);
   }, [loadUnreadCount]);
 
   useEffect(() => {
