@@ -20,6 +20,10 @@ import {
   updateUmkmProfile,
   uploadUmkmLogo,
 } from "@/services/umkm/umkm-dashboard.service";
+import {
+  setOAuthAccountPrefs,
+  provisionUserProfile,
+} from "@/services/auth/auth.service";
 import { umkmOnboardingSchema } from "@/lib/validations/profile.schema";
 import { parseOrErrors } from "@/lib/validations/to-field-errors";
 import { markOnboardingSkipped } from "@/lib/onboarding-skip";
@@ -34,7 +38,13 @@ const CATEGORY_OPTIONS = NICHE_OPTIONS.map((o) => ({
   label: `${o.label} — ${o.desc}`,
 }));
 
-export function UmkmOnboarding({ initialName }: { initialName?: string }) {
+export function UmkmOnboarding({
+  initialName,
+  initialPhone,
+}: {
+  initialName?: string;
+  initialPhone?: string;
+}) {
   const router = useRouter();
   const { refresh } = useAuth();
 
@@ -46,6 +56,7 @@ export function UmkmOnboarding({ initialName }: { initialName?: string }) {
   const [logoUrl, setLogoUrl] = useState("");
   const [address, setAddress] = useState("");
   const [tiktok, setTiktok] = useState("");
+  const [phone, setPhone] = useState(initialPhone ?? "");
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [banner, setBanner] = useState<string | null>(null);
@@ -57,6 +68,7 @@ export function UmkmOnboarding({ initialName }: { initialName?: string }) {
     category,
     city: city.trim(),
     description: description.trim(),
+    phone: phone.trim(),
     address: address.trim(),
     tiktok: tiktok.trim(),
   });
@@ -69,7 +81,7 @@ export function UmkmOnboarding({ initialName }: { initialName?: string }) {
         ? ["businessName", "category", "city"]
         : target === 2
           ? ["description"]
-          : ["address", "tiktok"];
+          : ["phone", "address", "tiktok"];
 
     const scoped: Record<string, string> = {};
     for (const key of scope) {
@@ -113,15 +125,19 @@ export function UmkmOnboarding({ initialName }: { initialName?: string }) {
       return;
     }
 
+    // phone tidak punya kolom di umkm_profiles — ia mendarat di users.phone lewat
+    // prefs → create-user-profile. Pisahkan dari payload profil.
+    const { phone: phoneValue, ...profileFields } = parsed.data;
+
     setPending(true);
     const res = await updateUmkmProfile({
-      ...parsed.data,
+      ...profileFields,
       ...(logoUrl ? { logoUrl } : {}),
       isProfileCompleted: true,
     });
-    setPending(false);
 
     if (!res.success) {
+      setPending(false);
       setBanner(
         res.code === "auth"
           ? "Sesi berakhir, silakan login kembali."
@@ -129,6 +145,16 @@ export function UmkmOnboarding({ initialName }: { initialName?: string }) {
       );
       return;
     }
+
+    // Best-effort: titipkan nomor ke prefs lalu jalankan ulang provisioning yang
+    // idempoten. create-user-profile menyalin prefs.phone ke users.phone bila
+    // kolomnya masih kosong (mis. daftar via Google). Kegagalan di sini TIDAK
+    // membatalkan penyelesaian profil — profilnya sendiri sudah tersimpan.
+    if (phoneValue) {
+      const prefs = await setOAuthAccountPrefs("umkm", { phone: phoneValue });
+      if (prefs.success) await provisionUserProfile();
+    }
+    setPending(false);
 
     await refresh();
     router.replace(dashboardByRole.umkm);
@@ -271,6 +297,19 @@ export function UmkmOnboarding({ initialName }: { initialName?: string }) {
 
       {step === 3 && (
         <div className="space-y-4">
+          <AuthField
+            label="Nomor WhatsApp"
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            inputMode="tel"
+            placeholder="08xxxxxxxxxx"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            error={errors.phone}
+            hint="Dipakai untuk konfirmasi pesanan dan pencairan dana. Format: 08xx / 628xx."
+            disabled={busy}
+          />
           <AuthField
             label="Alamat (opsional)"
             name="address"

@@ -18,10 +18,11 @@ import { routes } from "@/lib/constants/routes";
  *
  * Alur berdasarkan `role` yang diteruskan via success URL:
  *   - Akun lama (user sudah ada):    → next || dashboard sesuai role
- *   - Akun baru + role=creator:      → set prefs → provision → onboarding
- *   - Akun baru + role=umkm:         → redirect ke /auth/oauth-complete untuk
- *                                       mengumpulkan businessName, category, phone
+ *   - Akun baru + role=umkm/creator: → set prefs role → provision → /onboarding
  *   - Akun baru tanpa role:          → /register (pilih role dulu)
+ *
+ * UMKM & Kreator kini identik: seluruh data usaha (termasuk WhatsApp) diisi
+ * sekali di wizard /onboarding, bukan lagi di form perantara terpisah.
  */
 export function OAuthCallback({
   next,
@@ -46,14 +47,14 @@ export function OAuthCallback({
       role,
     });
 
-    if (decision.action === "provision_creator") {
-      const prefs = await setOAuthAccountPrefs("creator");
+    if (decision.action === "provision" && role) {
+      const prefs = await setOAuthAccountPrefs(role);
       const provision = prefs.success ? await provisionUserProfile() : prefs;
       if (!provision.success) {
         decision = resolveOAuthCallbackDecision({
           user: null,
           errorCode: "not_found",
-          role: "creator",
+          role,
           provisioningSucceeded: false,
         });
         setRecoveryError(
@@ -65,7 +66,7 @@ export function OAuthCallback({
         decision = resolveOAuthCallbackDecision({
           user: null,
           errorCode: "not_found",
-          role: "creator",
+          role,
           provisioningSucceeded: true,
         });
       }

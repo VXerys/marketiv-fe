@@ -26,6 +26,8 @@ export interface SessionUser {
   /** Nama tampilan; dari users.name atau profil terkait. */
   name?: string;
   avatarUrl?: string;
+  /** Nomor WhatsApp dari kolom users.phone. Kosong bila belum pernah diisi. */
+  phone?: string;
   /**
    * Onboarding sudah diselesaikan.
    *
@@ -209,6 +211,7 @@ export async function getSession(): Promise<ServiceResult<SessionUser>> {
         role,
         status: doc.status as UserStatus,
         name: authUser.name || undefined,
+        phone: (doc.phone as string) || undefined,
         isProfileCompleted: await readProfileCompleted(authUser.$id, role),
       },
     };

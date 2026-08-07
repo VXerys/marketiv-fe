@@ -94,11 +94,10 @@ Return data login:
 
 Login via Google OAuth menggunakan `account.createOAuth2Session()` dari Appwrite SDK. Tidak ada service function khusus — panggil langsung dari komponen frontend.
 
-- UMKM: setelah redirect, user harus mengisi data tambahan (Nama Usaha, Kategori, Nomor HP)
-- Creator: langsung jadi tanpa isi data tambahan
+- UMKM & Creator: sama-sama langsung ke `/onboarding` setelah provisioning — tidak ada form data tambahan terpisah.
 - Callback OAuth selalu memanggil `getSession()`. Sukses Auth tanpa baris `users` menghasilkan `code: "not_found"` dan diperlakukan sebagai `profile_missing`, bukan login gagal.
-- Creator dengan `profile_missing` mencoba `account.updatePrefs({ role: "creator" })`, menjalankan `create-user-profile`, lalu refresh session dan masuk `/onboarding`.
-- UMKM dengan `profile_missing` diarahkan ke `/auth/oauth-complete?role=umkm`, lalu form menyimpan prefs UMKM dan menjalankan `create-user-profile`.
+- `profile_missing` (umkm/creator) memanggil `account.updatePrefs({ role })`, menjalankan `create-user-profile`, refresh session, lalu masuk `/onboarding`.
+- Nomor WhatsApp UMKM diisi di step Kontak `/onboarding` dan mendarat di `users.phone` lewat `prefs.phone` → `create-user-profile` (backfill bila kolom masih kosong).
 - Jika provisioning gagal karena 401/403/500, UI menampilkan pesan recovery dan tombol retry/logout.
 
 ### `logoutUser()` — [Client SDK]

@@ -80,7 +80,21 @@ function getUserRole(user) {
 
 async function ensureUserMirror(databases, env, user, userId, role) {
   const existing = await findByUserId(databases, env.databaseId, env.usersCollectionId, userId);
-  if (existing) return existing;
+  if (existing) {
+    // Backfill phone bila baris sudah ada tapi kolomnya masih kosong — kasus
+    // daftar via Google (tanpa phone), lalu nomor diisi di wizard /onboarding
+    // yang menitipkannya lewat prefs.phone. Tidak pernah menimpa nomor yang ada.
+    const phone = user.phone || user.prefs?.phone || null;
+    if (phone && !existing.phone) {
+      return databases.updateDocument(
+        env.databaseId,
+        env.usersCollectionId,
+        existing.$id,
+        { phone }
+      );
+    }
+    return existing;
+  }
 
   const tos = getTosAgreement(user, env.currentTosVersion);
 

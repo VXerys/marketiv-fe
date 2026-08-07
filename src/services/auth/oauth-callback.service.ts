@@ -11,7 +11,7 @@ export interface OAuthCallbackInput {
 
 export type OAuthCallbackDecision =
   | { action: "redirect"; href: string }
-  | { action: "provision_creator" }
+  | { action: "provision" }
   | { action: "show_recovery" };
 
 const dashboardByRole: Record<UserRole, string> = {
@@ -31,16 +31,15 @@ export function resolveOAuthCallbackDecision(
     return { action: "redirect", href: "/login?error=oauth" };
   }
 
-  if (input.role === "umkm") {
-    return { action: "redirect", href: "/auth/oauth-complete?role=umkm" };
-  }
-
-  if (input.role === "creator") {
+  // UMKM & Kreator kini simetris: set prefs role → provision → satu wizard
+  // /onboarding. Form perantara /auth/oauth-complete dihapus supaya UMKM tidak
+  // mengisi Nama Usaha & Kategori dua kali berturut-turut.
+  if (input.role === "umkm" || input.role === "creator") {
     if (input.provisioningSucceeded === false) return { action: "show_recovery" };
     if (input.provisioningSucceeded === true) {
       return { action: "redirect", href: "/onboarding" };
     }
-    return { action: "provision_creator" };
+    return { action: "provision" };
   }
 
   return { action: "redirect", href: "/register?error=profile_missing" };

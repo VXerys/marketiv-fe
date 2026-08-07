@@ -50,6 +50,6 @@ export function OnboardingPage() {
   return user.role === "creator" ? (
     <CreatorOnboarding initialName={user.name} />
   ) : (
-    <UmkmOnboarding initialName={user.name} />
+    <UmkmOnboarding initialName={user.name} initialPhone={user.phone} />
   );
 }

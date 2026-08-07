@@ -25,13 +25,23 @@ describe("resolveOAuthCallbackDecision", () => {
     ).toEqual({ action: "redirect", href: "/dashboard/kreator/rate-card" });
   });
 
-  it("sends missing UMKM profile to OAuth completion form", () => {
+  it("asks UMKM OAuth callback to provision when mirror is missing", () => {
     expect(
       resolveOAuthCallbackDecision({
         ...baseInput,
         role: "umkm",
       })
-    ).toEqual({ action: "redirect", href: "/auth/oauth-complete?role=umkm" });
+    ).toEqual({ action: "provision" });
+  });
+
+  it("sends provisioned UMKM OAuth to the single onboarding wizard", () => {
+    expect(
+      resolveOAuthCallbackDecision({
+        ...baseInput,
+        role: "umkm",
+        provisioningSucceeded: true,
+      })
+    ).toEqual({ action: "redirect", href: "/onboarding" });
   });
 
   it("asks creator OAuth callback to provision when mirror is missing", () => {
@@ -40,7 +50,7 @@ describe("resolveOAuthCallbackDecision", () => {
         ...baseInput,
         role: "creator",
       })
-    ).toEqual({ action: "provision_creator" });
+    ).toEqual({ action: "provision" });
   });
 
   it("keeps creator OAuth on recovery UI when provisioning fails", () => {

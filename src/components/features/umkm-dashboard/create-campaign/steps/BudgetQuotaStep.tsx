@@ -206,11 +206,11 @@ export function BudgetQuotaStep({
         </p>
 
         <div className="flex items-center gap-3 pt-1">
-          <div className="flex items-center border border-neutral-300 rounded-xl overflow-hidden bg-white shadow-2xs">
+          <div className="flex items-center border border-neutral-300/90 rounded-xl overflow-hidden bg-neutral-100/60 shadow-3xs">
             <button
               type="button"
               onClick={decrementQuota}
-              className="h-11 w-11 flex items-center justify-center font-bold text-base hover:bg-neutral-100 cursor-pointer select-none text-text-secondary"
+              className="h-11 w-11 flex items-center justify-center font-bold text-base hover:bg-neutral-200/60 cursor-pointer select-none text-text-secondary"
             >
               −
             </button>
@@ -220,7 +220,7 @@ export function BudgetQuotaStep({
               placeholder="1"
               value={creatorQuota || ""}
               onChange={(e) => onChangeCreatorQuota(Math.max(0, parseInt(e.target.value) || 0))}
-              className="h-11 w-16 text-center bg-transparent text-sm font-extrabold text-text-primary focus:outline-none border-x border-neutral-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="h-11 w-16 text-center bg-white text-sm font-extrabold text-ink-950 focus:outline-none border-x border-neutral-300/90 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
             <button
               type="button"

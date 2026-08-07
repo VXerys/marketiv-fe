@@ -70,8 +70,8 @@ Dashboard
 - Appwrite Auth session saja belum cukup untuk dianggap siap masuk dashboard.
 - `getSession()` wajib menemukan baris `users` berdasarkan `userId`.
 - `not_found` setelah OAuth berarti profil Marketiv belum selesai dibuat, bukan credential Google salah.
-- Creator OAuth tanpa mirror mencoba ulang `setOAuthAccountPrefs("creator")` dan `create-user-profile`.
-- UMKM OAuth tanpa mirror diarahkan ke `/auth/oauth-complete` untuk data usaha tambahan.
+- UMKM & Creator OAuth tanpa mirror simetris: `setOAuthAccountPrefs(role)` + `create-user-profile`, lalu `/onboarding`.
+- Tidak ada form perantara: seluruh data usaha UMKM (termasuk Nomor WhatsApp) diisi sekali di wizard `/onboarding`.
 - Provisioning gagal menampilkan recovery dengan tombol coba ulang dan keluar, bukan redirect diam-diam ke form login/register.
 
 ## Forgot Password

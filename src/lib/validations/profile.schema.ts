@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { requiredStringMax, optionalString, enumOf, requiredHttpsUrl } from "./common";
+import {
+  requiredStringMax,
+  optionalString,
+  enumOf,
+  requiredHttpsUrl,
+  indonesianPhone,
+} from "./common";
 
 /**
  * Skema update profil UMKM & Kreator + portofolio.
@@ -61,6 +67,10 @@ export const umkmOnboardingSchema = z.object({
     20,
     "Deskripsi usaha minimal 20 karakter."
   ),
+  // Wajib & tervalidasi ketat di sini karena inilah satu-satunya wizard yang
+  // mengumpulkannya sejak /auth/oauth-complete dihapus. Nomor mendarat di
+  // users.phone lewat prefs → create-user-profile, bukan di umkm_profiles.
+  phone: indonesianPhone,
   address: optionalString(500, "Alamat"),
   tiktok: optionalString(255, "TikTok"),
 });
