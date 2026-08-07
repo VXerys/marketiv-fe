@@ -61,7 +61,6 @@ export function UmkmOnboarding({ initialName }: { initialName?: string }) {
     tiktok: tiktok.trim(),
   });
 
-  /** Sama seperti sisi kreator: hanya field milik langkah aktif yang dilaporkan. */
   function validateStep(target: number): boolean {
     const parsed = parseOrErrors(umkmOnboardingSchema, formValues());
     const all = parsed.ok ? {} : parsed.errors;
@@ -149,7 +148,7 @@ export function UmkmOnboarding({ initialName }: { initialName?: string }) {
       steps={STEPS}
       currentStep={step}
       footer={
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {step < STEPS.length ? (
             <OnboardingPrimaryButton type="button" onClick={handleNext} disabled={busy}>
               Lanjut
@@ -174,7 +173,7 @@ export function UmkmOnboarding({ initialName }: { initialName?: string }) {
             </OnboardingSecondaryButton>
           )}
 
-          <p className="pt-1 text-center text-[0.7rem] font-semibold leading-relaxed text-ink-400">
+          <p className="pt-1 text-center text-[0.72rem] font-semibold leading-relaxed text-text-muted">
             Kalau dilewati, kamu tetap bisa masuk dashboard dan melengkapinya nanti
             lewat Pengaturan.
           </p>
@@ -237,11 +236,11 @@ export function UmkmOnboarding({ initialName }: { initialName?: string }) {
           />
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-[0.74rem] font-[800] text-ink-600">
-              Logo Usaha <span className="font-semibold text-ink-400">(opsional)</span>
+            <span className="text-[0.74rem] font-extrabold text-ink-950">
+              Logo Usaha <span className="font-semibold text-text-muted">(opsional)</span>
             </span>
             <div className="flex items-center gap-4">
-              <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
+              <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl border-2 border-orange-200/80 bg-orange-50/50 shadow-inner">
                 {logoUrl ? (
                   <Image
                     src={logoUrl}
@@ -252,10 +251,10 @@ export function UmkmOnboarding({ initialName }: { initialName?: string }) {
                     unoptimized
                   />
                 ) : (
-                  <Store size={22} className="text-ink-400" aria-hidden />
+                  <Store size={22} className="text-orange-500" aria-hidden />
                 )}
               </div>
-              <label className="min-h-[44px] flex-1 cursor-pointer rounded-xl border border-neutral-200 px-4 py-2.5 text-center text-sm font-[800] text-ink-600 transition-all hover:bg-neutral-50">
+              <label className="min-h-[44px] flex-1 cursor-pointer rounded-full border border-neutral-200/80 bg-white px-5 py-2.5 text-center text-xs sm:text-sm font-extrabold text-ink-950 shadow-2xs hover:bg-neutral-50 transition-all flex items-center justify-center">
                 {uploading ? "Mengunggah…" : logoUrl ? "Ganti logo" : "Pilih logo"}
                 <input
                   type="file"

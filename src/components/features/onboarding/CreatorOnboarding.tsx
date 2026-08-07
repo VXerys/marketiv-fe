@@ -54,10 +54,6 @@ export function CreatorOnboarding({ initialName }: { initialName?: string }) {
   const [uploading, setUploading] = useState(false);
   const [pending, setPending] = useState(false);
 
-  /**
-   * Validasi bertahap: langkah 1 dan 2 hanya memeriksa field miliknya sendiri,
-   * jadi pengguna tidak dimarahi soal bio saat masih mengisi nama.
-   */
   function validateStep(target: number): boolean {
     const parsed = parseOrErrors(creatorOnboardingSchema, {
       displayName: displayName.trim(),
@@ -105,15 +101,6 @@ export function CreatorOnboarding({ initialName }: { initialName?: string }) {
     setAvatarUrl(res.data);
   }
 
-  /**
-   * Urutan penyimpanan disengaja: akun sosial LEBIH DULU, `isProfileCompleted`
-   * paling akhir.
-   *
-   * Flag itulah yang membuka gerbang `get-creator-directory`. Menyetelnya lebih
-   * dulu lalu gagal menulis akun sosial akan menerbitkan kartu kreator tanpa
-   * username maupun engagement rate ke seluruh UMKM — kondisi rusak yang tidak
-   * terlihat dari sisi kreator.
-   */
   async function handleSubmit() {
     setBanner(null);
     if (!validateStep(3)) return;
@@ -176,7 +163,7 @@ export function CreatorOnboarding({ initialName }: { initialName?: string }) {
       steps={STEPS}
       currentStep={step}
       footer={
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {step < STEPS.length ? (
             <OnboardingPrimaryButton type="button" onClick={handleNext} disabled={busy}>
               Lanjut
@@ -201,7 +188,7 @@ export function CreatorOnboarding({ initialName }: { initialName?: string }) {
             </OnboardingSecondaryButton>
           )}
 
-          <p className="pt-1 text-center text-[0.7rem] font-semibold leading-relaxed text-ink-400">
+          <p className="pt-1 text-center text-[0.72rem] font-semibold leading-relaxed text-text-muted">
             Kalau dilewati, kamu tetap bisa masuk dashboard — tapi belum muncul di
             direktori UMKM dan belum bisa klaim campaign.
           </p>
@@ -265,11 +252,11 @@ export function CreatorOnboarding({ initialName }: { initialName?: string }) {
           />
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-[0.74rem] font-[800] text-ink-600">
-              Foto Profil <span className="font-semibold text-ink-400">(opsional)</span>
+            <span className="text-[0.74rem] font-extrabold text-ink-950">
+              Foto Profil <span className="font-semibold text-text-muted">(opsional)</span>
             </span>
             <div className="flex items-center gap-4">
-              <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50">
+              <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-orange-200/80 bg-orange-50/50 shadow-inner">
                 {avatarUrl ? (
                   <Image
                     src={avatarUrl}
@@ -280,10 +267,10 @@ export function CreatorOnboarding({ initialName }: { initialName?: string }) {
                     unoptimized
                   />
                 ) : (
-                  <UserRound size={22} className="text-ink-400" aria-hidden />
+                  <UserRound size={22} className="text-orange-500" aria-hidden />
                 )}
               </div>
-              <label className="min-h-[44px] flex-1 cursor-pointer rounded-xl border border-neutral-200 px-4 py-2.5 text-center text-sm font-[800] text-ink-600 transition-all hover:bg-neutral-50">
+              <label className="min-h-[44px] flex-1 cursor-pointer rounded-full border border-neutral-200/80 bg-white px-5 py-2.5 text-center text-xs sm:text-sm font-extrabold text-ink-950 shadow-2xs hover:bg-neutral-50 transition-all flex items-center justify-center">
                 {uploading ? "Mengunggah…" : avatarUrl ? "Ganti foto" : "Pilih foto"}
                 <input
                   type="file"

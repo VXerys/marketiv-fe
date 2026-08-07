@@ -5,11 +5,7 @@ import { AuthBrand } from "@/components/auth/AuthCard";
 import { cn } from "@/lib/utils";
 
 /**
- * Bingkai + stepper wizard onboarding, dipakai kedua role.
- *
- * Sengaja BUKAN modal dashboard: onboarding adalah halaman penuh yang dicapai
- * lewat pemantulan RoleGuard, bukan dialog di atas dashboard — dashboard-nya
- * justru belum boleh terlihat.
+ * Bingkai + stepper wizard onboarding ultra-premium, dipakai kedua role.
  */
 export function OnboardingShell({
   title,
@@ -28,15 +24,17 @@ export function OnboardingShell({
   footer: React.ReactNode;
 }) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-4 py-10">
-      <AuthBrand />
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-neutral-50 via-white to-orange-50/20 px-4 py-8 sm:py-12">
+      <div className="mb-4">
+        <AuthBrand />
+      </div>
 
-      <div className="w-full max-w-xl rounded-3xl border border-neutral-200/80 bg-white p-6 shadow-3xs sm:p-8">
-        <div className="mb-6 space-y-1.5">
-          <h1 className="font-[var(--font-sora)] text-[1.35rem] font-[900] leading-tight tracking-tight text-ink-900">
+      <div className="w-full max-w-lg rounded-[2.5rem] border border-neutral-200/90 bg-white p-6 sm:p-9 shadow-2xl transition-all duration-300">
+        <div className="mb-5 space-y-1.5 text-center sm:text-left">
+          <h1 className="font-display text-xl sm:text-2xl font-black leading-tight tracking-tight text-ink-950">
             {title}
           </h1>
-          <p className="text-[0.82rem] font-medium leading-relaxed text-ink-500">
+          <p className="text-xs sm:text-sm font-semibold leading-relaxed text-text-muted">
             {description}
           </p>
         </div>
@@ -59,40 +57,57 @@ function Stepper({
   currentStep: number;
 }) {
   return (
-    <ol
-      className="flex items-center gap-2"
-      aria-label={`Langkah ${currentStep} dari ${steps.length}`}
-    >
-      {steps.map((label, i) => {
-        const stepNumber = i + 1;
-        const done = stepNumber < currentStep;
-        const active = stepNumber === currentStep;
+    <div className="my-2">
+      {/* Progress Bars */}
+      <ol
+        className="flex items-center gap-2"
+        aria-label={`Langkah ${currentStep} dari ${steps.length}`}
+      >
+        {steps.map((label, i) => {
+          const stepNumber = i + 1;
+          const done = stepNumber < currentStep;
+          const active = stepNumber === currentStep;
 
-        return (
-          <li key={label} className="flex flex-1 flex-col gap-1.5">
-            <div
-              className={cn(
-                "h-1.5 rounded-full transition-colors",
-                done || active ? "bg-orange-500" : "bg-neutral-200"
-              )}
-            />
-            <span
-              className={cn(
-                "flex items-center gap-1 text-[0.68rem] font-[800] leading-tight",
-                active ? "text-orange-600" : done ? "text-ink-600" : "text-ink-400"
-              )}
-            >
-              {done && <Check size={12} strokeWidth={3} aria-hidden />}
-              {label}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
+          return (
+            <li key={label} className="flex flex-1 flex-col gap-1.5">
+              <div
+                className={cn(
+                  "h-2 rounded-full transition-all duration-300",
+                  done
+                    ? "bg-emerald-500"
+                    : active
+                    ? "bg-gradient-to-r from-orange-500 to-amber-500 shadow-[0_0_10px_rgba(249,115,22,0.3)]"
+                    : "bg-neutral-100"
+                )}
+              />
+              <span
+                className={cn(
+                  "flex items-center gap-1 text-[0.68rem] sm:text-xs font-extrabold leading-tight select-none",
+                  active
+                    ? "text-orange-600"
+                    : done
+                    ? "text-emerald-700"
+                    : "text-text-muted"
+                )}
+              >
+                {done ? (
+                  <Check size={13} strokeWidth={3} className="text-emerald-600 shrink-0" aria-hidden />
+                ) : (
+                  <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-neutral-200/70 text-[9px] font-black text-ink-950 shrink-0">
+                    {stepNumber}
+                  </span>
+                )}
+                <span className="truncate">{label}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
 
-/** Tombol utama wizard — sama dengan tombol submit form auth. */
+/** Tombol utama wizard — Marketiv Signature Pill Button. */
 export function OnboardingPrimaryButton({
   children,
   ...props
@@ -100,7 +115,7 @@ export function OnboardingPrimaryButton({
   return (
     <button
       {...props}
-      className="min-h-[44px] w-full rounded-xl bg-orange-500 px-6 text-sm font-[800] text-white transition-all hover:-translate-y-0.5 hover:bg-orange-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500/40 disabled:pointer-events-none disabled:opacity-60 active:translate-y-0"
+      className="min-h-[46px] w-full rounded-full border-0 bg-gradient-to-b from-[#fb7a18] to-primary-600 px-6 text-xs sm:text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(234,88,12,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(234,88,12,.36)] hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-60"
     >
       {children}
     </button>
@@ -115,7 +130,7 @@ export function OnboardingSecondaryButton({
   return (
     <button
       {...props}
-      className="min-h-[44px] w-full rounded-xl border border-neutral-200 px-6 text-sm font-[800] text-ink-600 transition-all hover:bg-neutral-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-500/40 disabled:pointer-events-none disabled:opacity-60"
+      className="min-h-[46px] w-full rounded-full border border-neutral-200/80 bg-white px-6 text-xs sm:text-sm font-extrabold text-ink-950 shadow-2xs hover:bg-neutral-50 active:scale-[.98] transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-60"
     >
       {children}
     </button>
