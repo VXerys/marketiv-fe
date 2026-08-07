@@ -10,7 +10,7 @@ import { AuthField, PasswordField, AuthErrorBanner } from "@/components/auth/Aut
 import { GoogleButton } from "./GoogleButton";
 import { ProfileProvisionNotice } from "./ProfileProvisionNotice";
 import { EmailVerificationPending } from "./EmailVerificationPending";
-import { registerCreator, requestEmailVerification } from "@/services/auth/auth.service";
+import { registerCreator, requestEmailOtp } from "@/services/auth/auth.service";
 import { registerCreatorSchema, PASSWORD_MIN } from "@/lib/validations/auth.schema";
 import { parseOrErrors } from "@/lib/validations/to-field-errors";
 import { routes } from "@/lib/constants/routes";
@@ -27,6 +27,7 @@ export function RegisterCreatorForm() {
   const [pending, setPending] = useState(false);
   const [provisionFailed, setProvisionFailed] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState(false);
+  const [verifyUserId, setVerifyUserId] = useState("");
 
   const set = (k: keyof typeof EMPTY) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -65,7 +66,8 @@ export function RegisterCreatorForm() {
       return;
     }
 
-    await requestEmailVerification();
+    setVerifyUserId(res.data.user.userId);
+    await requestEmailOtp({ userId: res.data.user.userId, email: form.email });
     await refresh();
     setVerificationSent(true);
     setPending(false);
@@ -79,7 +81,12 @@ export function RegisterCreatorForm() {
     return (
       <EmailVerificationPending
         email={form.email}
-        onContinue={() => router.replace(routes.onboarding)}
+        userId={verifyUserId}
+        password={form.password}
+        onContinue={async () => {
+          await refresh();
+          router.replace(routes.onboarding);
+        }}
       />
     );
   }

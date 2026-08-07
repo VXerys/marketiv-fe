@@ -31,7 +31,6 @@ import {
   type SessionUser,
 } from "./session.service";
 import { clearOnboardingSkip } from "@/lib/onboarding-skip";
-import { routes } from "@/lib/constants/routes";
 import type { ServiceResult, ServiceErrorCode, UserRole } from "@/types/domain";
 
 /**
@@ -86,7 +85,7 @@ function authMessage(err: unknown, fallback: string): string {
     case "user_password_recently_used":
       return "Password ini pernah kamu pakai. Gunakan password lain.";
     case "user_invalid_token":
-      return "Tautan sudah kedaluwarsa atau tidak valid. Minta tautan baru.";
+      return "Kode salah atau sudah kedaluwarsa. Minta kode baru.";
     case "general_rate_limit_exceeded":
       return "Terlalu banyak percobaan. Coba lagi beberapa menit lagi.";
     default:
@@ -437,32 +436,38 @@ export async function completePasswordRecovery(
 }
 
 // ---------------------------------------------------------------------------
-// Verifikasi email
+// Verifikasi email lewat OTP (Email Token)
 // ---------------------------------------------------------------------------
+//
+// Verifikasi native Appwrite (createVerification/updateVerification) hanya
+// tautan — secret-nya token panjang, tak bisa diketik sebagai kode 6 digit.
+// Satu-satunya jalur OTP email di Appwrite adalah Email Token: createEmailToken
+// mengirim kode ke email, lalu createSession menukar kode itu jadi sesi DAN
+// menandai email terverifikasi (memicu event emailVerification → Function
+// user-email-verified mengisi users.email_verified_at).
 
 /**
- * Minta Appwrite kirim email berisi tautan verifikasi ke alamat akun aktif.
+ * Kirim kode OTP verifikasi ke email akun.
  *
- * Hanya bisa dipanggil saat ada sesi aktif. Dipakai setelah register berhasil
- * dan dari tombol "kirim ulang" di EmailVerificationPending.
- *
- * Appwrite tidak membedakan "sudah terverifikasi" vs "belum" dalam respons —
- * selalu balik ok(null) jika panggilan berhasil.
+ * Dipakai setelah register berhasil dan dari tombol "kirim ulang" di
+ * EmailVerificationPending. `userId` boleh diabaikan Appwrite bila email sudah
+ * terpaut akun (kasus kita) — tetap dikirim demi kelengkapan payload.
  */
-export async function requestEmailVerification(): Promise<ServiceResult<null>> {
+export async function requestEmailOtp(args: {
+  userId: string;
+  email: string;
+}): Promise<ServiceResult<null>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(300);
     return ok(null);
   }
 
   try {
-    await account.createVerification({
-      url: `${window.location.origin}${routes.verifyEmail}`,
-    });
+    await account.createEmailToken({ userId: args.userId, email: args.email });
     return ok(null);
   } catch (err) {
     return fail(
-      authMessage(err, "Gagal mengirim email verifikasi. Coba lagi."),
+      authMessage(err, "Gagal mengirim kode verifikasi. Coba lagi."),
       mapWriteErrorCode(err),
       noData<null>()
     );
@@ -470,20 +475,22 @@ export async function requestEmailVerification(): Promise<ServiceResult<null>> {
 }
 
 /**
- * Konfirmasi verifikasi email dengan userId + secret dari tautan yang dikirim Appwrite.
+ * Tukar kode OTP jadi sesi terverifikasi.
  *
- * Dipanggil dari halaman /verify-email setelah user klik tautan dari email.
- * Setelah sukses, email user dianggap terverifikasi oleh Appwrite Auth.
+ * createSession diblokir Appwrite bila sesi lain masih aktif, jadi sesi login
+ * password dari register dihapus lebih dulu. Bila kodenya salah/kedaluwarsa,
+ * sesi login dipulihkan via password supaya user TIDAK ter-logout hanya karena
+ * salah ketik OTP — itu sebabnya email+password ikut diminta di sini.
  */
-export async function confirmEmailVerification(args: {
+export async function confirmEmailOtp(args: {
   userId: string;
-  secret: string;
+  email: string;
+  password: string;
+  code: string;
 }): Promise<ServiceResult<null>> {
-  if (!args.userId || !args.secret) {
-    return failValidation(
-      "Tautan verifikasi tidak lengkap. Coba klik tautan di email lagi.",
-      noData<null>()
-    );
+  const code = args.code.trim();
+  if (!args.userId || !code) {
+    return failValidation("Masukkan kode 6 digit dari email kamu.", noData<null>());
   }
 
   if (DATA_SOURCE_CONFIG.useMockData) {
@@ -492,14 +499,21 @@ export async function confirmEmailVerification(args: {
   }
 
   try {
-    await account.updateVerification({
-      userId: args.userId,
-      secret: args.secret,
-    });
+    await account.deleteSession({ sessionId: "current" });
+    await account.createSession({ userId: args.userId, secret: code });
     return ok(null);
   } catch (err) {
+    // Pulihkan sesi login agar user tetap masuk meski OTP gagal.
+    try {
+      await account.createEmailPasswordSession({
+        email: args.email,
+        password: args.password,
+      });
+    } catch {
+      // Sesi lama mungkin belum terhapus; abaikan — user tetap punya sesi.
+    }
     return fail(
-      authMessage(err, "Tautan verifikasi tidak valid atau sudah kedaluwarsa. Minta tautan baru."),
+      authMessage(err, "Kode OTP salah atau kedaluwarsa. Minta kode baru."),
       mapWriteErrorCode(err),
       noData<null>()
     );
