@@ -93,8 +93,8 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 - **Aksi**: lookup withdrawal via `iris_reference`, tutup status final. Iris `completed`/`settled` → `succeeded` + `processedAt`; Iris `failed` → `failed` + `failure_reason` + reversal (kredit balik idempoten).
 - **Reversal** out-of-band (Iris terima dulu `processing`, lalu gagal belakangan): sama seperti `request-withdrawal` — ledger `withdrawal_reversal` deterministik + `reversed`.
 - **Idempotensi DOUBLE-SOURCE**: (1) status terminal (`succeeded`/`failed`/`reversed`) → 200 tanpa mutasi; (2) ledger reversal id deterministik — callback terkirim ulang tidak pernah kredit dobel.
-- **Auth keterbatasan**: payload Iris tak punya skema `signature_key` terdokumentasi, jadi identitas diikat ke pencarian `iris_reference`. Bila dokumentasi resmi tersedia, ganti dengan verifikasi signature.
-- **Env**: `WITHDRAWALS_COLLECTION_ID`, `WALLETS_COLLECTION_ID`, `TRANSACTIONS_COLLECTION_ID`, `NOTIFICATIONS_COLLECTION_ID`.
+- **Auth**: shared secret via header `x-iris-callback-token` — Function membandingkan dengan env var `IRIS_CALLBACK_SECRET`. Request tanpa token yang cocok → `401`, tidak ada mutasi. Backward-compatible: jika env tidak di-set, semua request diizinkan (tidak boleh dibiarkan di production). Panduan setup lengkap (generate token, set Appwrite env var, konfigurasi Midtrans Iris): [101_Iris_Webhook_Security_Setup.md](101_Iris_Webhook_Security_Setup.md).
+- **Env**: `WITHDRAWALS_COLLECTION_ID`, `WALLETS_COLLECTION_ID`, `TRANSACTIONS_COLLECTION_ID`, `NOTIFICATIONS_COLLECTION_ID`, `IRIS_CALLBACK_SECRET`.
 
 ### verify-kyc
 
