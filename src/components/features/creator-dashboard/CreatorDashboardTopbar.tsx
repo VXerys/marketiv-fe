@@ -39,7 +39,7 @@ interface CreatorDashboardTopbarProps {
   onOpenSidebar?: () => void;
 }
 
-export function CreatorDashboardTopbar({}: CreatorDashboardTopbarProps = {}) {
+export function CreatorDashboardTopbar({ creatorAvatar }: CreatorDashboardTopbarProps = {}) {
   const pathname = usePathname();
   const { toggleSidebar } = useSidebar();
   const breadcrumbs = getBreadcrumbs(pathname);
@@ -166,6 +166,29 @@ export function CreatorDashboardTopbar({}: CreatorDashboardTopbarProps = {}) {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-600" />
             </span>
+          )}
+        </Link>
+
+        {/* Avatar — menampilkan foto profil Kreator yang sebenarnya (fix P0-C 2026-08-08) */}
+        <Link
+          href="/dashboard/kreator/pengaturan"
+          className="w-10 h-10 rounded-xl border border-neutral-200/70 shadow-3xs overflow-hidden hover:scale-105 hover:shadow-[0_4px_12px_rgba(124,58,237,.18)] active:scale-95 transition-all duration-200 relative block shrink-0 cursor-pointer"
+          aria-label="Profil akun"
+        >
+          {creatorAvatar ? (
+            <Image
+              alt="Profil"
+              src={creatorAvatar}
+              width={40}
+              height={40}
+              sizes="40px"
+              quality={85}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-sm select-none">
+              K
+            </div>
           )}
         </Link>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { UmkmPageWrapper } from "../../shared/UmkmPageWrapper";
@@ -51,6 +51,14 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
   const [submissions, setSubmissions] = useState<CampaignSubmission[]>([]);
 
   const [isResuming, setIsResuming] = useState(false);
+
+  // Timer ref untuk cleanup saat unmount (fix LOW-1 2026-08-08)
+  const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+    };
+  }, []);
 
   // Modals visibility states
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -144,8 +152,9 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
     showToast(`Submission dari "${target.creatorName}" berhasil ${statusLabel}.`);
 
     // Beri ruang untuk calculate-campaign-reward sebelum membaca angka baru.
-    setTimeout(() => {
-      loadData();
+    // Timer disimpan di ref agar bisa di-cancel saat komponen unmount.
+    reloadTimerRef.current = setTimeout(() => {
+      void loadData();
     }, 2500);
   };
 

@@ -11,8 +11,8 @@ import { getNotifications } from "@/services/shared/notification.service";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
 import { realtimeClient, tableChannels } from "@/lib/appwrite/realtime";
 
-const PROFILE_AVATAR_IMAGE_URL =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuCDJh8BEYVCLcj-BjHUl0GKUwUU0yp9_SB65sdKYxzbuAY-yJMGqbV0NTcoy03pdf7Gq7G3fCt8XLHyNCLfcN3ONcIaSvcJia5eLMQI8_5P9bt9bLx1k-PYinTGRB5RY7ZoL6AzYLgTXS8P7LumfH-nfAwAtWUF5bDgFn5Kio2Vk1NthhmuSRHYqV_bhFB2-KxjJxJ716MpYQqTL5KX76AFPKsUXks7Q-BM5PlUYMSUDzj_2_y1uGXTXvL4yRg4NHCy_Pj6j6rZSIzX";
+// Dihapus: PROFILE_AVATAR_IMAGE_URL hardcoded (fix P0-B 2026-08-08).
+// Avatar sekarang dibaca dari profil UMKM yang nyata via prop `avatarUrl`.
 
 const BASE = "/dashboard/umkm";
 
@@ -102,9 +102,11 @@ function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
 
 interface DashboardTopbarProps {
   onOpenSidebar?: () => void;
+  /** URL logo/avatar profil UMKM. Kosong = tampilkan inisial fallback. */
+  avatarUrl?: string;
 }
 
-export function DashboardTopbar({}: DashboardTopbarProps) {
+export function DashboardTopbar({ avatarUrl }: DashboardTopbarProps) {
   const pathname = usePathname();
   const { title } = getPageMeta(pathname);
   const { toggleSidebar } = useSidebar();
@@ -223,21 +225,27 @@ export function DashboardTopbar({}: DashboardTopbarProps) {
           )}
         </Link>
 
-        {/* Avatar */}
+        {/* Avatar — menampilkan logo/foto profil UMKM yang sebenarnya */}
         <Link
           href="/dashboard/umkm/pengaturan"
           className="w-11 h-11 rounded-xl border border-neutral-200/70 shadow-3xs overflow-hidden hover:scale-105 hover:shadow-[0_4px_12px_rgba(249,115,22,.18)] active:scale-95 transition-all duration-200 relative block shrink-0 cursor-pointer"
           aria-label="Profil akun"
         >
-          <Image
-            alt="Profil"
-            src={PROFILE_AVATAR_IMAGE_URL}
-            width={44}
-            height={44}
-            sizes="44px"
-            quality={85}
-            className="w-full h-full object-cover"
-          />
+          {avatarUrl ? (
+            <Image
+              alt="Profil"
+              src={avatarUrl}
+              width={44}
+              height={44}
+              sizes="44px"
+              quality={85}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-base select-none">
+              U
+            </div>
+          )}
         </Link>
       </div>
     </header>

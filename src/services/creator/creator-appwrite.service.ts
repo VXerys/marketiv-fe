@@ -1370,17 +1370,19 @@ export async function submitProofInAppwrite(
         views: 0,
         status: "pending",
       },
-      // HANYA role diri sendiri — alasan yang sama dengan claimCampaign di atas.
+      // Hanya read untuk kreator sendiri.
       //
-      // Jalur uang tetap terjaga, dan justru lebih rapat: `views` + status
-      // "approved" adalah yang memicu calculate-campaign-reward menambah saldo
-      // kreator, dan sekarang SATU-SATUNYA yang bisa menulisnya adalah Function
-      // `review-submission` (level koleksi tanpa update, baris tanpa update untuk
-      // siapa pun kecuali kreatornya sendiri untuk kirim ulang bukti). UMKM
-      // membacanya lewat `read("any")` yang masih ada di level koleksi.
+      // Permission.update TIDAK diberikan ke kreator — meskipun itu "dirinya
+      // sendiri" — karena calculate-campaign-reward memicu reward dari
+      // status="approved" tanpa cek siapa yang melakukan update. Kalau kreator
+      // bisa update baris ini dari browser, ia bisa self-approve + set views
+      // tinggi → drain campaign budget. Fix: SEC-C1 2026-08-08.
+      //
+      // UMKM membaca via read("any") di level koleksi.
+      // `review-submission` Cloud Function (execute=[users], ownership-checked)
+      // adalah satu-satunya jalur update yang sah.
       [
         Permission.read(Role.user(auth.userId)),
-        Permission.update(Role.user(auth.userId)),
       ]
     );
 

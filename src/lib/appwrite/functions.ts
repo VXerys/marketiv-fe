@@ -45,6 +45,15 @@ export const FUNCTION_IDS = {
   sendMessage: "send-message",
   createOffer: "create-offer",
   reviewSubmission: "review-submission",
+  // ── Fix SEC-H1: guard campaign money fields (2026-08-08) ────────────────
+  /**
+   * Dua Function ini menggantikan client-side updateDocument pada koleksi campaigns.
+   * Baris campaign tidak lagi punya Permission.update dari browser — semua mutasi
+   * disalurkan lewat sini agar remainingBudget / spentAmount / status / totalClaims
+   * tidak bisa diset sembarangan dari browser console.
+   */
+  patchCampaignDraft: "patch-campaign-draft",
+  patchCampaignStatus: "patch-campaign-status",
   // ── Tulis / aksi (Sprint 3) ──────────────────────────────────────────────
   aiBrief: "ai-brief",
   createPayment: "create-payment",

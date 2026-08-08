@@ -24,6 +24,7 @@ interface UmkmDashboardChromeProps {
 export function UmkmDashboardChrome({ businessName, children }: UmkmDashboardChromeProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [fetchedName, setFetchedName] = useState("");
+  const [fetchedAvatar, setFetchedAvatar] = useState("");
 
   // Hanya menjemput sendiri kalau pemanggil tidak menyediakannya (halaman yang
   // memang sudah memuat profil untuk keperluan lain tetap mengoper propnya).
@@ -33,7 +34,10 @@ export function UmkmDashboardChrome({ businessName, children }: UmkmDashboardChr
     if (!needsFetch) return;
     let active = true;
     void getUmkmProfile().then((res) => {
-      if (active && res.success && res.data) setFetchedName(res.data.businessName);
+      if (active && res.success && res.data) {
+        setFetchedName(res.data.businessName);
+        setFetchedAvatar(res.data.avatarUrl ?? "");
+      }
     });
     return () => {
       active = false;
@@ -51,7 +55,7 @@ export function UmkmDashboardChrome({ businessName, children }: UmkmDashboardChr
           onCloseSidebar={() => setIsSidebarOpen(false)}
         />
       }
-      topbar={<DashboardTopbar onOpenSidebar={() => setIsSidebarOpen(true)} />}
+      topbar={<DashboardTopbar onOpenSidebar={() => setIsSidebarOpen(true)} avatarUrl={fetchedAvatar} />}
     >
       {children}
     </DashboardShell>

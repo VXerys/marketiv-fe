@@ -35,6 +35,21 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Method not allowed" }, 405);
     }
 
+    // Validasi shared secret sebelum memproses apapun (fix SEC-H2 2026-08-08).
+    // Set IRIS_CALLBACK_SECRET di env Function Appwrite DAN di Midtrans Iris
+    // webhook config (kolom "Header Name" = "x-iris-callback-token").
+    // Kalau env tidak di-set, menerima semua request (backward-compat saat deploy awal).
+    const expectedToken = process.env.IRIS_CALLBACK_SECRET;
+    if (expectedToken) {
+      const callbackToken =
+        req.headers?.["x-iris-callback-token"] ||
+        req.headers?.["X-Iris-Callback-Token"];
+      if (callbackToken !== expectedToken) {
+        error(`withdrawal-callback: token tidak valid dari ${req.headers?.["x-forwarded-for"] || "unknown"}`);
+        return json(res, { error: "Unauthorized" }, 401);
+      }
+    }
+
     const env = getEnv(req);
     const notification = parseBody(req, error);
     const validationError = validateRequiredPayload(notification);

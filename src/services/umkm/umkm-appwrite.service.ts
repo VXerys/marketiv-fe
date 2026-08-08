@@ -696,9 +696,10 @@ export async function createCampaignDraftInAppwrite(
   const auth = await requireUserId<CampaignDraftResult>(empty);
   if (!auth.ok) return auth.result;
   const uid = auth.userId;
+  // Permission.update TIDAK diberikan ke klien — semua update campaign disalurkan
+  // lewat patch-campaign-draft / patch-campaign-status (fix SEC-H1 2026-08-08).
   const perms = [
     Permission.read(Role.any()),
-    Permission.update(Role.user(uid)),
     Permission.delete(Role.user(uid)),
   ];
 
@@ -783,8 +784,9 @@ export async function createCampaignDraftInAppwrite(
 }
 
 /**
- * Ubah status campaign (jeda/aktifkan). Baca ownership-filtered dulu sebagai
- * defence in depth — collection update("users") terlalu longgar (temuan handoff).
+ * Ubah status campaign (jeda/aktifkan).
+ * Dirutekan lewat patch-campaign-status Cloud Function karena baris campaign
+ * tidak lagi punya Permission.update dari klien (fix SEC-H1 2026-08-08).
  */
 export async function updateCampaignStatusInAppwrite(
   campaignId: string,
@@ -794,28 +796,19 @@ export async function updateCampaignStatusInAppwrite(
   const auth = await requireUserId<Campaign>(empty);
   if (!auth.ok) return auth.result;
   try {
+    const action = next === "paused" ? "pause" : "resume";
+    await executeFunction(FUNCTION_IDS.patchCampaignStatus, { campaignId, action });
+    // Baca ulang campaign terbaru setelah update
     const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
       Query.equal("$id", campaignId),
       Query.equal("umkmId", auth.userId),
       Query.limit(1),
     ]);
     const doc = res.documents[0] as unknown as Doc | undefined;
-    if (!doc) return fail("Campaign tidak ditemukan.", "not_found", empty);
-
-    const current = str(doc.status);
-    if (next === "paused" && current !== "active") {
-      return failValidation("Hanya campaign aktif yang bisa dijeda.", empty);
-    }
-    if (next === "active" && current !== "paused") {
-      return failValidation("Hanya campaign terjeda yang bisa diaktifkan kembali.", empty);
-    }
-
-    const updated = await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
-      status: next,
-    });
-    return ok(mapCampaign(updated as unknown as Doc));
+    if (!doc) return fail("Campaign tidak ditemukan setelah update.", "not_found", empty);
+    return ok(mapCampaign(doc));
   } catch (err) {
-    return failFromWriteError<Campaign>(err, empty);
+    return failFromError<Campaign>(err, empty);
   }
 }
 
@@ -1137,6 +1130,11 @@ export async function createOrderPaymentInAppwrite(input: {
  * Karena webhook Midtrans bisa telat beberapa detik, pemanggil harus siap
  * mendapat "belum di-top-up" walau pengguna baru saja membayar.
  */
+/**
+ * Terbitkan campaign draft menjadi active.
+ * Dirutekan lewat patch-campaign-status Cloud Function yang memvalidasi
+ * remainingBudget > 0 di sisi server (fix SEC-H1 2026-08-08).
+ */
 export async function publishCampaignInAppwrite(
   campaignId: string
 ): Promise<ServiceResult<Campaign>> {
@@ -1144,32 +1142,18 @@ export async function publishCampaignInAppwrite(
   const auth = await requireUserId<Campaign>(empty);
   if (!auth.ok) return auth.result;
   try {
+    await executeFunction(FUNCTION_IDS.patchCampaignStatus, { campaignId, action: "publish" });
+    // Baca ulang setelah publish
     const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
       Query.equal("$id", campaignId),
       Query.equal("umkmId", auth.userId),
       Query.limit(1),
     ]);
     const doc = res.documents[0] as unknown as Doc | undefined;
-    if (!doc) return fail("Campaign tidak ditemukan.", "not_found", empty);
-
-    if (str(doc.status) !== "draft") {
-      return failValidation("Hanya campaign draft yang bisa diterbitkan.", empty);
-    }
-
-    if (num(doc.remainingBudget) <= 0) {
-      return failValidation(
-        "Dana campaign belum masuk. Tunggu beberapa saat setelah pembayaran, lalu coba lagi.",
-        empty
-      );
-    }
-
-    const updated = await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
-      status: "active",
-      publishedAt: new Date().toISOString(),
-    });
-    return ok(mapCampaign(updated as unknown as Doc));
+    if (!doc) return fail("Campaign tidak ditemukan setelah diterbitkan.", "not_found", empty);
+    return ok(mapCampaign(doc));
   } catch (err) {
-    return failFromWriteError<Campaign>(err, empty);
+    return failFromError<Campaign>(err, empty);
   }
 }
 
@@ -1562,27 +1546,13 @@ export async function updateCampaignDraftInAppwrite(
   const auth = await requireUserId<CampaignDraftResult>(empty);
   if (!auth.ok) return auth.result;
 
-  // Guard kepemilikan + draft sebelum tulis
-  let existingDoc: Doc;
-  try {
-    const res = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
-      Query.equal("$id", campaignId),
-      Query.equal("umkmId", auth.userId),
-      Query.equal("status", "draft"),
-      Query.limit(1),
-    ]);
-    const d = res.documents[0] as unknown as Doc | undefined;
-    if (!d) return fail("Campaign draft tidak ditemukan atau bukan milik Anda.", "not_found", empty);
-    existingDoc = d;
-  } catch (err) {
-    return failFromError<CampaignDraftResult>(err, empty);
-  }
-  void existingDoc; // dipakai untuk guard ownership, nilai sudah cukup
-
-  // Update campaign row
+  // Update campaign row via patch-campaign-draft Cloud Function (fix SEC-H1 2026-08-08).
+  // Baris campaign tidak punya Permission.update dari klien — semua field update
+  // disalurkan lewat CF yang memiliki field allowlist ketat (no financial fields).
   let campaignDoc: Doc;
   try {
-    campaignDoc = (await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
+    await executeFunction(FUNCTION_IDS.patchCampaignDraft, {
+      campaignId,
       title: input.title.trim(),
       category: input.category,
       type: input.type,
@@ -1591,9 +1561,18 @@ export async function updateCampaignDraftInAppwrite(
       rewardPer1000Views: input.rewardPer1000Views,
       claimLimit: input.claimLimit,
       submissionDays: input.submissionDays ?? 7,
-    })) as unknown as Doc;
+    });
+    // Baca ulang untuk dapatkan doc terbaru (CF tidak mereturn doc lengkap)
+    const refreshed = await databases.listDocuments(DB, COLLECTIONS.campaigns, [
+      Query.equal("$id", campaignId),
+      Query.equal("umkmId", auth.userId),
+      Query.limit(1),
+    ]);
+    const d = refreshed.documents[0] as unknown as Doc | undefined;
+    if (!d) return fail("Campaign draft tidak ditemukan setelah update.", "not_found", empty);
+    campaignDoc = d;
   } catch (err) {
-    return failFromWriteError<CampaignDraftResult>(err, empty);
+    return failFromError<CampaignDraftResult>(err, empty);
   }
 
   const warnings: string[] = [];

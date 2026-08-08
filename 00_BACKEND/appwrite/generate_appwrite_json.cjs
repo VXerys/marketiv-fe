@@ -1305,6 +1305,37 @@ const functions = [
         commands: "npm install",
         path: "../functions/review-submission"
     },
+    // ── Fix SEC-H1: guard campaign money fields (2026-08-08) ──────────────────
+    // Campaign row tidak lagi punya Permission.update dari browser.
+    // Semua mutasi field draft dan status disalurkan lewat dua Function ini.
+    {
+        $id: "patch-campaign-draft",
+        name: "Patch Campaign Draft",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/patch-campaign-draft"
+    },
+    {
+        $id: "patch-campaign-status",
+        name: "Patch Campaign Status",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/patch-campaign-status"
+    },
     // ── Function DTO baca (Sprint 1 / s1-appwrite-read) ────────────────────────
     // Agregasi & join yang tidak bisa dipetakan setia dari satu collection.
     // Kontrak: docs/marketiv-md/database/08-frontend-data-contract.md §6, §15, §28.

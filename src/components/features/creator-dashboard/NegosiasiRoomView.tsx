@@ -123,6 +123,15 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  // Mount guard untuk poll loop answerOffer — cegah setState setelah unmount
+  // (fix LOW-2 2026-08-08)
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
   const [inputMessage, setInputMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [answering, setAnswering] = useState(false);
@@ -296,6 +305,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
     // Function gagal, kreator harus tahu — bukan dibiarkan menunggu selamanya.
     for (let attempt = 0; attempt < ORDER_POLL_ATTEMPTS; attempt++) {
       await new Promise((r) => setTimeout(r, ORDER_POLL_INTERVAL_MS));
+      if (!mountedRef.current) return; // komponen sudah unmount — hentikan polling
       const res = await getCreatorNegotiationById(conversationId);
       if (res.success && res.data) {
         setNeg(res.data);
@@ -307,6 +317,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
       }
     }
 
+    if (!mountedRef.current) return; // unmount saat polling selesai
     setAnswering(false);
     toast.info("Pesanan sedang diproses. Muat ulang halaman sebentar lagi.");
     await loadRoom();
