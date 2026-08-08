@@ -1,7 +1,7 @@
 import { ID, Permission, Query, Role } from 'appwrite';
 import { COLLECTIONS, DATABASE_ID, databases } from '../lib/appwrite';
 
-export type ClaimStatus = 'claimed' | 'submitted' | 'approved' | 'rejected' | 'expired' | 'unclaimed';
+export type ClaimStatus = 'claimed' | 'submitted' | 'approved' | 'rejected' | 'expired';
 
 export type Claim = {
   id: string;
@@ -87,9 +87,27 @@ export const claimCampaign = async (campaignId: string): Promise<Claim> => {
       throw new ClaimServiceError('validation', 'Campaign tidak aktif.');
     }
 
-    // 2. Validasi profil lengkap (cek field isProfileCompleted di user)
-    const userDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.users, creatorId);
-    if (!userDoc.isProfileCompleted) {
+    // 2. Validasi profil lengkap.
+    //
+    // `isProfileCompleted` ada di `creator_profiles`, BUKAN di `users` — koleksi
+    // `users` hanya punya userId, role, status, email, phone, createdAt.
+    //
+    // Dan dokumen `creator_profiles` dibuat dengan `ID.unique()`
+    // (create-user-profile:129), jadi `$id`-nya acak sementara ID auth disimpan
+    // di kolom `userId`. Karena itu harus di-query lewat `userId`, bukan
+    // `getDocument` dengan creatorId sebagai document id — pola yang sama
+    // dipakai get-creator-profile:72 dan campaign-claimed:37-40.
+    const profileRes = await databases.listDocuments(DATABASE_ID, COLLECTIONS.creatorProfiles, [
+      Query.equal('userId', creatorId),
+      Query.limit(1),
+    ]);
+
+    const creatorProfile = profileRes.documents[0] as Record<string, any> | undefined;
+    if (!creatorProfile) {
+      throw new ClaimServiceError('validation', 'Profil kreator belum tersedia.');
+    }
+
+    if (!creatorProfile.isProfileCompleted) {
       throw new ClaimServiceError('validation', 'Lengkapi profil dulu sebelum claim.');
     }
 
@@ -123,9 +141,12 @@ export const claimCampaign = async (campaignId: string): Promise<Claim> => {
     }
 
     // 5. Validasi unik (sudah claim sebelumnya?)
+    //    Klaim berstatus 'expired' tidak menghalangi klaim ulang — kreator
+    //    boleh mencoba lagi tanpa batas setelah klaim sebelumnya kedaluwarsa.
     const existingClaims = await databases.listDocuments(DATABASE_ID, COLLECTIONS.claims, [
       Query.equal('campaignId', campaignId),
       Query.equal('creatorId', creatorId),
+      Query.notEqual('status', 'expired'),
       Query.limit(1),
     ]);
 
@@ -147,6 +168,7 @@ export const claimCampaign = async (campaignId: string): Promise<Claim> => {
       [
         Permission.read(Role.user(creatorId)),
         Permission.update(Role.user(creatorId)),
+        Permission.delete(Role.user(creatorId)),
       ]
     );
 
@@ -171,26 +193,30 @@ export const unclaimCampaign = async (claimId: string): Promise<void> => {
 
   try {
     const user = await account.get();
-    const claimDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.claims, claimId);
-    const claim = claimDoc as Record<string, any>;
 
-    if (claim.creatorId !== user.$id) {
+    let claimDoc: Record<string, any>;
+    try {
+      claimDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.claims, claimId) as Record<string, any>;
+    } catch {
+      throw new ClaimServiceError('validation', 'Claim tidak ditemukan.');
+    }
+
+    if (claimDoc.creatorId !== user.$id) {
       throw new ClaimServiceError('forbidden', 'Hanya kreator pemilik claim yang dapat membatalkan.');
     }
 
-    if (claim.status !== 'claimed') {
-      throw new ClaimServiceError('validation', `Hanya claim dengan status claimed yang dapat dibatalkan (saat ini: ${claim.status}).`);
+    if (claimDoc.status !== 'claimed') {
+      throw new ClaimServiceError('validation', `Hanya claim dengan status claimed yang dapat dibatalkan (saat ini: ${claimDoc.status}).`);
     }
 
-    await databases.updateDocument(DATABASE_ID, COLLECTIONS.claims, claimId, {
-      status: 'unclaimed',
-    });
+    // Hard delete — dokumen hilang, bukan soft delete
+    await databases.deleteDocument(DATABASE_ID, COLLECTIONS.claims, claimId);
 
     // Kurangi totalClaims denormalisasi
-    const campaignDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.campaigns, claim.campaignId);
+    const campaignDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.campaigns, claimDoc.campaignId);
     const currentTotal = (campaignDoc as Record<string, any>).totalClaims ?? 0;
     if (currentTotal > 0) {
-      await databases.updateDocument(DATABASE_ID, COLLECTIONS.campaigns, claim.campaignId, {
+      await databases.updateDocument(DATABASE_ID, COLLECTIONS.campaigns, claimDoc.campaignId, {
         totalClaims: currentTotal - 1,
       });
     }

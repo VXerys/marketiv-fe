@@ -2,7 +2,7 @@ import { Query } from 'appwrite';
 import { account, COLLECTIONS, DATABASE_ID, FUNCTIONS, databases, functions } from '../lib/appwrite';
 import { calculateTotalPayment } from './wallet.service';
 
-export type PaymentPurpose = 'order' | 'topup' | 'campaign';
+export type PaymentPurpose = 'order' | 'campaign';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'expired' | 'cancelled';
 
 export type CreatePaymentInput = {
@@ -115,7 +115,7 @@ const mapError = (err: any, fallbackMessage: string): PaymentServiceError => {
 export const createPayment = async (input: CreatePaymentInput): Promise<CreatePaymentResult> => {
   validateAmount(input.amount);
 
-  if (!['order', 'topup', 'campaign'].includes(input.purpose)) {
+  if (!['order', 'campaign'].includes(input.purpose)) {
     throw new PaymentServiceError('validation', 'Tujuan pembayaran tidak valid.');
   }
 
@@ -125,10 +125,6 @@ export const createPayment = async (input: CreatePaymentInput): Promise<CreatePa
 
   if (input.purpose === 'campaign' && !input.campaignId) {
     throw new PaymentServiceError('validation', 'Campaign wajib diisi untuk top-up campaign.');
-  }
-
-  if (input.purpose === 'topup' && input.orderId) {
-    throw new PaymentServiceError('validation', 'Top up tidak boleh memakai order.');
   }
 
   // Fee 2% ditambahkan hanya untuk campaign top-up (buyer side)

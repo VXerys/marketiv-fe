@@ -17,6 +17,7 @@ interface CampaignCardProps {
   onDuplicate: () => void;
   onCancel: () => void;
   onDelete: () => void;
+  onPublish: () => void;
   onExport: () => void;
   onEdit: () => void;
 }
@@ -64,6 +65,7 @@ export function CampaignCard({
   onDuplicate,
   onCancel,
   onDelete,
+  onPublish,
   onExport,
   onEdit,
 }: CampaignCardProps) {
@@ -83,6 +85,9 @@ export function CampaignCard({
 
   const actionItems = [
     { label: "Lihat Detail",       onClick: () => router.push(`/dashboard/umkm/campaign/${campaign.id}`) },
+    // Jalan keluar bila webhook Midtrans telat: dana sudah masuk tapi wizard
+    // sudah menyerah menunggu. Service tetap menolak bila dananya belum ada.
+    ...(isDeleteVisible ? [{ label: "Terbitkan Campaign", onClick: onPublish }] : []),
     ...(isEditVisible ? [{ label: "Edit Draft", onClick: onEdit }] : []),
     { label: "Duplikasi Campaign", onClick: onDuplicate },
     { label: "Unduh Laporan",      onClick: onExport    },
@@ -145,7 +150,7 @@ export function CampaignCard({
             {campaign.niche}
           </span>
           <h3 className="campaign-card-title">{campaign.title}</h3>
-          <p className="text-xs text-text-muted line-clamp-2 min-w-0 mt-1">{campaign.brief}</p>
+          <p className="hidden sm:block text-xs text-text-muted line-clamp-2 min-w-0 mt-1">{campaign.brief}</p>
         </div>
 
         {/* CPM / Reward Rate Info — Exact formatCurrency is best practice for exact payouts */}
@@ -168,7 +173,7 @@ export function CampaignCard({
 
         {/* Budget progress (Ganti progress kuota ke progress uang) */}
         <div className="min-w-0">
-          <div className="flex justify-between items-baseline mb-2">
+          <div className="hidden sm:flex justify-between items-baseline mb-2">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-text-muted">
               Anggaran Terpakai
             </span>
@@ -201,8 +206,8 @@ export function CampaignCard({
           </div>
         </div>
 
-        {/* Submissions summary — descriptive label */}
-        <div className="flex flex-wrap gap-2 text-[10px] text-text-secondary border-t border-border-soft pt-3 justify-between items-center min-w-0">
+        {/* Submissions summary — descriptive label; hidden on narrow mobile */}
+        <div className="hidden sm:flex flex-wrap gap-2 text-[10px] text-text-secondary border-t border-border-soft pt-3 justify-between items-center min-w-0">
           <span className="font-bold uppercase tracking-wider text-[9px] text-text-muted truncate">Validasi Konten</span>
           <div className="flex gap-1.5 shrink-0">
             <DashboardBadge tone="amber" className="h-4.5 px-2 text-[9px] font-bold">
@@ -220,11 +225,11 @@ export function CampaignCard({
         </div>
 
         {/* Primary CTA with premium hover transitions */}
-        <div className="mt-auto pt-2">
+        <div className="mt-auto pt-1 sm:pt-2">
           <Link
             href={`/dashboard/umkm/campaign/${campaign.id}`}
             className={cn(
-              "flex items-center justify-center min-h-[36px] w-full rounded-[11px] text-[.82rem] font-[800] transition-all duration-250 no-underline cursor-pointer select-none text-center",
+              "flex items-center justify-center min-h-[32px] sm:min-h-[36px] w-full rounded-[11px] text-[.78rem] sm:text-[.82rem] font-[800] transition-all duration-250 no-underline cursor-pointer select-none text-center",
               campaign.status === "draft"
                 ? "bg-neutral-900 text-white shadow-[0_8px_20px_rgba(0,0,0,.15)] hover:bg-neutral-800 hover:-translate-y-0.5 active:translate-y-0"
                 : "bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white shadow-[0_8px_20px_rgba(234,88,12,.2)] hover:from-[#ea580c] hover:to-[#c2410c] hover:shadow-[0_12px_28px_rgba(234,88,12,.35)] hover:-translate-y-0.5 active:translate-y-0"

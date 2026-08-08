@@ -1,6 +1,26 @@
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * ⚠️ JANGAN menambahkan kembali `update("users")` ke level tabel.
+ *
+ * Permission Appwrite bersifat union: dengan documentSecurity aktif, akses
+ * diberikan bila ada izin di level TABEL **atau** level baris. Jadi
+ * `update("users")` di level tabel berarti *setiap user yang login bisa mengubah
+ * baris siapa pun*, dan permission per-baris yang sudah dipasang service menjadi
+ * tidak berarti.
+ *
+ * Dicabut dari 11 tabel pada 2026-07-29 (gelombang 5 harden-permissions) setelah
+ * audit menemukan dua jalur eksploitasi nyata:
+ *   - `campaign_submissions` → tulis status:"approved" ke submission siapa pun,
+ *     memicu calculate-campaign-reward mencetak saldo kreator.
+ *   - `campaigns` → tulis status:"active" + remainingBudget, melewati Midtrans
+ *     dan seluruh mekanisme escrow.
+ *
+ * `read("any")` sengaja DIPERTAHANKAN — Job Pool, direktori kreator, dan katalog
+ * rate card memang publik. Bucket di bawah punya model izin sendiri (fileSecurity)
+ * dan belum ikut gelombang ini.
+ */
 
 const databaseId = "6a4c8598001da3b0d7f0";
 const databaseName = "prod_marketiv_db";
@@ -20,8 +40,20 @@ const createBoolAttr = (key, required = false, def = null, array = false) => ({
 const createDatetimeAttr = (key, required = false, array = false) => ({
     key, type: "datetime", required, array, default: null
 });
+// `format` dan `size` WAJIB ikut ditulis. Tanpa keduanya `appwrite push tables`
+// gagal dengan `Missing required parameter: "size"` saat harus membuat ulang
+// kolomnya — itu yang menghentikan push di `creator_profiles.niche` (2026-07-27).
+// Nilai size mengikuti perilaku server Appwrite: sepanjang elemen terpanjang.
 const createEnumAttr = (key, required = false, elements = [], def = null) => ({
-    key, type: "string", required, array: false, elements, default: def, encrypt: false
+    key,
+    type: "string",
+    required,
+    array: false,
+    format: "enum",
+    elements,
+    size: Math.max(...elements.map((e) => e.length)),
+    default: def,
+    encrypt: false
 });
 
 const createIndex = (key, type, attributes, orders = []) => {
@@ -36,16 +68,25 @@ const collections = [
     {
         $id: "users",
         name: "Users",
-        $permissions: ["read(\"users\")"],
+        // Kosong: read("users") level koleksi membuat email & telepon SEMUA user
+        // terbaca siapa pun yang login — permission Appwrite adalah union, bukan
+        // intersection. Baca hanya lewat permission baris (create-user-profile:96).
+        $permissions: [],
         documentSecurity: true,
         enabled: true,
         attributes: [
             createStringAttr("userId", true),
             createStringAttr("role", true, 50),
-            createStringAttr("status", true, 50),
+            createEnumAttr("status", true, ["active", "suspended", "terminated"]),
             createStringAttr("email", true),
             createStringAttr("phone", false, 50),
-            createDatetimeAttr("createdAt", false)
+            createDatetimeAttr("createdAt", false),
+            createDatetimeAttr("suspended_at", false),
+            createStringAttr("tos_version", false, 20),
+            createDatetimeAttr("tos_accepted_at", false),
+            createDatetimeAttr("email_verified_at", false),
+            createEnumAttr("kyc_status", false, ["none", "pending_wa", "verified"]),
+            createDatetimeAttr("kyc_verified_at", false)
         ],
         indexes: [
             createIndex("idx_userId", "unique", ["userId"]),
@@ -55,9 +96,32 @@ const collections = [
         ]
     },
     {
+        $id: "appeals",
+        name: "Appeals",
+        $permissions: ["create(\"users\")"],
+        documentSecurity: true,
+        enabled: true,
+        attributes: [
+            createStringAttr("userId", true, 255),
+            createStringAttr("actionRef", true, 255),
+            createStringAttr("reason", true, 1000),
+            createStringAttr("evidence", false, 2048),
+            createDatetimeAttr("deadlineAt", true),
+            createDatetimeAttr("slaDecidedAt", true),
+            createEnumAttr("status", true, ["submitted", "under_review", "approved", "rejected"]),
+            createStringAttr("decision", false, 1000),
+            createDatetimeAttr("decidedAt", false)
+        ],
+        indexes: [
+            createIndex("idx_userId", "key", ["userId"]),
+            createIndex("idx_status", "key", ["status"]),
+            createIndex("idx_userId_status", "key", ["userId", "status"])
+        ]
+    },
+    {
         $id: "umkm_profiles",
         name: "UMKM Profiles",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -81,7 +145,7 @@ const collections = [
     {
         $id: "creator_profiles",
         name: "Creator Profiles",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -111,7 +175,7 @@ const collections = [
     {
         $id: "creator_social_accounts",
         name: "Creator Social Accounts",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -130,7 +194,7 @@ const collections = [
     {
         $id: "creator_portfolios",
         name: "Creator Portfolios",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -147,7 +211,9 @@ const collections = [
     {
         $id: "user_storage_usage",
         name: "User Storage Usage",
-        $permissions: ["read(\"users\")"],
+        // Kosong: kuota & pemakaian semua user tidak boleh saling terbaca.
+        // Row perm dipasang create-user-profile:162.
+        $permissions: [],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -163,7 +229,9 @@ const collections = [
     {
         $id: "user_files",
         name: "User Files",
-        $permissions: ["read(\"users\")"],
+        // Kosong: daftar berkas semua user tidak boleh saling terbaca.
+        // Row perm dipasang validate-and-upload:66.
+        $permissions: [],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -186,7 +254,7 @@ const collections = [
     {
         $id: "campaigns",
         name: "Campaigns",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -217,7 +285,7 @@ const collections = [
     {
         $id: "campaign_assets",
         name: "Campaign Assets",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -253,7 +321,7 @@ const collections = [
     {
         $id: "campaign_briefs",
         name: "Campaign Briefs",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -273,7 +341,7 @@ const collections = [
     {
         $id: "campaign_claims",
         name: "Campaign Claims",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -292,7 +360,7 @@ const collections = [
     {
         $id: "campaign_submissions",
         name: "Campaign Submissions",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -303,10 +371,18 @@ const collections = [
             createStringAttr("postUrl", true, 2048),
             createStringAttr("caption", false, 1000),
             createIntAttr("views", true),
+            createIntAttr("views_count", false, null),
+            createDatetimeAttr("views_captured_at", false),
+            createEnumAttr("views_source", false, ["api", "scrape", "manual_admin"], null),
+            createBoolAttr("views_final", false, false),
             createIntAttr("engagement", false),
             createIntAttr("fraudScore", false),
             createStringAttr("fraudStatus", false, 50),
-            createStringAttr("status", true, 50)
+            createStringAttr("status", true, 50),
+            createStringAttr("reviewNotes", false, 1000),
+            createStringAttr("creatorCredit", false, 255),
+            createBoolAttr("aiGenerated", false, null),
+            createBoolAttr("aiDisclosed", false, null)
         ],
         indexes: [
             createIndex("idx_claimId", "unique", ["claimId"]),
@@ -319,7 +395,7 @@ const collections = [
     {
         $id: "rate_cards",
         name: "Rate Cards",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -338,7 +414,7 @@ const collections = [
     {
         $id: "rate_card_packages",
         name: "Rate Card Packages",
-        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")"],
+        $permissions: ["read(\"any\")", "create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -358,7 +434,9 @@ const collections = [
     {
         $id: "conversations",
         name: "Conversations",
-        $permissions: ["read(\"users\")", "create(\"users\")", "update(\"users\")"],
+        // read & update dicabut: daftar lawan bicara semua user terbaca.
+        // Row perm dipasang chat.service.ts:123 untuk kedua pihak.
+        $permissions: ["create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -379,7 +457,10 @@ const collections = [
     {
         $id: "messages",
         name: "Messages",
-        $permissions: ["read(\"users\")", "create(\"users\")", "update(\"users\")"],
+        // read & update dicabut: SELURUH isi chat semua user terbaca kalau
+        // dibiarkan. Row perm (read + update untuk kedua pihak) dipasang
+        // chat.service.ts:160.
+        $permissions: ["create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -399,7 +480,9 @@ const collections = [
     {
         $id: "offers",
         name: "Offers",
-        $permissions: ["read(\"users\")", "create(\"users\")", "update(\"users\")"],
+        // read & update dicabut: nilai & isi penawaran semua user terbaca.
+        // Row perm dipasang offer.service.ts:147-150.
+        $permissions: ["create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -423,7 +506,11 @@ const collections = [
     {
         $id: "orders",
         name: "Orders",
-        $permissions: ["read(\"users\")", "create(\"users\")", "update(\"users\")"],
+        // Kosong: nominal & pihak order semua user terbaca kalau read("users")
+        // dibiarkan. Baris orders HANYA dibuat Function create-order (row perm
+        // di :32-37), tidak pernah dari browser — jadi create("users") pun tidak
+        // diperlukan.
+        $permissions: [],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -433,7 +520,12 @@ const collections = [
             createStringAttr("umkmId", true),
             createIntAttr("amount", true),
             createStringAttr("status", true, 50),
-            createDatetimeAttr("createdAt", false)
+            createDatetimeAttr("createdAt", false),
+            createDatetimeAttr("review_deadline_at", false),
+            createBoolAttr("auto_approved", false, false),
+            createIntAttr("revision_count", false, 0),
+            createIntAttr("revision_limit", false, 0),
+            createDatetimeAttr("reminder_sent_at", false)
         ],
         indexes: [
             createIndex("idx_offerId", "unique", ["offerId"]),
@@ -447,7 +539,14 @@ const collections = [
     {
         $id: "deliverables",
         name: "Deliverables",
-        $permissions: ["read(\"users\")", "create(\"users\")", "update(\"users\")"],
+        // Sengaja TANPA read/update("users"): permission Appwrite adalah union,
+        // jadi update("users") di sini membuat setiap user login bisa mengubah
+        // baris deliverable siapa pun — termasuk menyetujuinya, dan approve
+        // itulah yang memicu release-escrow mencairkan dana ke wallet kreator.
+        // Akses hanya lewat permission baris yang dipasang order.service.ts
+        // (read: kedua pihak, update: UMKM saja).
+        // JANGAN kembalikan read/update("users") di sini.
+        $permissions: ["create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -458,7 +557,9 @@ const collections = [
             createStringAttr("notes", false, 2000),
             createIntAttr("version", true),
             createStringAttr("status", true, 50),
-            createDatetimeAttr("createdAt", false)
+            createDatetimeAttr("createdAt", false),
+            createStringAttr("creatorCredit", false, 255),
+            createBoolAttr("aiGenerated", false, null)
         ],
         indexes: [
             createIndex("idx_orderId", "key", ["orderId"]),
@@ -468,7 +569,10 @@ const collections = [
     {
         $id: "revisions",
         name: "Revisions",
-        $permissions: ["read(\"users\")", "create(\"users\")", "update(\"users\")"],
+        // Sejajar deliverables: isi & riwayat revisi order lain tidak boleh
+        // terbaca, apalagi diubah. Row perm dipasang order.service.ts
+        // (read + update: kedua pihak order).
+        $permissions: ["create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -505,7 +609,9 @@ const collections = [
     {
         $id: "payments",
         name: "Payments",
-        $permissions: ["read(\"users\")"],
+        // Kosong: snap_token, redirect_url, dan nominal semua user terbaca kalau
+        // read("users") dibiarkan. Row perm dipasang create-payment:74.
+        $permissions: [],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -566,7 +672,8 @@ const collections = [
         attributes: [
             createStringAttr("orderId", true),
             createIntAttr("amount", true),
-            createStringAttr("status", true, 50)
+            createStringAttr("status", true, 50),
+            createFloatAttr("fee_rate", false, 0)
         ],
         indexes: [
             createIndex("idx_orderId", "unique", ["orderId"]),
@@ -576,7 +683,10 @@ const collections = [
     {
         $id: "withdrawals",
         name: "Withdrawals",
-        $permissions: ["read(\"users\")", "create(\"users\")"],
+        // read dicabut: nomor rekening & nominal penarikan semua user terbaca.
+        // create dipertahankan untuk jalur klien; row perm dipasang
+        // request-withdrawal:70.
+        $permissions: ["create(\"users\")"],
         documentSecurity: true,
         enabled: true,
         attributes: [
@@ -586,8 +696,14 @@ const collections = [
             createStringAttr("providerName", true, 100),
             createStringAttr("accountNumber", true, 100),
             createStringAttr("accountName", true, 255),
-            createStringAttr("status", true, 50),
-            createDatetimeAttr("processedAt", true)
+            createEnumAttr("status", true, ["requested", "processing", "succeeded", "failed", "reversed"]),
+            createDatetimeAttr("processedAt", false),
+            createStringAttr("failure_reason", false, 500),
+            createDatetimeAttr("reversed_at", false),
+            createStringAttr("requester_role", false, 20),
+            createEnumAttr("source_origin", false, ["creator", "umkm_refund", "umkm_budget"]),
+            createEnumAttr("kyc_status", false, ["none", "pending_wa", "verified"]),
+            createStringAttr("iris_reference", false, 255)
         ],
         indexes: [
             createIndex("idx_userId", "key", ["userId"])
@@ -726,7 +842,14 @@ const buckets = [
     {
         $id: "user-files",
         name: "User Files",
-        $permissions: ["read(\"users\")", "create(\"users\")"],
+        // Sengaja TANPA read("users"): permission Appwrite adalah union, jadi
+        // itu membuat setiap user login bisa mengunduh berkas siapa pun —
+        // termasuk deliverable order orang lain dan dokumen pribadi. Bucket ini
+        // punya fileSecurity, dan validate-and-upload sudah memasang permission
+        // per-berkas (pemilik, plus pihak lawan order bila `shareWithOrderId`
+        // dikirim). Itulah satu-satunya jalur baca yang benar.
+        // JANGAN kembalikan read("users") di sini.
+        $permissions: ["create(\"users\")"],
         fileSecurity: true,
         enabled: true,
         maximumFileSize: 20971520, // 20 MB
@@ -743,6 +866,70 @@ const buckets = [
 
 const functions = [
     {
+        $id: "suspend-user",
+        name: "Suspend User",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        ignore: ["node_modules", ".env"],
+        path: "../functions/suspend-user",
+        scopes: ["documents.read", "documents.write"]
+    },
+    {
+        $id: "unsuspend-user",
+        name: "Unsuspend User",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        ignore: ["node_modules", ".env"],
+        path: "../functions/unsuspend-user",
+        scopes: ["documents.read", "documents.write"]
+    },
+    {
+        $id: "create-appeal",
+        name: "Create Appeal",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        ignore: ["node_modules", ".env"],
+        path: "../functions/create-appeal",
+        scopes: ["documents.read", "documents.write"]
+    },
+    {
+        $id: "review-appeal",
+        name: "Review Appeal",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        ignore: ["node_modules", ".env"],
+        path: "../functions/review-appeal",
+        scopes: ["documents.read", "documents.write"]
+    },
+    {
         $id: "create-user-profile",
         name: "Create User Profile",
         runtime: "node-22",
@@ -755,6 +942,20 @@ const functions = [
         entrypoint: "src/main.js",
         commands: "npm install",
         path: "../functions/create-user-profile"
+    },
+    {
+        $id: "accept-tos",
+        name: "Accept ToS",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/accept-tos"
     },
     {
         $id: "validate-and-upload",
@@ -799,11 +1000,25 @@ const functions = [
         path: "../functions/create-user-wallet"
     },
     {
+        $id: "user-email-verified",
+        name: "User Email Verified",
+        runtime: "node-22",
+        execute: [],
+        events: ["users.*.update"],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/user-email-verified"
+    },
+    {
         $id: "campaign-published",
         name: "Campaign Published",
         runtime: "node-22",
         execute: [],
-        events: [`databases.${databaseId}.collections.campaigns.documents.*.update`],
+        events: [`databases.${databaseId}.tables.campaigns.rows.*.update`],
         schedule: "",
         timeout: 15,
         enabled: true,
@@ -831,7 +1046,7 @@ const functions = [
         name: "AI Fraud Precheck",
         runtime: "node-22",
         execute: [],
-        events: [`databases.${databaseId}.collections.campaign_submissions.documents.*.create`],
+        events: [`databases.${databaseId}.tables.campaign_submissions.rows.*.create`],
         schedule: "",
         timeout: 60,
         enabled: true,
@@ -845,7 +1060,7 @@ const functions = [
         name: "Create Order",
         runtime: "node-22",
         execute: [],
-        events: [`databases.${databaseId}.collections.offers.documents.*.update`],
+        events: [`databases.${databaseId}.tables.offers.rows.*.update`],
         schedule: "",
         timeout: 15,
         enabled: true,
@@ -859,7 +1074,7 @@ const functions = [
         name: "Calculate Campaign Reward",
         runtime: "node-22",
         execute: [],
-        events: [`databases.${databaseId}.collections.campaign_submissions.documents.*.update`],
+        events: [`databases.${databaseId}.tables.campaign_submissions.rows.*.update`],
         schedule: "",
         timeout: 30,
         enabled: true,
@@ -873,7 +1088,7 @@ const functions = [
         name: "Campaign Claimed",
         runtime: "node-22",
         execute: [],
-        events: [`databases.${databaseId}.collections.campaign_claims.documents.*.create`],
+        events: [`databases.${databaseId}.tables.campaign_claims.rows.*.create`],
         schedule: "",
         timeout: 15,
         enabled: true,
@@ -895,6 +1110,20 @@ const functions = [
         entrypoint: "src/main.js",
         commands: "npm install",
         path: "../functions/expire-stale-claims"
+    },
+    {
+        $id: "mature-pending-balance",
+        name: "Mature Pending Balance",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "0 2 * * *",
+        timeout: 60,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/mature-pending-balance"
     },
     {
         $id: "create-payment",
@@ -939,11 +1168,39 @@ const functions = [
         path: "../functions/midtrans-webhook"
     },
     {
+        $id: "withdrawal-callback",
+        name: "Withdrawal Callback",
+        runtime: "node-22",
+        execute: ["any"],
+        events: [],
+        schedule: "",
+        timeout: 30,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/withdrawal-callback"
+    },
+    {
+        $id: "verify-kyc",
+        name: "Verify KYC",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/verify-kyc"
+    },
+    {
         $id: "create-escrow",
         name: "Create Escrow",
         runtime: "node-22",
         execute: [],
-        events: [`databases.${databaseId}.collections.payments.documents.*.update`],
+        events: [`databases.${databaseId}.tables.payments.rows.*.update`],
         schedule: "",
         timeout: 15,
         enabled: true,
@@ -957,7 +1214,7 @@ const functions = [
         name: "Release Escrow",
         runtime: "node-22",
         execute: [],
-        events: [`databases.${databaseId}.collections.deliverables.documents.*.update`],
+        events: [`databases.${databaseId}.tables.deliverables.rows.*.update`],
         schedule: "",
         timeout: 15,
         enabled: true,
@@ -971,7 +1228,7 @@ const functions = [
         name: "Send Chat Notification",
         runtime: "node-22",
         execute: [],
-        events: [`databases.${databaseId}.collections.messages.documents.*.create`],
+        events: [`databases.${databaseId}.tables.messages.rows.*.create`],
         schedule: "",
         timeout: 15,
         enabled: true,
@@ -979,6 +1236,74 @@ const functions = [
         entrypoint: "src/main.js",
         commands: "npm install",
         path: "../functions/send-chat-notification"
+    },
+    // ── Tulis lintas-user (Sprint 8) ──────────────────────────────────────────
+    //
+    // Keempatnya ada di server BUKAN karena agregasi, tapi karena Appwrite
+    // melarang klien memasang permission untuk user LAIN: dari sesi browser
+    // `permissions` hanya boleh menyebut `any`, `users`, dan role diri sendiri.
+    // Sementara `conversations`, `messages`, `offers`, `campaign_submissions`,
+    // dan `campaign_claims` tidak punya izin baca/tulis di level koleksi, jadi
+    // lawan bicara HANYA bisa mengaksesnya lewat permission per-baris.
+    //
+    // Dua syarat itu tidak bisa dipenuhi bersamaan dari browser. Jangan
+    // memindahkan logikanya kembali ke `src/services/` — yang akan terjadi cuma
+    // `AppwriteException: Permissions must be one of: (...)` lagi.
+    {
+        $id: "create-conversation",
+        name: "Create Conversation",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/create-conversation"
+    },
+    {
+        $id: "send-message",
+        name: "Send Message",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/send-message"
+    },
+    {
+        $id: "create-offer",
+        name: "Create Offer",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/create-offer"
+    },
+    {
+        $id: "review-submission",
+        name: "Review Submission",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/review-submission"
     },
     // ── Function DTO baca (Sprint 1 / s1-appwrite-read) ────────────────────────
     // Agregasi & join yang tidak bisa dipetakan setia dari satu collection.
@@ -1085,6 +1410,72 @@ const functions = [
         path: "../functions/get-creator-negotiations"
     },
     {
+        // Pasangan sisi UMKM dari get-creator-negotiations. Join-nya identik;
+        // yang berbeda hanya filter peserta, profil lawan bicara, dan semantik
+        // fee (seller-side, ADR-008 — UMKM bayar penuh, fee 0).
+        $id: "get-umkm-negotiations",
+        name: "Get Umkm Negotiations",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 30,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/get-umkm-negotiations"
+    },
+    {
+        // Satu Function, dua event: keduanya butuh join yang sama (baris →
+        // orders → pihak lawan) dan menulis ke tabel yang sama. Memecahnya jadi
+        // dua Function berarti dua deployment dan dua tempat yang harus diingat
+        // saat skema berubah.
+        $id: "notify-order-activity",
+        name: "Notify Order Activity",
+        runtime: "node-22",
+        execute: [],
+        events: [
+            `databases.${databaseId}.tables.deliverables.rows.*.create`,
+            `databases.${databaseId}.tables.revisions.rows.*.create`
+        ],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/notify-order-activity"
+    },
+    {
+        $id: "refund-escrow",
+        name: "Refund Escrow",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/refund-escrow"
+    },
+    {
+        $id: "refund-order",
+        name: "Refund Order",
+        runtime: "node-22",
+        execute: [],
+        events: ["databases.6a4c8598001da3b0d7f0.tables.orders.rows.*.update"],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/refund-order"
+    },
+{
         $id: "cancel-payment",
         name: "Cancel Payment",
         runtime: "node-22",
@@ -1098,10 +1489,33 @@ const functions = [
         commands: "npm install",
         path: "../functions/cancel-payment"
     },
-
+    {
+        $id: "fee-rate-flip",
+        name: "Fee Rate Flip Monitor",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "0 0 * * *",
+        timeout: 30,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/fee-rate-flip"
+    }
 ];
 
 const appwriteConfigPath = path.join(__dirname, '..', 'appwrite.config.json');
+
+// Scopes menentukan hak dynamic API key (`x-appwrite-key`) tiap Function. Kalau
+// key ini tidak ikut ditulis ke appwrite.config.json, `appwrite push functions`
+// — yang punya replace-semantics — akan MENGOSONGKAN scopes di Appwrite, dan
+// setiap panggilan `databases.*` di dalam Function balik 401 secara senyap.
+// Itu yang terjadi pada 8 Function event-driven di commit dd41686.
+// function-scopes.json tetap satu-satunya sumber kebenaran; di sini ia hanya
+// disalin ke config supaya push membawanya.
+const functionScopesPath = path.join(__dirname, 'function-scopes.json');
+const functionScopes = JSON.parse(fs.readFileSync(functionScopesPath, 'utf-8'));
 
 const existingProjectId = "69f9d45b00315cb0ec2f";
 const existingProjectName = "Marketiv";
@@ -1120,10 +1534,20 @@ const config = {
     buckets,
     functions: functions
         .filter((fn) => fs.existsSync(path.join(__dirname, fn.path)))
-        .map(fn => ({
-            ...fn,
-            path: fn.path.replace('../', '')
-        }))
+        .map(fn => {
+            const scopes = functionScopes[fn.$id];
+            if (!scopes) {
+                throw new Error(
+                    `Function "${fn.$id}" tidak punya entry di function-scopes.json. ` +
+                    `Tambahkan dulu — tanpa scopes, Function tidak bisa memanggil API Appwrite.`
+                );
+            }
+            return {
+                ...fn,
+                scopes,
+                path: fn.path.replace('../', '')
+            };
+        })
 };
 fs.writeFileSync(appwriteConfigPath, JSON.stringify(config, null, 2));
 console.log(`Successfully generated ${appwriteConfigPath}`);

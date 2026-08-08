@@ -19,9 +19,9 @@ export function NegotiationRoomSkeleton() {
       </div>
 
       {/* Main Grid Skeleton */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Left main: Chat area (span 2) */}
-        <div className="lg:col-span-2 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
+        {/* Left main: Chat area */}
+        <div className="space-y-4">
           {/* Warning Banner Skeleton */}
           <div className="h-12 bg-neutral-200 rounded-xl" />
           

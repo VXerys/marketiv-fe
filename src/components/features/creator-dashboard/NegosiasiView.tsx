@@ -1,35 +1,38 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useStickyToolbar } from "@/hooks/useStickyToolbar";
+import { SearchToolbar, type SearchToolbarFilter } from "@/components/features/dashboard/shared";
 import { CreatorNegotiation } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
 import { formatCurrency } from "@/lib/formatters";
+import { calculatePlatformFee } from "@/types/domain";
 import { cn } from "@/lib/utils";
 import {
   MessageSquare,
   ShieldCheck,
   ClipboardCheck,
-  Search,
   Tag,
   Hourglass,
   Clock3,
-  SlidersHorizontal,
   Archive,
   ArchiveRestore,
 } from "lucide-react";
-import {
-  getMyConversations,
-  setConversationArchived,
-  type ConversationFlag,
-} from "@/services/shared/conversation.service";
+import { setConversationArchived } from "@/services/shared/conversation.service";
+import { getCreatorNegotiations } from "@/services/creator/creator-dashboard.service";
+import { CreatorPageSkeleton } from "./CreatorPageSkeleton";
 import { toast } from "sonner";
 
-interface NegosiasiViewProps {
-  initialNegotiations: CreatorNegotiation[];
-}
+const CREATOR_ACTION_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-600), var(--color-kreator-action-end))";
+
+/**
+ * Tanpa props. Data diambil di klien, BUKAN di Server Component: DTO
+ * `get-creator-negotiations` menegakkan kepemilikan lewat header
+ * `x-appwrite-user-id` sesi aktif, dan sesi Appwrite hidup di browser — memanggil
+ * dari server akan selalu balik 401 (pelajaran `s3-ssr-session`).
+ */
 
 // ─── MetricTile ───────────────────────────────────────────────────────────────
 
@@ -63,7 +66,7 @@ function MetricTile({ label, value, helper, icon, iconClass, cardClass, badge, b
         {icon}
       </div>
       <div className="text-[.67rem] font-extrabold text-neutral-400 uppercase tracking-widest leading-none">{label}</div>
-      <div className="font-display text-[1.3rem] sm:text-[1.4rem] font-black text-[#1e1b4b] tracking-tight leading-none mt-1.5">{value}</div>
+      <div className="font-display text-[1.3rem] sm:text-[1.4rem] font-black text-kreator-ink tracking-tight leading-none mt-1.5">{value}</div>
       <div className="text-[.7rem] text-neutral-400 font-semibold mt-1 leading-none">{helper}</div>
     </div>
   );
@@ -71,8 +74,23 @@ function MetricTile({ label, value, helper, icon, iconClass, cardClass, badge, b
 
 // ─── NegotiationCard ─────────────────────────────────────────────────────────
 
-// Key = orders.status kanon (lihat src/types/domain.ts)
-const STATUS_STYLES: Record<string, { dot: string; text: string; bg: string; border: string; label: string }> = {
+type StageStyle = { dot: string; text: string; bg: string; border: string; label: string };
+
+/**
+ * Key = `NegotiationStage` (src/types/domain.ts), BUKAN `OrderStatus`.
+ *
+ * Empat tahap teratas terjadi SEBELUM order lahir, dan di Alur B order lahir
+ * paling akhir — jadi justru di sanalah sebagian besar ruang negosiasi berada.
+ * Versi sebelumnya hanya memetakan tujuh `OrderStatus` dan mem-fallback ke
+ * `STATUS_STYLES.chatting` yang tidak pernah ada, sehingga percakapan baru
+ * (stage `chatting`) membuat `s` bernilai undefined dan seluruh halaman
+ * Negosiasi kreator crash ke error boundary.
+ */
+const STATUS_STYLES: Record<string, StageStyle> = {
+  chatting:        { dot: "bg-neutral-400", text: "text-neutral-600", bg: "bg-neutral-50", border: "border-neutral-200/50", label: "Diskusi" },
+  offer_pending:   { dot: "bg-violet-400",  text: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200/50",  label: "Penawaran Masuk" },
+  offer_rejected:  { dot: "bg-rose-400",    text: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-200/50",    label: "Penawaran Ditolak" },
+  awaiting_order:  { dot: "bg-indigo-400",  text: "text-indigo-700",  bg: "bg-indigo-50",  border: "border-indigo-200/50",  label: "Menyiapkan Pesanan" },
   pending_payment: { dot: "bg-blue-400",   text: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-200/50",   label: "Menunggu Bayar" },
   escrow:          { dot: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200/50", label: "Escrow Aktif" },
   in_progress:     { dot: "bg-amber-400",  text: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-200/50",  label: "Dikerjakan" },
@@ -82,24 +100,37 @@ const STATUS_STYLES: Record<string, { dot: string; text: string; bg: string; bor
   cancelled:       { dot: "bg-neutral-400", text: "text-neutral-600", bg: "bg-neutral-50", border: "border-neutral-200/50", label: "Dibatalkan" },
 };
 
+/** Dipakai bila `stage` tidak dikenali — selalu ada, jadi tidak pernah undefined. */
+const UNKNOWN_STAGE_STYLE: StageStyle = {
+  dot: "bg-neutral-300",
+  text: "text-neutral-500",
+  bg: "bg-neutral-50",
+  border: "border-neutral-200/50",
+  label: "Negosiasi",
+};
+
 function NegotiationCard({
   neg,
   isArchived,
+  isToggling,
   onToggleArchive,
 }: {
   neg: CreatorNegotiation;
   isArchived: boolean;
+  isToggling: boolean;
   onToggleArchive: () => void;
 }) {
-  const s = STATUS_STYLES[neg.status] ?? STATUS_STYLES.pending_payment;
-  const dateStr = new Date(neg.lastMessageAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+  // Fallback ke konstanta, bukan ke entri lain di peta — kalau kuncinya salah
+  // ketik, `s` diam-diam jadi undefined dan seluruh daftar ikut mati.
+  const s = STATUS_STYLES[neg.stage] ?? UNKNOWN_STAGE_STYLE;
+  const dateStr = new Date(neg.lastMessageAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const hasUrgent = neg.unreadCount > 0;
 
   return (
     <div
       className={cn(
         "group relative bg-white rounded-[20px] border-l-4 border overflow-hidden",
-        "shadow-[0_2px_10px_rgba(15,23,42,.04)] hover:shadow-[0_10px_32px_rgba(109,40,217,.09)] hover:-translate-y-0.5",
+        "shadow-1 hover:shadow-kreator-avatar hover:-translate-y-0.5",
         "transition-all duration-300 flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4",
         hasUrgent
           ? "border-l-violet-500 border-violet-200/50"
@@ -130,7 +161,7 @@ function NegotiationCard({
       {/* Main content */}
       <div className="flex-1 min-w-0 space-y-1.5">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-extrabold text-[#1e1b4b] text-sm group-hover:text-violet-700 transition-colors">
+          <span className="font-extrabold text-kreator-ink text-sm group-hover:text-violet-700 transition-colors">
             {neg.umkmName}
           </span>
           <span className={cn(
@@ -142,7 +173,7 @@ function NegotiationCard({
           </span>
         </div>
 
-        <h4 className="font-extrabold text-sm text-[#1e1b4b] truncate leading-tight flex items-center gap-1.5">
+        <h4 className="font-extrabold text-sm text-kreator-ink truncate leading-tight flex items-center gap-1.5">
           <Tag className="w-3 h-3 text-neutral-400 shrink-0" />
           {neg.projectTitle}
         </h4>
@@ -156,9 +187,12 @@ function NegotiationCard({
             <Clock3 className="w-2.5 h-2.5 shrink-0" />
             {dateStr}
           </span>
-          <span className="font-display text-xs font-black text-[#1e1b4b] tracking-tight">
-            {formatCurrency(neg.finalPrice)}
-          </span>
+          <div className="flex flex-col gap-0">
+            <span className="font-display text-xs font-black text-kreator-ink tracking-tight leading-none">
+              {formatCurrency(neg.totalAmount ?? (neg.finalPrice - calculatePlatformFee(neg.finalPrice)))}
+            </span>
+            <span className="text-[8px] font-semibold text-neutral-400 leading-none">kamu terima</span>
+          </div>
         </div>
       </div>
 
@@ -166,18 +200,22 @@ function NegotiationCard({
       <div className="self-end sm:self-center flex items-center gap-2 shrink-0">
         <button
           onClick={onToggleArchive}
+          disabled={isToggling}
           title={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
           aria-label={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
-          className="flex items-center justify-center h-9 w-9 rounded-[12px] border border-neutral-200 text-neutral-400 hover:text-[#7c3aed] hover:border-violet-200 transition-colors cursor-pointer"
+          className="flex items-center justify-center h-9 w-9 rounded-[12px] border border-neutral-200 text-neutral-400 hover:text-kreator-600 hover:border-violet-200 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
         >
-          {isArchived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
+          {isToggling
+            ? <span className="w-3.5 h-3.5 border-2 border-neutral-300 border-t-violet-500 rounded-full animate-spin" />
+            : isArchived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />
+          }
         </button>
         <Link
           href={`/dashboard/kreator/negosiasi/${neg.id}`}
           className="flex items-center gap-1.5 px-4 py-2.5 rounded-[12px] text-[11px] font-extrabold text-white transition-all hover:-translate-y-0.5 active:translate-y-0"
           style={{
-            background: "linear-gradient(135deg,#7c3aed,#4f46e5)",
-            boxShadow: "0 4px 14px rgba(124,58,237,.25)",
+            background: CREATOR_ACTION_GRADIENT,
+            boxShadow: "var(--shadow-kreator)",
           }}
         >
           <MessageSquare className="w-3.5 h-3.5" />
@@ -190,67 +228,73 @@ function NegotiationCard({
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
-  const [negotiations] = useState<CreatorNegotiation[]>(initialNegotiations);
-  const [conversations, setConversations] = useState<ConversationFlag[]>([]);
+export function NegosiasiView() {
+  const [negotiations, setNegotiations] = useState<CreatorNegotiation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
-  const [filterOpen, setFilterOpen] = useState(false);
-  const { toolbarRef, isSticky } = useStickyToolbar();
 
   /**
-   * Status arsip tidak ikut di DTO `get-creator-negotiations` (Function-nya
-   * belum memfilter `is_archived` sama sekali), jadi dibaca terpisah dan
-   * dijodohkan di klien. Gagal memuat = semua percakapan dianggap belum
-   * diarsipkan; daftar tetap tampil utuh.
+   * Status arsip kini ikut di DTO `get-creator-negotiations` (`isArchived`
+   * dibaca langsung dari `conversations.is_archived`), jadi query terpisah dan
+   * penjodohan per-umkmId yang dulu ada di sini tidak diperlukan lagi.
    */
-  useEffect(() => {
-    let active = true;
-    getMyConversations().then((res) => {
-      if (active && res.success && res.data) setConversations(res.data);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  /**
-   * Cukup di-key umkmId: getMyConversations hanya mengembalikan percakapan
-   * sesi ini, dan `umkm_id + creator_id` unik — jadi untuk satu kreator,
-   * satu UMKM = satu percakapan.
-   */
-  const conversationByUmkm = new Map(conversations.map((c) => [c.umkmId, c]));
-
   const handleToggleArchive = async (neg: CreatorNegotiation) => {
-    const conv = conversationByUmkm.get(neg.umkmId);
-    if (!conv) {
-      toast.error("Percakapan untuk negosiasi ini belum tersedia.");
-      return;
-    }
-    const next = !conv.isArchived;
-    const res = await setConversationArchived(conv.id, next);
+    if (togglingId === neg.conversationId) return;
+    const next = !neg.isArchived;
+    setTogglingId(neg.conversationId);
+    const res = await setConversationArchived(neg.conversationId, next);
+    setTogglingId(null);
     if (!res.success) {
       toast.error(res.error ?? "Gagal mengubah status arsip.");
       return;
     }
-    setConversations((prev) =>
-      prev.map((c) => (c.id === conv.id ? { ...c, isArchived: next } : c))
+    setNegotiations((prev) =>
+      prev.map((n) => (n.conversationId === neg.conversationId ? { ...n, isArchived: next } : n))
     );
     toast.success(next ? "Percakapan diarsipkan." : "Percakapan dikembalikan ke inbox.");
   };
 
+  const loadNegotiations = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const res = await getCreatorNegotiations();
+    if (res.success && res.data) {
+      setNegotiations(res.data);
+    } else {
+      setError(res.error ?? "Gagal memuat daftar negosiasi.");
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      void loadNegotiations();
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [loadNegotiations]);
+
   const handleClearFilters = () => {
     setSearch("");
     setSelectedStatus("all");
+    setSortBy("latest");
   };
 
-  const countNegotiation        = negotiations.filter(n => n.status === "pending_payment").length;
-  const countPendingPayment     = negotiations.filter(n => n.status === "pending_payment").length;
-  const countEscrow             = negotiations.filter(n => ["escrow","in_progress","revision","approved"].includes(n.status)).length;
-  const countCompleted          = negotiations.filter(n => n.status === "completed").length;
+  // "Negosiasi" dan "Menunggu pembayaran" dulu menghitung hal yang PERSIS SAMA
+  // (`pending_payment`) karena tahap sebelum order belum punya nilai status.
+  // Sekarang keduanya benar-benar berbeda.
+  const NEGOTIATING_STAGES = ["chatting", "offer_pending", "offer_rejected", "awaiting_order"];
+  const ESCROW_STAGES = ["escrow", "in_progress", "revision", "approved"];
+
+  const countNegotiation        = negotiations.filter(n => NEGOTIATING_STAGES.includes(n.stage)).length;
+  const countPendingPayment     = negotiations.filter(n => n.stage === "pending_payment").length;
+  const countEscrow             = negotiations.filter(n => ESCROW_STAGES.includes(n.stage)).length;
+  const countCompleted          = negotiations.filter(n => n.stage === "completed").length;
   const totalUnread             = negotiations.reduce((acc, n) => acc + (n.unreadCount || 0), 0);
 
   const filteredNegotiations = negotiations
@@ -262,24 +306,79 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
 
       const matchesStatus =
         selectedStatus === "all" ||
-        (selectedStatus === "negosiasi" && n.status === "pending_payment") ||
-        (selectedStatus === "menunggu-pembayaran" && n.status === "pending_payment") ||
-        (selectedStatus === "escrow" && ["escrow","in_progress","revision","approved"].includes(n.status)) ||
-        (selectedStatus === "selesai" && n.status === "completed");
+        (selectedStatus === "negosiasi" && NEGOTIATING_STAGES.includes(n.stage)) ||
+        (selectedStatus === "menunggu-pembayaran" && n.stage === "pending_payment") ||
+        (selectedStatus === "escrow" && ESCROW_STAGES.includes(n.stage)) ||
+        (selectedStatus === "selesai" && n.stage === "completed");
 
-      // Tanpa baris percakapan, anggap belum diarsipkan — baris tetap terlihat.
-      const isArchived = conversationByUmkm.get(n.umkmId)?.isArchived ?? false;
+      const isArchived = n.isArchived;
 
       return matchesSearch && matchesStatus && isArchived === showArchived;
     })
-    .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+    .sort((a, b) => {
+      if (sortBy === "deadline") return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+      if (sortBy === "price_desc") return (b.totalAmount ?? b.finalPrice) - (a.totalAmount ?? a.finalPrice);
+      if (sortBy === "unread") return b.unreadCount - a.unreadCount;
+      return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+    });
 
   const hasActiveFilters = search !== "" || selectedStatus !== "all";
+  const toolbarFilters: SearchToolbarFilter[] = [
+    {
+      label: "Status",
+      value: selectedStatus,
+      onChange: setSelectedStatus,
+      options: [
+        { value: "all", label: "Semua Status" },
+        { value: "negosiasi", label: "Negosiasi" },
+        { value: "menunggu-pembayaran", label: "Menunggu Pembayaran" },
+        { value: "escrow", label: "Escrow Aktif" },
+        { value: "selesai", label: "Selesai" },
+      ],
+    },
+    {
+      label: "Urutan",
+      value: sortBy,
+      onChange: setSortBy,
+      options: [
+        { value: "latest", label: "Terbaru" },
+        { value: "deadline", label: "Deadline Terdekat" },
+        { value: "price_desc", label: "Harga Tertinggi" },
+        { value: "unread", label: "Belum Dibaca" },
+      ],
+      prefix: "Urut",
+    },
+  ];
 
-  const archivedCount = negotiations.filter(
-    (n) => conversationByUmkm.get(n.umkmId)?.isArchived ?? false
-  ).length;
+  const archivedCount = negotiations.filter((n) => n.isArchived).length;
 
+  if (loading) {
+    return (
+      <div className="flex-1 p-4 sm:p-6 lg:p-8">
+        <CreatorPageSkeleton />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[50vh]">
+        <CreatorEmptyState
+          title="Gagal memuat negosiasi"
+          description={error}
+          actionButton={
+            <button
+              onClick={() => void loadNegotiations()}
+              className="text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow cursor-pointer"
+              style={{ background: CREATOR_ACTION_GRADIENT }}
+            >
+              Coba Lagi
+            </button>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 relative">
@@ -307,7 +406,7 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
               helper="Tawaran kamu disetujui"
               iconClass="text-blue-600 bg-blue-50 border-blue-200/50"
               icon={<Hourglass className="w-4 h-4" />}
-              cardClass="border-blue-200/40 shadow-[0_4px_20px_rgba(37,99,235,.06)] bg-gradient-to-br from-blue-50/20 to-white"
+              cardClass="border-blue-200/40 shadow-kreator-brand-sm bg-gradient-to-br from-blue-50/20 to-white"
             />
             <MetricTile
               label="Escrow Aktif"
@@ -323,92 +422,21 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
               helper="Reward siap dicairkan"
               iconClass="text-violet-600 bg-violet-50 border-violet-200/50"
               icon={<ClipboardCheck className="w-4 h-4" />}
-              cardClass="border-violet-200/40 shadow-[0_4px_20px_rgba(124,58,237,.06)] bg-gradient-to-br from-violet-50/20 to-white"
+              cardClass="border-violet-200/40 shadow-kreator-brand-sm bg-gradient-to-br from-violet-50/20 to-white"
             />
           </div>
 
           {/* Toolbar — sticky when scrolling */}
-          <div ref={toolbarRef} className="mb-6 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8" style={{ position: "sticky", top: 0, zIndex: 30 }}>
-          <div
-            className="flex flex-col gap-3"
-            style={{
-              padding: isSticky ? "10px 14px" : "14px",
-              borderRadius: isSticky ? 18 : 20,
-              border: "1px solid rgba(17,24,39,.08)",
-              background: isSticky ? "rgba(255,255,255,.92)" : "rgba(255,255,255,.8)",
-              backdropFilter: isSticky ? "blur(24px)" : "none",
-              WebkitBackdropFilter: isSticky ? "blur(24px)" : "none",
-              boxShadow: isSticky ? "0 8px 30px rgba(15,23,42,.08), 0 1px 0 rgba(255,255,255,.8) inset" : "0 2px 8px rgba(15,23,42,.04)",
-              transition: "all .28s cubic-bezier(.2,.8,.2,1)",
-            }}
-          >
-            {/* Row 1: Search + mobile filter toggle */}
-            <div className="flex gap-2.5 items-center">
-              <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Cari UMKM / judul order..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all font-medium text-neutral-800 placeholder-neutral-400"
-                />
-              </div>
-              {/* Mobile filter toggle */}
-              <button
-                onClick={() => setFilterOpen((o) => !o)}
-                className={cn(
-                  "sm:hidden shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
-                  filterOpen || hasActiveFilters
-                    ? "bg-violet-50 text-violet-700 border-violet-200"
-                    : "bg-neutral-50/50 text-neutral-700 border-neutral-200/60"
-                )}
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                Filter
-                {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />}
-              </button>
-            </div>
-
-            {/* Row 2: All filters — always on sm+, collapsible on mobile */}
-            <div className={cn("items-center gap-3 flex-wrap", filterOpen ? "flex" : "hidden sm:flex")}>
-              <SlidersHorizontal className="w-3.5 h-3.5 text-neutral-400 shrink-0 hidden sm:block" />
-
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[170px]"
-              >
-                <option value="all">Semua Status</option>
-                <option value="negosiasi">Negosiasi</option>
-                <option value="menunggu-pembayaran">Menunggu Pembayaran</option>
-                <option value="escrow">Escrow Aktif</option>
-                <option value="selesai">Selesai</option>
-              </select>
-
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[130px]"
-              >
-                <option value="latest">Terbaru</option>
-              </select>
-
-              {hasActiveFilters && (
-                <button
-                  onClick={handleClearFilters}
-                  className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-neutral-500 hover:text-neutral-900 cursor-pointer transition-colors whitespace-nowrap ml-auto border border-neutral-200/60 rounded-xl hover:bg-neutral-50"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Reset
-                </button>
-              )}
-            </div>
+          <div className="mb-6">
+            <SearchToolbar
+              searchValue={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="Cari UMKM / judul order..."
+              filters={toolbarFilters}
+              onClearFilters={handleClearFilters}
+              hasActiveFilters={hasActiveFilters}
+            />
           </div>
-          </div>
-
           {/* Tab Inbox / Arsip */}
           <div className="flex items-center gap-2 mb-4">
             <button
@@ -417,7 +445,7 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
                 "px-3.5 py-1.5 rounded-full text-[11px] font-extrabold transition-colors cursor-pointer border",
                 showArchived
                   ? "border-neutral-200/60 text-neutral-500 hover:bg-neutral-50"
-                  : "border-transparent bg-[#7c3aed] text-white"
+                  : "border-transparent bg-kreator-600 text-white"
               )}
             >
               Inbox
@@ -427,7 +455,7 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
               className={cn(
                 "px-3.5 py-1.5 rounded-full text-[11px] font-extrabold transition-colors cursor-pointer border",
                 showArchived
-                  ? "border-transparent bg-[#7c3aed] text-white"
+                  ? "border-transparent bg-kreator-600 text-white"
                   : "border-neutral-200/60 text-neutral-500 hover:bg-neutral-50"
               )}
             >
@@ -451,7 +479,7 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
                   <button
                     onClick={handleClearFilters}
                     className="text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow border border-transparent cursor-pointer"
-                    style={{ background: "linear-gradient(135deg,#7c3aed,#4f46e5)", boxShadow: "0 4px 14px rgba(124,58,237,.28)" }}
+                    style={{ background: CREATOR_ACTION_GRADIENT, boxShadow: "var(--shadow-kreator)" }}
                   >
                     Reset Filter
                   </button>
@@ -464,7 +492,8 @@ export function NegosiasiView({ initialNegotiations }: NegosiasiViewProps) {
                 <NegotiationCard
                   key={neg.id}
                   neg={neg}
-                  isArchived={conversationByUmkm.get(neg.umkmId)?.isArchived ?? false}
+                  isArchived={neg.isArchived}
+                  isToggling={togglingId === neg.conversationId}
                   onToggleArchive={() => handleToggleArchive(neg)}
                 />
               ))}

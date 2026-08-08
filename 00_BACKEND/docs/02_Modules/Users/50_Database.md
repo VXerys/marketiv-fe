@@ -23,7 +23,8 @@ Mirror identitas inti. Appwrite Auth menyimpan kredensial; collection ini menyim
 | --- | --- | --- | --- |
 | `userId` | string | yes | `$id` Appwrite Auth user |
 | `role` | enum | yes | `umkm` \| `creator` \| `admin` |
-| `status` | enum | yes | mis. `active`, `suspended` |
+| `status` | enum | yes | `active` \| `suspended` \| `terminated` |
+| `suspended_at` | datetime | no | Kapan akun di-suspend |
 | `email` | string | yes | |
 | `phone` | string | no | Wajib diisi saat Register UMKM (validasi aplikatif) |
 | `createdAt` | datetime | — | |
@@ -263,3 +264,23 @@ Admin : read
 
 - [30_Business_Rules.md](30_Business_Rules.md) — aturan kelengkapan profil, denormalisasi, & storage kuota.
 - [60_API.md](60_API.md) — operasi terhadap collection ini.
+
+---
+
+## 5. `appeals`
+
+Menyimpan data banding akun (suspend/terminate).
+
+### Attributes
+
+| Attribute | Type | Required | Catatan |
+| --- | --- | --- | --- |
+| `userId` | string | yes | |
+| `actionRef` | string | yes | |
+| `reason` | string | yes | |
+| `evidence` | string | no | |
+| `deadlineAt` | datetime | yes | |
+| `slaDecidedAt` | datetime | yes | |
+| `status` | enum | yes | `submitted` \| `under_review` \| `approved` \| `rejected` |
+| `decision` | string | no | |
+| `decidedAt` | datetime | no | |

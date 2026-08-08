@@ -1,11 +1,11 @@
+"use client";
+
 import { useState } from "react";
 import { FormSectionCard } from "../cards/FormSectionCard";
 import { BudgetCalculatorCard } from "../cards/BudgetCalculatorCard";
 import { formatCurrency } from "@/lib/formatters";
-import { MINIMUM_CAMPAIGN_BUDGET } from "@/types/domain";
-import { PRICE_TIERS } from "../create-campaign.constants";
-import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 interface BudgetQuotaStepProps {
   pricePerThousandViews: number;
@@ -27,8 +27,21 @@ export function BudgetQuotaStep({
   validationErrors = {},
 }: BudgetQuotaStepProps) {
   const [customPriceActive, setCustomPriceActive] = useState(
-    ![3000, 5000, 8000].includes(pricePerThousandViews)
+    pricePerThousandViews > 0 && ![3000, 5000, 8000].includes(pricePerThousandViews)
   );
+
+  const priceTiers = [
+    { id: 3000, label: "Rp 3.000" },
+    { id: 5000, label: "Rp 5.000" },
+    { id: 8000, label: "Rp 8.000" },
+  ];
+
+  const quickBudgets = [
+    { label: "Rp 500rb", value: 500000 },
+    { label: "Rp 1 Jt", value: 1000000 },
+    { label: "Rp 2 Jt", value: 2000000 },
+    { label: "Rp 3 Jt", value: 3000000 },
+  ];
 
   const handlePriceSelect = (price: number) => {
     setCustomPriceActive(false);
@@ -37,11 +50,13 @@ export function BudgetQuotaStep({
 
   const handleCustomPriceSelect = () => {
     setCustomPriceActive(true);
-    onChangePricePerThousandViews(10000); // default custom
+    if (!pricePerThousandViews || [3000, 5000, 8000].includes(pricePerThousandViews)) {
+      onChangePricePerThousandViews(10000);
+    }
   };
 
   const incrementQuota = () => {
-    onChangeCreatorQuota(creatorQuota + 1);
+    onChangeCreatorQuota((creatorQuota || 0) + 1);
   };
 
   const decrementQuota = () => {
@@ -52,119 +67,171 @@ export function BudgetQuotaStep({
 
   return (
     <FormSectionCard
-      title="Budget & Kuota Kreator"
-      description="Atur bayaran per tayangan video, kuota jumlah kreator, serta amankan anggaran dana escrow kampanye Anda."
-      icon={
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      }
+      title="Anggaran & Jumlah Kreator"
+      description="Tentukan dana kampanye, bayaran untuk kreator, dan jumlah kreator yang dapat mengikuti kampanye."
     >
-      {/* Price tier selection */}
-      <div className="space-y-3">
-        <label className="block text-sm font-medium text-text-primary">
-          Bayaran per 1.000 Views <span className="text-primary">*</span>
+      {/* ── 1. Berapa dana yang ingin disiapkan? ──────────────── */}
+      <div className="space-y-3.5 rounded-2xl bg-neutral-50/50 border border-neutral-200/60 p-4.5 sm:p-5">
+        <div className="flex items-center justify-between gap-4 border-b border-neutral-200/50 pb-3">
+          <label htmlFor="total-budget" className="text-sm font-bold text-text-primary">
+            1. Berapa dana yang ingin disiapkan? <span className="text-primary">*</span>
+          </label>
+        </div>
+
+        <p className="text-[11.5px] text-text-muted leading-relaxed">
+          Masukkan total dana yang ingin digunakan untuk kampanye ini.
+        </p>
+
+        {/* Quick Amount Presets */}
+        <div className="flex flex-wrap gap-2 pt-1">
+          {quickBudgets.map((b) => {
+            const isSelected = totalBudgetEscrow === b.value;
+            return (
+              <button
+                key={b.value}
+                type="button"
+                onClick={() => onChangeTotalBudgetEscrow(b.value)}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border select-none",
+                  isSelected
+                    ? "bg-orange-50 text-orange-800 border-orange-300 shadow-2xs"
+                    : "bg-white text-text-secondary border-neutral-200 hover:bg-orange-50/30 hover:border-orange-200"
+                )}
+              >
+                {b.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Rupiah Input */}
+        <div className="relative flex items-center max-w-sm pt-1">
+          <span className="absolute left-3.5 text-xs font-extrabold text-text-muted z-10">Rp</span>
+          <Input
+            id="total-budget"
+            type="number"
+            min={100000}
+            step={50000}
+            placeholder="3000000"
+            value={totalBudgetEscrow || ""}
+            onChange={(e) => onChangeTotalBudgetEscrow(Math.max(0, parseInt(e.target.value) || 0))}
+            error={validationErrors.totalBudgetEscrow}
+            className="pl-10 font-mono text-sm font-bold"
+          />
+        </div>
+        {totalBudgetEscrow > 0 && (
+          <span className="text-[11px] font-bold text-orange-700 block pt-0.5">
+            Total Dana: {formatCurrency(totalBudgetEscrow)}
+          </span>
+        )}
+      </div>
+
+      {/* ── 2. Bayaran Kreator per 1.000 Tayangan ───────────── */}
+      <div className="space-y-3.5 rounded-2xl bg-neutral-50/50 border border-neutral-200/60 p-4.5 sm:p-5">
+        <label className="block text-sm font-bold text-text-primary border-b border-neutral-200/50 pb-3">
+          2. Bayaran Kreator per 1.000 Tayangan <span className="text-primary">*</span>
         </label>
-        
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {PRICE_TIERS.map((tier) => {
+
+        <p className="text-[11.5px] text-text-muted leading-relaxed">
+          Kreator mendapat bayaran berdasarkan jumlah tayangan yang telah dinyatakan valid.
+        </p>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {priceTiers.map((tier) => {
             const isSelected = !customPriceActive && pricePerThousandViews === tier.id;
             return (
               <button
                 key={tier.id}
                 type="button"
                 onClick={() => handlePriceSelect(tier.id)}
-                className={`w-full p-3 rounded-xl border text-left flex flex-col justify-between min-h-[85px] transition-all duration-200 cursor-pointer ${
+                className={cn(
+                  "p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[56px] select-none",
                   isSelected
-                    ? "bg-primary-50/40 border-primary shadow-[0_8px_20px_-8px_rgba(235,94,40,0.15)] scale-[1.01]"
-                    : "bg-white border-neutral-200/60 hover:bg-neutral-50 hover:border-neutral-300"
-                }`}
+                    ? "bg-orange-50 border-orange-300 text-orange-800 shadow-2xs font-extrabold"
+                    : "bg-white border-neutral-200/80 hover:bg-neutral-50 hover:border-neutral-300 text-text-primary font-bold"
+                )}
               >
-                <span className={`block text-xs font-extrabold ${isSelected ? "text-primary" : "text-text-primary"}`}>
-                  {tier.label}
-                </span>
-                <span className="block text-[8px] text-text-muted mt-1 leading-tight font-semibold">
-                  {tier.desc}
-                </span>
+                <span className="text-xs">{tier.label}</span>
               </button>
             );
           })}
-          
-          {/* Custom option */}
+
+          {/* Nominal lain */}
           <button
             type="button"
             onClick={handleCustomPriceSelect}
-            className={`w-full p-3 rounded-xl border text-left flex flex-col justify-between min-h-[85px] transition-all duration-200 cursor-pointer ${
+            className={cn(
+              "p-3 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[56px] select-none",
               customPriceActive
-                ? "bg-primary-50/40 border-primary shadow-[0_8px_20px_-8px_rgba(235,94,40,0.15)] scale-[1.01]"
-                : "bg-white border-neutral-200/60 hover:bg-neutral-50 hover:border-neutral-300"
-            }`}
+                ? "bg-orange-50 border-orange-300 text-orange-800 shadow-2xs font-extrabold"
+                : "bg-white border-neutral-200/80 hover:bg-neutral-50 hover:border-neutral-300 text-text-primary font-bold"
+            )}
           >
-            <span className={`block text-xs font-extrabold ${customPriceActive ? "text-primary" : "text-text-primary"}`}>
-              Kustom
-            </span>
-            <span className="block text-[8px] text-text-muted mt-1 leading-tight font-semibold">
-              Atur bayaran khusus Anda
-            </span>
+            <span className="text-xs">Nominal lain</span>
           </button>
         </div>
 
-        {/* Input box for Custom Price */}
+        {/* Custom Price Input */}
         {customPriceActive && (
-          <div className="mt-3 max-w-xs space-y-1.5 animate-in fade-in duration-200">
-            <span className="block text-[9px] font-bold text-text-muted uppercase">Bayaran Kustom (Rupiah)</span>
+          <div className="pt-2 max-w-xs space-y-1.5 animate-in fade-in duration-150">
+            <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wide">Nominal Lain (Rupiah / 1.000 views)</span>
             <div className="relative flex items-center">
               <span className="absolute left-3 text-xs font-bold text-text-muted z-10">Rp</span>
               <Input
                 type="number"
                 min={1000}
                 placeholder="10000"
-                value={pricePerThousandViews}
+                value={pricePerThousandViews || ""}
                 onChange={(e) => onChangePricePerThousandViews(Math.max(0, parseInt(e.target.value) || 0))}
-                className="pl-9"
+                className="pl-9 font-mono text-xs font-bold"
               />
             </div>
-            <p className="text-[9px] text-text-muted">Minimal bayaran kustom Rp 1.000 per 1.000 views.</p>
+            <p className="text-[10px] text-text-muted">Minimal bayaran Rp 1.000 per 1.000 tayangan.</p>
           </div>
         )}
-        
+
         {validationErrors.pricePerThousandViews && (
           <p className="text-xs text-destructive">{validationErrors.pricePerThousandViews}</p>
         )}
       </div>
 
-      {/* Quota limit selector */}
-      <div className="space-y-3">
-        <label className="block text-sm font-medium text-text-primary">
-          Kuota Rekrutmen Kreator <span className="text-primary">*</span>
+      {/* ── 3. Jumlah Kreator ───────────────────────────────── */}
+      <div className="space-y-3.5 rounded-2xl bg-neutral-50/50 border border-neutral-200/60 p-4.5 sm:p-5">
+        <label className="block text-sm font-bold text-text-primary border-b border-neutral-200/50 pb-3">
+          3. Jumlah Kreator <span className="text-primary">*</span>
         </label>
-        
-        <div className="flex items-center gap-3">
-          <div className="flex items-center border border-border-strong rounded-xl overflow-hidden bg-neutral-50/50">
+
+        <p className="text-[11.5px] text-text-muted leading-relaxed">
+          Tentukan jumlah maksimal kreator yang dapat mengikuti kampanye.
+        </p>
+
+        <div className="flex items-center gap-3 pt-1">
+          <div className="flex items-center border border-neutral-300/90 rounded-xl overflow-hidden bg-neutral-100/60 shadow-3xs">
             <button
               type="button"
               onClick={decrementQuota}
-              className="h-10 w-10 flex items-center justify-center font-bold hover:bg-neutral-100 cursor-pointer select-none text-text-secondary"
+              className="h-11 w-11 flex items-center justify-center font-bold text-base hover:bg-neutral-200/60 cursor-pointer select-none text-text-secondary"
             >
-              -
+              −
             </button>
             <input
               type="number"
               min={1}
-              value={creatorQuota}
-              onChange={(e) => onChangeCreatorQuota(Math.max(1, parseInt(e.target.value) || 1))}
-              className="h-10 w-16 text-center bg-transparent text-xs font-bold text-text-primary focus:outline-none border-x border-border-strong [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              placeholder="1"
+              value={creatorQuota || ""}
+              onChange={(e) => onChangeCreatorQuota(Math.max(0, parseInt(e.target.value) || 0))}
+              className="h-11 w-16 text-center bg-white text-sm font-extrabold text-ink-950 focus:outline-none border-x border-neutral-300/90 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
             <button
               type="button"
               onClick={incrementQuota}
-              className="h-10 w-10 flex items-center justify-center font-bold hover:bg-neutral-100 cursor-pointer select-none text-text-secondary"
+              className="h-11 w-11 flex items-center justify-center font-bold text-base hover:bg-neutral-100 cursor-pointer select-none text-text-secondary"
             >
               +
             </button>
           </div>
-          <span className="text-[10px] text-text-muted leading-tight font-semibold">
-            Maksimal jumlah kreator unik yang diperbolehkan mengklaim job ini.
+          <span className="text-xs text-text-secondary font-semibold">
+            Maksimal {creatorQuota || 1} kreator dapat mengikuti kampanye ini.
           </span>
         </div>
         {validationErrors.creatorQuota && (
@@ -172,91 +239,51 @@ export function BudgetQuotaStep({
         )}
       </div>
 
-      {/* Budget Escrow Input */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-4">
-          <label htmlFor="total-budget" className="block text-sm font-medium text-text-primary">
-            Total Anggaran Kampanye (Escrow) <span className="text-primary">*</span>
-          </label>
-          <span className="text-xs font-extrabold text-primary bg-primary-soft/10 px-2 py-0.5 rounded-md border border-primary-100/10">
-            {formatCurrency(totalBudgetEscrow)}
-          </span>
-        </div>
-        
-        {/* Slider & Input */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-          <div className="flex-1 py-3 flex items-center">
-            <Slider
-              min={MINIMUM_CAMPAIGN_BUDGET}
-              max={10000000}
-              step={50000}
-              value={[totalBudgetEscrow]}
-              onValueChange={(vals) => onChangeTotalBudgetEscrow(vals[0])}
-            />
-          </div>
-          <div className="relative flex items-center w-full sm:w-36 shrink-0">
-            <span className="absolute left-3 text-xs font-bold text-text-muted z-10">Rp</span>
-            <Input
-              id="total-budget"
-              type="number"
-              min={MINIMUM_CAMPAIGN_BUDGET}
-              placeholder="3200000"
-              value={totalBudgetEscrow}
-              onChange={(e) => onChangeTotalBudgetEscrow(Math.max(0, parseInt(e.target.value) || 0))}
-              error={validationErrors.totalBudgetEscrow}
-              className="pl-9"
-            />
-          </div>
-        </div>
-        {!validationErrors.totalBudgetEscrow && (
-          <p className="text-[10px] text-text-muted">Masukkan total nominal dana yang ingin dialokasikan untuk penayangan views kreator.</p>
-        )}
-      </div>
-
-      {/* Embedded Cost Calculations Breakdown Panel */}
+      {/* ── Perkiraan Kampanye & Rincian Pembayaran Panel ── */}
       <BudgetCalculatorCard
         pricePerThousandViews={pricePerThousandViews}
         totalBudgetEscrow={totalBudgetEscrow}
         creatorQuota={creatorQuota}
       />
 
-      {/* Premium Visual Escrow Flow Diagram */}
-      <div className="rounded-2xl border border-primary-100/50 bg-primary-50/15 p-5 space-y-3.5">
-        <span className="block text-[10px] font-extrabold text-primary uppercase tracking-wider">
-          Alur Rekening Escrow Keuangan Marketiv
-        </span>
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-center text-[10px] font-bold">
-          
-          <div className="bg-white p-3.5 rounded-xl border border-neutral-200/50 shadow-2xs space-y-1.5 flex-1 w-full sm:w-auto">
-            <div className="h-6 w-6 rounded-full bg-primary-50 text-primary flex items-center justify-center text-[9px] font-extrabold mx-auto shadow-2xs">
-              01
+      {/* ── Bagaimana Dana Kampanye Digunakan? ───────────── */}
+      <div className="rounded-2xl border border-neutral-200/80 bg-white p-5 space-y-4 shadow-2xs">
+        <h4 className="text-xs font-extrabold text-text-primary uppercase tracking-wider">
+          Bagaimana dana kampanye digunakan?
+        </h4>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left">
+          <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200/60 space-y-1.5">
+            <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center text-xs font-extrabold">
+              1
             </div>
-            <span className="block font-extrabold text-text-primary text-[10px]">UMKM Transfer</span>
-            <span className="block text-[8px] text-text-muted leading-tight font-medium">
-              Anggaran didepositkan & diamankan sebelum rilis.
-            </span>
-          </div>
-          
-          <div className="flex flex-row sm:flex-col justify-center items-center shrink-0">
-            <svg className="w-5 h-5 text-primary shrink-0 rotate-90 sm:rotate-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-            </svg>
-            <span className="text-[8px] font-extrabold text-primary uppercase mt-1">Escrow Lock</span>
-          </div>
-          
-          <div className="bg-white p-3.5 rounded-xl border border-neutral-200/50 shadow-2xs space-y-1.5 flex-1 w-full sm:w-auto">
-            <div className="h-6 w-6 rounded-full bg-success-soft text-success-strong flex items-center justify-center text-[9px] font-extrabold mx-auto shadow-2xs">
-              02
-            </div>
-            <span className="block font-extrabold text-text-primary text-[10px]">Kreator Rilis</span>
-            <span className="block text-[8px] text-text-muted leading-tight font-medium">
-              Dana dicairkan setelah bukti tayang konten valid.
-            </span>
+            <span className="block font-bold text-xs text-text-primary">Anda Melakukan Pembayaran</span>
+            <p className="text-[11px] text-text-muted leading-relaxed font-medium">
+              Dana kampanye dibayarkan melalui Marketiv.
+            </p>
           </div>
 
+          <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200/60 space-y-1.5">
+            <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-700 flex items-center justify-center text-xs font-extrabold">
+              2
+            </div>
+            <span className="block font-bold text-xs text-text-primary">Dana Diamankan Sementara</span>
+            <p className="text-[11px] text-text-muted leading-relaxed font-medium">
+              Dana ditahan dan tidak langsung diberikan ke kreator.
+            </p>
+          </div>
+
+          <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200/60 space-y-1.5">
+            <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-extrabold">
+              3
+            </div>
+            <span className="block font-bold text-xs text-text-primary">Kreator Dibayar</span>
+            <p className="text-[11px] text-text-muted leading-relaxed font-medium">
+              Pembayaran dilakukan setelah hasil tayangan dinyatakan valid.
+            </p>
+          </div>
         </div>
       </div>
-
     </FormSectionCard>
   );
 }

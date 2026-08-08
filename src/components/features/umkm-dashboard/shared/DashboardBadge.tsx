@@ -16,7 +16,6 @@ export function DashboardBadge({
   className,
   children,
 }: DashboardBadgeProps) {
-  // Status mapper to UI kit badge colors
   const getStatusConfig = (status: string) => {
     const s = status.toLowerCase();
     switch (s) {
@@ -43,7 +42,6 @@ export function DashboardBadge({
     }
   };
 
-  // Category mapper
   const getCategoryLabel = (cat: string) => {
     const c = cat.toLowerCase();
     switch (c) {
@@ -94,15 +92,15 @@ export function DashboardBadge({
 
   if (type === "count") {
     return (
-      <span className={cn("inline-flex items-center justify-center font-extrabold rounded-full bg-neutral-200 text-text-secondary text-[10px] min-w-4.5 h-4.5 px-1 leading-none whitespace-nowrap border border-white", className)}>
-        {children || value}
+      <span className={cn("inline-flex items-center justify-center font-extrabold rounded-full bg-neutral-200 text-text-primary text-[11px] min-w-5 h-5 px-1.5 leading-none whitespace-nowrap", className)}>
+        {children !== undefined ? children : value}
       </span>
     );
   }
 
   return (
     <span className={cn(toneClasses[tone] || "badge gray", className)}>
-      {children || value}
+      {children !== undefined ? children : value}
     </span>
   );
 }

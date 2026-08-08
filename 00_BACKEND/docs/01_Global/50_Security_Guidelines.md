@@ -16,8 +16,8 @@
 |---|---|---|---|---|
 | `users` | R/U self, C register | R/U self, C register | Full (R/U/D all) | — |
 | `campaigns` | R active only | R own, C, U own, D draft only | Full | — |
-| `campaign_claims` | R own, C (claim) | R claims on own campaign | Full | — |
-| `campaign_submissions` | R own, C, U before review | R on own campaign, U (approve/reject/revision) | Full | fraud update |
+| `campaign_claims` | R own, C (claim), U (submit), D (unclaim) | R + U claims on own campaign | Full | — |
+| `campaign_submissions` | R own, C | R on own campaign, **U (approve/reject) — satu-satunya yang boleh update** | Full | fraud update |
 | `offers` | R own, U (accept/reject) | C, R own, U (cancel) | Read only | — |
 | `orders` | R related | R related | Full | C/U (dari offer accepted) |
 | `payments` | R related | R own | Read all | CREATE, UPDATE status (via `create-payment` / `midtrans-webhook`) |
@@ -29,6 +29,32 @@
 | `conversations`/`messages` (Chat) | R own room, send msg | R own room, send msg | Read only | — |
 
 Catatan: Escrow tidak boleh disentuh user sama sekali; hanya Function (API key) yang menulis.
+
+## Aturan Level Koleksi — permission Appwrite bersifat UNION
+
+Dengan `documentSecurity` aktif, Appwrite memberi akses bila izin ada di level
+**koleksi ATAU** level baris. Jadi izin level koleksi adalah **lantai**, bukan
+batas atas: `update("users")` di level koleksi berarti *setiap user yang login
+boleh mengubah baris siapa pun*, dan seluruh permission per-baris di bawah
+menjadi tidak berarti.
+
+**Tidak boleh ada tabel dengan `update("users")` di level koleksi.** Per
+2026-07-29 seluruh 28 tabel sudah bersih (gelombang 5 `harden-permissions.mjs`).
+
+Aturan ini ditulis setelah audit menemukan dua jalur eksploitasi nyata yang
+lolos justru karena permission per-barisnya sudah benar tapi level koleksinya
+longgar:
+
+- `campaign_submissions` — akun mana pun bisa menulis `status: "approved"` ke
+  submission siapa pun, memicu `calculate-campaign-reward` menambah
+  `wallets.pendingBalance` kreator, lalu dicairkan lewat `request-withdrawal`.
+- `campaigns` — akun mana pun bisa menulis `status: "active"` +
+  `remainingBudget`, melewati Midtrans, `create-escrow`, dan guard
+  `remainingBudget > 0` di `publishCampaign` sekaligus.
+
+`read("any")` di level koleksi tetap sah untuk data yang memang publik
+(`campaigns`, `creator_profiles`, `rate_cards`, dan tabel pendukungnya) — Job
+Pool, direktori kreator, dan katalog rate card bergantung padanya.
 
 ## Pola Document-Level Permission
 
@@ -46,6 +72,21 @@ Permission.delete(Role.user(umkmId))
 Permission.read(Role.user(creatorId)),
 Permission.read(Role.user(umkmId)),
 Permission.update(Role.user(umkmId))
+```
+
+> Kreator **tidak** diberi `update`. Menulis `status: "approved"` di baris ini
+> memicu `calculate-campaign-reward` mengkredit wallet kreator — memberi kreator
+> `update` sama dengan mengizinkannya menyetujui pekerjaannya sendiri lalu
+> mencairkan dananya. Aturan yang sama berlaku untuk `deliverables` di Alur B.
+
+**Claim** (saat dibuat):
+
+```javascript
+Permission.read(Role.user(creatorId)),
+Permission.update(Role.user(creatorId)),   // submit bukti
+Permission.delete(Role.user(creatorId)),   // unclaim
+Permission.read(Role.user(umkmId)),
+Permission.update(Role.user(umkmId))       // sinkron status saat review
 ```
 
 **Chat Message**:

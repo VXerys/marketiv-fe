@@ -1,16 +1,21 @@
-import { Client, Databases, ID, Permission, Role } from "node-appwrite";
+import { Client, Databases, ID, Permission, Role, Query } from "node-appwrite";
 
-const PURPOSES = new Set(["order", "topup", "campaign"]);
+const PURPOSES = new Set(["order", "campaign"]);
 
 /**
- * Kanon fee platform 2% — sejajar src/types/domain.ts (PLATFORM_FEE_RATE) dan
- * 00_BACKEND/src/services/wallet.service.ts. Math.floor sama seperti
- * calculatePlatformFee di frontend.
+ * Midtrans membatasi `transaction_details.order_id` 50 karakter.
  *
- * Fee bersifat buyer-side HANYA untuk campaign: topup tanpa fee, dan fee order
- * rate card bersifat seller-side (dipotong saat release, calculateCreatorPayout).
+ * Bentuk lama `campaign-<$id>-<Date.now()>-<8 acak>` = 52 karakter, sehingga
+ * SETIAP pembayaran campaign ditolak dengan "transaction_details.order_id is
+ * too long" dan UMKM tidak pernah bisa menerbitkan campaign. Jalur `order-`
+ * kebetulan 49 karakter, jadi gejalanya hanya muncul di campaign.
+ *
+ * Referensi sekarang diturunkan dari id dokumen payment: sudah unik, sudah
+ * pendek, dan `campaign_id`/`order_id` tetap tersimpan sebagai kolom sendiri
+ * (keduanya ter-index) sehingga tidak ada informasi yang hilang.
  */
-const PLATFORM_FEE_RATE = 0.02;
+const MIDTRANS_ORDER_ID_MAX = 50;
+const PURPOSE_PREFIX = { order: "ord", campaign: "cmp" };
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -27,6 +32,17 @@ export default async ({ req, res, log, error }) => {
     if (validationError) return json(res, { error: validationError }, 400);
 
     const databases = createDatabasesClient(env);
+    
+    const usersRes = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
+      Query.equal("userId", userId),
+      Query.limit(1)
+    ]);
+    const userDoc = usersRes.documents[0] || null;
+    if (userDoc?.status && userDoc.status !== "active") {
+      log(`Payment ditolak untuk ${userId}: status akun ${userDoc.status}`);
+      return json(res, { error: "Akun Anda sedang tidak aktif." }, 403);
+    }
+
     const amount = Number(payload.amount);
     let order = null;
 
@@ -41,21 +57,42 @@ export default async ({ req, res, log, error }) => {
       if (orderAmount !== amount) return json(res, { error: "Payment amount does not match order amount" }, 409);
     }
 
-    const gatewayReference = createGatewayReference(
-      payload.purpose,
-      payload.orderId || payload.campaignId
-    );
+    // Cabang campaign dulu tidak memeriksa apa pun: user UMKM mana pun yang
+    // login bisa membuat payment untuk campaign milik orang lain, dengan nominal
+    // sembarang. Pemeriksaannya dibuat sejajar dengan cabang `order` di atas.
+    if (payload.purpose === "campaign") {
+      const campaign = await databases.getDocument(
+        env.databaseId,
+        env.campaignsCollectionId,
+        payload.campaignId
+      );
+
+      if (campaign.umkmId !== userId) {
+        return json(res, { error: "Campaign does not belong to current user" }, 403);
+      }
+      if (campaign.status !== "draft") {
+        return json(res, { error: "Only draft campaigns can be funded" }, 409);
+      }
+      if (Number(campaign.budget) !== amount) {
+        return json(res, { error: "Payment amount does not match campaign budget" }, 409);
+      }
+    }
+
+    // Id dokumen dibuat di sini supaya `gateway_reference` bisa diturunkan
+    // darinya — lihat MIDTRANS_ORDER_ID_MAX.
+    const paymentId = ID.unique();
+    const gatewayReference = createGatewayReference(payload.purpose, paymentId);
 
     // `payments.total_amount` WAJIB (required, tanpa default) — sebelumnya tidak
     // pernah ditulis, sehingga createDocument selalu 400 untuk SEMUA purpose.
     const feeAmount =
-      payload.purpose === "campaign" ? Math.floor(amount * PLATFORM_FEE_RATE) : 0;
+      payload.purpose === "campaign" ? Math.floor(amount * env.feeRate) : 0;
     const totalAmount = amount + feeAmount;
 
     const payment = await databases.createDocument(
       env.databaseId,
       env.paymentsCollectionId,
-      ID.unique(),
+      paymentId,
       {
         user_id: userId,
         order_id: payload.orderId || null,
@@ -79,14 +116,16 @@ export default async ({ req, res, log, error }) => {
         gatewayReference,
         // Gateway menagih budget + fee, sama dengan yang ditampilkan UI.
         amount: totalAmount,
-        itemName:
+itemName:
           order?.title ||
-          (payload.purpose === "topup"
-            ? "Marketiv Wallet Top Up"
-            : payload.purpose === "campaign"
-              ? "Marketiv Campaign Escrow"
-              : "Marketiv Order Payment"),
-        userId
+          (payload.purpose === "campaign"
+            ? "Marketiv Campaign Escrow"
+            : "Marketiv Order Payment"),
+        userId,
+        // Referensi tidak lagi memuat id campaign/order, jadi kaitannya
+        // dititipkan di sini supaya dashboard Midtrans tetap bisa ditelusuri.
+        referenceId: payload.orderId || payload.campaignId || "",
+        finishUrl: typeof payload.finishUrl === "string" ? payload.finishUrl : undefined,
       });
 
       await databases.updateDocument(env.databaseId, env.paymentsCollectionId, payment.$id, {
@@ -119,10 +158,13 @@ function getEnv(req) {
     appwriteProjectId: process.env.APPWRITE_FUNCTION_PROJECT_ID || process.env.APPWRITE_PROJECT_ID,
     appwriteApiKey: req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY,
     databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
+    usersCollectionId: process.env.USERS_COLLECTION_ID || "users",
     paymentsCollectionId: process.env.PAYMENTS_COLLECTION_ID || process.env.NEXT_PUBLIC_PAYMENT_COLLECTION || "payments",
     ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders",
+    campaignsCollectionId: process.env.CAMPAIGNS_COLLECTION_ID || process.env.NEXT_PUBLIC_CAMPAIGN_COLLECTION || "campaigns",
     midtransServerKey: process.env.MIDTRANS_SERVER_KEY,
-    midtransEnv: process.env.MIDTRANS_ENV || "sandbox"
+    midtransEnv: process.env.MIDTRANS_ENV || "sandbox",
+    feeRate: Number(process.env.FEE_RATE || 0.02)
   };
 
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
@@ -149,7 +191,6 @@ function validatePayload(payload) {
   if (!PURPOSES.has(payload?.purpose)) return "Invalid payment purpose";
   if (!Number.isInteger(Number(payload.amount)) || Number(payload.amount) <= 0) return "Invalid payment amount";
   if (payload.purpose === "order" && !payload.orderId) return "orderId is required for order payment";
-  if (payload.purpose === "topup" && payload.orderId) return "Top up must not include orderId";
   // campaign_id satu-satunya cara mengaitkan payment ke campaign; idx_campaign_id
   // ada justru untuk lookup itu.
   if (payload.purpose === "campaign" && !payload.campaignId) return "campaignId is required for campaign payment";
@@ -157,15 +198,25 @@ function validatePayload(payload) {
   return null;
 }
 
-function createGatewayReference(purpose, refId) {
-  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-  if (purpose === "order") return `order-${refId}-${suffix}`;
-  // Campaign dulu memakai prefix `topup-` sehingga log webhook menyesatkan.
-  if (purpose === "campaign") return `campaign-${refId}-${suffix}`;
-  return `topup-${suffix}`;
+/**
+ * `<prefix>-<paymentId>` = 3 + 1 + 20 = 24 karakter, jauh di bawah batas 50.
+ *
+ * Prefix dipertahankan supaya log webhook tetap menyebut jenis pembayarannya
+ * (campaign pernah memakai prefix `topup-` dan itu menyesatkan saat menelusuri).
+ */
+function createGatewayReference(purpose, paymentId) {
+  return `${PURPOSE_PREFIX[purpose]}-${paymentId}`;
 }
 
 async function createMidtransTransaction(env, params) {
+  // Lapis kedua setelah createGatewayReference. Batas gateway tidak boleh lagi
+  // ditemukan lewat pesan error produksi seperti sebelumnya.
+  if (params.gatewayReference.length > MIDTRANS_ORDER_ID_MAX) {
+    throw new Error(
+      `gateway_reference ${params.gatewayReference.length} chars exceeds Midtrans order_id limit of ${MIDTRANS_ORDER_ID_MAX}`
+    );
+  }
+
   const baseUrl = env.midtransEnv === "production" ? "https://app.midtrans.com" : "https://app.sandbox.midtrans.com";
   const auth = Buffer.from(`${env.midtransServerKey}:`).toString("base64");
   const response = await fetch(`${baseUrl}/snap/v1/transactions`, {
@@ -187,7 +238,15 @@ async function createMidtransTransaction(env, params) {
           name: params.itemName.slice(0, 50)
         }
       ],
-      custom_field1: params.userId
+      custom_field1: params.userId,
+      custom_field2: params.referenceId || "",
+      ...(params.finishUrl && {
+        callbacks: {
+          finish: params.finishUrl,
+          unfinish: params.finishUrl,
+          error: params.finishUrl,
+        }
+      }),
     })
   });
 

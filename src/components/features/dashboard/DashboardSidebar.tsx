@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { logoMarketivPng } from "@/assets/icons";
 import {
   LayoutDashboard,
   Megaphone,
@@ -22,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { LogoutConfirmDialog } from "@/components/features/dashboard/shared/LogoutConfirmDialog";
 import {
   Sidebar,
   SidebarContent,
@@ -32,7 +34,20 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { getNegotiations } from "@/services/umkm/umkm-dashboard.service";
+import type { NegotiationStage } from "@/types/domain";
 
+
+/**
+ * Tahap yang berarti kreator memang sedang mengerjakan sesuatu — plus labelnya.
+ * Tahap negosiasi (chatting/offer_*) dan tahap selesai/batal sengaja absen:
+ * panel ini tentang pekerjaan berjalan, bukan tentang percakapan.
+ */
+const STAGE_IN_PROGRESS: Partial<Record<NegotiationStage, string>> = {
+  in_progress: "Sedang Dikerjakan",
+  revision: "Revisi Diminta",
+  approved: "Menunggu Pencairan",
+};
 
 interface SidebarNavItem {
   label: string;
@@ -66,31 +81,44 @@ export function DashboardSidebar({
   
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  /**
+   * Panel "Kreator Sedang Bekerja".
+   *
+   * Sebelum `s5-sidebar-fabrikasi`, isinya tiga baris hardcode di dalam
+   * useState — Sulianto/Nadia/Budi dengan foto Unsplash, semuanya di campaign
+   * "Rasa Nusantara Food Review". Karena melekat di sidebar, data karangan itu
+   * tampil di SETIAP layar, termasuk pada akun yang belum punya campaign apa pun.
+   *
+   * Sumber nyatanya adalah order yang sedang berjalan (`get-umkm-negotiations`).
+   * Kalau kosong, panel tidak dirender sama sekali.
+   */
   const [activeCreators, setActiveCreators] = useState<Array<{
     name: string;
     avatar: string;
     campaignTitle: string;
     status: string;
-  }>>([
-    {
-      name: "Sulianto Indria Putra",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80&q=80",
-      campaignTitle: "Rasa Nusantara Food Review",
-      status: "Proses Edit Video"
-    },
-    {
-      name: "Nadia Visuals",
-      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80&q=80",
-      campaignTitle: "Rasa Nusantara Food Review",
-      status: "Menunggu Validasi"
-    },
-    {
-      name: "Budi Santoso",
-      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&h=80&q=80",
-      campaignTitle: "Rasa Nusantara Food Review",
-      status: "Klaim Disetujui"
-    }
-  ]);
+  }>>([]);
+
+  useEffect(() => {
+    let active = true;
+    void getNegotiations().then((res) => {
+      if (!active || !res.success || !res.data) return;
+      setActiveCreators(
+        res.data
+          .filter((n) => STAGE_IN_PROGRESS[n.stage] !== undefined)
+          .slice(0, 5)
+          .map((n) => ({
+            name: n.creatorName,
+            avatar: n.creatorAvatarUrl,
+            campaignTitle: n.projectTitle,
+            status: STAGE_IN_PROGRESS[n.stage] as string,
+          }))
+      );
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <Sidebar
@@ -128,17 +156,14 @@ export function DashboardSidebar({
       >
         <div className="flex items-center gap-3 min-w-0 group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:justify-center">
           {/* Logo mark */}
-          <div
-            className="w-9 h-9 rounded-[11px] shrink-0 flex items-center justify-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:rounded-[13px] transition-all duration-300"
-            style={{
-              background:
-                "radial-gradient(circle at 35% 25%, rgba(255,255,255,.92) 0 10%, transparent 11%), linear-gradient(135deg, #f97316, #c2410c)",
-              boxShadow: "0 8px 24px rgba(249,115,22,.32), 0 2px 6px rgba(0,0,0,.2)",
-            }}
-          >
-            <span className="font-extrabold text-[.88rem] text-white font-display group-data-[collapsible=icon]:text-[1rem]">
-              M
-            </span>
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1 shadow-sm border border-white/10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:rounded-lg transition-all duration-300">
+            <Image
+              src={logoMarketivPng}
+              alt="Marketiv Logo"
+              width={40}
+              height={40}
+              className="h-full w-full object-contain"
+            />
           </div>
 
           {/* Brand text */}
@@ -376,57 +401,11 @@ export function DashboardSidebar({
         </div>
       </SidebarFooter>
 
-      {/* Logout Confirmation Modal */}
-      {showLogoutModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          {/* Backdrop overlay */}
-          <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-xs transition-opacity duration-300 animate-in fade-in"
-            onClick={() => setShowLogoutModal(false)}
-          />
-          
-          {/* Dialog Card container */}
-          <div className="relative bg-[#0d1527] border border-white/10 rounded-3xl w-full max-w-[340px] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col">
-            {/* Top Illustration */}
-            <div className="relative w-full aspect-[16/10] bg-black/40 overflow-hidden border-b border-white/5">
-              <Image
-                src="/logout_exit_door.png"
-                alt="Exit Illustration"
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-            
-            {/* Texts */}
-            <div className="px-6 pt-5 pb-6 text-center space-y-2">
-              <h4 className="text-xl font-extrabold text-white tracking-tight">
-                Logout?
-              </h4>
-              <p className="text-xs text-neutral-400 font-semibold leading-relaxed">
-                Kamu yakin ingin keluar?
-              </p>
-            </div>
-            
-            {/* Actions */}
-            <div className="px-6 pb-6 flex flex-col gap-2.5">
-              <Link
-                href="/"
-                onClick={() => setShowLogoutModal(false)}
-                className="flex items-center justify-center min-h-[44px] px-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-orange-500/10 hover:shadow-lg hover:shadow-orange-500/15 active:scale-[0.98] transition-all duration-150 text-center no-underline cursor-pointer"
-              >
-                Logout
-              </Link>
-              <button
-                onClick={() => setShowLogoutModal(false)}
-                className="flex items-center justify-center min-h-[44px] px-4 bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-white/10 text-white font-extrabold text-xs rounded-xl active:scale-[0.98] transition-all duration-150 text-center cursor-pointer outline-none"
-              >
-                Kembali
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <LogoutConfirmDialog
+        open={showLogoutModal}
+        onOpenChange={setShowLogoutModal}
+        accent="orange"
+      />
     </Sidebar>
   );
 }

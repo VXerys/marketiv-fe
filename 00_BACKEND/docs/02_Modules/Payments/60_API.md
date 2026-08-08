@@ -42,12 +42,13 @@ Payment dibuat lewat Appwrite Function agar Midtrans secret key tidak pernah kel
 
 #### `createPayment()` — [Appwrite Function callable]
 
-- **Input**: `{ purpose, orderId?, amount }`
-- **Purpose**: `order | topup`.
+- **Input**: `{ purpose, orderId?, campaignId?, amount }`
+- **Purpose**: `order | campaign`.
 - **Validasi**:
   - `amount > 0`.
   - Jika `purpose = order`, `orderId` wajib dan order harus milik UMKM yang login dengan status `pending_payment`.
-  - Amount harus sama dengan nilai order untuk payment order.
+  - Jika `purpose = campaign`, `campaignId` wajib dan campaign harus status `draft` milik UMKM yang login.
+  - Amount harus sama dengan nilai order untuk payment order; sama dengan budget untuk payment campaign.
 - **Proses**:
   - Buat dokumen `payments` dengan `gateway = midtrans`, `status = pending`, dan `gateway_reference` unik.
   - Buat transaksi ke Midtrans dari server.

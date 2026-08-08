@@ -15,6 +15,7 @@ import {
   UmkmFinanceSummary,
   EscrowOverview,
   UmkmSettingsProfile,
+  UmkmOverviewData,
 } from "@/types/umkm-dashboard.types";
 import {
   mockUmkmProfile,
@@ -26,12 +27,18 @@ import {
   mockChatMessages,
   mockTransactions,
   mockUmkmOverview,
-  mockUmkmSettingsProfile,
   getCalculatedDashboardSummary,
 } from "@/mocks/umkm";
-import type { UmkmOverviewData } from "@/mocks/umkm/overview.mock";
+
+import type { CreateOfferInput } from "@/lib/validations/offer.schema";
+import {
+  createConversationInAppwrite,
+  sendMessageInAppwrite,
+  getMessagesByConversationIdInAppwrite,
+} from "@/services/shared/conversation-appwrite.service";
 import {
   getUmkmProfileFromAppwrite,
+  getOverviewFromAppwrite,
   getDashboardSummaryFromAppwrite,
   getCampaignsFromAppwrite,
   getCampaignByIdFromAppwrite,
@@ -42,13 +49,16 @@ import {
   getCreatorRateCardsFromAppwrite,
   getNegotiationsFromAppwrite,
   getNegotiationByIdFromAppwrite,
-  getMessagesByOrderIdFromAppwrite,
+  createOfferInAppwrite,
+  createOrderPaymentInAppwrite,
   getTransactionsFromAppwrite,
   getTransactionByIdFromAppwrite,
   getFinanceSummaryFromAppwrite,
   getEscrowOverviewFromAppwrite,
   getFinanceOverviewFromAppwrite,
   createCampaignDraftInAppwrite,
+  getCampaignDraftForEditFromAppwrite,
+  updateCampaignDraftInAppwrite,
   updateCampaignStatusInAppwrite,
   duplicateCampaignInAppwrite,
   getUmkmSettingsProfileFromAppwrite,
@@ -61,6 +71,8 @@ import {
   deleteOfferInAppwrite,
   cancelOrderInAppwrite,
   cancelPaymentInAppwrite,
+  publishCampaignInAppwrite,
+  reviewSubmissionInAppwrite,
 } from "./umkm-appwrite.service";
 import type {
   UmkmFinanceOverview,
@@ -69,8 +81,10 @@ import type {
   PaymentIntent,
   CreateCampaignDraftInput,
   CampaignDraftResult,
+  CampaignEditRaw,
   DuplicateCampaignOptions,
   UmkmProfileWriteInput,
+  ReviewSubmissionInput,
 } from "./umkm-appwrite.service";
 
 export async function getUmkmProfile(): Promise<ServiceResult<UmkmProfile>> {
@@ -82,21 +96,18 @@ export async function getUmkmProfile(): Promise<ServiceResult<UmkmProfile>> {
 }
 
 /**
- * View-model kaya untuk halaman Overview (hero, KPI, insights, activities).
- * Mock ON  → mock overview terelokasi. Mock OFF → memerlukan Function DTO
- * `get-umkm-dashboard-summary` (belum ada) — lihat chip task backend.
+ * View-model halaman Overview (hero, KPI, daftar campaign, insights, activities).
+ *
+ * Mengembalikan `campaigns` sekalian supaya halaman cukup satu panggilan —
+ * versi lama memanggil getOverview() + getCampaigns() berdampingan, dan cabang
+ * Appwrite butuh daftar campaign itu juga untuk menghitung `creatorJoined`.
  */
 export async function getOverview(): Promise<ServiceResult<UmkmOverviewData>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(300);
-    return { success: true, data: mockUmkmOverview };
+    return { success: true, data: { ...mockUmkmOverview, campaigns: mockCampaigns } };
   }
-  return {
-    success: false,
-    data: null,
-    error: "Belum tersedia — memerlukan Function DTO backend.",
-    code: "unknown",
-  };
+  return getOverviewFromAppwrite();
 }
 
 export async function getDashboardSummary(): Promise<ServiceResult<UmkmDashboardSummary>> {
@@ -194,13 +205,90 @@ export async function getNegotiationById(id: string): Promise<ServiceResult<Nego
   return getNegotiationByIdFromAppwrite(id);
 }
 
-export async function getMessagesByOrderId(orderId: string): Promise<ServiceResult<ChatMessage[]>> {
+/**
+ * Pesan satu ruang negosiasi. Argumennya conversationId, bukan orderId —
+ * `messages` memang di-key `conversation_id`, dan versi lama mengirim orderId
+ * ke sana sehingga chat selalu kosong.
+ */
+export async function getMessagesByConversationId(
+  conversationId: string
+): Promise<ServiceResult<ChatMessage[]>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(300);
-    const messages = mockChatMessages[orderId] || [];
-    return { success: true, data: messages };
+    return { success: true, data: mockChatMessages[conversationId] || [] };
   }
-  return getMessagesByOrderIdFromAppwrite(orderId);
+  return getMessagesByConversationIdInAppwrite(conversationId);
+}
+
+/** Mulai (atau lanjutkan) percakapan dengan kreator. Mengembalikan conversationId. */
+export async function createConversation(creatorId: string): Promise<ServiceResult<string>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    const existing = mockNegotiations.find((n) => n.creatorId === creatorId);
+    return { success: true, data: existing?.conversationId ?? "conv_000" };
+  }
+  return createConversationInAppwrite(creatorId);
+}
+
+/** Kirim pesan teks ke dalam percakapan. */
+export async function sendMessage(
+  conversationId: string,
+  content: string
+): Promise<ServiceResult<ChatMessage>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return {
+      success: true,
+      data: {
+        id: `msg_mock_${Date.now()}`,
+        conversationId,
+        senderId: "umkm_001",
+        senderRole: "umkm",
+        type: "text",
+        content,
+        isRead: true,
+        createdAt: new Date().toISOString(),
+      },
+    };
+  }
+  return sendMessageInAppwrite(conversationId, content);
+}
+
+export type { CreateOfferInput };
+
+/**
+ * Bayar satu order Rate Card. `amount` harus persis `order.amount` — UMKM
+ * membayar harga rate card tanpa tambahan (seller-side, ADR-008).
+ */
+export async function createOrderPayment(input: {
+  orderId: string;
+  amount: number;
+  finishUrl?: string;
+}): Promise<ServiceResult<PaymentIntent>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(600);
+    return {
+      success: true,
+      data: {
+        paymentId: `pay_mock_${Date.now()}`,
+        gateway: "midtrans",
+        status: "pending",
+      },
+    };
+  }
+  return createOrderPaymentInAppwrite(input);
+}
+
+/**
+ * Kirim Custom Offer. UMKM-only — docs/02_Modules/Offers/30_Business_Rules.md:13.
+ * Mengembalikan offerId.
+ */
+export async function createOffer(input: CreateOfferInput): Promise<ServiceResult<string>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return { success: true, data: `offer_mock_${Date.now()}` };
+  }
+  return createOfferInAppwrite(input);
 }
 
 export async function getTransactions(): Promise<ServiceResult<Transaction[]>> {
@@ -310,7 +398,7 @@ export async function getEscrowOverview(): Promise<ServiceResult<EscrowOverview>
       .reduce((sum, tx) => sum + tx.amount, 0);
 
     const pendingRelease = rateCardEscrow; // Rate card custom offers pending verification / collab post URL
-    const refundEligible = campaignEscrow > 0 ? Math.min(campaignEscrow, 1200000) : 0; // Unused budget of campaign quota
+    const refundEligible = campaignEscrow; // Unused budget dari campaign completed
 
     return {
       success: true,
@@ -355,6 +443,7 @@ export async function createCampaignDraft(
       pricePerThousandViews: input.rewardPer1000Views,
       totalBudgetEscrow: input.budget,
       usedBudget: 0,
+      remainingBudget: 0,
       totalViews: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -364,7 +453,44 @@ export async function createCampaignDraft(
   return createCampaignDraftInAppwrite(input);
 }
 
-export type { DuplicateCampaignOptions };
+export type { DuplicateCampaignOptions, CampaignEditRaw };
+
+/**
+ * Baca campaign draft untuk halaman edit wizard.
+ * Mock: cari di mockCampaigns berdasarkan id, kembalikan data mentah kosong kalau tidak ada.
+ */
+export async function getCampaignDraftForEdit(
+  campaignId: string
+): Promise<ServiceResult<CampaignEditRaw>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    const campaign = mockCampaigns.find((c) => c.id === campaignId);
+    if (!campaign || campaign.status !== "draft") {
+      return { success: false, error: "Campaign draft tidak ditemukan.", code: "not_found", data: null as unknown as CampaignEditRaw };
+    }
+    return { success: true, data: { campaign, warnings: [] } };
+  }
+  return getCampaignDraftForEditFromAppwrite(campaignId);
+}
+
+/**
+ * Update campaign draft yang sudah ada.
+ * Mock: echo — operasi tulis tidak dimutasi di mock.
+ */
+export async function updateCampaignDraft(
+  campaignId: string,
+  input: CreateCampaignDraftInput
+): Promise<ServiceResult<CampaignDraftResult>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(600);
+    const campaign = mockCampaigns.find((c) => c.id === campaignId);
+    if (!campaign) {
+      return { success: false, error: "Campaign tidak ditemukan.", code: "not_found", data: null as unknown as CampaignDraftResult };
+    }
+    return { success: true, data: { campaign: { ...campaign, title: input.title }, complete: true, warnings: [] } };
+  }
+  return updateCampaignDraftInAppwrite(campaignId, input);
+}
 
 /** Jeda / aktifkan kembali campaign. Mock meniru validasi status yang sama. */
 export async function updateCampaignStatus(
@@ -420,31 +546,16 @@ export async function duplicateCampaign(
 export type { UmkmProfileWriteInput };
 
 export async function getUmkmSettingsProfile(): Promise<ServiceResult<UmkmSettingsProfile>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(300);
-    return { success: true, data: mockUmkmSettingsProfile };
-  }
   return getUmkmSettingsProfileFromAppwrite();
 }
 
 export async function updateUmkmProfile(
   input: UmkmProfileWriteInput
 ): Promise<ServiceResult<UmkmSettingsProfile>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(500);
-    return {
-      success: true,
-      data: { ...mockUmkmSettingsProfile, ...(input as Partial<UmkmSettingsProfile>) },
-    };
-  }
   return updateUmkmProfileInAppwrite(input);
 }
 
 export async function uploadUmkmLogo(file: File): Promise<ServiceResult<string>> {
-  if (DATA_SOURCE_CONFIG.useMockData) {
-    await mockDelay(700);
-    return { success: true, data: `https://placehold.co/128x128?text=${encodeURIComponent(file.name.slice(0, 8))}` };
-  }
   return uploadUmkmLogoInAppwrite(file);
 }
 
@@ -517,6 +628,65 @@ export async function createCampaignPayment(input: {
   return createCampaignPaymentInAppwrite(input);
 }
 
+// ── Alur A: terbitkan & review (Sprint 4) ────────────────────────────────────
+
+export type { ReviewSubmissionInput };
+
+/**
+ * Terbitkan campaign draft. Mock menegakkan guard yang sama, termasuk
+ * `remainingBudget` — supaya pesan "dana belum masuk" bisa diuji tanpa Appwrite.
+ */
+export async function publishCampaign(campaignId: string): Promise<ServiceResult<Campaign>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(600);
+    const c = mockCampaigns.find((x) => x.id === campaignId);
+    if (!c) return { success: false, data: null, error: "Campaign tidak ditemukan.", code: "not_found" };
+    if (c.status !== "draft") {
+      return {
+        success: false,
+        data: null,
+        error: "Hanya campaign draft yang bisa diterbitkan.",
+        code: "validation",
+      };
+    }
+    // Mock tidak punya remainingBudget terpisah; totalBudgetEscrow berperan sama.
+    if (c.totalBudgetEscrow <= 0) {
+      return {
+        success: false,
+        data: null,
+        error: "Dana campaign belum masuk. Tunggu beberapa saat setelah pembayaran, lalu coba lagi.",
+        code: "validation",
+      };
+    }
+    return { success: true, data: { ...c, status: "active" } };
+  }
+  return publishCampaignInAppwrite(campaignId);
+}
+
+/** Setujui / tolak submission. `views` wajib saat approve — lihat B-1. */
+export async function reviewSubmission(
+  input: ReviewSubmissionInput
+): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(700);
+    const s = mockSubmissions.find((x) => x.id === input.submissionId);
+    if (!s) return { success: false, data: null, error: "Submission tidak ditemukan.", code: "not_found" };
+    if (s.validationStatus !== "pending") {
+      return {
+        success: false,
+        data: null,
+        error: "Submission ini sudah pernah direview.",
+        code: "validation",
+      };
+    }
+    if (input.status === "approved" && (!Number.isInteger(input.views) || input.views < 0)) {
+      return { success: false, data: null, error: "Jumlah views tidak valid.", code: "validation" };
+    }
+    return { success: true, data: null };
+  }
+  return reviewSubmissionInAppwrite(input);
+}
+
 // ── hapus & batalkan (Sprint 3.5) ────────────────────────────────────────────
 //
 // Mock menegakkan guard status yang SAMA dengan jalur Appwrite, bukan sekadar
@@ -567,7 +737,7 @@ export async function cancelOrder(orderId: string): Promise<ServiceResult<null>>
     await mockDelay(500);
     const n = mockNegotiations.find((x) => x.id === orderId);
     if (!n) return { success: false, data: null, error: "Pesanan tidak ditemukan.", code: "not_found" };
-    if (n.status !== "pending_payment") {
+    if (n.stage !== "pending_payment") {
       return {
         success: false,
         data: null,

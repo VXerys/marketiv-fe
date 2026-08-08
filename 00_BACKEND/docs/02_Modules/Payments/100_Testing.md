@@ -6,10 +6,9 @@
 
 - Input valid → panggil function `create-payment` → return `{ paymentId, gateway: 'midtrans', snapToken, redirectUrl, status }`.
 - `amount` bukan integer >0 → throw `PaymentServiceError('validation', 'Jumlah pembayaran tidak valid.')`.
-- `purpose` bukan `order`/`topup`/`campaign` → throw `PaymentServiceError('validation', 'Tujuan pembayaran tidak valid.')`.
+- `purpose` bukan `order`/`campaign` → throw `PaymentServiceError('validation', 'Tujuan pembayaran tidak valid.')`.
 - `purpose === 'order'` tanpa `orderId` → throw `PaymentServiceError('validation', 'Order wajib diisi untuk pembayaran order.')`.
 - `purpose === 'campaign'` tanpa `campaignId` → throw `PaymentServiceError('validation', 'Campaign wajib diisi untuk top-up campaign.')`.
-- `purpose === 'topup'` dengan `orderId` → throw `PaymentServiceError('validation', 'Top up tidak boleh memakai order.')`.
 - `purpose === 'campaign'` → `totalAmount = amount + floor(amount ×2%)` (fee 2% via `calculateTotalPayment`).
 - `purpose === 'order'` → `totalAmount = amount` (tanpa fee, fee dipotong saat release escrow).
 - Function gagal → throw `PaymentServiceError('server', 'Gagal membuat pembayaran. Coba lagi.')`.
@@ -17,11 +16,11 @@
 
 > ✅ **Sudah diperbaiki**: Function `create-payment` sekarang menerima `purpose: 'campaign'`
 > (ditambah ke `PURPOSES`), dan `create-escrow` menjalankan `purpose: 'campaign'`
-> melalui jalur `completeTopup` yang mengkredit **wallet.balance** (sama seperti `topup`).
-> Model dompet: UMKM top-up campaign → saldo wallet bertambah (besaran `amount`/budget bersih,
+> melalui jalur `completeTopup` yang mengkredit **campaign.remainingBudget** (bukan wallet.balance).
+> Model dompet: UMKM top-up campaign → `remainingBudget` bertambah (besaran `amount`/budget bersih,
 > fee 2% menjadi pendapatan platform karena `totalAmount = amount + fee` yang dibayar ke Midtrans);
-> saat UMKM membeli order → saldo berkurang via `create-escrow` → `release-escrow` mencairkan
-> ke wallet creator. Sesuai dengan `60_API.md` (`purpose: order|topup|campaign`).
+> saat UMKM membeli order → saldo tidak terpengaruh (order pakai escrow terpisah) → `release-escrow` mencairkan
+> ke wallet creator. Sesuai dengan `60_API.md` (`purpose: order|campaign`).
 
 ### Get Payment (`getPayment`, `getPayments`)
 
@@ -66,7 +65,7 @@
 ## Transaction
 
 - Setiap mutasi saldo tercatat di `transactions`.
-- Tipe transaksi sesuai definisi (`deposit`, `withdrawal`, `payment`, `refund`, `release`, `fee`).
+- Tipe transaksi sesuai definisi (`withdrawal`, `payment`, `refund`, `release`, `fee`).
 - ReferenceId mengarah ke dokumen terkait.
 
 ## Escrow (Appwrite Function `create-escrow`, `release-escrow`)

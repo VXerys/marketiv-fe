@@ -36,6 +36,7 @@ Mendefinisikan profile domain user, verifikasi UMKM/Kreator, public creator prof
 
 ## 7. Data Dependencies
 - `profiles`: gunakan sesuai kebutuhan fitur; jangan buat collection baru tanpa alasan domain yang jelas.
+  - Field baru (T-14/T-15): `tos_version` (string, default "v3.1"), `tos_accepted_at` (datetime), `email_verified_at` (datetime, nullable).
 - `campaigns`: gunakan sesuai kebutuhan fitur; jangan buat collection baru tanpa alasan domain yang jelas.
 - `campaign_claims`: gunakan sesuai kebutuhan fitur; jangan buat collection baru tanpa alasan domain yang jelas.
 - `campaign_submissions`: gunakan sesuai kebutuhan fitur; jangan buat collection baru tanpa alasan domain yang jelas.

@@ -26,6 +26,13 @@ import { toast } from "sonner";
 import { CreatorProfile, CreatorPortfolioItem, CreatorNiche } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+  ResponsiveModalDescription,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+} from "@/components/ui/responsive-modal";
 import { cn } from "@/lib/utils";
 import {
   creatorProfileUpdateSchema,
@@ -35,6 +42,7 @@ import {
 import { parseOrErrors } from "@/lib/validations/to-field-errors";
 import { getSession } from "@/services/auth/session.service";
 import {
+  getCreatorProfile,
   updateCreatorProfile,
   uploadCreatorAvatar,
   upsertCreatorSocialAccount,
@@ -45,8 +53,12 @@ import {
 } from "@/services/creator/creator-dashboard.service";
 
 // ─── Creator brand gradient ───────────────────────────────────────────────────
-const CREATOR_GRADIENT = "linear-gradient(135deg, #2563eb, #7c3aed)";
-const CREATOR_GRADIENT_SOFT = "linear-gradient(135deg, rgba(37,99,235,.12) 0%, rgba(124,58,237,.10) 100%)";
+const CREATOR_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-gradient-start), var(--color-kreator-gradient-end))";
+const CREATOR_GRADIENT_SOFT =
+  "linear-gradient(135deg, color-mix(in srgb, var(--color-kreator-gradient-start) 12%, transparent) 0%, color-mix(in srgb, var(--color-kreator-gradient-end) 10%, transparent) 100%)";
+const CREATOR_GRADIENT_SHADOW =
+  "0 6px 20px color-mix(in srgb, var(--color-kreator-gradient-start) 22%, transparent)";
 
 // ─── Tab definition ───────────────────────────────────────────────────────────
 
@@ -79,6 +91,32 @@ function SettingsCard({
     >
       {children}
     </div>
+  );
+}
+
+function ModalFrame({
+  children,
+  maxW = "max-w-md",
+  isOpen,
+  onClose,
+  title,
+}: {
+  children: React.ReactNode;
+  maxW?: string;
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+}) {
+  return (
+    <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <ResponsiveModalContent className={cn("max-h-[90vh] overflow-y-auto", maxW)}>
+        <ResponsiveModalHeader>
+          <ResponsiveModalTitle className="sr-only">{title}</ResponsiveModalTitle>
+          <ResponsiveModalDescription className="sr-only">{title}</ResponsiveModalDescription>
+        </ResponsiveModalHeader>
+        {children}
+      </ResponsiveModalContent>
+    </ResponsiveModal>
   );
 }
 
@@ -149,8 +187,10 @@ function ToggleSwitch({
         disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
       )}
       style={{
-        background: checked ? CREATOR_GRADIENT : "#e2e8f0",
-        boxShadow: checked ? "0 4px 14px rgba(37,99,235,.3)" : "inset 0 1px 3px rgba(0,0,0,.08)",
+        background: checked ? CREATOR_GRADIENT : "var(--color-control-off)",
+        boxShadow: checked
+          ? "0 4px 14px color-mix(in srgb, var(--color-kreator-gradient-start) 30%, transparent)"
+          : "inset 0 1px 3px rgb(0 0 0 / 0.08)",
       }}
     >
       <span
@@ -218,7 +258,7 @@ function CreatorBtn({
         "focus-visible:outline-[4px] focus-visible:outline focus-visible:outline-blue-500/20 focus-visible:outline-offset-2",
         className
       )}
-      style={{ background: CREATOR_GRADIENT, boxShadow: "0 6px 20px rgba(37,99,235,.22)" }}
+      style={{ background: CREATOR_GRADIENT, boxShadow: CREATOR_GRADIENT_SHADOW }}
     >
       {children}
     </button>
@@ -281,7 +321,6 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
   const [bio, setBio] = useState(profile.bio);
   const [location, setLocation] = useState(profile.location);
   const [tiktokUrl, setTiktokUrl] = useState(profile.tiktokUrl || "");
-  const [instagramUrl, setInstagramUrl] = useState(profile.instagramUrl || "");
   const [selectedNiche, setSelectedNiche] = useState<CreatorNiche>(profile.niche);
   const [formError, setFormError] = useState<string | null>(null);
   const [isProfileSuccessOpen, setIsProfileSuccessOpen] = useState(false);
@@ -304,11 +343,11 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
   const [isUploadingThumb, setIsUploadingThumb] = useState(false);
 
   // ── Notification toggles ──
-  const [notifCampaign, setNotifCampaign] = useState(true);
-  const [notifDeadline, setNotifDeadline] = useState(true);
-  const [notifOrder, setNotifOrder] = useState(true);
-  const [notifPayment, setNotifPayment] = useState(true);
-  const [notifMessage, setNotifMessage] = useState(true);
+  const [notifCampaign, setNotifCampaign] = useState(false);
+  const [notifDeadline, setNotifDeadline] = useState(false);
+  const [notifOrder, setNotifOrder] = useState(false);
+  const [notifPayment, setNotifPayment] = useState(false);
+  const [notifMessage, setNotifMessage] = useState(false);
   const [notifNewsletter, setNotifNewsletter] = useState(false);
 
   const showToast = (msg: string) => toast.success(msg);
@@ -342,44 +381,38 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
       setFormError("Tautan/username TikTok tidak valid.");
       return;
     }
-    if (instagramUrl && !extractSocialUsername(instagramUrl)) {
-      setFormError("Tautan/username Instagram tidak valid.");
-      return;
-    }
 
     setFormError(null);
     setIsSavingProfile(true);
     const res = await updateCreatorProfile(parsed.data);
 
-    // Akun sosial ada di collection terpisah (creator_social_accounts).
-    const socialWrites: Promise<unknown>[] = [];
-    if (tiktokUrl.trim()) {
-      socialWrites.push(
-        upsertCreatorSocialAccount({ platform: "tiktok", username: extractSocialUsername(tiktokUrl) })
+    if (!res.success || !res.data) {
+      setIsSavingProfile(false);
+      setFormError(
+        res.code === "auth"
+          ? "Sesi berakhir, silakan login kembali."
+          : res.error ?? "Gagal menyimpan profil."
       );
-    }
-    if (instagramUrl.trim()) {
-      socialWrites.push(
-        upsertCreatorSocialAccount({
-          platform: "instagram",
-          username: extractSocialUsername(instagramUrl),
-        })
-      );
-    }
-    await Promise.all(socialWrites);
-    setIsSavingProfile(false);
-
-    if (res.success && res.data) {
-      setProfile(res.data);
-      setIsEditing(false);
-      setIsProfileSuccessOpen(true);
       return;
     }
-    setFormError(
-      res.code === "auth"
-        ? "Sesi berakhir, silakan login kembali."
-        : res.error ?? "Gagal menyimpan profil."
-    );
+
+    if (tiktokUrl.trim()) {
+      const socialRes = await upsertCreatorSocialAccount({
+        platform: "tiktok",
+        username: extractSocialUsername(tiktokUrl),
+      });
+      if (!socialRes.success) {
+        setIsSavingProfile(false);
+        setFormError(socialRes.error ?? "Profil tersimpan, tapi akun TikTok gagal disimpan.");
+        return;
+      }
+    }
+
+    const fresh = await getCreatorProfile();
+    setIsSavingProfile(false);
+    setProfile(fresh.success && fresh.data ? fresh.data : res.data);
+    setIsEditing(false);
+    setIsProfileSuccessOpen(true);
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -575,7 +608,6 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
                 setBio(profile.bio);
                 setLocation(profile.location);
                 setTiktokUrl(profile.tiktokUrl || "");
-                setInstagramUrl(profile.instagramUrl || "");
                 setSelectedNiche(profile.niche);
                 setIsEditing(true);
               }}
@@ -627,16 +659,6 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-950 text-white text-[0.75rem] font-[700] hover:bg-neutral-800 transition-colors"
                   >
                     TikTok <ExternalLink size={10} />
-                  </a>
-                )}
-                {profile.instagramUrl && (
-                  <a
-                    href={profile.instagramUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-pink-600 text-white text-[0.75rem] font-[700] hover:bg-pink-700 transition-colors"
-                  >
-                    Instagram <ExternalLink size={10} />
                   </a>
                 )}
               </div>
@@ -739,7 +761,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
 
             {/* Akun sosial disimpan di collection `creator_social_accounts`
                 (bukan kolom URL di profil) — handle diekstrak dari tautan. */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-neutral-100 pt-4">
+            <div className="grid grid-cols-1 gap-4 border-t border-neutral-100 pt-4">
               <div className="space-y-1.5">
                 <label className="block text-[0.68rem] font-[900] text-neutral-400 uppercase tracking-wider">
                   Link / Username TikTok
@@ -749,18 +771,6 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
                   placeholder="https://tiktok.com/@handle"
                   value={tiktokUrl}
                   onChange={(e) => setTiktokUrl(e.target.value)}
-                  className={inputCls}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="block text-[0.68rem] font-[900] text-neutral-400 uppercase tracking-wider">
-                  Link / Username Instagram
-                </label>
-                <input
-                  type="text"
-                  placeholder="https://instagram.com/handle"
-                  value={instagramUrl}
-                  onChange={(e) => setInstagramUrl(e.target.value)}
                   className={inputCls}
                 />
               </div>
@@ -852,7 +862,10 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
                 setIsAddPortOpen(true);
               }}
               className="flex items-center gap-1.5 px-4 py-2 rounded-[12px] text-[0.78rem] font-[800] text-white transition-all cursor-pointer hover:-translate-y-0.5"
-              style={{ background: CREATOR_GRADIENT, boxShadow: "0 4px 12px rgba(37,99,235,.22)" }}
+              style={{
+                background: CREATOR_GRADIENT,
+                boxShadow: "0 4px 12px color-mix(in srgb, var(--color-kreator-gradient-start) 22%, transparent)",
+              }}
             >
               <Plus size={13} /> Tambah
             </button>
@@ -1033,28 +1046,47 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               <p className="text-[0.68rem] font-[600] text-neutral-300">Dikelola via sistem autentikasi</p>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3.5 rounded-[14px] bg-blue-50 border border-blue-200/60">
-            <CheckCircle2 size={16} className="text-blue-600 shrink-0" />
-            <div>
-              <p className="text-[0.82rem] font-[700] text-blue-800">Akun Terverifikasi</p>
-              <p className="text-[0.72rem] font-[500] text-blue-600 mt-0.5">
-                Identitas Anda telah diverifikasi oleh tim Marketiv
-              </p>
+          {profile.isVerified ? (
+            <div className="flex items-center gap-3 p-3.5 rounded-[14px] bg-blue-50 border border-blue-200/60">
+              <CheckCircle2 size={16} className="text-blue-600 shrink-0" />
+              <div>
+                <p className="text-[0.82rem] font-[700] text-blue-800">Akun Terverifikasi</p>
+                <p className="text-[0.72rem] font-[500] text-blue-600 mt-0.5">
+                  Identitas Anda telah diverifikasi oleh tim Marketiv
+                </p>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center gap-3 p-3.5 rounded-[14px] bg-neutral-50 border border-neutral-200/60">
+              <CheckCircle2 size={16} className="text-neutral-300 shrink-0" />
+              <div>
+                <p className="text-[0.82rem] font-[700] text-neutral-600">Verifikasi Tertunda</p>
+                <p className="text-[0.72rem] font-[500] text-neutral-400 mt-0.5">
+                  Tim Marketiv sedang memproses verifikasi identitas Anda
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </SettingsCard>
 
       <SettingsCard>
-        <CardSectionHeader title="Ubah Password" />
-        <div className="p-6 space-y-4">
+        <CardSectionHeader
+          title="Ubah Password"
+          action={
+            <span className="px-2.5 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-[0.66rem] font-[800] text-neutral-400 uppercase tracking-wider">
+              Segera tersedia
+            </span>
+          }
+        />
+        <div className="p-6 space-y-4 opacity-50 pointer-events-none select-none" aria-hidden="true">
           <div className="space-y-1.5">
             <label className="block text-[0.68rem] font-[900] text-neutral-400 uppercase tracking-wider">
               Password Saat Ini
             </label>
             <div className="relative">
               <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-300" />
-              <input type="password" placeholder="••••••••" className={cn(inputCls, "pl-10")} />
+              <input type="password" placeholder="••••••••" disabled className={cn(inputCls, "pl-10")} />
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1064,7 +1096,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               </label>
               <div className="relative">
                 <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-300" />
-                <input type="password" placeholder="Min. 8 karakter" className={cn(inputCls, "pl-10")} />
+                <input type="password" placeholder="Min. 8 karakter" disabled className={cn(inputCls, "pl-10")} />
               </div>
             </div>
             <div className="space-y-1.5">
@@ -1073,38 +1105,31 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               </label>
               <div className="relative">
                 <Lock size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-300" />
-                <input type="password" placeholder="Ulangi password baru" className={cn(inputCls, "pl-10")} />
+                <input type="password" placeholder="Ulangi password baru" disabled className={cn(inputCls, "pl-10")} />
               </div>
             </div>
           </div>
           <div className="flex justify-end pt-2">
-            <CreatorBtn onClick={() => showToast("Fitur ubah password akan segera tersedia!")}>
-              Ubah Password
-            </CreatorBtn>
+            <CreatorBtn disabled>Ubah Password</CreatorBtn>
           </div>
         </div>
       </SettingsCard>
 
       <SettingsCard>
-        <CardSectionHeader title="Sesi & Aktivitas Login" />
-        <div className="p-6">
-          <div className="flex items-start gap-4 p-4 rounded-[16px] bg-neutral-50 border border-neutral-200/60">
-            <div
-              className="w-10 h-10 rounded-[13px] flex items-center justify-center shrink-0"
-              style={{ background: CREATOR_GRADIENT_SOFT, border: "1px solid rgba(37,99,235,.18)" }}
-            >
-              <ShieldCheck size={17} className="text-blue-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[0.9rem] font-[700] text-neutral-800">Sesi Aktif Saat Ini</p>
-              <p className="text-[0.76rem] font-[500] text-neutral-400 mt-0.5">
-                Chrome · Windows · Jakarta, Indonesia
-              </p>
-              <p className="text-[0.68rem] font-[600] text-emerald-600 mt-1">● Online sekarang</p>
-            </div>
-            <span className="shrink-0 text-[0.68rem] font-[800] text-neutral-300 uppercase tracking-wider">
-              Ini Anda
+        <CardSectionHeader
+          title="Sesi & Aktivitas Login"
+          action={
+            <span className="px-2.5 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-[0.66rem] font-[800] text-neutral-400 uppercase tracking-wider">
+              Segera tersedia
             </span>
+          }
+        />
+        <div className="p-6">
+          <div className="flex items-center gap-3 p-3.5 rounded-[14px] bg-neutral-50 border border-neutral-200/60">
+            <ShieldCheck size={16} className="text-neutral-300 shrink-0" />
+            <p className="text-[0.82rem] font-[600] text-neutral-400">
+              Riwayat sesi akan ditampilkan di sini setelah fitur aktif.
+            </p>
           </div>
         </div>
       </SettingsCard>
@@ -1119,26 +1144,6 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
   };
 
   // ── Modal frame ───────────────────────────────────────────────────────────────
-  const ModalFrame = ({
-    children,
-    maxW = "max-w-md",
-  }: {
-    children: React.ReactNode;
-    maxW?: string;
-  }) => (
-    <div className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div
-        className={cn(
-          "bg-white rounded-[26px] border border-neutral-200/50 shadow-2xl p-6 sm:p-8 w-full",
-          "animate-in fade-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto",
-          maxW
-        )}
-      >
-        {children}
-      </div>
-    </div>
-  );
-
   const inputModalCls = inputCls;
 
   // ══════════════════════════════════════════════════════════════════════════════
@@ -1177,8 +1182,11 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
                   className="w-12 h-12 rounded-[16px] flex items-center justify-center transition-all shrink-0"
                   style={
                     isActive
-                      ? { background: CREATOR_GRADIENT, boxShadow: "0 6px 18px rgba(37,99,235,.28)" }
-                      : { background: "#f3f4f6" }
+                      ? {
+                          background: CREATOR_GRADIENT,
+                          boxShadow: "0 6px 18px color-mix(in srgb, var(--color-kreator-gradient-start) 28%, transparent)",
+                        }
+                      : { background: "var(--color-surface-subtle)" }
                   }
                 >
                   <tab.icon
@@ -1224,8 +1232,11 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
                     className="w-8 h-8 rounded-[11px] flex items-center justify-center shrink-0 transition-all"
                     style={
                       isActive
-                        ? { background: CREATOR_GRADIENT, boxShadow: "0 4px 12px rgba(37,99,235,.25)" }
-                        : { background: "#f3f4f6" }
+                        ? {
+                            background: CREATOR_GRADIENT,
+                            boxShadow: "0 4px 12px color-mix(in srgb, var(--color-kreator-gradient-start) 25%, transparent)",
+                          }
+                        : { background: "var(--color-surface-subtle)" }
                     }
                   >
                     <tab.icon
@@ -1268,7 +1279,11 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
 
       {/* ════════════ Modal: Profile Success ════════════ */}
       {isProfileSuccessOpen && (
-        <ModalFrame>
+        <ModalFrame
+          isOpen={isProfileSuccessOpen}
+          onClose={() => setIsProfileSuccessOpen(false)}
+          title="Profil Berhasil Diperbarui"
+        >
           <div className="text-center">
             <div
               className="w-16 h-16 rounded-full flex items-center justify-center text-white mx-auto mb-5 shadow-lg"
@@ -1294,7 +1309,14 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
 
       {/* ════════════ Modal: Add Portfolio ════════════ */}
       {isAddPortOpen && (
-        <ModalFrame>
+        <ModalFrame
+          isOpen={isAddPortOpen}
+          onClose={() => {
+            setIsAddPortOpen(false);
+            resetPortForm();
+          }}
+          title="Tambah Portofolio"
+        >
           <div className="flex justify-between items-start gap-4 mb-5">
             <div>
               <h3 className="text-[1rem] font-[900] text-neutral-900 leading-none">
@@ -1398,7 +1420,15 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
 
       {/* ════════════ Modal: Edit Portfolio ════════════ */}
       {isEditPortOpen && activePortItem && (
-        <ModalFrame>
+        <ModalFrame
+          isOpen={isEditPortOpen}
+          onClose={() => {
+            setIsEditPortOpen(false);
+            setActivePortItem(null);
+            resetPortForm();
+          }}
+          title="Ubah Portofolio"
+        >
           <div className="flex justify-between items-start gap-4 mb-5">
             <div>
               <h3 className="text-[1rem] font-[900] text-neutral-900 leading-none">
@@ -1503,7 +1533,16 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
 
       {/* ════════════ Modal: Delete Confirm ════════════ */}
       {isDeleteConfirmOpen && activePortItem && (
-        <ModalFrame maxW="max-w-sm">
+        <ModalFrame
+          isOpen={isDeleteConfirmOpen}
+          onClose={() => {
+            setIsDeleteConfirmOpen(false);
+            setActivePortItem(null);
+            setPortError(null);
+          }}
+          title="Hapus Item Portofolio"
+          maxW="max-w-sm"
+        >
           <h3 className="text-[1rem] font-[900] text-neutral-900 leading-none mb-3">
             Hapus Item Portofolio?
           </h3>

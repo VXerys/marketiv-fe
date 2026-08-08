@@ -59,10 +59,20 @@ User submit form pendaftaran dari halaman Landing Page:
 
 ### Tahap 4: Onboarding (dipisah dari workflow ini)
 
-13. **Users** — Wizard onboarding sesuai role:
-    - UMKM: isi deskripsi, kota, alamat, social media TikTok opsional, upload logo. Tidak ada input website pada MVP.
-    - Creator: isi bio, kota, avatar, tambah akun sosial & portfolio.
+13. **Users** — Wizard onboarding sesuai role, di route `/onboarding` (3 langkah):
+    - UMKM: nama usaha + kategori + kota → deskripsi + logo → alamat & TikTok (keduanya opsional). Tidak ada input website pada MVP.
+    - Creator: nama display + niche + kota → bio + avatar → akun TikTok (**wajib**) & Instagram (opsional).
 14. `isProfileCompleted` di-set `true` setelah wizard selesai.
+
+> **Wajib, bukan kosmetik.** Selama flag ini `false`, kreator tidak muncul di
+> `get-creator-directory` (UMKM tidak melihat kreator maupun rate card-nya sama
+> sekali), tidak dinotifikasi oleh `campaign-published`, dan ditolak saat klaim
+> campaign. Sisi kreator tidak melihat gejala apa pun — itu sebabnya wizardnya
+> tidak boleh diperlakukan sebagai pemanis UX.
+>
+> Untuk kreator, akun TikTok wajib karena `get-creator-directory` mengambil
+> `username` dan `engagementRate` dari `creator_social_accounts`. Menandai profil
+> lengkap tanpa itu menerbitkan kartu kreator yang kosong ke seluruh UMKM.
 
 ## State Transitions
 
@@ -107,7 +117,7 @@ Form Submitted → Appwrite Auth Created → users.create (event)
 - UMKM via Google OAuth tetap harus isi Nama Usaha, Kategori, Nomor HP setelah redirect — jika tidak dilengkapi, profil UMKM tidak terbentuk.
 - Wallet/profil idempoten — function `create-user-profile` dan `create-user-wallet` harus cek eksistensi sebelum insert agar tidak duplikat jika event terpicu ulang.
 - `users.create` event gagal → retry mechanism Appwrite Function; jika tetap gagal, admin harus manual check.
-- Onboarding bisa dilewati (skip) — user tetap bisa akses dashboard meski `isProfileCompleted = false`, namun fitur tertentu terblokir (claim campaign, dll.).
+- Onboarding bisa dilewati (skip) — user tetap bisa akses dashboard meski `isProfileCompleted = false`, namun fitur tertentu terblokir (claim campaign, tampil di direktori kreator). Penanda skip berlaku **per sesi** (`sessionStorage`), jadi login berikutnya menawarkan wizardnya lagi.
 
 ## Links
 

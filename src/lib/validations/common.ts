@@ -72,17 +72,31 @@ export const requiredHttpsUrl = (fieldName = "URL") =>
 
 /**
  * Indonesian / WhatsApp phone number.
- * Accepts formats: 08xxx, +628xxx, 628xxx.
- * Minimum 9, maximum 15 digits (after stripping formatting chars).
+ *
+ * Nomor seluler Indonesia SELALU diawali `08`/`+628`/`628` (prefix `8` sesudah
+ * kode negara). Regex ini menuntut prefix itu, jadi masukan 2–5 digit atau nomor
+ * tanpa `8` ditolak — bukan hanya "terlalu pendek". Panjang total 10–13 digit.
  */
 export const indonesianPhone = z
   .string()
-  .min(9, "Nomor WhatsApp terlalu pendek.")
-  .max(20, "Nomor WhatsApp terlalu panjang.")
+  .trim()
   .regex(
-    /^(\+62|62|0)[0-9]{8,14}$/,
-    "Format nomor tidak valid. Gunakan format: 08xx, +628xx, atau 628xx."
+    /^(\+62|62|0)8[0-9]{8,11}$/,
+    "Nomor WhatsApp harus diawali 08, 628, atau +628 dan terdiri dari 10–13 digit angka."
   );
+
+/**
+ * Alamat email.
+ *
+ * Zod v4 — `z.email()` top-level, bukan `z.string().email()` yang sudah usang.
+ * Ditaruh di sini, bukan di auth.schema.ts, karena email adalah tipe field
+ * generik sekelas indonesianPhone dan dipakai di luar auth (kolom users.email,
+ * form kontak).
+ */
+export const emailAddress = (fieldName = "Email") =>
+  z
+    .email({ error: `${fieldName} tidak valid.` })
+    .min(1, `${fieldName} wajib diisi.`);
 
 /**
  * Currency amount in Rupiah (integer, stored as IDR cents-equivalent).

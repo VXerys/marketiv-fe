@@ -87,6 +87,7 @@ const COLLECTIONS = {
   transactions: "transactions",
   notifications: "notifications",
   orders: "orders",
+  offers: "offers",
 } as const;
 
 const PAGE_LIMIT = 100;
@@ -178,6 +179,7 @@ const mapJob = (d: Doc, umkm?: Doc): CreatorJob => ({
   status: str(d.status) as CampaignStatus,
   totalBudget: num(d.budget),
   createdAt: str(d.$createdAt),
+  type: str(d.type) || undefined,
   platforms: strList(d.platforms),
 });
 
@@ -202,8 +204,22 @@ const mapSubmission = (d: Doc): CreatorSubmission => ({
  * apa adanya dan ditampilkan UI sebagai "INFO".
  */
 const ACTIVITY_TYPE_ALIAS: Record<string, CreatorActivityType> = {
+  // Keuangan
   reward: "payout",
+  reward_matured: "payout",
+  escrow_released: "payout",
+  // Submission
+  submission_approved: "submission_valid",
+  // Escrow
+  escrow_held: "pending_escrow",
+  // Negosiasi / Rate Card
   chat_message: "negotiation_new",
+  offer_rejected: "negotiation_new",
+  order_created: "negotiation_new",
+  order_completed: "negotiation_new",
+  deliverable_submitted: "negotiation_new",
+  revision_requested: "negotiation_new",
+  // campaign_published, claim, claim_expired: pass-through (sudah cocok CreatorActivityType)
 };
 
 const mapActivity = (d: Doc): CreatorActivity => {
@@ -271,7 +287,10 @@ export async function getCreatorMetricsFromAppwrite(): Promise<ServiceResult<Cre
   }
 }
 
-/** Join orders + offers + escrows + conversations + messages + umkm_profiles. */
+/**
+ * Join conversations + offers + orders + escrows + messages + umkm_profiles.
+ * Di-key conversationId — di Alur B order lahir paling akhir.
+ */
 export async function getCreatorNegotiationsFromAppwrite(): Promise<ServiceResult<CreatorNegotiation[]>> {
   try {
     const data = await executeFunction<CreatorNegotiation[]>(FUNCTION_IDS.creatorNegotiations);
@@ -282,11 +301,11 @@ export async function getCreatorNegotiationsFromAppwrite(): Promise<ServiceResul
 }
 
 export async function getCreatorNegotiationByIdFromAppwrite(
-  id: string
+  conversationId: string
 ): Promise<ServiceResult<CreatorNegotiation>> {
   try {
     const data = await executeFunction<CreatorNegotiation>(FUNCTION_IDS.creatorNegotiations, {
-      orderId: id,
+      conversationId,
     });
     return { success: true, data };
   } catch (err) {
@@ -296,6 +315,46 @@ export async function getCreatorNegotiationByIdFromAppwrite(
     return failFromError<CreatorNegotiation>(err, null as unknown as CreatorNegotiation);
   }
 }
+
+/**
+ * Terima / tolak Custom Offer. Ini SATU-SATUNYA aksi kreator terhadap offer —
+ * membuat offer adalah hak UMKM (docs/02_Modules/Offers/30_Business_Rules.md:13),
+ * dan permission baris offer memang hanya memberi kreator `update`.
+ *
+ * ⚠️ ORDER TIDAK DIBUAT DI SINI. `create-order` dipicu event
+ * `offers.rows.*.update` dan berjalan ASINKRON — beberapa detik setelah tulisan
+ * ini masuk. Pemanggil harus mem-poll, bukan menganggap ordernya langsung ada.
+ * Membuat order dari klien juga akan ditolak: `orders` punya `$permissions`
+ * kosong, hanya Function yang bisa menulis ke sana.
+ */
+async function setOfferStatusInAppwrite(
+  offerId: string,
+  status: "accepted" | "rejected"
+): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    const offer = (await databases.getDocument(DB, COLLECTIONS.offers, offerId)) as unknown as Doc;
+
+    if (str(offer.creatorId) !== auth.userId) {
+      return fail("Hanya kreator penerima yang dapat menjawab penawaran ini.", "forbidden", null);
+    }
+    if (str(offer.status) !== "pending") {
+      return fail("Penawaran ini sudah dijawab sebelumnya.", "validation", null);
+    }
+
+    await databases.updateDocument(DB, COLLECTIONS.offers, offerId, { status });
+    return ok(null);
+  } catch (err) {
+    return failFromWriteError<null>(err, null);
+  }
+}
+
+export const acceptOfferInAppwrite = (offerId: string) =>
+  setOfferStatusInAppwrite(offerId, "accepted");
+
+export const rejectOfferInAppwrite = (offerId: string) =>
+  setOfferStatusInAppwrite(offerId, "rejected");
 
 // ── READS query langsung ─────────────────────────────────────────────────────
 
@@ -466,6 +525,7 @@ async function buildActiveWorks(claims: Doc[]): Promise<CreatorActiveWork[]> {
       submittedAt: submission ? str(submission.$createdAt) : undefined,
       validatedAt:
         submission && str(submission.status) !== "pending" ? str(submission.$updatedAt) : undefined,
+      rejectedReason: submission ? orUndefined(str(submission.reviewNotes)) : undefined,
       assetUrl: orUndefined(assetUrlByCampaignId.get(str(claim.campaignId)) ?? ""),
     };
   });
@@ -918,7 +978,7 @@ export async function uploadCreatorAvatarInAppwrite(file: File): Promise<Service
  * Tak ada unique index, jadi list dulu supaya tidak duplikat.
  */
 export async function upsertCreatorSocialAccountInAppwrite(input: {
-  platform: "tiktok" | "instagram";
+  platform: "tiktok";
   username: string;
 }): Promise<ServiceResult<null>> {
   const auth = await requireUserId<null>(null);
@@ -1097,24 +1157,263 @@ export async function requestWithdrawalInAppwrite(
   }
 }
 
+// ── Alur A: klaim campaign & kirim bukti (Sprint 4) ──────────────────────────
+//
+// Keduanya lewat SDK tulis dokumen, BUKAN executeFunction. `campaign-claimed`
+// dan `ai-fraud-precheck` dipicu event database (lihat `events` di
+// 00_BACKEND/appwrite.config.json) dan menyala sendiri setelah tulisan masuk.
+//
+// `campaign-claimed` SEKARANG menambah `totalClaims` secara atomik. Klien hanya
+// membuat baris claim — counter adalah tanggung jawab Function. Sweep basi
+// sisi klien juga dihapus: slot dikembalikan oleh `expire-stale-claims` (cron
+// per jam) dan oleh `campaign-claimed` sendiri saat kuota terlampaui.
+
+/**
+ * Klaim campaign aktif.
+ *
+ * Mirror 00_BACKEND/src/services/claim.service.ts:83-160 dengan dua
+ * penyimpangan yang disengaja:
+ *
+ * 1. **`isProfileCompleted` dibaca dari `creator_profiles`, bukan `users`.**
+ *    Backend membacanya dari `users` (claim.service.ts:91) padahal koleksi itu
+ *    hanya punya kolom userId/role/status/email/phone/createdAt — `users` tidak
+ *    pernah punya `isProfileCompleted`. Kolomnya ada di `creator_profiles`.
+ *    Sudah dilaporkan ke backend.
+ * 2. **Baris claim dibuat dengan `Permission.delete`.** `campaign_claims` tidak
+ *    punya `delete("users")` di level collection, dan jalur create backend baru
+ *    memasang read+update — tanpa ini `unclaimCampaignInAppwrite` selalu
+ *    401/403 (temuan V-1).
+ */
+export async function claimCampaignInAppwrite(
+  campaignId: string
+): Promise<ServiceResult<string>> {
+  const auth = await requireUserId<string>("");
+  if (!auth.ok) return auth.result;
+  try {
+    const campaign = (await databases.getDocument(
+      DB,
+      COLLECTIONS.campaigns,
+      campaignId
+    )) as unknown as Doc;
+
+    if (str(campaign.status) !== "active") {
+      return failValidation("Campaign ini sudah tidak aktif.", "");
+    }
+
+    const profileRes = await databases.listDocuments(DB, COLLECTIONS.creatorProfiles, [
+      Query.equal("userId", auth.userId),
+      Query.limit(1),
+    ]);
+    const profile = profileRes.documents[0] as unknown as Doc | undefined;
+    if (!profile || !profile.isProfileCompleted) {
+      return failValidation(
+        "Lengkapi profil kreator dulu sebelum mengambil pekerjaan.",
+        ""
+      );
+    }
+
+    // Guard cepat berbasis bacaan — mungkin basi (counter diperbarui oleh
+    // `campaign-claimed` async, ~0,5–3 detik setelah createDocument). Tetap
+    // berguna sebagai penolakan dini untuk kasus yang jelas-jelas penuh.
+    // Penegakan final ada di `campaign-claimed` yang memakai incrementColumn
+    // dengan `max: claimLimit` — server yang benar-benar menolak bila sudah penuh.
+    if (num(campaign.totalClaims) >= num(campaign.claimLimit)) {
+      return failValidation("Kuota kreator untuk campaign ini sudah penuh.", "");
+    }
+
+    // ⚠️ Cek duplikat sengaja TIDAK memfilter status — cermin persis
+    // claim.service.ts:126. Konsekuensinya: kreator yang claim-nya sempat
+    // `expired` tidak bisa mengambil campaign ini lagi, padahal slotnya sudah
+    // dikembalikan untuk kreator lain. Tidak dilonggarkan sepihak karena aturan
+    // bisnis harus sama di kedua sisi; sudah ditanyakan ke backend.
+    const existing = await databases.listDocuments(DB, COLLECTIONS.claims, [
+      Query.equal("campaignId", campaignId),
+      Query.equal("creatorId", auth.userId),
+      Query.limit(1),
+    ]);
+    if (existing.documents.length > 0) {
+      const previous = existing.documents[0] as unknown as Doc;
+      return failValidation(
+        str(previous.status) === "expired"
+          ? "Batas waktu pengerjaan campaign ini sudah lewat dan tidak bisa diambil lagi."
+          : "Kamu sudah pernah mengambil campaign ini.",
+        ""
+      );
+    }
+
+    const claim = await databases.createDocument(
+      DB,
+      COLLECTIONS.claims,
+      ID.unique(),
+      {
+        campaignId,
+        creatorId: auth.userId,
+        status: "claimed",
+        claimedAt: new Date().toISOString(),
+      },
+      // HANYA role diri sendiri. Appwrite menolak klien yang memasang permission
+      // untuk user lain ("Permissions must be one of: (any, users, user:<diri
+      // sendiri>, ...)"), jadi dua baris untuk UMKM yang sempat ada di sini
+      // membuat klaim campaign gagal total — bukan sekadar tidak berefek.
+      //
+      // UMKM tetap bisa membaca klaim ini lewat `read("any")` yang masih
+      // terpasang di level koleksi `campaign_claims`, dan update statusnya
+      // dikerjakan Function `review-submission` dengan API key.
+      [
+        Permission.read(Role.user(auth.userId)),
+        Permission.update(Role.user(auth.userId)),
+        Permission.delete(Role.user(auth.userId)),
+      ]
+    );
+
+    // Counter denormalisasi — lihat catatan di atas, Function tidak melakukannya.
+    //
+    // Increment ATOMIK, bukan `totalClaims + 1` hasil bacaan di awal fungsi:
+    // dua kreator yang mengklaim bersamaan sama-sama membaca angka lama lalu
+    // menuliskan hasil yang sama, sehingga kuota bisa terlampaui. `max`
+    // membuat SERVER yang menolak klaim ke-(claimLimit+1) — bukan pembacaan
+    // klien yang sudah basi saat dipakai.
+    try {
+      await databases.incrementDocumentAttribute({
+        databaseId: DB,
+        collectionId: COLLECTIONS.campaigns,
+        documentId: campaignId,
+        attribute: "totalClaims",
+        value: 1,
+        max: num(campaign.claimLimit),
+      });
+    } catch {
+      // Claim sudah sah; counter yang tertinggal bisa direkonsiliasi, dan
+      // `campaign-claimed` akan mengoreksi bila sampai melewati batas.
+    }
+
+    // Counter tidak lagi diincrement di sini — sekarang dilakukan oleh Function
+    // `campaign-claimed` secara atomik dengan max=claimLimit. Menghapus increment
+    // sisi klien menutup race condition di mana dua kreator membaca totalClaims=0
+    // bersamaan dan sama-sama berhasil melewati guard di atas.
+
+    return ok(claim.$id);
+  } catch (err) {
+    return failFromWriteError<string>(err, "");
+  }
+}
+
+export type SubmitProofInput = {
+  claimId: string;
+  campaignId: string;
+  postUrl: string;
+  caption?: string;
+  /** Platform konten — diteruskan ke Appwrite supaya ai-fraud-precheck
+   *  membandingkan hostname URL dengan platform yang benar, bukan selalu "tiktok". */
+  platform: "tiktok" | "instagram";
+};
+
+/**
+ * Kirim bukti konten untuk claim yang sedang dikerjakan.
+ *
+ * `views` sengaja ditulis 0: tidak ada Function backend yang mengaudit views,
+ * dan angka yang diisi sendiri oleh kreator akan langsung jadi dasar reward.
+ * UMKM yang mengisinya saat menyetujui submission (lihat B-1 di handoff).
+ *
+ * `ai-fraud-precheck` menyala pada create dan menulis balik `fraudScore` /
+ * `fraudStatus` beberapa saat kemudian — UI harus menampilkan "sedang
+ * diperiksa", bukan menganggap aman.
+ *
+ * ⚠️ INI JALUR UANG, dan permission barisnya mencerminkan itu — sama persis
+ * dengan alasan di header deliverable-appwrite.service.ts:
+ *
+ * - `update` diberikan HANYA ke UMKM. Menulis `status: "approved"` di baris ini
+ *   memicu `calculate-campaign-reward`, yang langsung menambah
+ *   `wallets.pendingBalance` kreator. Memberi kreator `update` sama dengan
+ *   mengizinkannya menyetujui pekerjaannya sendiri lalu mencairkan dananya.
+ *   Guard peran di service TIDAK cukup — penyerang cukup memanggil
+ *   `updateDocument` langsung dari konsol browser.
+ * - `read` diberikan ke KEDUANYA. Sebelumnya UMKM tidak diberi read sama sekali,
+ *   dan layar review hidup semata karena `read("any")` di level koleksi. Begitu
+ *   koleksi diketatkan (gelombang 5), layar itu akan kosong tanpa baris ini.
+ * - `ai-fraud-precheck` memakai API key, jadi tetap bisa menulis fraudScore.
+ */
+export async function submitProofInAppwrite(
+  input: SubmitProofInput
+): Promise<ServiceResult<null>> {
+  const auth = await requireUserId<null>(null);
+  if (!auth.ok) return auth.result;
+  try {
+    const res = await databases.listDocuments(DB, COLLECTIONS.claims, [
+      Query.equal("$id", input.claimId),
+      Query.equal("creatorId", auth.userId),
+      Query.limit(1),
+    ]);
+    const claim = res.documents[0] as unknown as Doc | undefined;
+    if (!claim) return fail("Pekerjaan tidak ditemukan.", "not_found", null);
+
+    if (str(claim.status) !== "claimed") {
+      return failValidation(
+        "Bukti untuk pekerjaan ini sudah pernah dikirim.",
+        null
+      );
+    }
+
+    await databases.createDocument(
+      DB,
+      COLLECTIONS.submissions,
+      ID.unique(),
+      {
+        claimId: input.claimId,
+        campaignId: input.campaignId,
+        creatorId: auth.userId,
+        // Dulu selalu "tiktok". Sekarang diteruskan dari UI supaya ai-fraud-precheck
+        // tidak menambah +20 skor fraud "Platform tidak cocok" ke submission Instagram.
+        platform: input.platform,
+        postUrl: input.postUrl,
+        caption: input.caption ?? "",
+        views: 0,
+        status: "pending",
+      },
+      // HANYA role diri sendiri — alasan yang sama dengan claimCampaign di atas.
+      //
+      // Jalur uang tetap terjaga, dan justru lebih rapat: `views` + status
+      // "approved" adalah yang memicu calculate-campaign-reward menambah saldo
+      // kreator, dan sekarang SATU-SATUNYA yang bisa menulisnya adalah Function
+      // `review-submission` (level koleksi tanpa update, baris tanpa update untuk
+      // siapa pun kecuali kreatornya sendiri untuk kirim ulang bukti). UMKM
+      // membacanya lewat `read("any")` yang masih ada di level koleksi.
+      [
+        Permission.read(Role.user(auth.userId)),
+        Permission.update(Role.user(auth.userId)),
+      ]
+    );
+
+    await databases.updateDocument(DB, COLLECTIONS.claims, input.claimId, {
+      status: "submitted",
+    });
+
+    return ok(null);
+  } catch (err) {
+    return failFromWriteError<null>(err, null);
+  }
+}
+
 // ── batalkan claim (Sprint 3.5) ──────────────────────────────────────────────
 
 /**
- * Batalkan claim campaign yang belum disubmit.
+ * Batalkan claim campaign yang belum disubmit — HARD DELETE.
  *
- * Mirror 00_BACKEND/src/services/claim.service.ts:unclaimCampaign — status
- * `claimed` → `unclaimed`, lalu `campaigns.totalClaims` dikurangi supaya slot
- * kembali terbuka untuk kreator lain.
+ * Mirror 00_BACKEND/src/services/claim.service.ts:unclaimCampaign setelah
+ * resolusi T-1 (2026-07-26): backend memilih menghapus barisnya, bukan
+ * memindahkan status ke `unclaimed`. Itu satu-satunya cara kreator bisa
+ * mengambil campaign yang sama lagi, karena cek duplikat di `claimCampaign`
+ * menolak berdasarkan keberadaan baris tanpa memfilter status.
  *
- * ⚠️ SATU ARAH. `claimCampaign` backend (claim.service.ts:126) menolak claim
- * baru berdasarkan keberadaan baris TANPA memfilter status, sehingga kreator
- * yang membatalkan tidak akan pernah bisa mengambil campaign ini lagi. Teks
- * konfirmasi di UI menyatakan itu terang-terangan. Sudah ditanyakan ke backend
- * sebagai T-1 (integration-context/2026-07-26-review-frontend-atas-delete-layer.md);
- * begitu mereka memilih hard-delete atau memfilter status, longgarkan teksnya.
+ * ⚠️ Butuh `Permission.delete(Role.user(creatorId))` pada baris claim.
+ * `campaign_claims` TIDAK punya `delete("users")` di level collection, dan
+ * jalur create backend (claim.service.ts:147) baru memasang read+update.
+ * Jalur create milik frontend (Sprint 4 `s4-ppv-claim`) WAJIB memasang
+ * Permission.delete — kalau tidak, fungsi ini selalu balas 401/403.
+ * Sudah dilaporkan ke backend untuk baris lama & jalur create mereka.
  *
- * `totalClaims` sengaja dikurangi setelah status tersimpan, dan kegagalannya
- * tidak membatalkan pembatalan: slot yang telat kembali bisa direkonsiliasi,
+ * `totalClaims` dikurangi setelah baris terhapus, dan kegagalannya tidak
+ * membatalkan operasi: slot yang telat kembali bisa direkonsiliasi,
  * sedangkan claim yang menggantung tidak.
  */
 export async function unclaimCampaignInAppwrite(claimId: string): Promise<ServiceResult<null>> {
@@ -1136,23 +1435,35 @@ export async function unclaimCampaignInAppwrite(claimId: string): Promise<Servic
       );
     }
 
-    await databases.updateDocument(DB, COLLECTIONS.claims, claimId, {
-      status: "unclaimed",
-    });
+    const campaignId = str(claim.campaignId);
 
     try {
-      const campaignId = str(claim.campaignId);
-      const campaign = (await databases.getDocument(
-        DB,
-        COLLECTIONS.campaigns,
-        campaignId
-      )) as unknown as Doc;
-      const total = num(campaign.totalClaims);
-      if (total > 0) {
-        await databases.updateDocument(DB, COLLECTIONS.campaigns, campaignId, {
-          totalClaims: total - 1,
-        });
+      await databases.deleteDocument(DB, COLLECTIONS.claims, claimId);
+    } catch (err) {
+      const code = (err as { code?: number })?.code;
+      if (code === 401 || code === 403) {
+        return fail(
+          "Pekerjaan ini tidak bisa dibatalkan dari aplikasi karena diklaim sebelum fitur pembatalan aktif; hubungi support.",
+          "forbidden",
+          null
+        );
       }
+      throw err;
+    }
+
+    // Decrement ATOMIK dengan `min: 0`. Versi lama membaca `totalClaims` lalu
+    // menulis `total - 1`; dua pembatalan bersamaan sama-sama membaca angka yang
+    // sama sehingga hanya satu slot yang benar-benar kembali. `min` juga
+    // menggantikan guard `total > 0` yang ikut basi karena berdasar bacaan.
+    try {
+      await databases.decrementDocumentAttribute({
+        databaseId: DB,
+        collectionId: COLLECTIONS.campaigns,
+        documentId: campaignId,
+        attribute: "totalClaims",
+        value: 1,
+        min: 0,
+      });
     } catch {
       // Slot yang telat kembali bisa direkonsiliasi; claim menggantung tidak.
     }

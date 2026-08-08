@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useStickyToolbar } from "@/hooks/useStickyToolbar";
+import { useRouter } from "next/navigation";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { UmkmPageWrapper } from "../shared/UmkmPageWrapper";
 import { CampaignsHeader } from "./CampaignsHeader";
@@ -23,6 +23,7 @@ import {
   updateCampaignStatus,
   duplicateCampaign,
   deleteCampaignDraft,
+  publishCampaign,
 } from "@/services/umkm/umkm-dashboard.service";
 import {
   Campaign,
@@ -39,6 +40,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "sonner";
 
 export function CampaignsPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +58,6 @@ export function CampaignsPage() {
   const [selectedNiche, setSelectedNiche] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
-  const { toolbarRef, isSticky: isToolbarSticky } = useStickyToolbar();
 
   // Modal states
   const [activeCancelCampaign, setActiveCancelCampaign] = useState<Campaign | null>(null);
@@ -183,6 +184,21 @@ export function CampaignsPage() {
     showToast(`Draft "${target.title}" berhasil dihapus.`);
   };
 
+  /**
+   * Terbitkan draft yang dananya sudah masuk. Tidak pakai modal konfirmasi:
+   * aksinya tidak merusak, dan service menolak sendiri bila `remainingBudget`
+   * masih 0 — pesan penolakannya yang menjelaskan kenapa.
+   */
+  const handlePublish = async (target: Campaign) => {
+    const res = await publishCampaign(target.id);
+    if (!res.success || !res.data) {
+      toast.error(res.error ?? "Gagal menerbitkan campaign.");
+      return;
+    }
+    setCampaigns((prev) => prev.map((c) => (c.id === target.id ? res.data! : c)));
+    showToast(`Campaign "${target.title}" kini tayang di Job Pool.`);
+  };
+
   const handleDuplicateConfirm = async (
     newTitle: string,
     options: { copyBrief: boolean; copyBudget: boolean; copyAssets: boolean }
@@ -206,10 +222,8 @@ export function CampaignsPage() {
     }
   };
 
-  const businessName = profile?.businessName || "Dapur Sehat Sukabumi";
-
   return (
-    <UmkmDashboardChrome businessName={businessName}>
+    <UmkmDashboardChrome businessName={profile?.businessName}>
       {/* UmkmPageWrapper: responsive padding, 26px gap, 1440px max-width for campaign list */}
       <UmkmPageWrapper maxWidth={1440}>
         {/* Header */}
@@ -226,8 +240,7 @@ export function CampaignsPage() {
         ) : null}
 
         {/* Toolbar — sticky direct grid child */}
-        <div ref={toolbarRef} style={{ position: "sticky", top: 0, zIndex: 30 }}>
-          <CampaignToolbar
+        <CampaignToolbar
             search={search}
             onSearchChange={setSearch}
             selectedStatus={selectedStatus}
@@ -241,9 +254,7 @@ export function CampaignsPage() {
             onClearFilters={handleClearFilters}
             hasActiveFilters={hasActiveFilters}
             statusCounts={statusCounts}
-            isSticky={isToolbarSticky}
           />
-        </div>
 
         {/* List Content */}
         {loading ? (
@@ -251,7 +262,7 @@ export function CampaignsPage() {
         ) : error ? (
           <CampaignErrorState onRetry={loadData} errorMsg={error} />
         ) : campaigns.length === 0 ? (
-          <CampaignEmptyState onCreateClick={() => showToast("Buka wizard pembuatan campaign baru.")} />
+          <CampaignEmptyState onCreateClick={() => router.push("/dashboard/umkm/campaign/buat")} />
         ) : processedCampaigns.length === 0 ? (
           <Card className="border border-border shadow-[var(--shadow-1)] bg-[var(--paper-2)] rounded-[var(--radius-3)]">
             <CardContent className="p-8 text-center">
@@ -269,8 +280,9 @@ export function CampaignsPage() {
             onDuplicate={setActiveDuplicateCampaign}
             onCancel={setActiveCancelCampaign}
             onDelete={setActiveDeleteCampaign}
+            onPublish={handlePublish}
             onExport={() => setIsExportModalOpen(true)}
-            onEdit={(camp) => showToast(`Melanjutkan edit Draft: ${camp.title}`)}
+            onEdit={(camp) => router.push(`/dashboard/umkm/campaign/${camp.id}/edit`)}
           />
         ) : (
           <div className="responsive-card-grid-2">
@@ -286,8 +298,9 @@ export function CampaignsPage() {
                   onDuplicate={() => setActiveDuplicateCampaign(camp)}
                   onCancel={() => setActiveCancelCampaign(camp)}
                   onDelete={() => setActiveDeleteCampaign(camp)}
+                  onPublish={() => handlePublish(camp)}
                   onExport={() => setIsExportModalOpen(true)}
-                  onEdit={() => showToast(`Melanjutkan edit Draft: ${camp.title}`)}
+                  onEdit={() => router.push(`/dashboard/umkm/campaign/${camp.id}/edit`)}
                 />
               );
             })}
@@ -338,6 +351,19 @@ export function CampaignsPage() {
           <ExportReportModal
             isOpen={isExportModalOpen}
             onClose={() => setIsExportModalOpen(false)}
+            filename="Laporan_Campaign_Marketiv"
+            rows={campaigns.map((c) => ({
+              "ID": c.id,
+              "Judul": c.title,
+              "Niche": c.niche,
+              "Status": c.status,
+              "Kuota": c.creatorQuota,
+              "Klaim Terpakai": c.usedQuota,
+              "Budget (Rp)": c.totalBudgetEscrow,
+              "Budget Tersisa (Rp)": c.remainingBudget,
+              "Total Views": c.totalViews,
+              "Dibuat": c.createdAt,
+            }))}
           />
         )}
 

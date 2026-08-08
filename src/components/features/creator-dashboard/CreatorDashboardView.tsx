@@ -29,28 +29,27 @@ import {
   CreatorProfile,
   CreatorMetric,
   CreatorActiveWork,
-  CreatorNegotiation,
   CreatorActivity,
   CreatorJob,
 } from "@/types/creator-dashboard";
 import {
   DashboardBadge,
-  DashboardModal,
-  DashboardButton,
   DashboardStateCard,
 } from "@/components/features/dashboard/shared";
+import { MetricCard } from "@/components/ui/metric-card";
+import { claimCampaign } from "@/services/creator/creator-dashboard.service";
 import { formatCurrency, formatCompactCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 // ─── Niche theme maps ────────────────────────────────────────────────────────
 
 const NICHE_GRADIENTS: Record<string, [string, string]> = {
-  kuliner:    ["#f59e0b", "#ef4444"],
-  fashion:     ["#ec4899", "#8b5cf6"],
-  pariwisata: ["#14b8a6", "#3b82f6"],
-  edukasi:    ["#3b82f6", "#1d4ed8"],
-  kecantikan: ["#f472b6", "#d946ef"],
-  lainnya:    ["#7c3aed", "#4f46e5"],
+  kuliner:    ["var(--color-amber-500)", "var(--color-red-500)"],
+  fashion:     ["var(--color-pink-500)", "var(--color-violet-500)"],
+  pariwisata: ["var(--color-teal-500)", "var(--color-blue-500)"],
+  edukasi:    ["var(--color-blue-500)", "var(--color-blue-700)"],
+  kecantikan: ["var(--color-pink-400)", "var(--color-fuchsia-500)"],
+  lainnya:    ["var(--color-kreator-600)", "var(--color-kreator-gradient-end)"],
 };
 
 const NICHE_LABELS: Record<string, string> = {
@@ -62,6 +61,11 @@ const NICHE_LABELS: Record<string, string> = {
   lainnya:    "Lainnya",
 };
 
+const CREATOR_BRAND_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-600), var(--color-kreator-gradient-end))";
+const CREATOR_PROGRESS_GRADIENT =
+  "linear-gradient(90deg, var(--color-kreator-600), var(--color-kreator-gradient-end))";
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const formatCount = (n: number): string => {
@@ -69,46 +73,6 @@ const formatCount = (n: number): string => {
   if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
   return n.toString();
 };
-
-// ─── MetricTile ──────────────────────────────────────────────────────────────
-
-interface MetricTileProps {
-  label: string;
-  value: string | number;
-  helper?: string;
-  icon: React.ReactNode;
-  iconClass: string;
-  highlight?: boolean;
-}
-
-function MetricTile({ label, value, helper, icon, iconClass, highlight }: MetricTileProps) {
-  return (
-    <div
-      className={cn(
-        "group relative p-4 sm:p-5 rounded-[22px] border bg-white/70 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_36px_rgba(37,99,235,.06)] hover:border-blue-400/30 select-none cursor-default",
-        highlight 
-          ? "border-blue-200/50 shadow-[0_10px_30px_-10px_rgba(37,99,235,0.15)] bg-gradient-to-br from-blue-50/20 to-white/95" 
-          : "border-neutral-200/60 shadow-[0_2px_12px_rgba(15,23,42,.03)]"
-      )}
-    >
-      {highlight && (
-        <div className="absolute top-3.5 right-3.5">
-          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200/30 text-[8px] font-extrabold text-blue-600 uppercase tracking-wider shadow-3xs">
-            Utama
-          </span>
-        </div>
-      )}
-      <div className={cn("h-9.5 w-9.5 rounded-[12px] flex items-center justify-center mb-3.5 border transition-transform duration-300 group-hover:scale-105", iconClass)}>
-        {icon}
-      </div>
-      <div className="text-[.67rem] font-extrabold text-neutral-400 uppercase tracking-widest leading-none">{label}</div>
-      <div className="font-display text-[1.3rem] sm:text-[1.4rem] font-black text-[#1e1b4b] tracking-tight leading-none mt-1.5 break-all">{value}</div>
-      {helper && (
-        <div className="text-[.7rem] text-neutral-400 font-semibold mt-1 leading-none">{helper}</div>
-      )}
-    </div>
-  );
-}
 
 // ─── CampaignCard ────────────────────────────────────────────────────────────
 
@@ -126,7 +90,7 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
   const nicheLabel   = NICHE_LABELS[job.niche]   ?? "Lainnya";
 
   return (
-    <div className="group bg-white rounded-[20px] border border-neutral-200/50 overflow-hidden shadow-[0_2px_16px_rgba(15,23,42,.05)] hover:shadow-[0_16px_48px_rgba(109,40,217,.13)] hover:-translate-y-1.5 hover:border-violet-400/20 transition-all duration-300 flex flex-col">
+    <div className="group flex flex-col overflow-hidden rounded-[20px] border border-neutral-200/50 bg-white shadow-[0_2px_16px_rgba(15,23,42,.05)] transition-all duration-300 hover:-translate-y-1.5 hover:border-kreator-400/20 hover:shadow-kreator">
 
       {/* Cover image */}
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: "4/3" }}>
@@ -193,10 +157,10 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
 
       {/* Card body */}
       <div className="p-4 flex flex-col gap-3 flex-1">
-        <h4 className="text-sm font-extrabold text-[#1e1b4b] leading-snug line-clamp-2">{job.title}</h4>
+        <h4 className="text-sm font-extrabold text-kreator-ink leading-snug line-clamp-2">{job.title}</h4>
 
         <div className="flex items-baseline gap-1.5">
-          <span className="font-display text-[1.1rem] font-black text-[#7c3aed] tracking-tight leading-none">
+          <span className="font-display text-[1.1rem] font-black text-kreator-600 tracking-tight leading-none">
             {formatCurrency(job.ratePerThousandViews)}
           </span>
           <span className="text-[10px] text-neutral-400 font-semibold">/ 1K views</span>
@@ -222,7 +186,7 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
               className="h-full rounded-full"
               style={{
                 width: `${100 - slotUsedPct}%`,
-                background: "linear-gradient(90deg, #7c3aed, #4f46e5)",
+                background: CREATOR_PROGRESS_GRADIENT,
                 transition: "width .4s ease",
               }}
             />
@@ -240,8 +204,8 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
             onClick={() => onClaim(job.id, job.title)}
             className="flex-[2] py-2.5 rounded-[12px] text-white text-[10px] font-extrabold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
             style={{
-              background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-              boxShadow: "0 4px 14px rgba(124,58,237,.30)",
+              background: CREATOR_BRAND_GRADIENT,
+              boxShadow: "var(--shadow-kreator)",
             }}
           >
             Klaim Job
@@ -258,9 +222,10 @@ interface CreatorDashboardViewProps {
   profile: CreatorProfile;
   metrics: CreatorMetric;
   activeWorks: CreatorActiveWork[];
-  negotiations: CreatorNegotiation[];
   activities: CreatorActivity[];
   recommendedJobs: CreatorJob[];
+  /** Baca ulang seluruh dashboard dari server setelah aksi yang mengubah data. */
+  onRefresh: () => Promise<void>;
 }
 
 export function CreatorDashboardView({
@@ -269,119 +234,50 @@ export function CreatorDashboardView({
   activeWorks: initialActiveWorks,
   activities: initialActivities,
   recommendedJobs: initialRecommendedJobs,
+  onRefresh,
 }: CreatorDashboardViewProps) {
 
   // ── State ──────────────────────────────────────────────────────────────────
-  const [activeWorks, setActiveWorks]         = useState<CreatorActiveWork[]>(initialActiveWorks);
-  const [activities, setActivities]           = useState<CreatorActivity[]>(initialActivities);
-  const [recJobs, setRecJobs]                 = useState<CreatorJob[]>(initialRecommendedJobs);
-  const [currentMetrics, setCurrentMetrics]   = useState<CreatorMetric>(metrics);
+  //
+  // Seluruh isi layar datang dari props dan dibaca ulang lewat `onRefresh`.
+  // Tidak ada lagi salinan state yang bisa dimutasi lokal: setiap "penambalan"
+  // di sini pernah berujung pada angka yang berbeda dari isi database.
+  const activeWorks = initialActiveWorks;
+  const activities = initialActivities;
+  const recJobs = initialRecommendedJobs;
+  const currentMetrics = metrics;
 
-
-  const [isTarikDanaOpen,       setIsTarikDanaOpen]       = useState(false);
-  const [isSubmitBuktiOpen,     setIsSubmitBuktiOpen]     = useState(false);
-  const [selectedWorkToSubmit,  setSelectedWorkToSubmit]  = useState<CreatorActiveWork | null>(null);
-
-  const [bankName,        setBankName]        = useState("bca");
-  const [accountNumber,   setAccountNumber]   = useState("");
-  const [accountHolder,   setAccountHolder]   = useState("");
-  const [withdrawAmount,  setWithdrawAmount]  = useState("");
-  const [submitPlatform,  setSubmitPlatform]  = useState<"tiktok" | "instagram">("tiktok");
-  const [submitUrl,       setSubmitUrl]       = useState("");
+  const [claimingJobId, setClaimingJobId] = useState<string | null>(null);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
   const showToast = (msg: string) => toast.success(msg);
 
-  const handleKlaimJob = (jobId: string, jobTitle: string) => {
-    const targetJob = recJobs.find(j => j.id === jobId);
-    if (!targetJob) return;
+  /**
+   * Klaim campaign dari kartu rekomendasi.
+   *
+   * Dulu fungsi ini memfabrikasi baris Pekerjaan Aktif ber-id
+   * `claim_new_${Date.now()}` dan menampilkan toast sukses tanpa memanggil
+   * service apa pun — klaimnya tidak pernah tercatat.
+   *
+   * Setelah klaim diterima server, seluruh dashboard dibaca ulang lewat
+   * `onRefresh` alih-alih ditambal di state: metrik, aktivitas, dan daftar
+   * pekerjaan aktif semuanya diturunkan dari data server, jadi menambalnya
+   * sendiri hanya menghasilkan angka yang berbeda dari kenyataan.
+   */
+  const handleKlaimJob = async (jobId: string, jobTitle: string) => {
+    if (claimingJobId) return;
+    setClaimingJobId(jobId);
+    const res = await claimCampaign(jobId);
+    setClaimingJobId(null);
 
-    setRecJobs(prev => prev.filter(j => j.id !== jobId));
-    setActiveWorks(prev => [{
-      id: `claim_new_${Date.now()}`,
-      campaignId: targetJob.id,
-      title: targetJob.title,
-      brandName: targetJob.brandName,
-      brandAvatar: targetJob.brandAvatar,
-      brief: targetJob.brief,
-      ratePerThousandViews: targetJob.ratePerThousandViews,
-      status: "claimed" as const,
-      claimedAt: new Date().toISOString(),
-      deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    }, ...prev]);
-
-    setCurrentMetrics(prev => ({
-      ...prev,
-      availableJobsCount: Math.max(0, prev.availableJobsCount - 1),
-      activeJobsCount: prev.activeJobsCount + 1,
-    }));
-
-    setActivities(prev => [{
-      id: `act_new_${Date.now()}`,
-      type: "pending_escrow",
-      title: "Pekerjaan Diklaim",
-      description: `Mengklaim pekerjaan kampanye '${jobTitle}'.`,
-      amount: targetJob.totalBudget,
-      createdAt: new Date().toISOString(),
-    }, ...prev]);
-
-    showToast(`Pekerjaan "${jobTitle}" berhasil diklaim!`);
-  };
-
-  const handleWithdrawalSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const amountNum = Number(withdrawAmount);
-    if (isNaN(amountNum) || amountNum <= 0) { showToast("Masukkan nominal penarikan yang valid."); return; }
-    if (amountNum > currentMetrics.balance)  { showToast("Saldo wallet Anda tidak mencukupi."); return; }
-
-    setCurrentMetrics(prev => ({
-      ...prev,
-      balance: prev.balance - amountNum,
-      pendingPayouts: prev.pendingPayouts + amountNum,
-    }));
-    setActivities(prev => [{
-      id: `act_new_${Date.now()}`,
-      type: "payout",
-      title: "Penarikan Diajukan",
-      description: `Mengajukan penarikan Rp${amountNum.toLocaleString("id-ID")} ke ${bankName.toUpperCase()}`,
-      amount: amountNum,
-      createdAt: new Date().toISOString(),
-    }, ...prev]);
-
-    setIsTarikDanaOpen(false);
-    showToast(`Pengajuan penarikan Rp${amountNum.toLocaleString("id-ID")} berhasil dikirim!`);
-  };
-
-  const handleProofSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedWorkToSubmit || !submitUrl.trim() || !submitUrl.startsWith("http")) {
-      showToast("Masukkan URL bukti tayang yang valid.");
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal mengambil pekerjaan ini.");
       return;
     }
 
-    setActiveWorks(prev =>
-      prev.map(w =>
-        w.id === selectedWorkToSubmit.id
-          ? { ...w, status: "submitted" as const, submissionStatus: "pending" as const, fraudStatus: "safe" as const, contentUrl: submitUrl }
-          : w
-      )
-    );
-    setCurrentMetrics(prev => ({
-      ...prev,
-      activeJobsCount: Math.max(0, prev.activeJobsCount - 1),
-      pendingSubmissionsCount: prev.pendingSubmissionsCount + 1,
-    }));
-    setActivities(prev => [{
-      id: `act_new_${Date.now()}`,
-      type: "submission_valid",
-      title: "Bukti Posting Dikirim",
-      description: `Mengirimkan link bukti tayang untuk '${selectedWorkToSubmit.title}'.`,
-      createdAt: new Date().toISOString(),
-    }, ...prev]);
-
-    setIsSubmitBuktiOpen(false);
-    showToast("Bukti tayang berhasil diunggah! Menunggu verifikasi admin.");
+    showToast(`Pekerjaan "${jobTitle}" berhasil diklaim!`);
+    await onRefresh();
   };
 
   const getDaysRemaining = (deadlineStr: string): string => {
@@ -393,37 +289,46 @@ export function CreatorDashboardView({
 
   const getActivityDot = (type: string): string => {
     switch (type) {
-      case "submission_valid": return "#22c55e";
-      case "payout":           return "#ef4444";
-      case "negotiation_new":  return "#f59e0b";
-      case "pending_escrow":   return "#7c3aed";
-      default:                 return "#94a3b8";
+      case "submission_valid":    return "var(--color-green-500)";
+      case "payout":              return "var(--color-red-500)";
+      case "negotiation_new":     return "var(--color-amber-500)";
+      case "pending_escrow":      return "var(--color-kreator-600)";
+      case "campaign_published":  return "var(--color-blue-500)";
+      case "claim":               return "var(--color-violet-500)";
+      case "claim_expired":       return "var(--color-neutral-400)";
+      default:                    return "var(--color-control-disabled)";
     }
   };
 
   const getActivityBadgeClass = (type: string): string => {
     switch (type) {
-      case "submission_valid": return "bg-green-50 text-green-700 border-green-200/50";
-      case "payout":           return "bg-red-50 text-red-700 border-red-200/50";
-      case "negotiation_new":  return "bg-amber-50 text-amber-700 border-amber-200/50";
-      case "pending_escrow":   return "bg-violet-50 text-violet-700 border-violet-200/50";
-      default:                 return "bg-neutral-50 text-neutral-600 border-neutral-200/50";
+      case "submission_valid":    return "bg-green-50 text-green-700 border-green-200/50";
+      case "payout":              return "bg-red-50 text-red-700 border-red-200/50";
+      case "negotiation_new":     return "bg-amber-50 text-amber-700 border-amber-200/50";
+      case "pending_escrow":      return "bg-violet-50 text-violet-700 border-violet-200/50";
+      case "campaign_published":  return "bg-blue-50 text-blue-700 border-blue-200/50";
+      case "claim":               return "bg-violet-50 text-violet-700 border-violet-200/50";
+      case "claim_expired":       return "bg-neutral-100 text-neutral-500 border-neutral-200/50";
+      default:                    return "bg-neutral-50 text-neutral-600 border-neutral-200/50";
     }
   };
 
   const getActivityLabel = (type: string): string => {
     switch (type) {
-      case "submission_valid": return "VALID";
-      case "payout":           return "PAYOUT";
-      case "negotiation_new":  return "CHAT";
-      case "pending_escrow":   return "KLAIM";
-      default:                 return "INFO";
+      case "submission_valid":    return "VALID";
+      case "payout":              return "PAYOUT";
+      case "negotiation_new":     return "CHAT";
+      case "pending_escrow":      return "KLAIM";
+      case "campaign_published":  return "KAMPANYE";
+      case "claim":               return "KLAIM";
+      case "claim_expired":       return "KADALUARSA";
+      default:                    return "INFO";
     }
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto relative bg-gradient-to-b from-[#eef2ff] via-[#f5f3ff]/30 to-white">
+    <div className="relative flex-1 overflow-y-auto bg-gradient-to-b from-kreator-page via-kreator-50/30 to-white p-4 sm:p-6 lg:p-8">
 
         {/* ── Main content ─────────────────────────────────────────────────── */}
         <div className="max-w-[1400px] mx-auto space-y-8">
@@ -432,18 +337,18 @@ export function CreatorDashboardView({
           <div
             className="relative overflow-hidden rounded-[32px] p-6 sm:p-10"
             style={{
-              background: "linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(243, 232, 255, 0.75) 45%, rgba(255, 255, 255, 0.95) 100%)",
+              background: "linear-gradient(135deg, rgb(255 255 255 / 0.85) 0%, color-mix(in srgb, var(--color-kreator-soft) 75%, transparent) 45%, rgb(255 255 255 / 0.95) 100%)",
               backdropFilter: "blur(24px)",
               WebkitBackdropFilter: "blur(24px)",
-              border: "1px solid rgba(124, 58, 237, 0.15)",
-              boxShadow: "0 20px 40px -15px rgba(109, 40, 217, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95)",
+              border: "1px solid color-mix(in srgb, var(--color-kreator-600) 15%, transparent)",
+              boxShadow: "var(--shadow-kreator-hero)",
             }}
           >
             {/* Decorative radial blobs */}
             <div className="absolute -top-16 -right-16 h-64 w-64 rounded-full pointer-events-none"
-              style={{ background: "radial-gradient(circle, rgba(124,58,237,.12), transparent 70%)" }} />
+              style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--color-kreator-600) 12%, transparent), transparent 70%)" }} />
             <div className="absolute -bottom-20 right-40 h-48 w-48 rounded-full pointer-events-none"
-              style={{ background: "radial-gradient(circle, rgba(79,70,229,.08), transparent 70%)" }} />
+              style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--color-kreator-gradient-end) 8%, transparent), transparent 70%)" }} />
 
             <div className="relative flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
 
@@ -451,9 +356,15 @@ export function CreatorDashboardView({
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 w-full lg:w-auto">
                 <div className="relative shrink-0 mx-auto sm:mx-0">
                   <div
-                    className="h-24 w-24 sm:h-[105px] sm:w-[105px] rounded-3xl overflow-hidden border-4 border-white relative bg-violet-100 shadow-[0_12px_36px_rgba(109,40,217,0.18)]"
+                    className="relative h-24 w-24 overflow-hidden rounded-3xl border-4 border-white bg-kreator-100 shadow-kreator-avatar sm:h-[105px] sm:w-[105px]"
                   >
-                    <Image src={profile.avatarUrl} alt={profile.name} fill className="object-cover" sizes="105px" />
+                    {profile.avatarUrl ? (
+                      <Image src={profile.avatarUrl} alt={profile.name} fill className="object-cover" sizes="105px" />
+                    ) : (
+                      <span className="absolute inset-0 flex items-center justify-center text-3xl font-black text-kreator-300">
+                        {profile.name.charAt(0)}
+                      </span>
+                    )}
                   </div>
                   <span className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-emerald-400 border-3 border-white shadow-sm" />
                 </div>
@@ -461,7 +372,7 @@ export function CreatorDashboardView({
                 <div className="space-y-3.5 text-center sm:text-left flex-1 min-w-0">
                   <div>
                     <div className="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap mb-1">
-                      <h2 className="text-2xl sm:text-3xl font-black text-[#1e1b4b] tracking-tight leading-none">
+                      <h2 className="text-2xl font-black leading-none tracking-tight text-kreator-ink sm:text-3xl">
                         Halo, {profile.name}
                       </h2>
                       {profile.isVerified ? (
@@ -474,7 +385,7 @@ export function CreatorDashboardView({
                         </span>
                       )}
                     </div>
-                    <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#f3e8ff]/70 border border-[#7c3aed]/10 text-[#7c3aed] text-[10px] font-black uppercase tracking-wider mb-2 mt-1">
+                    <span className="mb-2 mt-1 inline-flex items-center rounded-full border border-kreator-600/10 bg-kreator-soft/70 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-kreator-600">
                       Niche: {profile.niche}
                     </span>
                     <p className="text-[0.92rem] font-semibold text-neutral-600 max-w-xl leading-relaxed mt-1">
@@ -516,7 +427,7 @@ export function CreatorDashboardView({
               <div className="flex flex-row sm:flex-row lg:flex-col gap-2.5 shrink-0 w-full lg:w-auto">
                 <Link
                   href="/dashboard/kreator/rate-card"
-                  className="flex-1 lg:flex-initial text-center px-6 py-3 rounded-2xl text-[#7c3aed] text-xs font-extrabold border border-violet-200 bg-white hover:bg-violet-50 hover:border-violet-300 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 min-h-[44px] flex items-center justify-center"
+                  className="flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-kreator-200 bg-white px-6 py-3 text-center text-xs font-extrabold text-kreator-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-kreator-300 hover:bg-kreator-50 hover:shadow-sm lg:flex-initial"
                 >
                   Kelola Rate Card
                 </Link>
@@ -524,8 +435,8 @@ export function CreatorDashboardView({
                   href="/dashboard/kreator/job-pool"
                   className="flex-1 lg:flex-initial text-center px-6 py-3 rounded-2xl text-white text-xs font-extrabold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 min-h-[44px] flex items-center justify-center"
                   style={{
-                    background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-                    boxShadow: "0 6px 16px rgba(124,58,237,.25)",
+                    background: CREATOR_BRAND_GRADIENT,
+                    boxShadow: "var(--shadow-kreator-lg)",
                   }}
                 >
                   Buka Job Pool
@@ -536,14 +447,14 @@ export function CreatorDashboardView({
 
           {/* 2 ── KPI Tiles */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            <MetricTile label="Job Tersedia"        value={currentMetrics.availableJobsCount}               helper="Kampanye pool"         iconClass="text-violet-600 bg-violet-50 border-violet-200/50"   icon={<Briefcase       className="w-4 h-4" />} />
-            <MetricTile label="Pekerjaan Aktif"     value={currentMetrics.activeJobsCount}                  helper="Sedang dikerjakan"      iconClass="text-indigo-600 bg-indigo-50 border-indigo-200/50"   icon={<FileCheck       className="w-4 h-4" />} />
-            <MetricTile label="Submission Pending"  value={currentMetrics.pendingSubmissionsCount}           helper="Menunggu audit admin"   iconClass="text-amber-600 bg-amber-50 border-amber-200/50"       icon={<Clock           className="w-4 h-4" />} />
-            <MetricTile label="Saldo Tersedia"      value={formatCompactCurrency(currentMetrics.balance)}    helper="Tarik ke rekening bank" iconClass="text-violet-600 bg-violet-50 border-violet-200/50"   icon={<Wallet          className="w-4 h-4" />} highlight />
-            <MetricTile label="Pending Payout"      value={formatCompactCurrency(currentMetrics.pendingPayouts)} helper="Proses verifikasi"  iconClass="text-slate-500 bg-slate-50 border-slate-200/50"       icon={<ArrowDownToLine className="w-4 h-4" />} />
-            <MetricTile label="Views Tervalidasi"   value={formatCount(currentMetrics.validatedViewsCount)}  helper="Total views valid"     iconClass="text-blue-600 bg-blue-50 border-blue-200/50"         icon={<Eye             className="w-4 h-4" />} />
-            <MetricTile label="Rate Card Aktif"     value={currentMetrics.activeRateCardsCount}              helper="Paket penawaran"        iconClass="text-emerald-600 bg-emerald-50 border-emerald-200/50" icon={<Tag             className="w-4 h-4" />} />
-            <MetricTile label="Order Negosiasi"     value={currentMetrics.negotiationOrdersCount}            helper="Rate Card orders"       iconClass="text-purple-600 bg-purple-50 border-purple-200/50"   icon={<MessageCircle   className="w-4 h-4" />} />
+            <MetricCard label="Job Tersedia"        value={currentMetrics.availableJobsCount}                helper="Kampanye pool"          tone="kreator" icon={<Briefcase       className="w-4 h-4" />} />
+            <MetricCard label="Pekerjaan Aktif"     value={currentMetrics.activeJobsCount}                   helper="Sedang dikerjakan"      tone="info"    icon={<FileCheck       className="w-4 h-4" />} />
+            <MetricCard label="Submission Pending"  value={currentMetrics.pendingSubmissionsCount}           helper="Menunggu audit admin"   tone="warning" icon={<Clock           className="w-4 h-4" />} />
+            <MetricCard label="Saldo Tersedia"      value={formatCompactCurrency(currentMetrics.balance)}    helper="Tarik ke rekening bank" tone="success" icon={<Wallet          className="w-4 h-4" />} badge="Utama" highlight />
+            <MetricCard label="Pending Payout"      value={formatCompactCurrency(currentMetrics.pendingPayouts)} helper="Proses verifikasi"  tone="default" icon={<ArrowDownToLine className="w-4 h-4" />} />
+            <MetricCard label="Views Tervalidasi"   value={formatCount(currentMetrics.validatedViewsCount)}  helper="Total views valid"      tone="info"    icon={<Eye             className="w-4 h-4" />} />
+            <MetricCard label="Rate Card Aktif"     value={currentMetrics.activeRateCardsCount}              helper="Paket penawaran"        tone="success" icon={<Tag             className="w-4 h-4" />} />
+            <MetricCard label="Order Negosiasi"     value={currentMetrics.negotiationOrdersCount}            helper="Rate Card orders"       tone="accent"  icon={<MessageCircle   className="w-4 h-4" />} />
           </div>
 
           {/* 3 ── Quick Actions */}
@@ -555,71 +466,76 @@ export function CreatorDashboardView({
               {/* Cari Job */}
               <Link
                 href="/dashboard/kreator/job-pool"
-                className="group flex flex-col items-center justify-center gap-2 p-4 rounded-[18px] border border-neutral-200/60 bg-white hover:border-violet-400/30 hover:bg-violet-50/40 hover:-translate-y-0.5 transition-all duration-200 shadow-[0_2px_8px_rgba(15,23,42,.04)] hover:shadow-[0_8px_20px_rgba(109,40,217,.07)] cursor-pointer"
+                className="group flex flex-col items-center justify-center gap-2 rounded-[18px] border border-neutral-200/60 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-kreator-400/30 hover:bg-kreator-50/40 hover:shadow-kreator cursor-pointer"
               >
-                <div className="h-9 w-9 rounded-[12px] bg-violet-50 border border-violet-200/50 flex items-center justify-center group-hover:bg-violet-100/80 transition-colors duration-200">
-                  <Search className="w-4 h-4 text-violet-600" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-kreator-200/50 bg-kreator-50 transition-colors duration-200 group-hover:bg-kreator-100/80">
+                  <Search className="h-4 w-4 text-kreator-600" />
                 </div>
-                <span className="text-[10px] font-extrabold text-neutral-700 group-hover:text-violet-700 text-center leading-tight transition-colors">Cari Job Pool</span>
+                <span className="text-center text-[10px] font-extrabold leading-tight text-neutral-700 transition-colors group-hover:text-kreator-700">Cari Job Pool</span>
               </Link>
 
-              {/* Submit Bukti */}
-              <button
-                onClick={() => {
-                  const activeJob = activeWorks.find(w => w.status === "claimed");
-                  if (activeJob) { setSelectedWorkToSubmit(activeJob); setSubmitUrl(""); setIsSubmitBuktiOpen(true); }
-                  else showToast("Anda tidak memiliki pekerjaan aktif.");
-                }}
-                className="group flex flex-col items-center justify-center gap-2 p-4 rounded-[18px] border border-neutral-200/60 bg-white hover:border-violet-400/30 hover:bg-violet-50/40 hover:-translate-y-0.5 transition-all duration-200 shadow-[0_2px_8px_rgba(15,23,42,.04)] hover:shadow-[0_8px_20px_rgba(109,40,217,.07)] cursor-pointer"
+              {/* Submit Bukti — dialihkan ke Pekerjaan Aktif.
+                  Dulu tombol ini membuka modal yang menandai pekerjaan
+                  `submitted` dan MENGARANG `fraudStatus: "safe"` tanpa menulis
+                  apa pun. Alur sebenarnya ada di ActiveWorkDetailView, lengkap
+                  dengan pra-cek ai-fraud-precheck. */}
+              <Link
+                href="/dashboard/kreator/pekerjaan-aktif"
+                className="group flex flex-col items-center justify-center gap-2 rounded-[18px] border border-neutral-200/60 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-kreator-400/30 hover:bg-kreator-50/40 hover:shadow-kreator cursor-pointer"
               >
                 <div className="h-9 w-9 rounded-[12px] bg-indigo-50 border border-indigo-200/50 flex items-center justify-center group-hover:bg-indigo-100/80 transition-colors duration-200">
                   <Upload className="w-4 h-4 text-indigo-600" />
                 </div>
-                <span className="text-[10px] font-extrabold text-neutral-700 group-hover:text-violet-700 text-center leading-tight transition-colors">Submit Bukti</span>
-              </button>
+                <span className="text-center text-[10px] font-extrabold leading-tight text-neutral-700 transition-colors group-hover:text-kreator-700">Submit Bukti</span>
+              </Link>
 
               {/* Kelola Rate Card */}
               <Link
                 href="/dashboard/kreator/rate-card"
-                className="group flex flex-col items-center justify-center gap-2 p-4 rounded-[18px] border border-neutral-200/60 bg-white hover:border-violet-400/30 hover:bg-violet-50/40 hover:-translate-y-0.5 transition-all duration-200 shadow-[0_2px_8px_rgba(15,23,42,.04)] hover:shadow-[0_8px_20px_rgba(109,40,217,.07)] cursor-pointer"
+                className="group flex flex-col items-center justify-center gap-2 rounded-[18px] border border-neutral-200/60 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-kreator-400/30 hover:bg-kreator-50/40 hover:shadow-kreator cursor-pointer"
               >
                 <div className="h-9 w-9 rounded-[12px] bg-emerald-50 border border-emerald-200/50 flex items-center justify-center group-hover:bg-emerald-100/80 transition-colors duration-200">
                   <Settings className="w-4 h-4 text-emerald-600" />
                 </div>
-                <span className="text-[10px] font-extrabold text-neutral-700 group-hover:text-violet-700 text-center leading-tight transition-colors">Kelola Rate Card</span>
+                <span className="text-center text-[10px] font-extrabold leading-tight text-neutral-700 transition-colors group-hover:text-kreator-700">Kelola Rate Card</span>
               </Link>
 
-              {/* Tarik Dana */}
-              <button
-                onClick={() => { setWithdrawAmount(""); setAccountNumber(""); setAccountHolder(""); setIsTarikDanaOpen(true); }}
-                disabled={currentMetrics.balance <= 0}
+              {/* Tarik Dana — dialihkan ke Keuangan.
+                  Dulu tombol ini membuka modal yang mengurangi saldo di layar
+                  dan bilang "penarikan berhasil dikirim" tanpa memanggil
+                  requestWithdrawal. Alur sebenarnya ada di KeuanganView, lengkap
+                  dengan requestKey idempoten dan validasi Zod terhadap saldo. */}
+              <Link
+                href="/dashboard/kreator/keuangan"
+                aria-disabled={currentMetrics.balance <= 0}
+                tabIndex={currentMetrics.balance <= 0 ? -1 : undefined}
                 className={cn(
                   "group flex flex-col items-center justify-center gap-2 p-4 rounded-[18px] border transition-all duration-200 shadow-[0_2px_8px_rgba(15,23,42,.04)]",
                   currentMetrics.balance <= 0
-                    ? "bg-neutral-50 border-neutral-200 text-neutral-400 cursor-not-allowed"
-                    : "bg-white border-neutral-200/60 hover:border-violet-400/30 hover:bg-violet-50/40 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(109,40,217,.07)] cursor-pointer"
+                    ? "bg-neutral-50 border-neutral-200 text-neutral-400 pointer-events-none"
+                    : "bg-white border-neutral-200/60 hover:border-kreator-400/30 hover:bg-kreator-50/40 hover:-translate-y-0.5 hover:shadow-kreator cursor-pointer"
                 )}
               >
                 <div className={cn(
                   "h-9 w-9 rounded-[12px] flex items-center justify-center transition-colors duration-200",
                   currentMetrics.balance <= 0
                     ? "bg-neutral-100 border border-neutral-200"
-                    : "bg-violet-50 border border-violet-200/50 group-hover:bg-violet-100/80"
+                    : "bg-kreator-50 border border-kreator-200/50 group-hover:bg-kreator-100/80"
                 )}>
-                  <Wallet className={cn("w-4 h-4", currentMetrics.balance <= 0 ? "text-neutral-400" : "text-violet-600")} />
+                  <Wallet className={cn("w-4 h-4", currentMetrics.balance <= 0 ? "text-neutral-400" : "text-kreator-600")} />
                 </div>
-                <span className="text-[10px] font-extrabold text-center leading-tight group-hover:text-violet-700 transition-colors">Tarik Dana</span>
-              </button>
+                <span className="text-center text-[10px] font-extrabold leading-tight transition-colors group-hover:text-kreator-700">Tarik Dana</span>
+              </Link>
 
               {/* Edit Profil */}
               <Link
                 href="/dashboard/kreator/profil"
-                className="group flex flex-col items-center justify-center gap-2 p-4 rounded-[18px] border border-neutral-200/60 bg-white hover:border-violet-400/30 hover:bg-violet-50/40 hover:-translate-y-0.5 transition-all duration-200 shadow-[0_2px_8px_rgba(15,23,42,.04)] hover:shadow-[0_8px_20px_rgba(109,40,217,.07)] cursor-pointer"
+                className="group flex flex-col items-center justify-center gap-2 rounded-[18px] border border-neutral-200/60 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-kreator-400/30 hover:bg-kreator-50/40 hover:shadow-kreator cursor-pointer"
               >
                 <div className="h-9 w-9 rounded-[12px] bg-blue-50 border border-blue-200/50 flex items-center justify-center group-hover:bg-blue-100/80 transition-colors duration-200">
                   <User className="w-4 h-4 text-blue-600" />
                 </div>
-                <span className="text-[10px] font-extrabold text-neutral-700 group-hover:text-violet-700 text-center leading-tight transition-colors">Edit Profil</span>
+                <span className="text-center text-[10px] font-extrabold leading-tight text-neutral-700 transition-colors group-hover:text-kreator-700">Edit Profil</span>
               </Link>
             </div>
           </div>
@@ -628,7 +544,7 @@ export function CreatorDashboardView({
           <div>
             <div className="flex justify-between items-center mb-5">
               <div>
-                <h3 className="text-base font-black text-[#1e1b4b] leading-none">Rekomendasi Kampanye</h3>
+                <h3 className="text-base font-black leading-none text-kreator-ink">Rekomendasi Kampanye</h3>
                 <p className="text-[10px] text-neutral-400 font-semibold mt-1">
                   Dipilih khusus berdasarkan niche &amp; kualifikasi profil kamu.
                 </p>
@@ -651,7 +567,7 @@ export function CreatorDashboardView({
                 onAction={() => { window.location.href = "/dashboard/kreator/job-pool"; }}
               />
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 {recJobs.map((job) => (
                   <CampaignCard key={job.id} job={job} onClaim={handleKlaimJob} />
                 ))}
@@ -666,7 +582,7 @@ export function CreatorDashboardView({
             <div className="lg:col-span-8">
               <div className="flex justify-between items-center mb-5">
                 <div>
-                  <h3 className="text-base font-black text-[#1e1b4b] leading-none">Pekerjaan Aktif Saya</h3>
+                  <h3 className="text-base font-black leading-none text-kreator-ink">Pekerjaan Aktif Saya</h3>
                   <p className="text-[10px] text-neutral-400 font-semibold mt-1">Job yang sedang dalam pengerjaan.</p>
                 </div>
                 <Link href="/dashboard/kreator/pekerjaan-aktif" className="text-[10px] font-extrabold text-violet-600 hover:text-violet-700 transition-colors">
@@ -687,7 +603,7 @@ export function CreatorDashboardView({
                     return (
                       <div
                         key={work.id}
-                        className="group bg-white border border-neutral-200/50 p-4 sm:p-5 rounded-[18px] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:shadow-[0_8px_24px_rgba(109,40,217,.07)] hover:-translate-y-0.5 hover:border-violet-400/20 transition-all duration-300 shadow-[0_2px_8px_rgba(15,23,42,.04)]"
+                        className="group flex flex-col items-start justify-between gap-4 rounded-[18px] border border-neutral-200/50 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,.04)] transition-all duration-300 hover:-translate-y-0.5 hover:border-kreator-400/20 hover:shadow-kreator sm:flex-row sm:items-center sm:p-5"
                       >
                         <div className="flex items-center gap-3.5 min-w-0">
                           <div className="h-11 w-11 rounded-[12px] border border-neutral-200/50 overflow-hidden shrink-0 relative bg-neutral-100">
@@ -696,7 +612,7 @@ export function CreatorDashboardView({
                             )}
                           </div>
                           <div className="min-w-0">
-                            <h4 className="text-sm font-extrabold text-[#1e1b4b] truncate">{work.title}</h4>
+                            <h4 className="truncate text-sm font-extrabold text-kreator-ink">{work.title}</h4>
                             <p className="text-[10px] font-bold text-neutral-400 mt-0.5 uppercase tracking-wide">
                               {work.brandName} &bull; {new Date(work.deadline).toLocaleDateString("id-ID", { day: "numeric", month: "short" })} &bull; {getDaysRemaining(work.deadline)}
                             </p>
@@ -706,13 +622,13 @@ export function CreatorDashboardView({
                         <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
                           <DashboardBadge type="status" value={String(work.submissionStatus || work.status)} size="sm" />
                           {showSubmitBtn && (
-                            <button
-                              onClick={() => { setSelectedWorkToSubmit(work); setSubmitUrl(""); setIsSubmitBuktiOpen(true); }}
+                            <Link
+                              href={`/dashboard/kreator/pekerjaan-aktif/${work.id}`}
                               className="px-4 py-2 rounded-[10px] text-white text-[10px] font-extrabold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
-                              style={{ background: "linear-gradient(135deg, #7c3aed, #4f46e5)", boxShadow: "0 3px 10px rgba(124,58,237,.25)" }}
+                              style={{ background: CREATOR_BRAND_GRADIENT, boxShadow: "var(--shadow-kreator-sm)" }}
                             >
                               Submit Bukti
-                            </button>
+                            </Link>
                           )}
                           {work.contentUrl && (
                             <a href={work.contentUrl} target="_blank" rel="noreferrer"
@@ -731,7 +647,7 @@ export function CreatorDashboardView({
             {/* Activity Feed (4 col) */}
             <div className="lg:col-span-4">
               <div className="mb-5">
-                <h3 className="text-base font-black text-[#1e1b4b] leading-none">Aktivitas &amp; Penghasilan</h3>
+                <h3 className="text-base font-black leading-none text-kreator-ink">Aktivitas &amp; Penghasilan</h3>
                 <p className="text-[10px] text-neutral-400 font-semibold mt-1">Riwayat terbaru akun Anda.</p>
               </div>
 
@@ -757,7 +673,7 @@ export function CreatorDashboardView({
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] font-extrabold text-[#1e1b4b] leading-tight">{act.title}</p>
+                        <p className="text-[11px] font-extrabold leading-tight text-kreator-ink">{act.title}</p>
                         <p className="text-[10px] text-neutral-400 font-semibold leading-normal">{act.description}</p>
                         <span className="block text-[9px] text-neutral-300 font-bold mt-0.5">
                           {new Date(act.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
@@ -775,81 +691,15 @@ export function CreatorDashboardView({
           </div>
         </div>
 
-      {/* ── Tarik Dana Modal ──────────────────────────────────────────────── */}
-      <DashboardModal
-        isOpen={isTarikDanaOpen}
-        title="Tarik Saldo Wallet"
-        description={`Saldo tersedia: ${formatCurrency(currentMetrics.balance)}`}
-        onClose={() => setIsTarikDanaOpen(false)}
-        footer={
-          <div className="flex gap-3 w-full">
-            <DashboardButton type="button" variant="outline" onClick={() => setIsTarikDanaOpen(false)} fullWidthOnMobile>Batal</DashboardButton>
-            <DashboardButton type="submit" form="tarik-dana-form" variant="primary" fullWidthOnMobile>Ajukan Penarikan</DashboardButton>
-          </div>
-        }
-      >
-        <form id="tarik-dana-form" onSubmit={handleWithdrawalSubmit} className="space-y-4">
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Pilih Bank</label>
-            <select value={bankName} onChange={e => setBankName(e.target.value)}
-              className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500/50 transition-all">
-              <option value="bca">Bank BCA</option>
-              <option value="mandiri">Bank Mandiri</option>
-              <option value="bni">Bank BNI</option>
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Nomor Rekening</label>
-            <input type="text" required placeholder="Masukkan nomor rekening..." value={accountNumber} onChange={e => setAccountNumber(e.target.value)}
-              className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500/50 transition-all font-semibold text-neutral-800" />
-          </div>
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Nama Pemilik Rekening</label>
-            <input type="text" required placeholder="Sesuai nama rekening tabungan..." value={accountHolder} onChange={e => setAccountHolder(e.target.value)}
-              className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500/50 transition-all font-semibold text-neutral-800" />
-          </div>
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Nominal Penarikan</label>
-            <input type="number" required min={50000} max={currentMetrics.balance} placeholder="Rp..." value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)}
-              className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500/50 transition-all font-semibold text-neutral-800" />
-          </div>
-        </form>
-      </DashboardModal>
+      {/*
+        Modal "Tarik Dana" dan "Submit Bukti" DIHAPUS di sini, bukan disambungkan.
 
-      {/* ── Submit Bukti Modal ────────────────────────────────────────────── */}
-      <DashboardModal
-        isOpen={isSubmitBuktiOpen && !!selectedWorkToSubmit}
-        title="Kirim Bukti Tayang"
-        description={selectedWorkToSubmit?.title}
-        onClose={() => setIsSubmitBuktiOpen(false)}
-        footer={
-          <div className="flex gap-3 w-full">
-            <DashboardButton type="button" variant="outline" onClick={() => setIsSubmitBuktiOpen(false)} fullWidthOnMobile>Batal</DashboardButton>
-            <DashboardButton type="submit" form="submit-bukti-form" variant="primary" fullWidthOnMobile>Kirim Bukti Tayang</DashboardButton>
-          </div>
-        }
-      >
-        <form id="submit-bukti-form" onSubmit={handleProofSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-neutral-600 uppercase tracking-wider">Platform</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button type="button" onClick={() => setSubmitPlatform("tiktok")}
-                className={cn("py-2.5 rounded-xl border font-bold text-xs transition-all cursor-pointer", submitPlatform === "tiktok" ? "bg-violet-600 text-white border-violet-600" : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50")}>
-                TikTok
-              </button>
-              <button type="button" onClick={() => setSubmitPlatform("instagram")}
-                className={cn("py-2.5 rounded-xl border font-bold text-xs transition-all cursor-pointer", submitPlatform === "instagram" ? "bg-violet-600 text-white border-violet-600" : "bg-white text-neutral-600 border-neutral-200 hover:bg-neutral-50")}>
-                Instagram
-              </button>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <label className="block text-[10px] font-bold text-neutral-600 uppercase tracking-wider">Tautan URL Video Tayang</label>
-            <input type="url" required placeholder="https://tiktok.com/@username/video/..." value={submitUrl} onChange={e => setSubmitUrl(e.target.value)}
-              className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500/50 transition-all font-semibold text-neutral-800 placeholder-neutral-400" />
-          </div>
-        </form>
-      </DashboardModal>
+        Keduanya adalah jalur uang yang implementasi lengkapnya sudah ada:
+        KeuanganView memegang requestKey idempoten + validasi Zod terhadap saldo,
+        ActiveWorkDetailView memegang alur pra-cek fraud. Menyalin keduanya ke
+        dashboard berarti dua implementasi yang harus dijaga sinkron selamanya —
+        dan versi di sini justru yang tidak pernah memanggil service.
+      */}
     </div>
   );
 }

@@ -29,10 +29,8 @@ function Input({ className, type, label, helperText, error, id, name, disabled, 
             : undefined
       }
       className={cn(
-        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border px-3 py-1 text-base bg-input-background transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
-        hasError && "border-danger focus:ring-danger focus-visible:border-destructive",
+        "file:text-foreground placeholder:text-text-muted flex min-h-[44px] w-full min-w-0 rounded-xl border border-neutral-300/80 bg-neutral-100/60 px-4 py-2.5 text-sm font-semibold text-ink-950 shadow-3xs transition-all outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium hover:border-neutral-400/80 hover:bg-neutral-100/90 focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        hasError && "border-red-400 focus:border-red-500 focus:ring-red-500/15",
         className,
       )}
       {...props}
@@ -50,7 +48,7 @@ function Input({ className, type, label, helperText, error, id, name, disabled, 
         <label
           htmlFor={inputId}
           className={cn(
-            "text-body-medium text-text-primary text-sm font-medium",
+            "text-body-medium text-ink-950 text-xs sm:text-sm font-extrabold select-none cursor-pointer",
             disabled && "opacity-50"
           )}
         >
@@ -64,14 +62,14 @@ function Input({ className, type, label, helperText, error, id, name, disabled, 
         <p
           id={`${inputId}-error`}
           role="alert"
-          className="text-caption text-destructive text-xs"
+          className="text-caption text-red-600 text-xs font-bold"
         >
           {error}
         </p>
       )}
 
       {!hasError && helperText && (
-        <p id={`${inputId}-helper`} className="text-caption text-muted-foreground text-xs">
+        <p id={`${inputId}-helper`} className="text-caption text-text-muted text-xs font-semibold">
           {helperText}
         </p>
       )}

@@ -12,9 +12,7 @@
     {
       "$id": "users",
       "name": "Users",
-      "$permissions": [
-        "read(\"users\")"
-      ],
+      "$permissions": [],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
       "rowSecurity": true,
@@ -42,7 +40,13 @@
           "type": "string",
           "required": true,
           "array": false,
-          "size": 50,
+          "format": "enum",
+          "elements": [
+            "active",
+            "suspended",
+            "terminated"
+          ],
+          "size": 10,
           "default": null,
           "encrypt": false
         },
@@ -66,6 +70,58 @@
         },
         {
           "key": "createdAt",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "suspended_at",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "tos_version",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 20,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "tos_accepted_at",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "email_verified_at",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "kyc_status",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "none",
+            "pending_wa",
+            "verified"
+          ],
+          "size": 10,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "kyc_verified_at",
           "type": "datetime",
           "required": false,
           "array": false,
@@ -120,12 +176,142 @@
       ]
     },
     {
+      "$id": "appeals",
+      "name": "Appeals",
+      "$permissions": [
+        "create(\"users\")"
+      ],
+      "enabled": true,
+      "databaseId": "6a4c8598001da3b0d7f0",
+      "rowSecurity": true,
+      "columns": [
+        {
+          "key": "userId",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "actionRef",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "reason",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 1000,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "evidence",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 2048,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "deadlineAt",
+          "type": "datetime",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "slaDecidedAt",
+          "type": "datetime",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "status",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "submitted",
+            "under_review",
+            "approved",
+            "rejected"
+          ],
+          "size": 12,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "decision",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 1000,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "decidedAt",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        }
+      ],
+      "indexes": [
+        {
+          "key": "idx_userId",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "userId"
+          ]
+        },
+        {
+          "key": "idx_status",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "key": "idx_userId_status",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC",
+            "ASC"
+          ],
+          "columns": [
+            "userId",
+            "status"
+          ]
+        }
+      ]
+    },
+    {
       "$id": "umkm_profiles",
       "name": "UMKM Profiles",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -263,8 +449,7 @@
       "name": "Creator Profiles",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -320,6 +505,7 @@
           "type": "string",
           "required": false,
           "array": false,
+          "format": "enum",
           "elements": [
             "kuliner",
             "fashion",
@@ -328,6 +514,7 @@
             "kecantikan",
             "lainnya"
           ],
+          "size": 10,
           "default": null,
           "encrypt": false
         },
@@ -451,8 +638,7 @@
       "name": "Creator Social Accounts",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -545,8 +731,7 @@
       "name": "Creator Portfolios",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -615,9 +800,7 @@
     {
       "$id": "user_storage_usage",
       "name": "User Storage Usage",
-      "$permissions": [
-        "read(\"users\")"
-      ],
+      "$permissions": [],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
       "rowSecurity": true,
@@ -676,9 +859,7 @@
     {
       "$id": "user_files",
       "name": "User Files",
-      "$permissions": [
-        "read(\"users\")"
-      ],
+      "$permissions": [],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
       "rowSecurity": true,
@@ -806,8 +987,7 @@
       "name": "Campaigns",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1010,8 +1190,7 @@
       "name": "Campaign Assets",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1170,8 +1349,7 @@
       "name": "Campaign Briefs",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1267,8 +1445,7 @@
       "name": "Campaign Claims",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1361,8 +1538,7 @@
       "name": "Campaign Submissions",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1432,6 +1608,44 @@
           "max": 999999999
         },
         {
+          "key": "views_count",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": null,
+          "min": 0,
+          "max": 999999999
+        },
+        {
+          "key": "views_captured_at",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "views_source",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "api",
+            "scrape",
+            "manual_admin"
+          ],
+          "size": 12,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "views_final",
+          "type": "boolean",
+          "required": false,
+          "array": false,
+          "default": false
+        },
+        {
           "key": "engagement",
           "type": "integer",
           "required": false,
@@ -1466,6 +1680,38 @@
           "size": 50,
           "default": null,
           "encrypt": false
+        },
+        {
+          "key": "reviewNotes",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 1000,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "creatorCredit",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "aiGenerated",
+          "type": "boolean",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "aiDisclosed",
+          "type": "boolean",
+          "required": false,
+          "array": false,
+          "default": null
         }
       ],
       "indexes": [
@@ -1531,8 +1777,7 @@
       "name": "Rate Cards",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1623,8 +1868,7 @@
       "name": "Rate Card Packages",
       "$permissions": [
         "read(\"any\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1723,9 +1967,7 @@
       "$id": "conversations",
       "name": "Conversations",
       "$permissions": [
-        "read(\"users\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1835,9 +2077,7 @@
       "$id": "messages",
       "name": "Messages",
       "$permissions": [
-        "read(\"users\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -1936,9 +2176,7 @@
       "$id": "offers",
       "name": "Offers",
       "$permissions": [
-        "read(\"users\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -2072,11 +2310,7 @@
     {
       "$id": "orders",
       "name": "Orders",
-      "$permissions": [
-        "read(\"users\")",
-        "create(\"users\")",
-        "update(\"users\")"
-      ],
+      "$permissions": [],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
       "rowSecurity": true,
@@ -2137,6 +2371,45 @@
         },
         {
           "key": "createdAt",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "review_deadline_at",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "auto_approved",
+          "type": "boolean",
+          "required": false,
+          "array": false,
+          "default": false
+        },
+        {
+          "key": "revision_count",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": 0,
+          "min": 0,
+          "max": 999999999
+        },
+        {
+          "key": "revision_limit",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": 0,
+          "min": 0,
+          "max": 999999999
+        },
+        {
+          "key": "reminder_sent_at",
           "type": "datetime",
           "required": false,
           "array": false,
@@ -2216,9 +2489,7 @@
       "$id": "deliverables",
       "name": "Deliverables",
       "$permissions": [
-        "read(\"users\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -2293,6 +2564,22 @@
           "required": false,
           "array": false,
           "default": null
+        },
+        {
+          "key": "creatorCredit",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "aiGenerated",
+          "type": "boolean",
+          "required": false,
+          "array": false,
+          "default": null
         }
       ],
       "indexes": [
@@ -2324,9 +2611,7 @@
       "$id": "revisions",
       "name": "Revisions",
       "$permissions": [
-        "read(\"users\")",
-        "create(\"users\")",
-        "update(\"users\")"
+        "create(\"users\")"
       ],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
@@ -2447,9 +2732,7 @@
     {
       "$id": "payments",
       "name": "Payments",
-      "$permissions": [
-        "read(\"users\")"
-      ],
+      "$permissions": [],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
       "rowSecurity": true,
@@ -2783,6 +3066,15 @@
           "size": 50,
           "default": null,
           "encrypt": false
+        },
+        {
+          "key": "fee_rate",
+          "type": "double",
+          "required": false,
+          "array": false,
+          "default": 0,
+          "min": 0,
+          "max": 999999999
         }
       ],
       "indexes": [
@@ -2814,7 +3106,6 @@
       "$id": "withdrawals",
       "name": "Withdrawals",
       "$permissions": [
-        "read(\"users\")",
         "create(\"users\")"
       ],
       "enabled": true,
@@ -2880,16 +3171,88 @@
           "type": "string",
           "required": true,
           "array": false,
-          "size": 50,
+          "format": "enum",
+          "elements": [
+            "requested",
+            "processing",
+            "succeeded",
+            "failed",
+            "reversed"
+          ],
+          "size": 10,
           "default": null,
           "encrypt": false
         },
         {
           "key": "processedAt",
           "type": "datetime",
-          "required": true,
+          "required": false,
           "array": false,
           "default": null
+        },
+        {
+          "key": "failure_reason",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 500,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "reversed_at",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "requester_role",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 20,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "source_origin",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "creator",
+            "umkm_refund",
+            "umkm_budget"
+          ],
+          "size": 11,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "kyc_status",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "format": "enum",
+          "elements": [
+            "none",
+            "pending_wa",
+            "verified"
+          ],
+          "size": 10,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "iris_reference",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null,
+          "encrypt": false
         }
       ],
       "indexes": [
@@ -3023,11 +3386,13 @@
           "type": "string",
           "required": true,
           "array": false,
+          "format": "enum",
           "elements": [
             "brief",
             "fraud",
             "landing"
           ],
+          "size": 7,
           "default": null,
           "encrypt": false
         },
@@ -3220,7 +3585,6 @@
       "$id": "user-files",
       "name": "User Files",
       "$permissions": [
-        "read(\"users\")",
         "create(\"users\")"
       ],
       "fileSecurity": true,
@@ -3251,6 +3615,96 @@
   ],
   "functions": [
     {
+      "$id": "suspend-user",
+      "name": "Suspend User",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "ignore": [
+        "node_modules",
+        ".env"
+      ],
+      "path": "functions/suspend-user",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "unsuspend-user",
+      "name": "Unsuspend User",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "ignore": [
+        "node_modules",
+        ".env"
+      ],
+      "path": "functions/unsuspend-user",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "create-appeal",
+      "name": "Create Appeal",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "ignore": [
+        "node_modules",
+        ".env"
+      ],
+      "path": "functions/create-appeal",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "review-appeal",
+      "name": "Review Appeal",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "ignore": [
+        "node_modules",
+        ".env"
+      ],
+      "path": "functions/review-appeal",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
       "$id": "create-user-profile",
       "name": "Create User Profile",
       "runtime": "node-22",
@@ -3266,7 +3720,31 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/create-user-profile"
+      "path": "functions/create-user-profile",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "accept-tos",
+      "name": "Accept ToS",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/accept-tos",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "validate-and-upload",
@@ -3282,7 +3760,13 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/validate-and-upload"
+      "path": "functions/validate-and-upload",
+      "scopes": [
+        "documents.read",
+        "documents.write",
+        "files.read",
+        "files.write"
+      ]
     },
     {
       "$id": "delete-file",
@@ -3298,7 +3782,13 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/delete-file"
+      "path": "functions/delete-file",
+      "scopes": [
+        "documents.read",
+        "documents.write",
+        "files.read",
+        "files.write"
+      ]
     },
     {
       "$id": "create-user-wallet",
@@ -3314,15 +3804,19 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/create-user-wallet"
+      "path": "functions/create-user-wallet",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
-      "$id": "campaign-published",
-      "name": "Campaign Published",
+      "$id": "user-email-verified",
+      "name": "User Email Verified",
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.campaigns.documents.*.update"
+        "users.*.update"
       ],
       "schedule": "",
       "timeout": 15,
@@ -3330,7 +3824,31 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/campaign-published"
+      "path": "functions/user-email-verified",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "campaign-published",
+      "name": "Campaign Published",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [
+        "databases.6a4c8598001da3b0d7f0.tables.campaigns.rows.*.update"
+      ],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/campaign-published",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "ai-brief",
@@ -3346,7 +3864,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/ai-brief"
+      "path": "functions/ai-brief",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "ai-fraud-precheck",
@@ -3354,7 +3876,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.campaign_submissions.documents.*.create"
+        "databases.6a4c8598001da3b0d7f0.tables.campaign_submissions.rows.*.create"
       ],
       "schedule": "",
       "timeout": 60,
@@ -3362,7 +3884,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/ai-fraud-precheck"
+      "path": "functions/ai-fraud-precheck",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "create-order",
@@ -3370,7 +3896,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.offers.documents.*.update"
+        "databases.6a4c8598001da3b0d7f0.tables.offers.rows.*.update"
       ],
       "schedule": "",
       "timeout": 15,
@@ -3378,7 +3904,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/create-order"
+      "path": "functions/create-order",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "calculate-campaign-reward",
@@ -3386,7 +3916,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.campaign_submissions.documents.*.update"
+        "databases.6a4c8598001da3b0d7f0.tables.campaign_submissions.rows.*.update"
       ],
       "schedule": "",
       "timeout": 30,
@@ -3394,7 +3924,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/calculate-campaign-reward"
+      "path": "functions/calculate-campaign-reward",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "campaign-claimed",
@@ -3402,7 +3936,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.campaign_claims.documents.*.create"
+        "databases.6a4c8598001da3b0d7f0.tables.campaign_claims.rows.*.create"
       ],
       "schedule": "",
       "timeout": 15,
@@ -3410,7 +3944,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/campaign-claimed"
+      "path": "functions/campaign-claimed",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "expire-stale-claims",
@@ -3424,7 +3962,29 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/expire-stale-claims"
+      "path": "functions/expire-stale-claims",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "mature-pending-balance",
+      "name": "Mature Pending Balance",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [],
+      "schedule": "0 2 * * *",
+      "timeout": 60,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/mature-pending-balance",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "create-payment",
@@ -3440,7 +4000,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/create-payment"
+      "path": "functions/create-payment",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "request-withdrawal",
@@ -3456,7 +4020,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/request-withdrawal"
+      "path": "functions/request-withdrawal",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "midtrans-webhook",
@@ -3472,7 +4040,49 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/midtrans-webhook"
+      "path": "functions/midtrans-webhook",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "withdrawal-callback",
+      "name": "Withdrawal Callback",
+      "runtime": "node-22",
+      "execute": [
+        "any"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 30,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/withdrawal-callback",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "verify-kyc",
+      "name": "Verify KYC",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/verify-kyc",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "create-escrow",
@@ -3480,7 +4090,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.payments.documents.*.update"
+        "databases.6a4c8598001da3b0d7f0.tables.payments.rows.*.update"
       ],
       "schedule": "",
       "timeout": 15,
@@ -3488,7 +4098,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/create-escrow"
+      "path": "functions/create-escrow",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "release-escrow",
@@ -3496,7 +4110,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.deliverables.documents.*.update"
+        "databases.6a4c8598001da3b0d7f0.tables.deliverables.rows.*.update"
       ],
       "schedule": "",
       "timeout": 15,
@@ -3504,7 +4118,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/release-escrow"
+      "path": "functions/release-escrow",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "send-chat-notification",
@@ -3512,7 +4130,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.messages.documents.*.create"
+        "databases.6a4c8598001da3b0d7f0.tables.messages.rows.*.create"
       ],
       "schedule": "",
       "timeout": 15,
@@ -3520,7 +4138,92 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/send-chat-notification"
+      "path": "functions/send-chat-notification",
+      "scopes": [
+        "documents.read",
+        "documents.write",
+        "messages.write"
+      ]
+    },
+    {
+      "$id": "create-conversation",
+      "name": "Create Conversation",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/create-conversation",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "send-message",
+      "name": "Send Message",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/send-message",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "create-offer",
+      "name": "Create Offer",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/create-offer",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "review-submission",
+      "name": "Review Submission",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/review-submission",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "get-umkm-dashboard-summary",
@@ -3536,7 +4239,10 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/get-umkm-dashboard-summary"
+      "path": "functions/get-umkm-dashboard-summary",
+      "scopes": [
+        "documents.read"
+      ]
     },
     {
       "$id": "get-umkm-finance-summary",
@@ -3552,7 +4258,10 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/get-umkm-finance-summary"
+      "path": "functions/get-umkm-finance-summary",
+      "scopes": [
+        "documents.read"
+      ]
     },
     {
       "$id": "get-umkm-profile",
@@ -3568,7 +4277,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/get-umkm-profile"
+      "path": "functions/get-umkm-profile",
+      "scopes": [
+        "documents.read",
+        "users.read"
+      ]
     },
     {
       "$id": "get-creator-directory",
@@ -3584,7 +4297,10 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/get-creator-directory"
+      "path": "functions/get-creator-directory",
+      "scopes": [
+        "documents.read"
+      ]
     },
     {
       "$id": "get-creator-profile",
@@ -3600,7 +4316,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/get-creator-profile"
+      "path": "functions/get-creator-profile",
+      "scopes": [
+        "documents.read",
+        "users.read"
+      ]
     },
     {
       "$id": "get-creator-dashboard-summary",
@@ -3616,7 +4336,10 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/get-creator-dashboard-summary"
+      "path": "functions/get-creator-dashboard-summary",
+      "scopes": [
+        "documents.read"
+      ]
     },
     {
       "$id": "get-creator-negotiations",
@@ -3632,7 +4355,88 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/get-creator-negotiations"
+      "path": "functions/get-creator-negotiations",
+      "scopes": [
+        "documents.read"
+      ]
+    },
+    {
+      "$id": "get-umkm-negotiations",
+      "name": "Get Umkm Negotiations",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 30,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/get-umkm-negotiations",
+      "scopes": [
+        "documents.read"
+      ]
+    },
+    {
+      "$id": "notify-order-activity",
+      "name": "Notify Order Activity",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [
+        "databases.6a4c8598001da3b0d7f0.tables.deliverables.rows.*.create",
+        "databases.6a4c8598001da3b0d7f0.tables.revisions.rows.*.create"
+      ],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/notify-order-activity",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "refund-escrow",
+      "name": "Refund Escrow",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/refund-escrow",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "refund-order",
+      "name": "Refund Order",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [
+        "databases.6a4c8598001da3b0d7f0.tables.orders.rows.*.update"
+      ],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/refund-order",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
     },
     {
       "$id": "cancel-payment",
@@ -3648,7 +4452,67 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
-      "path": "functions/cancel-payment"
+      "path": "functions/cancel-payment",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "fee-rate-flip",
+      "name": "Fee Rate Flip Monitor",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [],
+      "schedule": "0 0 * * *",
+      "timeout": 30,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/fee-rate-flip",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "track-order-review",
+      "name": "track-order-review",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [
+        "databases.6a4c8598001da3b0d7f0.collections.deliverables.documents.*.create"
+      ],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ],
+      "path": "functions/track-order-review"
+    },
+    {
+      "$id": "auto-approve-orders",
+      "name": "auto-approve-orders",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [],
+      "schedule": "0 * * * *",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ],
+      "path": "functions/auto-approve-orders"
     }
   ]
 }

@@ -55,3 +55,13 @@ Disimpan langsung di `creator_profiles` agar dashboard & browse cepat, walau bis
 
 - [50_Database.md](50_Database.md) — atribut & index.
 - [60_API.md](60_API.md) — operasi profil, pencarian creator, & file manager.
+
+## Status Akun & Banding (Appeals)
+
+- Status akun: `active` (default), `suspended`, `terminated`.
+- Akun yang berstatus non-active diblokir dari aksi finansial dan platform (withdrawal, payment baru, offer baru, order baru, claim, submit bukti kerja).
+- Guard untuk Claim Campaign dan Submit Bukti Kerja ditangani oleh tim frontend/klien pada sprint T-16 (Client-side / API guards).
+- User dapat mengajukan banding dalam waktu 14 hari sejak status akun diubah menjadi suspended/terminated. Jika melewati 14 hari, banding ditolak.
+- Akun tetap dalam status suspended/terminated selama proses banding berlangsung. SLA proses banding adalah 7 hari kerja.
+- Jika banding disetujui, status dikembalikan menjadi `active`.
+- Tidak bisa mengajukan lebih dari satu banding yang sedang diproses.

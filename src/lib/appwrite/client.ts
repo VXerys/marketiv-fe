@@ -9,8 +9,14 @@ import { appwriteConfig } from "./config";
 
 const client = new Client();
 
-client
-  .setEndpoint(appwriteConfig.endpoint)
-  .setProject(appwriteConfig.projectId);
+if (appwriteConfig.endpoint) {
+  client.setEndpoint(appwriteConfig.endpoint);
+} else {
+  client.setEndpoint("https://dummy.appwrite.endpoint/v1"); // Prevent crash
+}
+
+if (appwriteConfig.projectId) {
+  client.setProject(appwriteConfig.projectId);
+}
 
 export { client };

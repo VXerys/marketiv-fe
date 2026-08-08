@@ -6,7 +6,7 @@ import {
   logout as logoutSession,
   type SessionUser,
 } from "@/services/auth/session.service";
-import type { ServiceErrorCode } from "@/types/domain";
+import type { ServiceErrorCode, ServiceResult } from "@/types/domain";
 
 interface AuthContextValue {
   user: SessionUser | null;
@@ -14,7 +14,7 @@ interface AuthContextValue {
   /** Kode error terakhir — UI memetakan code, bukan teks pesan (R3). */
   errorCode: ServiceErrorCode | null;
   error: string | null;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<ServiceResult<SessionUser>>;
   logout: () => Promise<void>;
 }
 
@@ -45,7 +45,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   /** Refresh manual (dipanggil dari event handler, bukan dari body effect). */
   const refresh = useCallback(async () => {
     setLoading(true);
-    applySession(await getSession());
+    const res = await getSession();
+    applySession(res);
+    return res;
   }, [applySession]);
 
   // Fetch awal: state hanya diubah setelah promise selesai, bukan sinkron di
@@ -63,6 +65,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     await logoutSession();
     setUser(null);
+    // errorCode/error harus ikut dibersihkan: RedirectIfAuthenticated dan
+    // RoleGuard sama-sama bercabang di errorCode, jadi sisa "not_found" dari
+    // sesi sebelumnya akan salah dibaca sebagai profil yang belum terbentuk.
+    setErrorCode(null);
+    setError(null);
   }, []);
 
   return (

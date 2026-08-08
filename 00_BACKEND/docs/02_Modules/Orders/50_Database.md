@@ -36,10 +36,14 @@ Draft/hasil kerja creator, berversi. Relasi: Order (1) → Deliverables (N). Fil
 | notes     | string  | no       | catatan creator                              |
 | version   | integer | yes      | nomor versi unggahan                         |
 | status    | enum    | yes      | `submitted\|revision_requested\|approved`    |
+| creatorCredit | string | no      | maks 255 — username TikTok kreator (format kreditasi Pasal 16.3 T&C) |
+| aiGenerated | boolean | no      | null/true/false — penanda buatan AI (opsional, tanpa sanksi) |
 
 **Index**: `orderId`, `createdAt DESC`.
 
 **Permission**: Buyer · Seller · Admin.
+
+> **Catatan Hukum (T&C)**: Titik peralihan kepemilikan konten (transfer lisensi) dari Kreator ke UMKM secara sah terjadi pada saat escrow dirilis (`release-escrow`), **bukan** saat deliverable dikirim/disubmit.
 
 ---
 
@@ -59,3 +63,8 @@ Permintaan revisi atas sebuah order. Relasi: Order (1) → Revisions (N).
 **Permission**: Buyer · Seller · Admin.
 
 > Escrow milik order ada di modul Payments (`../Payments/50_Database.md`) — escrow & transaksi sengaja dipisah dari order. `offerId` → `../Offers/50_Database.md`; `packageId` → `../RateCards/50_Database.md`. Aturan status & versi: `30_Business_Rules.md`.
+>
+> **Refund (T-02)**: Order berstatus `cancelled`/`expired` memicu refund escrow via event `orders.*.update` → `refund-order`. Escrow status `held` → `refunded` (lihat `../Payments/50_Database.md` status `refunded`). Hanya order `pending_payment` yang bisa dibatalkan manual via `cancelOrder` (order.service.ts) — status `cancelled` tapi tidak punya escrow.
+
+## Updates
+- Added `review_deadline_at`, `auto_approved`, `revision_count`, `revision_limit`, `reminder_sent_at` to `orders` collection.

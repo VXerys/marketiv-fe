@@ -4,6 +4,7 @@ import type { ServiceResult } from "@/types/domain";
 import {
   getMyConversationsFromAppwrite,
   setConversationArchivedInAppwrite,
+  markConversationReadInAppwrite,
   conversationPairKey,
   type ConversationFlag,
 } from "./conversation-appwrite.service";
@@ -45,4 +46,19 @@ export async function setConversationArchived(
     return { success: true, data: null };
   }
   return setConversationArchivedInAppwrite(conversationId, archived);
+}
+
+/**
+ * Tandai pesan lawan bicara sudah dibaca; mengembalikan jumlah yang ditandai.
+ * Dipanggil saat ruang negosiasi terbuka — inilah satu-satunya yang membuat
+ * badge belum-dibaca bisa turun.
+ */
+export async function markConversationRead(
+  conversationId: string
+): Promise<ServiceResult<number>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(150);
+    return { success: true, data: 0 };
+  }
+  return markConversationReadInAppwrite(conversationId);
 }

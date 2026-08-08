@@ -1,4 +1,6 @@
+import { createHash } from "node:crypto";
 import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
+import { incrementColumn } from "./atomic.js";
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -9,9 +11,9 @@ export default async ({ req, res, log, error }) => {
 
     const databases = createDatabasesClient(env);
 
-    if (payment.purpose === "topup" || payment.purpose === "campaign") {
+    if (payment.purpose === "campaign") {
       const result = await completeTopup(databases, env, payment);
-      log(`Top up payment ${payment.$id} completed for ${payment.user_id}`);
+      log(`Campaign top-up payment ${payment.$id} completed for ${payment.user_id}`);
       return json(res, { status: "ok", ...result });
     }
 
@@ -24,7 +26,7 @@ export default async ({ req, res, log, error }) => {
       env.databaseId,
       env.escrowsCollectionId,
       ID.unique(),
-      { orderId: payment.order_id, amount: Number(payment.amount), status: "held" }
+      { orderId: payment.order_id, amount: Number(payment.amount), status: "held", fee_rate: env.feeRate }
     );
 
     await ensureTransaction(databases, env, {
@@ -37,6 +39,8 @@ export default async ({ req, res, log, error }) => {
     });
 
     await updateOrderAfterEscrow(databases, env, payment.order_id);
+    await notifyEscrowHeld(databases, env, payment, escrow, log);
+
     log(`Escrow ${escrow.$id} held for order ${payment.order_id}`);
     return json(res, { status: "ok", escrowId: escrow.$id });
   } catch (err) {
@@ -55,7 +59,10 @@ function getEnv(req) {
     walletsCollectionId: process.env.WALLETS_COLLECTION_ID || process.env.NEXT_PUBLIC_WALLET_COLLECTION || "wallets",
     transactionsCollectionId: process.env.TRANSACTIONS_COLLECTION_ID || process.env.NEXT_PUBLIC_TRANSACTION_COLLECTION || "transactions",
     escrowsCollectionId: process.env.ESCROWS_COLLECTION_ID || process.env.NEXT_PUBLIC_ESCROW_COLLECTION || "escrows",
-    ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders"
+    ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders",
+    campaignsCollectionId: process.env.CAMPAIGNS_COLLECTION_ID || process.env.NEXT_PUBLIC_CAMPAIGN_COLLECTION || "campaigns",
+    notificationsCollectionId: process.env.NOTIFICATIONS_COLLECTION_ID || "notifications",
+    feeRate: Number(process.env.FEE_RATE || 0.02)
   };
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
@@ -73,26 +80,91 @@ function parseBody(req) {
   return typeof rawBody === "object" ? rawBody : JSON.parse(rawBody);
 }
 
+/**
+ * Campaign top-up.
+ *
+ * Urutannya sengaja: baris ledger dibuat sebagai `pending` LEBIH DULU dengan id
+ * deterministik, baru dana dikredit, baru ledger ditandai `completed`. Pola ini
+ * mengikuti request-withdrawal:50-99.
+ *
+ * Versi sebelumnya menulis ledger `completed` di awal lalu `return` saat baris
+ * itu sudah ada. Akibatnya kalau kredit gagal di tengah, panggilan ulang webhook
+ * Midtrans akan menemukan baris ledger lama dan berhenti SEBELUM mengkredit —
+ * uang tercatat di ledger tapi tidak pernah masuk ke mana pun, permanen.
+ *
+ * Dengan penanda `pending`, retry justru MENYELESAIKAN kredit yang tertunda.
+ */
 async function completeTopup(databases, env, payment) {
-  const wallet = await findWallet(databases, env, payment.user_id);
-  if (!wallet) throw new Error(`Wallet not found for user ${payment.user_id}`);
+  // Campaign top-up: credit remainingBudget only — dana tidak masuk wallet bebas
+  const ledgerId = deterministicId(payment.$id, "payment");
 
-  const result = await ensureTransaction(databases, env, {
+  const claim = await claimLedgerRow(databases, env, {
+    id: ledgerId,
     userId: payment.user_id,
     amount: Number(payment.amount),
-    type: "deposit",
+    type: "payment",
     referenceId: payment.$id,
-    referenceType: "payment",
+    referenceType: "payment"
+  });
+
+  if (claim.alreadyCompleted) {
+    return { walletId: null, status: "already_processed" };
+  }
+
+  // Campaign top-up: credit remainingBudget only
+  await incrementColumn(
+    env, env.campaignsCollectionId, payment.campaign_id, "remainingBudget", Number(payment.amount)
+  );
+
+  await databases.updateDocument(env.databaseId, env.transactionsCollectionId, ledgerId, {
     status: "completed"
   });
 
-  if (!result.created) return { walletId: wallet.$id };
+  return { walletId: null };
+}
 
-  await databases.updateDocument(env.databaseId, env.walletsCollectionId, wallet.$id, {
-    balance: Number(wallet.balance || 0) + Number(payment.amount)
-  });
+/**
+ * Klaim baris ledger sebagai penanda idempotensi.
+ *
+ * `transactions` tidak punya unique index untuk (referenceId, type), jadi id
+ * dokumen deterministik-lah kuncinya: create kedua dengan id sama gagal 409.
+ * Hasil: "tx" + 32 hex = 34 karakter, valid sebagai document id.
+ */
+async function claimLedgerRow(databases, env, tx) {
+  try {
+    await databases.createDocument(
+      env.databaseId,
+      env.transactionsCollectionId,
+      tx.id,
+      {
+        userId: tx.userId,
+        amount: tx.amount,
+        type: tx.type,
+        referenceId: tx.referenceId,
+        referenceType: tx.referenceType,
+        status: "pending"
+      },
+      // `transactions` punya $permissions kosong, jadi permission baris adalah
+      // satu-satunya jalur baca bagi pemiliknya.
+      [Permission.read(Role.user(tx.userId))]
+    );
+    return { alreadyCompleted: false };
+  } catch (err) {
+    if (err?.code !== 409) throw err;
 
-  return { walletId: wallet.$id };
+    // Baris sudah ada. `completed` = kredit sudah selesai, aman dilewati.
+    // `pending` = percobaan sebelumnya berhenti sebelum mengkredit, jadi
+    // biarkan pemanggil melanjutkannya.
+    const existing = await databases.getDocument(
+      env.databaseId, env.transactionsCollectionId, tx.id
+    );
+    return { alreadyCompleted: existing.status === "completed" };
+  }
+}
+
+function deterministicId(paymentId, type) {
+  const digest = createHash("sha256").update(`${paymentId}:${type}`).digest("hex");
+  return `tx${digest.slice(0, 32)}`;
 }
 
 async function findWallet(databases, env, userId) {
@@ -129,6 +201,89 @@ async function updateOrderAfterEscrow(databases, env, orderId) {
   await databases.updateDocument(env.databaseId, env.ordersCollectionId, orderId, {
     status: "in_progress"
   });
+}
+
+/**
+ * Kedua pihak diberi tahu, dengan kalimat yang berbeda: UMKM perlu tahu dananya
+ * aman, kreator perlu tahu ia boleh mulai bekerja. Order dimuat ulang di sini
+ * karena `payments` hanya menyimpan `user_id` pembayarnya — creatorId ada di
+ * `orders`.
+ */
+async function notifyEscrowHeld(databases, env, payment, escrow, log) {
+  let order;
+  try {
+    order = await databases.getDocument(env.databaseId, env.ordersCollectionId, payment.order_id);
+  } catch (err) {
+    log(`Notifikasi escrow dilewati, order ${payment.order_id} tidak terbaca: ${err?.message || String(err)}`);
+    return;
+  }
+
+  const amount = rupiah(escrow.amount);
+
+  await notify(databases, env, {
+    userId: payment.user_id,
+    sourceId: escrow.$id,
+    kind: "escrow_held_umkm",
+    title: "Pembayaran Berhasil",
+    message: `Dana ${amount} sudah ditahan di escrow. Kreator bisa mulai mengerjakan pesananmu.`,
+    type: "escrow_held",
+  }, log);
+
+  if (order.creatorId) {
+    await notify(databases, env, {
+      userId: order.creatorId,
+      sourceId: escrow.$id,
+      kind: "escrow_held_creator",
+      title: "Pesanan Siap Dikerjakan",
+      message: `UMKM sudah membayar ${amount} ke escrow. Silakan mulai mengerjakan dan kirim hasilnya lewat ruang negosiasi.`,
+      type: "escrow_held",
+    }, log);
+  }
+}
+
+/**
+ * Tulis satu baris notifikasi.
+ *
+ * Id dokumennya deterministik dari (sourceId, kind), jadi event yang terkirim
+ * ulang tidak menghasilkan notifikasi ganda — 409 dari server justru hasil yang
+ * benar. Pola ini sama dengan penanda ledger di file ini.
+ *
+ * Kegagalan menulis notifikasi TIDAK PERNAH menggagalkan pemanggilnya: dana
+ * sudah berpindah, dan membatalkan itu karena notifikasi gagal jauh lebih
+ * merugikan daripada notifikasi yang hilang.
+ */
+async function notify(databases, env, payload, log) {
+  try {
+    await databases.createDocument(
+      env.databaseId,
+      env.notificationsCollectionId,
+      deterministicNotificationId(payload.sourceId, payload.kind),
+      {
+        userId: payload.userId,
+        title: payload.title,
+        message: payload.message,
+        type: payload.type,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      },
+      // `notifications` punya $permissions kosong + rowSecurity — tanpa
+      // permission baris, notifikasi tidak akan pernah terbaca pemiliknya.
+      [Permission.read(Role.user(payload.userId)), Permission.update(Role.user(payload.userId))]
+    );
+  } catch (err) {
+    if (err?.code === 409) return;
+    log(`Notifikasi ${payload.kind} gagal untuk ${payload.userId}: ${err?.message || String(err)}`);
+  }
+}
+
+/** "ntf" + 29 hex = 32 karakter, valid sebagai document id Appwrite. */
+function deterministicNotificationId(sourceId, kind) {
+  const digest = createHash("sha256").update(`${sourceId}:${kind}`).digest("hex");
+  return `ntf${digest.slice(0, 29)}`;
+}
+
+function rupiah(value) {
+  return `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 }
 
 function json(res, body, statusCode = 200) {

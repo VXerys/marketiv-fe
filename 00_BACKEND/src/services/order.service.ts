@@ -238,6 +238,22 @@ export const uploadDeliverable = async (input: UploadDeliverableInput): Promise<
         version: currentVersion + 1,
         status: 'submitted',
       },
+      // Kedua pihak membaca, tapi HANYA UMKM yang boleh update.
+      //
+      // `release-escrow` dipicu event `deliverables.rows.*.update` dan mencairkan
+      // escrow begitu status jadi `approved`. Memberi kreator hak update di sini
+      // sama dengan mengizinkannya menyetujui pekerjaannya sendiri lalu menarik
+      // dananya tanpa persetujuan UMKM.
+      //
+      // Kreator tidak membutuhkannya: kirim ulang membuat BARIS BARU dengan
+      // `version + 1` (lihat di atas), bukan memperbarui baris lama. Satu-satunya
+      // updateDocument pada tabel ini ada di approveDeliverable, yang sudah
+      // dipagari `order.umkmId !== user.$id`.
+      [
+        Permission.read(Role.user(order.umkmId)),
+        Permission.read(Role.user(order.creatorId)),
+        Permission.update(Role.user(order.umkmId)),
+      ],
     );
 
     if (order.status !== 'in_progress') {
@@ -323,6 +339,14 @@ export const requestRevision = async (input: RequestRevisionInput): Promise<Revi
         message: input.message,
         status: 'open',
       },
+      // Sejajar dengan deliverables: kedua pihak membaca, kedua pihak bisa
+      // menutup revisi (`status: 'resolved'`).
+      [
+        Permission.read(Role.user(order.umkmId)),
+        Permission.read(Role.user(order.creatorId)),
+        Permission.update(Role.user(order.umkmId)),
+        Permission.update(Role.user(order.creatorId)),
+      ],
     );
 
     await databases.updateDocument(DATABASE_ID, COLLECTIONS.orders, input.orderId, {

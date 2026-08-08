@@ -3,12 +3,13 @@ import { account, COLLECTIONS, DATABASE_ID, databases } from '../lib/appwrite';
 
 export const MINIMUM_WITHDRAW = 50000;
 export const MINIMUM_CAMPAIGN_BUDGET = 50000;
-export const PLATFORM_FEE_RATE = 0.02;
+// Baca dari env (NEXT_PUBLIC_FEE_RATE untuk client, FEE_RATE untuk server), fallback 0.02
+export const PLATFORM_FEE_RATE = Number(process.env.NEXT_PUBLIC_FEE_RATE || process.env.FEE_RATE || 0.02);
 export const WITHDRAW_PAYOUT_METHODS = ['bank', 'ewallet'] as const;
 
 export type WithdrawPayoutMethod = (typeof WITHDRAW_PAYOUT_METHODS)[number];
 export type WithdrawalStatus = 'processed';
-export type TransactionType = 'deposit' | 'withdrawal' | 'payment' | 'refund' | 'release' | 'fee';
+export type TransactionType = 'withdrawal' | 'payment' | 'refund' | 'release' | 'fee';
 
 export type Wallet = {
   id: string;

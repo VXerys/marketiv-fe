@@ -14,8 +14,8 @@ interface CampaignWizardStepperProps {
   stepValidationTried?: Record<number, boolean>;
 }
 
-const STEP_TITLES = ["Produk", "Brief", "Aset", "Budget", "Review"];
-const STEP_SUBTITLES = ["Info & Kategori", "Konten & Tone", "Upload Aset", "Budget & Kuota", "Review & Bayar"];
+const STEP_TITLES = ["Produk", "Arahan", "Bahan", "Anggaran", "Ringkasan"];
+const STEP_SUBTITLES = ["Info & Kategori", "Gaya & Pesan", "Foto & Video", "Biaya & Kuota", "Cek & Bayar"];
 
 export function CampaignWizardStepper({
   currentStep,

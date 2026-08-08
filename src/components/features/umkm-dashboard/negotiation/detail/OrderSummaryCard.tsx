@@ -11,7 +11,7 @@ interface OrderSummaryCardProps {
 export function OrderSummaryCard({ order, onCancelOrder }: OrderSummaryCardProps) {
   // Sejalan dengan guard service: begitu dana masuk escrow, pembatalan harus
   // lewat pengembalian dana — bukan lagi urusan tombol ini.
-  const canCancel = order.status === "pending_payment";
+  const canCancel = order.stage === "pending_payment";
 
   const deadlineDate = (isoString: string) => {
     try {

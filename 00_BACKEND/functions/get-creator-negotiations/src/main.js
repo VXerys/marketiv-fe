@@ -3,46 +3,59 @@ import { Client, Databases, Query } from "node-appwrite";
 /**
  * get-creator-negotiations
  *
- * DTO negosiasi Rate Card Mode dari sisi kreator.
- * Response = `CreatorNegotiation[]`, atau satu objek bila body berisi `orderId`.
+ * DTO ruang negosiasi Rate Card Mode dari sisi kreator.
+ * Response = `CreatorNegotiation[]`, atau satu objek bila body berisi
+ * `conversationId`.
  *
  * Body (opsional, JSON):
- *   { orderId?: string }
+ *   { conversationId?: string }
  *
- * MENGAPA HARUS FUNCTION — `orders` sendirian tidak cukup. Kolomnya hanya
- * offerId, packageId, creatorId, umkmId, amount, status, createdAt; sementara
- * view-model butuh judul proyek, scope, deadline, identitas UMKM, pesan
- * terakhir, dan status escrow. Itu join enam collection, dan salah satunya
- * (`escrows`) TIDAK BISA dibaca klien sama sekali — $permissions kosong +
- * rowSecurity, tanpa permission baris (lihat create-escrow).
+ * MENGAPA DI-KEY OLEH CONVERSATION, BUKAN ORDER — urutan Alur B adalah
+ * chat → offer → accept → order. Order lahir PALING AKHIR, dibuat `create-order`
+ * setelah kreator menerima offer. Versi sebelumnya beriterasi atas `orders`,
+ * sehingga seluruh tahap negosiasi — justru bagian yang layar ini namai — tidak
+ * pernah muncul. `conversations` punya unique index `umkm_id + creator_id`, jadi
+ * satu percakapan per pasangan dan id-nya stabil sepanjang hidup relasi.
  *
- * Sumber per field:
- * - `orders` ................ id, status, finalPrice (amount), umkmId
- * - `offers` ................ projectTitle, scope, deadline, revisionCount
- * - `rate_card_packages` .... fallback judul/scope + `deliverables` (kolom output)
- * - `umkm_profiles` ......... umkmName, umkmAvatarUrl
- * - `conversations` ......... lastMessage, lastMessageAt (kolom snake_case!)
- * - `messages` .............. unreadCount (kolom snake_case!)
- * - `escrows` ............... escrowStatus
- * - `deliverables` .......... submittedCollabUrl (versi terbaru)
+ * MENGAPA HARUS FUNCTION — satu baris view-model menjangkau tujuh collection,
+ * dan dua di antaranya tidak bisa dibaca klien sama sekali: `escrows` dan
+ * `orders` punya `$permissions` kosong + rowSecurity (lihat create-escrow dan
+ * create-order).
  *
- * FEE — SENGAJA BERBEDA DARI MOCK. src/mocks/creator-dashboard.mock.ts memakai
- * fee 3% dan `totalAmount = finalPrice + platformFee` (semantik pembeli). Untuk
- * kreator itu salah arah: rate card order adalah seller-side (ADR-008), kreator
- * MENERIMA nominal dikurangi fee. Di sini platformFee = 2% dibulatkan ke bawah
- * dan totalAmount = nominal bersih yang diterima kreator, mengikuti
- * calculateCreatorPayout() di 00_BACKEND/src/services/wallet.service.ts.
+ * Rantai join:
+ *   conversations
+ *     ← messages.conversation_id        unreadCount
+ *     ← offers.conversationId           offer aktif = $createdAt terbaru
+ *          ← orders.offerId             0..1, unique idx_offerId
+ *               ← escrows.orderId       0..1, unique idx_orderId
+ *               ← deliverables.orderId  0..n, version tertinggi
+ *     + umkm_profiles.userId            nama & avatar lawan bicara
+ *     + rate_card_packages.$id          fallback judul/scope Direct Order
+ *
+ * ⬜ BELUM TERWAKILI — Direct Order (Jalur A). Order berbasis `packageId` tidak
+ * punya offer maupun conversation, jadi tidak muncul di sini. Jalur itu memang
+ * belum dibangun (tidak ada satu pun kode yang menulis `orders.packageId`). Saat
+ * dibangun nanti, cara paling bersih adalah ikut membuat `conversations` untuk
+ * pasangannya — kedua pihak tetap perlu berkomunikasi soal deliverable.
+ *
+ * PASANGANNYA: `get-umkm-negotiations` menjalankan join yang sama dari sisi
+ * UMKM. Perubahan skema di sini HARUS diikutkan ke sana.
+ *
+ * FEE — SENGAJA BERBEDA DARI SISI UMKM. ADR-008 menetapkan Rate Card Order
+ * sebagai seller-side: UMKM membayar persis harga rate card, potongan 2% diambil
+ * dari pendapatan kreator saat escrow dirilis. Jadi di sini `totalAmount` =
+ * nominal BERSIH yang diterima kreator, sementara di `get-umkm-negotiations`
+ * `totalAmount` = nominal yang dibayar UMKM. Keduanya benar untuk pembacanya
+ * masing-masing. Mengikuti calculateCreatorPayout() di
+ * 00_BACKEND/src/services/wallet.service.ts:129.
+ *
+ * Fee rate dibaca dari env FEE_RATE (default 0.02) — display global.
+ * Nilai final per-order pakai escrow.fee_rate snapshot jika tersedia.
  */
 
 const PAGE_SIZE = 100;
 const MAX_DOCS = 5000;
 const IN_CHUNK = 100;
-
-/**
- * Mirror PLATFORM_FEE_RATE di 00_BACKEND/src/services/wallet.service.ts.
- * Jangan menuliskan angka fee di tempat lain dalam fungsi ini.
- */
-const PLATFORM_FEE_RATE = 0.02;
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -55,110 +68,171 @@ export default async ({ req, res, log, error }) => {
     if (!userId) return json(res, { error: "Unauthorized" }, 401);
 
     const body = parseBody(req);
-    const orderId = typeof body.orderId === "string" ? body.orderId : null;
+    const conversationId = typeof body.conversationId === "string" ? body.conversationId : null;
 
     const databases = createDatabasesClient(env);
 
     // Kepemilikan ditegakkan lewat query, bukan lewat pemeriksaan setelah ambil:
-    // creatorId selalu ikut sebagai filter, jadi order milik kreator lain tidak
-    // pernah terbaca walaupun orderId-nya ditebak.
-    const orders = orderId
-      ? await listAll(databases, env.databaseId, env.ordersCollectionId, [
-          Query.equal("$id", orderId),
-          Query.equal("creatorId", userId),
+    // creator_id selalu ikut sebagai filter, jadi percakapan orang lain tidak
+    // pernah terbaca walaupun conversationId-nya ditebak.
+    const conversations = conversationId
+      ? await listAll(databases, env.databaseId, env.conversationsCollectionId, [
+          Query.equal("$id", conversationId),
+          Query.equal("creator_id", userId),
           Query.limit(1),
         ])
-      : await listAll(databases, env.databaseId, env.ordersCollectionId, [
-          Query.equal("creatorId", userId),
+      : await listAll(databases, env.databaseId, env.conversationsCollectionId, [
+          Query.equal("creator_id", userId),
+          // SENGAJA $createdAt, bukan last_message_at: `conversations` tidak punya
+          // index untuk kolom itu (indexnya hanya umkm_id, creator_id, pasangan
+          // keduanya, dan offer_id), dan Appwrite menolak order pada kolom tanpa
+          // index. Urutan yang benar-benar diinginkan UI — percakapan dengan
+          // pesan terbaru di atas — dipasang di memori setelah semuanya terkumpul.
           Query.orderDesc("$createdAt"),
         ]);
 
-    if (orderId && orders.length === 0) {
-      // 404, bukan 403 — membedakan keduanya membocorkan keberadaan order milik
-      // kreator lain.
+    if (conversationId && conversations.length === 0) {
+      // 404, bukan 403 — membedakan keduanya membocorkan keberadaan percakapan
+      // milik kreator lain.
       return json(res, { error: "Negotiation not found" }, 404);
     }
-    if (orders.length === 0) return json(res, []);
+    if (conversations.length === 0) return json(res, []);
 
-    const context = await loadContext(databases, env, orders, userId);
-    const negotiations = orders.map((order) => toNegotiation(order, context));
+    const context = await loadContext(databases, env, conversations, userId);
+    context.feeRate = env.feeRate;
+    const negotiations = conversations
+      .map((conversation) => toNegotiation(conversation, context))
+      // Percakapan tanpa pesan (`last_message_at` kosong) turun ke bawah, bukan
+      // naik ke atas — string kosong akan menang di perbandingan desc.
+      .sort((a, b) => (b.lastMessageAt || "").localeCompare(a.lastMessageAt || ""));
 
-    log(`Creator negotiations for ${userId}: ${negotiations.length} order(s)`);
-    return json(res, orderId ? negotiations[0] : negotiations);
+    log(`Creator negotiations for ${userId}: ${negotiations.length} conversation(s)`);
+    return json(res, conversationId ? negotiations[0] : negotiations);
   } catch (err) {
     error(err?.stack || err?.message || String(err));
     return json(res, { error: "Internal server error" }, 500);
   }
 };
 
-/** Semua join dikumpulkan sekali, lalu dipetakan per order di memori. */
-async function loadContext(databases, env, orders, userId) {
-  const orderIds = orders.map((o) => o.$id);
-  const offerIds = unique(orders.map((o) => str(o.offerId)));
-  const packageIds = unique(orders.map((o) => str(o.packageId)));
-  const umkmIds = unique(orders.map((o) => str(o.umkmId)));
-
-  const [offers, packages, umkmProfiles, escrows, deliverables] = await Promise.all([
-    listByIds(databases, env.databaseId, env.offersCollectionId, "$id", offerIds),
-    listByIds(databases, env.databaseId, env.rateCardPackagesCollectionId, "$id", packageIds),
-    listByIds(databases, env.databaseId, env.umkmProfilesCollectionId, "userId", umkmIds),
-    listByIds(databases, env.databaseId, env.escrowsCollectionId, "orderId", orderIds),
-    listByIds(databases, env.databaseId, env.deliverablesCollectionId, "orderId", orderIds),
-  ]);
+/** Semua join dikumpulkan sekali, lalu dipetakan per percakapan di memori. */
+async function loadContext(databases, env, conversations, userId) {
+  const conversationIds = conversations.map((c) => c.$id);
+  const umkmIds = unique(conversations.map((c) => str(c.umkm_id)));
 
   // conversations & messages memakai kolom snake_case — satu-satunya collection
   // yang begitu di seluruh skema.
-  const conversationIds = unique(offers.map((o) => str(o.conversationId)));
-  const [conversations, messages] = await Promise.all([
-    listByIds(databases, env.databaseId, env.conversationsCollectionId, "$id", conversationIds),
+  const [messages, offers, umkmProfiles] = await Promise.all([
     listByIds(databases, env.databaseId, env.messagesCollectionId, "conversation_id", conversationIds),
+    listByIds(databases, env.databaseId, env.offersCollectionId, "conversationId", conversationIds),
+    listByIds(databases, env.databaseId, env.umkmProfilesCollectionId, "userId", umkmIds),
+  ]);
+
+  const activeOffers = pickLatestOffers(offers);
+  const offerIds = unique([...activeOffers.values()].map((o) => o.$id));
+
+  const orders = await listByIds(databases, env.databaseId, env.ordersCollectionId, "offerId", offerIds);
+  const orderIds = orders.map((o) => o.$id);
+  const packageIds = unique(orders.map((o) => str(o.packageId)));
+
+  const [escrows, deliverables, packages] = await Promise.all([
+    listByIds(databases, env.databaseId, env.escrowsCollectionId, "orderId", orderIds),
+    listByIds(databases, env.databaseId, env.deliverablesCollectionId, "orderId", orderIds),
+    listByIds(databases, env.databaseId, env.rateCardPackagesCollectionId, "$id", packageIds),
   ]);
 
   return {
     userId,
-    offerById: byKey(offers, (o) => o.$id),
+    offerByConversationId: activeOffers,
+    orderByOfferId: byKey(orders, (o) => str(o.offerId)),
     packageById: byKey(packages, (p) => p.$id),
     umkmByUserId: byKey(umkmProfiles, (p) => str(p.userId)),
     escrowByOrderId: byKey(escrows, (e) => str(e.orderId)),
     latestDeliverableByOrderId: pickLatestDeliverables(deliverables),
-    conversationById: byKey(conversations, (c) => c.$id),
     unreadByConversationId: countUnread(messages, userId),
   };
 }
 
-function toNegotiation(order, ctx) {
-  const offer = ctx.offerById.get(str(order.offerId));
-  const pkg = ctx.packageById.get(str(order.packageId));
-  const umkm = ctx.umkmByUserId.get(str(order.umkmId));
-  const conversation = offer ? ctx.conversationById.get(str(offer.conversationId)) : null;
-  const escrow = ctx.escrowByOrderId.get(order.$id);
-  const deliverable = ctx.latestDeliverableByOrderId.get(order.$id);
+function toNegotiation(conversation, ctx) {
+  const offer = ctx.offerByConversationId.get(conversation.$id) || null;
+  const order = offer ? ctx.orderByOfferId.get(offer.$id) || null : null;
+  const pkg = order ? ctx.packageById.get(str(order.packageId)) : null;
+  const umkm = ctx.umkmByUserId.get(str(conversation.umkm_id));
+  const escrow = order ? ctx.escrowByOrderId.get(order.$id) : null;
+  const deliverable = order ? ctx.latestDeliverableByOrderId.get(order.$id) : null;
 
-  const finalPrice = number(order.amount);
-  const platformFee = Math.floor(finalPrice * PLATFORM_FEE_RATE);
+  // Nominal mengikuti order kalau sudah ada (itu yang mengikat), kalau belum
+  // pakai harga offer yang sedang ditawar.
+  const finalPrice = order ? number(order.amount) : number(offer?.price);
+  const platformFee = Math.floor(finalPrice * ctx.feeRate);
 
   return {
-    id: order.$id,
-    umkmId: str(order.umkmId),
+    // Kunci ruang = conversationId. `id` sengaja sama supaya route dan pemetaan
+    // klien punya satu sumber, bukan dua field yang bisa berbeda.
+    id: conversation.$id,
+    conversationId: conversation.$id,
+    stage: deriveStage(offer, order),
+
+    umkmId: str(conversation.umkm_id),
     umkmName: str(umkm?.businessName),
     umkmAvatarUrl: str(umkm?.logoUrl),
+
+    lastMessage: str(conversation.last_message),
+    lastMessageAt: str(conversation.last_message_at),
+    unreadCount: ctx.unreadByConversationId.get(conversation.$id) ?? 0,
+    // Diambil dari kolomnya sendiri, bukan diturunkan dari status order —
+    // mengarsipkan adalah keputusan pengguna, bukan konsekuensi status.
+    isArchived: Boolean(conversation.is_archived),
+
+    offerId: offer?.$id || undefined,
+    offerStatus: offer ? str(offer.status) : undefined,
     projectTitle: str(offer?.title) || str(pkg?.name),
     scope: str(offer?.description) || str(pkg?.description),
-    finalPrice,
     deadline: str(offer?.deadline),
-    status: str(order.status),
-    lastMessage: str(conversation?.last_message),
-    lastMessageAt: str(conversation?.last_message_at),
-    unreadCount: conversation ? ctx.unreadByConversationId.get(conversation.$id) ?? 0 : 0,
+    revisionCount: offer?.revisionLimit ?? pkg?.revisionLimit ?? undefined,
+
+    orderId: order?.$id || undefined,
+    orderStatus: order ? str(order.status) : undefined,
+    escrowStatus: escrow ? str(escrow.status) : undefined,
     // Ringkasan output paket — `offers.description` sudah dipakai sebagai scope.
     deliverables: str(pkg?.output) || undefined,
-    revisionCount: offer?.revisionLimit ?? pkg?.revisionLimit ?? undefined,
-    platformFee,
-    // Seller-side: yang diterima kreator, bukan yang dibayar UMKM.
-    totalAmount: finalPrice - platformFee,
-    escrowStatus: escrow ? str(escrow.status) : undefined,
     submittedCollabUrl: str(deliverable?.fileUrl) || undefined,
+
+    finalPrice,
+    platformFee,
+    // Seller-side: yang DITERIMA kreator, bukan yang dibayar UMKM.
+    totalAmount: finalPrice - platformFee,
   };
+}
+
+/**
+ * Satu tahap yang bisa di-switch UI, karena `OrderStatus` tidak punya nilai
+ * untuk "order belum ada". Urutannya dari yang paling akhir: begitu order lahir,
+ * statusnyalah yang menentukan — status offer tidak lagi relevan.
+ */
+function deriveStage(offer, order) {
+  if (order) return str(order.status);
+  if (!offer) return "chatting";
+  const status = str(offer.status);
+  if (status === "accepted") return "awaiting_order";
+  if (status === "rejected") return "offer_rejected";
+  return "offer_pending";
+}
+
+/**
+ * Satu percakapan bisa punya beberapa offer (ditolak lalu ditawar ulang) —
+ * ambil yang terbaru. `offers` tidak punya index untuk $createdAt per
+ * conversation, jadi pemilihannya dilakukan di memori.
+ */
+function pickLatestOffers(offers) {
+  const byConversation = new Map();
+  for (const offer of offers) {
+    const conversationId = str(offer.conversationId);
+    const current = byConversation.get(conversationId);
+    if (!current || str(offer.$createdAt) > str(current.$createdAt)) {
+      byConversation.set(conversationId, offer);
+    }
+  }
+  return byConversation;
 }
 
 /** Satu order bisa punya beberapa versi deliverable — ambil versi tertinggi. */
@@ -201,6 +275,7 @@ function getEnv(req) {
     messagesCollectionId: process.env.MESSAGES_COLLECTION_ID || process.env.NEXT_PUBLIC_MESSAGE_COLLECTION || "messages",
     escrowsCollectionId: process.env.ESCROWS_COLLECTION_ID || process.env.NEXT_PUBLIC_ESCROW_COLLECTION || "escrows",
     deliverablesCollectionId: process.env.DELIVERABLES_COLLECTION_ID || "deliverables",
+    feeRate: Number(process.env.FEE_RATE || 0.02)
   };
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
@@ -264,10 +339,10 @@ function unique(values) {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
-function chunk(items, size) {
-  const out = [];
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
-  return out;
+function chunk(values, size) {
+  const chunks = [];
+  for (let i = 0; i < values.length; i += size) chunks.push(values.slice(i, i + size));
+  return chunks;
 }
 
 function str(value) {
@@ -275,8 +350,7 @@ function str(value) {
 }
 
 function number(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
+  return typeof value === "number" ? value : 0;
 }
 
 function json(res, body, statusCode = 200) {

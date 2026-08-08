@@ -60,3 +60,4 @@ Pemetaan angka:
 - Unique constraint `campaignId + creatorId` pada claim (backend validation).
 - Cek `status = active`, `isProfileCompleted = true`, `totalClaims < claimLimit`.
 - Asset hanya mendukung `source = external_url` dengan protokol `https`.
+- **Metadata Transparansi AI & Kreditasi**: Field `creatorCredit`, `aiGenerated`, dan `aiDisclosed` pada `campaign_submissions` merupakan metadata murni yang diisi oleh klien saat submit. Tidak ada validasi server maupun *guard* yang memblokir alur berdasarkan field ini.

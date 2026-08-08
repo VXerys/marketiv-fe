@@ -32,11 +32,11 @@ export function CampaignHealthChecklist({
   };
 
   const checkItems = [
-    { step: 1, label: "Informasi Produk",     desc: "Nama, niche & deskripsi",       status: getStepStatus(1, productInfoValid) },
-    { step: 2, label: "Brief & Konten",       desc: "Gaya video & CTA kreator",      status: getStepStatus(2, briefValid) },
-    { step: 3, label: "Aset / Media",         desc: "Link Drive/Dropbox publik",      status: getStepStatus(3, assetValid) },
-    { step: 4, label: "Budget & Kuota",       desc: "Rate per views & slot kreator",  status: getStepStatus(4, budgetValid) },
-    { step: 5, label: "Review & Simulasi",    desc: "Konfirmasi escrow & rilis dana", status: getStepStatus(5, reviewValid) },
+    { step: 1, label: "Informasi Produk",     desc: "Nama & deskripsi produk",       status: getStepStatus(1, productInfoValid) },
+    { step: 2, label: "Arahan Konten",        desc: "Gaya video & pesan utama",      status: getStepStatus(2, briefValid) },
+    { step: 3, label: "Bahan Video",          desc: "Tautan foto & video produk",    status: getStepStatus(3, assetValid) },
+    { step: 4, label: "Biaya & Kuota",        desc: "Biaya tayang & slot kreator",   status: getStepStatus(4, budgetValid) },
+    { step: 5, label: "Ringkasan & Bayar",    desc: "Konfirmasi biaya & simpanan dana", status: getStepStatus(5, reviewValid) },
   ];
 
   const activeTip = STEP_TIPS[currentStep] || "Lengkapi formulir secara perlahan.";

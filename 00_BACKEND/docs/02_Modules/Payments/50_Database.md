@@ -32,7 +32,7 @@ Payment intent lokal untuk pembayaran yang diproses oleh Midtrans. Relasi: Order
 | amount           | integer | yes      | nominal transaksi (sebelum fee)                                |
 | total_amount     | integer | yes      | nominal + fee platform (yang dibayar ke Midtrans)             |
 | fee_amount       | integer | no       | jumlah fee platform (2% dari amount)                          |
-| purpose          | enum    | yes      | `order\|topup\|campaign`                                      |
+| purpose          | enum    | yes      | `order\|campaign`                                      |
 | gateway          | enum    | yes      | `midtrans`                                                    |
 | gateway_reference| string  | yes      | `order_id` Midtrans, unik                                     |
 | snap_token       | string  | no       | token Snap Midtrans                                           |
@@ -54,7 +54,7 @@ Ledger mutasi saldo. Relasi: Wallet/User (1) → Transactions (N).
 | ------------- | ------- | -------- | -------------------------------------------------------- |
 | userId        | string  | yes      | FK → users                                               |
 | amount        | integer | yes      |                                                          |
-| type          | enum    | yes      | `deposit\|withdrawal\|payment\|refund\|release\|fee`     |
+| type          | enum    | yes      | `withdrawal\|payment\|refund\|release\|fee\|mature\|withdrawal_reversal` |
 | referenceId   | string  | no       | id dokumen terkait (order/escrow/withdrawal)             |
 | referenceType | string  | no       | jenis referensi                                          |
 | status        | enum    | yes      | status transaksi                                         |
@@ -83,7 +83,7 @@ Dana ditahan per order. Relasi: Order (1) → Escrow (1).
 
 ## withdrawals
 
-Riwayat pencairan dana. Langsung processed tanpa review admin.
+Riwayat pencairan dana. Alur 4-state: `requested → processing → succeeded | failed | reversed`.
 
 | Attribute     | Type     | Required | Catatan                                      |
 | ------------- | -------- | -------- | -------------------------------------------- |
@@ -93,10 +93,16 @@ Riwayat pencairan dana. Langsung processed tanpa review admin.
 | providerName  | string   | yes      | nama bank atau provider e-wallet             |
 | accountNumber | string   | yes      | nomor rekening atau nomor akun/HP e-wallet   |
 | accountName   | string   | yes      | nama pemilik rekening atau akun e-wallet     |
-| status        | enum     | yes      | `processed`                                  |
-| processedAt   | datetime | yes      | waktu proses                                 |
+| status        | enum     | yes      | `requested\|processing\|succeeded\|failed\|reversed` |
+| processedAt   | datetime | no       | waktu status final `succeeded`               |
+| requester_role| string   | no       | `creator\|umkm` — siapa pemohon              |
+| source_origin | enum     | no       | `creator\|umkm_refund\|umkm_budget` — sumber saldo UMKM |
+| kyc_status    | enum     | no       | snapshot `none\|pending_wa\|verified` saat request |
+| iris_reference| string   | no       | `reference_no` payout Midtrans Iris          |
+| failure_reason| string   | no       | pesan kegagalan (Iris/penolakan)             |
+| reversed_at   | datetime | no       | waktu kredit balik (status `reversed`)       |
 
-**Index**: `userId`, `createdAt DESC`.
+**Index**: `userId`, `iris_reference`, `createdAt DESC`.
 
 **Permission**: User create · User read · System write.
 

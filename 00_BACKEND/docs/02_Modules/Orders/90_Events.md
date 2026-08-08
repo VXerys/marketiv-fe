@@ -26,3 +26,6 @@ Automasi modul Orders berjalan event-driven via Appwrite Functions. Service yang
 - **Link**: detail wallet & transaksi → `../Payments/` dan `../Payments/90_Events.md`.
 
 > Keputusan order sebagai aggregate utama: `../../04_Decisions/ADR-003.md`.
+
+## New Events
+- `databases.6a4c8598001da3b0d7f0.collections.deliverables.documents.*.create`: Triggers `track-order-review`.

@@ -81,7 +81,31 @@ Jangan menulis implementasi Appwrite Function di `src/` atau root proyek.
 
 ## Storage Buckets (`storage/`)
 
-`avatars/`, `logos/`, `portfolios/`, `campaign-assets/`, `deliverables/`, `fraud-evidence/`, ~~`user-files/`~~ (dormant — post-MVP).
+`avatars/`, `logos/`, `portfolios/`, `campaign-assets/`, `deliverables/`, `fraud-evidence/`, `user-files/`.
+
+**`user-files` adalah bucket unggahan pengguna yang aktif** — bukan lagi "dormant,
+post-MVP" seperti tertulis sebelumnya. Seluruh unggahan lewat `validate-and-upload`
+mendarat di sana, karena di situlah kuota per-pengguna ditegakkan lewat tabel
+`user_storage_usage` dan `user_files`.
+
+Permission: `create("users")` saja, dengan `fileSecurity: true`. Hak baca diberikan
+per berkas oleh Function kepada pengunggah, plus pihak lawan order bila parameter
+`shareWithOrderId` dikirim.
+
+> **Kenapa ini penting.** Selama status "dormant", bucket-nya tidak pernah dibuat
+> di live dan `DEFAULT_STORAGE_BUCKET_ID` diarahkan ke `campaign-assets` — bucket
+> `read("any")` dengan `fileSecurity: false`. Akibatnya setiap berkas yang diunggah
+> bisa diunduh siapa pun tanpa login, dan karena `fileSecurity: false` seluruh
+> `Permission.read` per-berkas yang dipasang Function **diabaikan server**. Seluruh
+> mekanisme berbagi deliverable jadi tidak berfungsi sekaligus bocor. Diperbaiki
+> 2026-07-29.
+
+`campaign-assets` tetap `read("any")` dan itu memang benar — isinya materi campaign
+publik. Jangan mengarahkan unggahan pengguna ke sana.
+
+Bucket `deliverables` ada di config tapi **tidak dipakai**: berkas deliverable ikut
+ke `user-files` supaya kuota tetap ditegakkan. Memisahkannya adalah perubahan
+tersendiri yang perlu dibahas dulu.
 
 ## Tests (`tests/`)
 

@@ -28,8 +28,8 @@ function Textarea({ className, label, helperText, error, id, name, disabled, ref
             : undefined
       }
       className={cn(
-        "resize-none border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 flex field-sizing-content min-h-16 w-full rounded-md border bg-input-background px-3 py-2 text-base transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        hasError && "border-danger focus:ring-danger focus-visible:border-destructive",
+        "resize-none placeholder:text-text-muted flex min-h-[90px] w-full rounded-xl border border-neutral-300/80 bg-neutral-100/60 px-4 py-3 text-sm font-semibold text-ink-950 shadow-3xs transition-all outline-none hover:border-neutral-400/80 hover:bg-neutral-100/90 focus:bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-500/15 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+        hasError && "border-red-400 focus:border-red-500 focus:ring-red-500/15",
         className,
       )}
       {...props}
@@ -46,7 +46,7 @@ function Textarea({ className, label, helperText, error, id, name, disabled, ref
         <label
           htmlFor={textareaId}
           className={cn(
-            "text-body-medium text-text-primary text-sm font-medium",
+            "text-body-medium text-ink-950 text-xs sm:text-sm font-extrabold select-none cursor-pointer",
             disabled && "opacity-50"
           )}
         >
@@ -60,14 +60,14 @@ function Textarea({ className, label, helperText, error, id, name, disabled, ref
         <p
           id={`${textareaId}-error`}
           role="alert"
-          className="text-caption text-destructive text-xs"
+          className="text-caption text-red-600 text-xs font-bold"
         >
           {error}
         </p>
       )}
 
       {!hasError && helperText && (
-        <p id={`${textareaId}-helper`} className="text-caption text-muted-foreground text-xs">
+        <p id={`${textareaId}-helper`} className="text-caption text-text-muted text-xs font-semibold">
           {helperText}
         </p>
       )}

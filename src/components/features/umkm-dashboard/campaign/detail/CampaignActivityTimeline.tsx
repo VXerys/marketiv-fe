@@ -194,18 +194,18 @@ export function CampaignActivityTimeline({ campaign }: CampaignActivityTimelineP
   };
 
   return (
-    <div className="panel p-6">
-      <div className="pb-6 border-b border-border-soft flex items-start justify-between gap-4 mb-6">
-        <div className="space-y-1">
-          <h3 className="text-sm font-extrabold text-text-primary uppercase tracking-wider">
-            Riwayat Aktivitas
+    <div className="rounded-2xl border border-neutral-200/80 bg-white p-5 sm:p-6 shadow-2xs space-y-4">
+      <div className="border-b border-neutral-200/50 pb-3 flex items-start justify-between gap-4">
+        <div className="space-y-0.5">
+          <h3 className="text-xs sm:text-sm font-extrabold text-text-primary uppercase tracking-wide">
+            Riwayat Aktivitas Kampanye
           </h3>
           <p className="text-xs text-text-muted">
-            Update terbaru campaign ini
+            Catatan kronologis update terbaru kampanye ini.
           </p>
         </div>
-        <span className="text-[10px] font-bold text-primary bg-primary-soft/10 px-2.5 py-1 rounded-md shrink-0">
-          {events.length} Aktivitas
+        <span className="text-[11px] font-extrabold text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200/80 uppercase tracking-wide shrink-0">
+          {events.length} AKTIVITAS
         </span>
       </div>
       

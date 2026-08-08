@@ -38,10 +38,10 @@ interface NotificationSetting {
 }
 
 const INITIAL_NOTIFICATIONS: NotificationSetting[] = [
-  { id: "kreator", label: "Kreator baru bergabung", desc: "Notifikasi saat kreator join campaign", enabled: true },
-  { id: "submission", label: "Submission masuk", desc: "Notifikasi saat ada konten dikirim", enabled: true },
-  { id: "completed", label: "Campaign selesai", desc: "Ringkasan saat campaign berakhir", enabled: true },
-  { id: "escrow", label: "Dana escrow siap cair", desc: "Alert saat dana perlu diverifikasi", enabled: true },
+  { id: "kreator", label: "Kreator baru bergabung", desc: "Notifikasi saat kreator join campaign", enabled: false },
+  { id: "submission", label: "Submission masuk", desc: "Notifikasi saat ada konten dikirim", enabled: false },
+  { id: "completed", label: "Campaign selesai", desc: "Ringkasan saat campaign berakhir", enabled: false },
+  { id: "escrow", label: "Dana escrow siap cair", desc: "Alert saat dana perlu diverifikasi", enabled: false },
   { id: "promo", label: "Promosi & update platform", desc: "Info fitur baru dari Marketiv", enabled: false },
 ];
 
@@ -326,7 +326,12 @@ export function PengaturanClient() {
                 <label className="text-[0.74rem] font-[800] text-ink-600 flex items-center gap-1.5">
                   <Phone size={12} className="text-ink-400" /> Nomor WhatsApp
                 </label>
-                <input type="text" value={account.phone} readOnly className={readOnlyCls} />
+                <input
+                  type="text"
+                  value={account.phone || "—"}
+                  readOnly
+                  className={readOnlyCls}
+                />
                 <span className="text-[0.68rem] font-bold text-ink-400">
                   Dikelola akun — hubungi support untuk mengubah.
                 </span>

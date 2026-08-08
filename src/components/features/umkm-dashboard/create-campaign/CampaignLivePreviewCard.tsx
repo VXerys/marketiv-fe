@@ -1,6 +1,7 @@
 "use client";
 
-import { Eye, Users, Zap, ImageIcon } from "lucide-react";
+import { useState, useRef } from "react";
+import { Eye, Users, Zap, Camera } from "lucide-react";
 import { formatCurrency, formatCompactNumber } from "@/lib/formatters";
 import { DashboardBadge } from "../shared/DashboardBadge";
 
@@ -11,6 +12,8 @@ interface CampaignLivePreviewCardProps {
   pricePerThousandViews: number;
   totalBudgetEscrow: number;
   creatorQuota: number;
+  coverUrl?: string;
+  onChangeCoverUrl?: (url: string) => void;
 }
 
 export function CampaignLivePreviewCard({
@@ -20,13 +23,31 @@ export function CampaignLivePreviewCard({
   pricePerThousandViews,
   totalBudgetEscrow,
   creatorQuota,
+  coverUrl = "",
+  onChangeCoverUrl,
 }: CampaignLivePreviewCardProps) {
+  const [localCoverUrl, setLocalCoverUrl] = useState<string>(coverUrl);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const displayTitle = title.trim() || null;
   const displayBrief = brief.trim() || null;
+  const activeCoverUrl = coverUrl || localCoverUrl;
+
   const estimatedViews =
     pricePerThousandViews > 0
       ? Math.round((totalBudgetEscrow / pricePerThousandViews) * 1000)
       : 0;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const imageUrl = URL.createObjectURL(file);
+      setLocalCoverUrl(imageUrl);
+      if (onChangeCoverUrl) {
+        onChangeCoverUrl(imageUrl);
+      }
+    }
+  };
 
   return (
     <div
@@ -35,17 +56,22 @@ export function CampaignLivePreviewCard({
     >
       {/* ── Cover banner ──────────────────────────────────── */}
       <div
-        className="relative h-32 w-full flex items-center justify-center overflow-hidden"
+        className="relative h-36 w-full flex items-center justify-center overflow-hidden group transition-all"
         style={{
-          background:
-            "radial-gradient(circle at 20% 50%, rgba(251,122,24,.70) 0%, transparent 60%), " +
-            "radial-gradient(circle at 80% 20%, rgba(234,88,12,.55) 0%, transparent 55%), " +
-            "linear-gradient(135deg, #f97316 0%, #c2410c 100%)",
+          background: activeCoverUrl
+            ? `linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.65) 100%), url(${activeCoverUrl}) center/cover no-repeat`
+            : "radial-gradient(circle at 20% 50%, rgba(251,122,24,.70) 0%, transparent 60%), " +
+              "radial-gradient(circle at 80% 20%, rgba(234,88,12,.55) 0%, transparent 55%), " +
+              "linear-gradient(135deg, #f97316 0%, #c2410c 100%)",
         }}
       >
-        {/* Decorative blobs */}
-        <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/[.06]" />
-        <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-black/[.08]" />
+        {/* Decorative blobs (only when no cover image) */}
+        {!activeCoverUrl && (
+          <>
+            <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/[.06]" />
+            <div className="absolute -bottom-4 -left-4 w-16 h-16 rounded-full bg-black/[.08]" />
+          </>
+        )}
 
         {/* Category badge */}
         <div className="absolute top-3 left-3 z-10">
@@ -68,13 +94,31 @@ export function CampaignLivePreviewCard({
           <span className="text-[9px] font-[800] text-white uppercase tracking-wider">Live Preview</span>
         </div>
 
-        {/* Cover placeholder */}
-        <div className="relative z-10 text-center text-white">
-          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm grid place-items-center mx-auto mb-1.5 border border-white/25">
-            <ImageIcon size={18} className="opacity-80" />
-          </div>
-          <span className="text-[9px] font-[700] tracking-wider uppercase opacity-75">Campaign Cover</span>
+        {/* Cover upload / change action button */}
+        <div className="relative z-10 text-center text-white flex flex-col items-center">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="px-3.5 py-1.5 rounded-xl bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/35 text-white text-[10.5px] font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm hover:scale-105"
+          >
+            <Camera size={14} className="text-white shrink-0" />
+            <span>{activeCoverUrl ? "Ganti Gambar Cover" : "Upload Gambar Cover"}</span>
+          </button>
+          {!activeCoverUrl && (
+            <span className="text-[9px] font-[600] tracking-wider uppercase opacity-85 mt-1 text-white/90">
+              Pilih foto background card
+            </span>
+          )}
         </div>
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileChange}
+        />
       </div>
 
       {/* ── Card body ─────────────────────────────────────── */}
@@ -85,7 +129,7 @@ export function CampaignLivePreviewCard({
             {displayTitle ?? "Judul campaign akan muncul di sini"}
           </h4>
           <p className={`text-[.74rem] leading-relaxed line-clamp-2 ${displayBrief ? "text-ink-500 font-[550]" : "text-ink-300 italic"}`}>
-            {displayBrief ?? "Isi brief agar kreator memahami kebutuhan Anda"}
+            {displayBrief ?? "Tambahkan arahan konten jika Anda memiliki preferensi khusus."}
           </p>
         </div>
 

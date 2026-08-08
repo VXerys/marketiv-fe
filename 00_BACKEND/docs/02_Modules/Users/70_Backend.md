@@ -6,8 +6,10 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 
 ### create-user-profile
 
-- **Trigger**: `users.create` (dari modul Authentication).
+- **Trigger**: `users.create` (event) dan eksekusi sinkron dari frontend setelah `account.updatePrefs()`.
 - **Aksi**: buat `umkm_profiles` atau `creator_profiles` sesuai role; inisialisasi `user_storage_usage` dengan `usedBytes = 0`, `quotaBytes = 104857600`, `fileCount = 0`.
+- **Idempoten**: jika baris `users`, profil role, atau `user_storage_usage` sudah ada, Function memakai baris existing dan tidak membuat duplikat.
+- **Recovery OAuth/legacy**: user Auth lama atau user Google OAuth yang belum punya mirror boleh menjalankan Function ini lagi setelah prefs role tersedia. Hasil `getSession()` `not_found` berarti mirror belum ada, bukan bukti credential salah.
 - ⚠️ `user_storage_usage` dormant — tidak dipakai MVP.
 
 ### validate-and-upload ⚠️ DORMANT

@@ -3,31 +3,41 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useStickyToolbar } from "@/hooks/useStickyToolbar";
+import { SearchToolbar, type SearchToolbarFilter } from "@/components/features/dashboard/shared";
+import {
+  ResponsiveModal,
+  ResponsiveModalContent,
+} from "@/components/ui/responsive-modal";
 import {
   Briefcase,
   BadgeDollarSign,
   AlertTriangle,
   Clock,
   Users,
-  SlidersHorizontal,
 } from "lucide-react";
+import { toast } from "sonner";
 import { CreatorJob } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
+import { claimCampaign } from "@/services/creator/creator-dashboard.service";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const NICHE_GRADIENTS: Record<string, [string, string]> = {
-  kuliner:    ["#f59e0b", "#ef4444"],
-  fashion:     ["#ec4899", "#8b5cf6"],
-  pariwisata: ["#14b8a6", "#3b82f6"],
-  edukasi:    ["#3b82f6", "#1d4ed8"],
-  kecantikan: ["#f472b6", "#d946ef"],
-  lainnya:    ["#7c3aed", "#4f46e5"],
+  kuliner:    ["var(--color-amber-500)", "var(--color-red-500)"],
+  fashion:     ["var(--color-pink-500)", "var(--color-violet-500)"],
+  pariwisata: ["var(--color-teal-500)", "var(--color-blue-500)"],
+  edukasi:    ["var(--color-blue-500)", "var(--color-blue-700)"],
+  kecantikan: ["var(--color-pink-400)", "var(--color-fuchsia-500)"],
+  lainnya:    ["var(--color-kreator-600)", "var(--color-kreator-action-end)"],
 };
+
+const CREATOR_ACTION_GRADIENT =
+  "linear-gradient(135deg, var(--color-kreator-600), var(--color-kreator-action-end))";
+const CREATOR_PROGRESS_GRADIENT =
+  "linear-gradient(90deg, var(--color-kreator-600), var(--color-kreator-action-end))";
 
 const NICHE_LABELS: Record<string, string> = {
   kuliner:    "Kuliner",
@@ -53,9 +63,9 @@ function MetricTile({ label, value, helper, icon, iconClass, highlight }: Metric
   return (
     <div
       className={cn(
-        "group relative p-4 sm:p-5 rounded-[22px] border bg-white/70 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_36px_rgba(37,99,235,.06)] hover:border-blue-400/30 select-none cursor-default",
+        "group relative p-4 sm:p-5 rounded-[22px] border bg-white/70 backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-kreator-brand-sm hover:border-blue-400/30 select-none cursor-default",
         highlight
-          ? "border-blue-200/50 shadow-[0_10px_30px_-10px_rgba(37,99,235,0.15)] bg-gradient-to-br from-blue-50/20 to-white/95"
+          ? "border-blue-200/50 shadow-kreator-brand-sm bg-gradient-to-br from-blue-50/20 to-white/95"
           : "border-neutral-200/60 shadow-[0_2px_12px_rgba(15,23,42,.03)]"
       )}
     >
@@ -70,7 +80,7 @@ function MetricTile({ label, value, helper, icon, iconClass, highlight }: Metric
         {icon}
       </div>
       <div className="text-[.67rem] font-extrabold text-neutral-400 uppercase tracking-widest leading-none">{label}</div>
-      <div className="font-display text-[1.3rem] sm:text-[1.4rem] font-black text-[#1e1b4b] tracking-tight leading-none mt-1.5 break-all">{value}</div>
+      <div className="font-display text-[1.3rem] sm:text-[1.4rem] font-black text-kreator-ink tracking-tight leading-none mt-1.5 break-all">{value}</div>
       {helper && (
         <div className="text-[.7rem] text-neutral-400 font-semibold mt-1 leading-none">{helper}</div>
       )}
@@ -83,9 +93,10 @@ function MetricTile({ label, value, helper, icon, iconClass, highlight }: Metric
 interface CampaignCardProps {
   job: CreatorJob;
   onClaim: (job: CreatorJob) => void;
+  hasClaimed?: boolean;
 }
 
-function CampaignCard({ job, onClaim }: CampaignCardProps) {
+function CampaignCard({ job, onClaim, hasClaimed = false }: CampaignCardProps) {
   const isFull       = job.usedQuota >= job.quota;
   const isNearLimit  = job.quota - job.usedQuota <= 1 && !isFull;
   const isHighReward = job.ratePerThousandViews >= 6000;
@@ -95,7 +106,7 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
   const nicheLabel   = NICHE_LABELS[job.niche]   ?? "Lainnya";
 
   return (
-    <div className="group bg-white rounded-[20px] border border-neutral-200/50 overflow-hidden shadow-[0_2px_16px_rgba(15,23,42,.05)] hover:shadow-[0_16px_48px_rgba(109,40,217,.13)] hover:-translate-y-1.5 hover:border-violet-400/20 transition-all duration-300 flex flex-col">
+    <div className="group bg-white rounded-[20px] border border-neutral-200/50 overflow-hidden shadow-1 hover:shadow-kreator-avatar hover:-translate-y-1.5 hover:border-kreator-400/20 transition-all duration-300 flex flex-col">
 
       {/* Cover image — 4:3 aspect ratio */}
       <div className="relative w-full overflow-hidden" style={{ aspectRatio: "4/3" }}>
@@ -163,12 +174,12 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
       </div>
 
       {/* Card body */}
-      <div className="p-4 flex flex-col gap-3 flex-1">
-        <h4 className="text-sm font-extrabold text-[#1e1b4b] leading-snug line-clamp-2">{job.title}</h4>
+      <div className="p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 flex-1">
+        <h4 className="text-[0.8rem] sm:text-sm font-extrabold text-kreator-ink leading-snug line-clamp-2">{job.title}</h4>
 
         {/* Rate display */}
         <div className="flex items-baseline gap-1.5">
-          <span className="font-display text-[1.1rem] font-black text-[#7c3aed] tracking-tight leading-none">
+          <span className="font-display text-[1.1rem] font-black text-kreator-600 tracking-tight leading-none">
             {formatCurrency(job.ratePerThousandViews)}
           </span>
           <span className="text-[10px] text-neutral-400 font-semibold">/ 1K views</span>
@@ -192,7 +203,7 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
 
         {/* Quota progress bar */}
         <div className="space-y-1.5">
-          <div className="flex justify-between text-[9px] font-bold text-neutral-400 uppercase tracking-wider">
+          <div className="hidden sm:flex justify-between text-[9px] font-bold text-neutral-400 uppercase tracking-wider">
             <span>Kuota Kreator</span>
             <span>{job.usedQuota} / {job.quota} Klaim</span>
           </div>
@@ -202,8 +213,8 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
               style={{
                 width: `${slotUsedPct}%`,
                 background: isFull
-                  ? "#94a3b8"
-                  : "linear-gradient(90deg, #7c3aed, #4f46e5)",
+                  ? "var(--color-control-disabled)"
+                  : CREATOR_PROGRESS_GRADIENT,
               }}
             />
           </div>
@@ -218,20 +229,20 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
             Detail
           </Link>
           <button
-            onClick={() => !isFull && onClaim(job)}
-            disabled={isFull}
+            onClick={() => !isFull && !hasClaimed && onClaim(job)}
+            disabled={isFull || hasClaimed}
             className={cn(
               "flex-[2] py-2.5 rounded-[12px] text-[10px] font-extrabold transition-all duration-200",
-              isFull
+              isFull || hasClaimed
                 ? "bg-neutral-100 text-neutral-400 cursor-not-allowed"
                 : "text-white hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
             )}
-            style={isFull ? undefined : {
-              background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-              boxShadow: "0 4px 14px rgba(124,58,237,.30)",
+            style={isFull || hasClaimed ? undefined : {
+              background: CREATOR_ACTION_GRADIENT,
+              boxShadow: "var(--shadow-kreator)",
             }}
           >
-            {isFull ? "Kuota Penuh" : "Klaim Job"}
+            {hasClaimed ? "Sudah Diklaim ✓" : isFull ? "Kuota Penuh" : "Klaim Job"}
           </button>
         </div>
       </div>
@@ -247,20 +258,18 @@ interface JobPoolViewProps {
 
 export function JobPoolView({ initialJobs }: JobPoolViewProps) {
   const [jobs, setJobs] = useState<CreatorJob[]>(initialJobs);
-  const { toolbarRef, isSticky } = useStickyToolbar();
 
   // Filter states
   const [search, setSearch] = useState("");
   const [selectedNiche, setSelectedNiche] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
   const [filterAvailableOnly, setFilterAvailableOnly] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
-
-  // Slicing State Simulators (for QA / User review)
 
   // Modal states
   const [claimingJob, setClaimingJob] = useState<CreatorJob | null>(null);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [claimedJobIds, setClaimedJobIds] = useState<Set<string>>(new Set());
   const [isRulesChecked, setIsRulesChecked] = useState({
     brief: false,
     privacy: false,
@@ -281,13 +290,37 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
     setIsRulesChecked({ brief: false, privacy: false, retention: false, views: false });
   };
 
-  const executeClaim = () => {
-    if (!claimingJob) return;
+  /**
+   * Klaim campaign dari kartu Job Pool.
+   *
+   * Sebelumnya fungsi ini HANYA menaikkan `usedQuota` di state lalu membuka modal
+   * sukses — tidak ada satu pun panggilan service, sehingga klaimnya tidak pernah
+   * tercatat dan pekerjaannya tidak pernah muncul di Pekerjaan Aktif. Karena ini
+   * tombol utama kartu (tombol "Detail" hanya sekunder), jalur palsu itulah yang
+   * paling sering dipakai.
+   *
+   * Pola disamakan dengan JobDetailView.handleClaimSubmit: kuota lokal baru naik
+   * SETELAH server menerima, supaya kuota tidak terlihat berkurang saat klaim
+   * ditolak (kuota penuh / sudah pernah klaim / profil belum lengkap).
+   */
+  const executeClaim = async () => {
+    if (!claimingJob || isClaiming) return;
+    setIsClaiming(true);
+    const res = await claimCampaign(claimingJob.id);
+    setIsClaiming(false);
+
+    if (!res.success) {
+      setClaimingJob(null);
+      toast.error(res.error ?? "Gagal mengambil pekerjaan ini.");
+      return;
+    }
+
     setJobs(prevJobs =>
       prevJobs.map(job =>
         job.id === claimingJob.id ? { ...job, usedQuota: job.usedQuota + 1 } : job
       )
     );
+    setClaimedJobIds(prev => new Set(prev).add(claimingJob.id));
     setClaimingJob(null);
     setIsSuccessOpen(true);
   };
@@ -299,7 +332,7 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
   const newTodayCount      = jobs.filter(j => {
     const d = new Date(j.createdAt), t = new Date();
     return d.getDate() === t.getDate() && d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear();
-  }).length || 1;
+  }).length;
 
   // Filter + sort
   const filteredJobs = jobs
@@ -322,6 +355,28 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
   ];
 
   const hasActiveFilters = search !== "" || selectedNiche !== "all" || filterAvailableOnly;
+  const toolbarFilters: SearchToolbarFilter[] = [
+    {
+      label: "Kategori",
+      value: selectedNiche,
+      onChange: setSelectedNiche,
+      options: [
+        { value: "all", label: "Semua Kategori" },
+        { value: "kecantikan", label: "Kecantikan" },
+        { value: "kuliner", label: "Kuliner" },
+        { value: "fashion", label: "Fashion" },
+        { value: "pariwisata", label: "Pariwisata" },
+        { value: "edukasi", label: "Edukasi" },
+      ],
+    },
+    {
+      label: "Urutan",
+      value: sortBy,
+      onChange: setSortBy,
+      options: sortOptions,
+      prefix: "Urut",
+    },
+  ];
   const allRulesChecked  = isRulesChecked.brief && isRulesChecked.privacy && isRulesChecked.retention && isRulesChecked.views;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -369,106 +424,30 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
           </div>
 
           {/* Filter Toolbar — sticky when scrolling */}
-          <div ref={toolbarRef} className="mb-6 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8" style={{ position: "sticky", top: 0, zIndex: 30 }}>
-          <div
-            className="flex flex-col gap-3"
-            style={{
-              padding: isSticky ? "10px 14px" : "16px",
-              borderRadius: isSticky ? 18 : 16,
-              border: "1px solid rgba(17,24,39,.08)",
-              background: isSticky ? "rgba(255,255,255,.92)" : "rgba(255,255,255,.8)",
-              backdropFilter: isSticky ? "blur(24px)" : "none",
-              WebkitBackdropFilter: isSticky ? "blur(24px)" : "none",
-              boxShadow: isSticky ? "0 8px 30px rgba(15,23,42,.08), 0 1px 0 rgba(255,255,255,.8) inset" : "0 2px 8px rgba(15,23,42,.04)",
-              transition: "all .28s cubic-bezier(.2,.8,.2,1)",
-            }}
-          >
-            {/* Row 1: Search + mobile filter toggle */}
-            <div className="flex gap-2.5 items-center">
-              <div className="relative flex-1">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </span>
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Cari kampanye / brand..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium text-neutral-800 placeholder-neutral-400"
-                />
-              </div>
-              {/* Mobile filter toggle */}
-              <button
-                onClick={() => setFilterOpen((o) => !o)}
-                className={cn(
-                  "sm:hidden shrink-0 flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer",
-                  filterOpen || hasActiveFilters
-                    ? "bg-violet-50 text-violet-700 border-violet-200"
-                    : "bg-neutral-50/50 text-neutral-700 border-neutral-200/60"
-                )}
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                Filter
-                {hasActiveFilters && <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />}
-              </button>
-            </div>
-
-            {/* Row 2: All filters — always on sm+, collapsible on mobile */}
-            <div className={cn("items-center gap-2.5 flex-wrap", filterOpen ? "flex" : "hidden sm:flex")}>
-              <SlidersHorizontal className="w-3.5 h-3.5 text-neutral-400 shrink-0 hidden sm:block" />
-
-              <select
-                value={selectedNiche}
-                onChange={(e) => setSelectedNiche(e.target.value)}
-                className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[140px]"
-              >
-                <option value="all">Semua Kategori</option>
-                <option value="kecantikan">Kecantikan</option>
-                <option value="kuliner">Kuliner</option>
-                <option value="fashion">Fashion</option>
-                <option value="pariwisata">Pariwisata</option>
-                <option value="edukasi">Edukasi</option>
-              </select>
-
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-3.5 py-2.5 bg-neutral-50/50 border border-neutral-200/60 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none min-w-[160px]"
-              >
-                {sortOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-
-              <button
-                onClick={() => setFilterAvailableOnly(!filterAvailableOnly)}
-                className={cn(
-                  "px-3.5 py-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer whitespace-nowrap",
-                  filterAvailableOnly
-                    ? "bg-primary text-white border-primary-600 shadow-sm"
-                    : "bg-neutral-50/50 text-neutral-700 border-neutral-200/60 hover:bg-neutral-100"
-                )}
-              >
-                Kuota Tersedia
-              </button>
-
-              {hasActiveFilters && (
+          <div className="mb-6">
+            <SearchToolbar
+              searchValue={search}
+              onSearchChange={setSearch}
+              searchPlaceholder="Cari kampanye / brand..."
+              filters={toolbarFilters}
+              onClearFilters={handleClearFilters}
+              hasActiveFilters={hasActiveFilters}
+              extraActions={
                 <button
-                  onClick={handleClearFilters}
-                  className="flex items-center gap-1 px-3 py-2 text-xs font-bold text-neutral-500 hover:text-neutral-900 cursor-pointer transition-colors whitespace-nowrap ml-auto border border-neutral-200/60 rounded-xl hover:bg-neutral-50"
+                  type="button"
+                  onClick={() => setFilterAvailableOnly((value) => !value)}
+                  className={cn(
+                    "h-10 cursor-pointer whitespace-nowrap rounded-xl border px-3 text-xs font-bold transition-all",
+                    filterAvailableOnly
+                      ? "border-primary-600 bg-primary text-white shadow-sm"
+                      : "border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50",
+                  )}
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  Reset
+                  Kuota Tersedia
                 </button>
-              )}
-            </div>
+              }
+            />
           </div>
-          </div>
-
           {/* Grid Content */}
           {filteredJobs.length === 0 ? (
             <CreatorEmptyState
@@ -490,9 +469,9 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
               }
             />
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {filteredJobs.map((job) => (
-                <CampaignCard key={job.id} job={job} onClaim={openClaimModal} />
+                <CampaignCard key={job.id} job={job} onClaim={openClaimModal} hasClaimed={claimedJobIds.has(job.id)} />
               ))}
             </div>
           )}
@@ -500,8 +479,8 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
 
       {/* ── Claim Checklist Modal ──────────────────────────────────────────── */}
       {claimingJob && (
-        <div className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-neutral-200/50 shadow-2xl p-6 sm:p-8 max-w-md w-full animate-in fade-in zoom-in-95 duration-300">
+        <ResponsiveModal open={!!claimingJob} onOpenChange={(open) => !open && setClaimingJob(null)}>
+          <ResponsiveModalContent className="max-w-md w-full rounded-3xl border border-neutral-200/50 p-6 sm:p-8">
             <div className="flex justify-between items-start gap-4 mb-6">
               <div>
                 <h3 className="text-lg font-black text-neutral-900 leading-none">
@@ -549,37 +528,38 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
                 <button
                   type="button"
                   onClick={() => setClaimingJob(null)}
-                  className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-full transition-all cursor-pointer"
+                  disabled={isClaiming}
+                  className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-full transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-60"
                 >
                   Batal
                 </button>
                 <button
                   type="button"
                   onClick={executeClaim}
-                  disabled={!allRulesChecked}
+                  disabled={!allRulesChecked || isClaiming}
                   className={cn(
                     "flex-1 py-3 font-bold text-xs rounded-full border transition-all cursor-pointer",
-                    !allRulesChecked
+                    !allRulesChecked || isClaiming
                       ? "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed shadow-none"
                       : "text-white border-transparent hover:-translate-y-0.5 active:translate-y-0 shadow-md"
                   )}
-                  style={allRulesChecked ? {
-                    background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-                    boxShadow: "0 4px 14px rgba(124,58,237,.30)",
+                  style={allRulesChecked && !isClaiming ? {
+                    background: CREATOR_ACTION_GRADIENT,
+                    boxShadow: "var(--shadow-kreator)",
                   } : undefined}
                 >
-                  Klaim Sekarang
+                  {isClaiming ? "Mengambil…" : "Klaim Sekarang"}
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+          </ResponsiveModalContent>
+        </ResponsiveModal>
       )}
 
       {/* ── Success Modal ─────────────────────────────────────────────────── */}
       {isSuccessOpen && (
-        <div className="fixed inset-0 bg-neutral-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-neutral-200/50 shadow-2xl p-6 sm:p-8 max-w-md w-full text-center animate-in fade-in zoom-in-95 duration-300">
+        <ResponsiveModal open={isSuccessOpen} onOpenChange={(open) => !open && setIsSuccessOpen(false)}>
+          <ResponsiveModalContent className="max-w-md w-full rounded-3xl border border-neutral-200/50 p-6 text-center sm:p-8">
             <div className="w-16 h-16 rounded-full bg-green-50 border border-green-100 flex items-center justify-center text-green-500 mx-auto mb-5 shadow-sm">
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -601,15 +581,15 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
                 href="/dashboard/kreator/pekerjaan-aktif"
                 className="flex-1 py-3 text-center text-white font-bold text-xs rounded-full border border-transparent transition-all hover:-translate-y-0.5 active:translate-y-0"
                 style={{
-                  background: "linear-gradient(135deg, #7c3aed, #4f46e5)",
-                  boxShadow: "0 4px 14px rgba(124,58,237,.25)",
+                  background: CREATOR_ACTION_GRADIENT,
+                  boxShadow: "var(--shadow-kreator)",
                 }}
               >
                 Lihat Pekerjaan Aktif
               </Link>
             </div>
-          </div>
-        </div>
+          </ResponsiveModalContent>
+        </ResponsiveModal>
       )}
     </div>
   );

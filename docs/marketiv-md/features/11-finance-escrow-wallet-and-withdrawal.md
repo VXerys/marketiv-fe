@@ -58,6 +58,9 @@ Mendefinisikan deposit, escrow ledger, fee platform, payout, wallet kreator, wit
 - Withdrawal tidak boleh melebihi saldo tersedia.
 - Semua refund/payout wajib punya transaction record.
 - Semua nominal pakai integer minor unit atau decimal konsisten.
+- Withdrawal: kreator wajib setujui T&C terbaru (`tos_version` = "v3.1" & `tos_accepted_at` terisi) → 403 "Setujui T&C terbaru terlebih dahulu." (T-14).
+- Withdrawal pertama: email wajib diverifikasi (`email_verified_at` terisi) → 403 "Verifikasi email sebelum penarikan pertama." (T-15). Penarikan berikutnya tidak dicek ulang.
+- Order/claim: kreator wajib setujui T&C terbaru → diblokir jika belum (T-14).
 
 ## 9. Backend Responsibilities
 - Membuat payment token/link.
@@ -66,6 +69,8 @@ Mendefinisikan deposit, escrow ledger, fee platform, payout, wallet kreator, wit
 - Update escrow status.
 - Update wallet balance secara trusted.
 - Membuat withdrawal request dan audit log.
+- Fungsi `request-withdrawal` mengecek TOS (`tos_version`/`tos_accepted_at`) + email verification (`email_verified_at` untuk penarikan pertama) sebelum debit saldo.
+- Fungsi `create-order` mengecek TOS kreator sebelum membuat order.
 
 ## 10. Frontend Responsibilities
 - Menampilkan transaction history.
@@ -88,6 +93,8 @@ Mendefinisikan deposit, escrow ledger, fee platform, payout, wallet kreator, wit
 - Withdrawal ditolak bank.
 - Refund partial.
 - Admin override saldo tanpa audit tidak boleh terjadi.
+- Kreator belum setujui T&C v3.1 mencoba withdrawal/order/claim → diblokir 403.
+- Penarikan pertama kreator: email belum diverifikasi → diblokir 403.
 
 ## 13. Error Handling
 - 401: arahkan user ke login dan hapus session lokal jika token tidak valid.
