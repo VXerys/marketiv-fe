@@ -29,6 +29,15 @@ export interface SessionUser {
   /** Nomor WhatsApp dari kolom users.phone. Kosong bila belum pernah diisi. */
   phone?: string;
   /**
+   * Email terverifikasi via OTP atau OAuth.
+   *
+   * Dibaca dari `authUser.emailVerification` (Appwrite Auth). Digunakan oleh
+   * RedirectIfAuthenticated untuk menahan user di layar OTP sampai email
+   * terkonfirmasi, dan oleh RoleGuard sebagai precedence guard sebelum
+   * onboarding.
+   */
+  emailVerified: boolean;
+  /**
    * Onboarding sudah diselesaikan.
    *
    * Kolomnya ada di `creator_profiles`/`umkm_profiles`, BUKAN di `users`, jadi
@@ -67,6 +76,7 @@ const MOCK_USERS: Record<UserRole, SessionUser> = {
     role: "umkm",
     status: "active",
     name: "Dapur Sehat Sukabumi",
+    emailVerified: true,
     isProfileCompleted: true,
   },
   creator: {
@@ -75,6 +85,7 @@ const MOCK_USERS: Record<UserRole, SessionUser> = {
     role: "creator",
     status: "active",
     name: "Nadia Visuals",
+    emailVerified: true,
     isProfileCompleted: true,
   },
   admin: {
@@ -83,6 +94,7 @@ const MOCK_USERS: Record<UserRole, SessionUser> = {
     role: "admin",
     status: "active",
     name: "Admin Marketiv",
+    emailVerified: true,
     isProfileCompleted: true,
   },
 };
@@ -212,6 +224,7 @@ export async function getSession(): Promise<ServiceResult<SessionUser>> {
         status: doc.status as UserStatus,
         name: authUser.name || undefined,
         phone: (doc.phone as string) || undefined,
+        emailVerified: authUser.emailVerification,
         isProfileCompleted: await readProfileCompleted(authUser.$id, role),
       },
     };

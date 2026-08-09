@@ -57,8 +57,15 @@ export function RegisterCreatorForm() {
     }
 
     setVerifyUserId(res.data.user.userId);
-    await requestEmailOtp({ userId: res.data.user.userId, email: form.email });
-    await refresh();
+    const otpRes = await requestEmailOtp({ userId: res.data.user.userId, email: form.email });
+    if (!otpRes.success) {
+      setPending(false);
+      setBanner(otpRes.error ?? "Gagal mengirim kode verifikasi. Coba lagi.");
+      return;
+    }
+    // JANGAN panggil refresh() di sini — AuthProvider.user harus tetap null
+    // supaya RedirectIfAuthenticated tidak meng-unmount form sebelum layar OTP
+    // sempat ditampilkan. refresh() dipanggil di onContinue setelah OTP sukses.
     setVerificationSent(true);
     setPending(false);
   }

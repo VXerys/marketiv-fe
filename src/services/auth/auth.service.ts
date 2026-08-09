@@ -175,8 +175,10 @@ async function registerWithPrefs(
   name: string,
   prefs: ProfilePrefs
 ): Promise<ServiceResult<RegisterOutcome>> {
+  let authId: string;
   try {
-    await account.create({ userId: ID.unique(), email, password, name });
+    const created = await account.create({ userId: ID.unique(), email, password, name });
+    authId = created.$id;
     await account.createEmailPasswordSession({ email, password });
     await account.updatePrefs({ prefs });
   } catch (err) {
@@ -192,15 +194,17 @@ async function registerWithPrefs(
   // Sesi sudah hidup, jadi getSession() adalah sumber kebenaran untuk identitas.
   // Kalau baris `users` belum ada (persis kasus A-1), susun SessionUser dari
   // prefs supaya UI tetap punya nama & role untuk ditampilkan.
+  // authId ditangkap langsung dari account.create() — tidak pernah kosong.
   const session = await getSession();
   const user: SessionUser = session.success && session.data
     ? session.data
     : {
-        userId: "",
+        userId: authId,
         email,
         role: prefs.role,
         status: "active",
         name,
+        emailVerified: false,
         // Akun yang baru dibuat belum pernah melewati onboarding, dan di cabang
         // ini baris profilnya bahkan belum terbentuk.
         isProfileCompleted: false,
