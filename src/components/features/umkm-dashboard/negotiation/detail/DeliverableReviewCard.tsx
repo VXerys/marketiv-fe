@@ -20,8 +20,8 @@ interface DeliverableReviewCardProps {
 }
 
 const STATUS_LABEL: Record<Deliverable["status"], { text: string; className: string }> = {
-  submitted: { text: "Menunggu review", className: "text-amber-700 bg-amber-50 border-amber-200/60" },
-  revision_requested: { text: "Diminta revisi", className: "text-orange-700 bg-orange-50 border-orange-200/60" },
+  submitted: { text: "Menunggu Peninjauan Anda", className: "text-amber-700 bg-amber-50 border-amber-200/60" },
+  revision_requested: { text: "Sedang Direvisi", className: "text-orange-700 bg-orange-50 border-orange-200/60" },
   approved: { text: "Disetujui", className: "text-emerald-700 bg-emerald-50 border-emerald-200/60" },
 };
 

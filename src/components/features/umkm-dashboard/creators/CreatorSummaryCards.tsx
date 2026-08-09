@@ -16,7 +16,7 @@ export function CreatorSummaryCards() {
       radialColor: "rgba(249,115,22,.05)",
     },
     {
-      label: "Hubungan Negosiasi",
+      label: "Diskusi Aktif",
       value: "12",
       suffix: "Aktif",
       icon: ArrowLeftRight,
@@ -26,7 +26,7 @@ export function CreatorSummaryCards() {
       radialColor: "rgba(37,99,235,.05)",
     },
     {
-      label: "Escrow Terkunci",
+      label: "Dana Tersimpan Aman",
       value: formatCurrency(4_500_000),
       suffix: "",
       icon: Lock,

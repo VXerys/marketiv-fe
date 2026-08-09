@@ -23,7 +23,7 @@ export function CreatorEmptyState({ onReset }: CreatorEmptyStateProps) {
         onClick={onReset}
         className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-600 text-white text-xs font-bold transition-colors cursor-pointer select-none border border-primary hover:border-primary-600 shadow-xs"
       >
-        Reset Filter & Pencarian
+        Hapus Filter & Pencarian
       </button>
     </div>
   );

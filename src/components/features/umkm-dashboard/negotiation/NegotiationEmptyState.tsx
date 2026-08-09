@@ -28,7 +28,7 @@ export function NegotiationEmptyState({ onReset, isFiltered = false }: Negotiati
             onClick={onReset}
             className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-600 text-white text-xs font-bold transition-colors cursor-pointer select-none border border-primary hover:border-primary-600 shadow-xs"
           >
-            Reset Filter & Pencarian
+            Hapus Filter & Pencarian
           </button>
         )}
       </div>
@@ -45,7 +45,7 @@ export function NegotiationEmptyState({ onReset, isFiltered = false }: Negotiati
       <div className="space-y-1">
         <h3 className="text-sm font-extrabold text-text-primary">Belum Ada Percakapan Negosiasi</h3>
         <p className="text-xs text-text-secondary max-w-sm mx-auto font-medium">
-          Mulai negosiasi kolaborasi Rate Card dengan memilih kreator mikro di direktori.
+          Mulai diskusi paket harga dengan memilih kreator di halaman kreator.
         </p>
       </div>
       <Link

@@ -47,12 +47,12 @@ export function ProductInfoStep({
   return (
     <FormSectionCard
       title="Informasi Produk"
-      description="Lengkapi identitas produk dan kategori segmentasi agar kreator memahami produk Anda."
+      description="Lengkapi identitas produk dan jenis produk atau bisnis Anda agar kreator memahami produk Anda."
     >
       {/* Campaign title */}
       <Input
         id="campaign-title"
-        label="Judul Campaign / Nama Produk"
+        label="Nama Produk atau Judul Kampanye"
         placeholder="Contoh: Review Keripik Tempe Renyah Sunda"
         value={title}
         onChange={(e) => onChangeTitle(e.target.value)}
@@ -68,7 +68,7 @@ export function ProductInfoStep({
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
           <label className="text-[.84rem] font-[700] text-ink-800">
-            Kategori Niche Kreator <span className="text-primary ml-0.5">*</span>
+            Kategori Kreator <span className="text-primary ml-0.5">*</span>
           </label>
           {category && (
             <span className="text-[.72rem] font-[700] text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200/60">
@@ -100,7 +100,7 @@ export function ProductInfoStep({
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
           <label className="text-[.84rem] font-[700] text-ink-800">
-            Tipe Campaign <span className="text-primary ml-0.5">*</span>
+            Jenis Kampanye <span className="text-primary ml-0.5">*</span>
           </label>
           {type && (
             <span className="text-[.72rem] font-[700] text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200/60">
@@ -148,7 +148,7 @@ export function ProductInfoStep({
               description.length >= 30 ? "text-emerald-600" : "text-ink-400"
             }`}
           >
-            {description.length}/30 min
+            {description.length}/30 karakter min.
           </span>
         </div>
         <Textarea

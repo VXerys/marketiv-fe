@@ -21,9 +21,9 @@ export function TransactionTable({ transactions, onOpenDetails, onOpenPayment }:
           <tr className="border-b border-neutral-200/60 bg-neutral-50/60 text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider">
             <th className="px-5 py-4">Tanggal</th>
             <th className="px-5 py-4">Deskripsi</th>
-            <th className="px-5 py-4">Tipe</th>
-            <th className="px-5 py-4">Fitur</th>
-            <th className="px-5 py-4 text-right">Nominal</th>
+            <th className="px-5 py-4">Jenis Transaksi</th>
+            <th className="px-5 py-4">Jenis Layanan</th>
+            <th className="px-5 py-4 text-right">Jumlah</th>
             <th className="px-5 py-4">Status</th>
             <th className="px-5 py-4 text-center">Aksi</th>
           </tr>

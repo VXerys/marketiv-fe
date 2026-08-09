@@ -10,15 +10,15 @@ export function CampaignNotFoundState() {
       </div>
 
       <div className="flex flex-col gap-1.5 max-w-sm mb-6">
-        <h3 className="text-heading-2 text-text-primary">Campaign tidak ditemukan</h3>
+        <h3 className="text-heading-2 text-text-primary">Kampanye Tidak Ditemukan</h3>
         <p className="text-body-base text-text-muted">
-          Campaign yang Anda cari tidak tersedia, sudah dinonaktifkan, atau telah dihapus dari sistem.
+          Kampanye ini tidak tersedia, sudah dinonaktifkan, atau telah dihapus.
         </p>
       </div>
 
       <div>
         <Button variant="primary" size="md" href="/dashboard/umkm/campaign">
-          Kembali ke Campaign Saya
+          Kembali ke Kampanye Saya
         </Button>
       </div>
     </div>

@@ -16,8 +16,8 @@ export function CampaignActivityTimeline({ campaign }: CampaignActivityTimelineP
   const getEvents = () => {
     const baseEvents = [
       {
-        title: "Campaign Dibuat",
-        desc: "Campaign disimpan sebagai draft.",
+        title: "Kampanye Dibuat",
+        desc: "Kampanye disimpan sebagai konsep.",
         date: campaign.createdAt,
         type: "create",
       },
@@ -33,14 +33,14 @@ export function CampaignActivityTimeline({ campaign }: CampaignActivityTimelineP
     const activeEvents = [
       ...baseEvents,
       {
-        title: "Pembayaran Escrow Diterima",
-        desc: `Dana budget ${formatCurrency(campaign.totalBudgetEscrow)} berhasil diamankan.`,
+        title: "Dana Kampanye Berhasil Disimpan",
+        desc: `Anggaran ${formatCurrency(campaign.totalBudgetEscrow)} berhasil diamankan.`,
         date: payDate.toISOString(),
         type: "pay",
       },
       {
-        title: "Campaign Diterbitkan",
-        desc: "Campaign aktif di Job Pool Kreator.",
+        title: "Kampanye Diterbitkan",
+        desc: "Kampanye aktif, para kreator dapat mulai mengerjakan.",
         date: campaign.updatedAt,
         type: "active",
       },
@@ -51,8 +51,8 @@ export function CampaignActivityTimeline({ campaign }: CampaignActivityTimelineP
         const claimDate = new Date(campaign.updatedAt);
         claimDate.setHours(claimDate.getHours() + 2);
         activeEvents.push({
-          title: "Kreator Klaim Job",
-          desc: "Kreator telah mengambil pekerjaan ini.",
+          title: "Kreator Mulai Mengerjakan",
+          desc: "Kreator telah mulai mengerjakan kampanye ini.",
           date: claimDate.toISOString(),
           type: "claim",
         });
@@ -66,8 +66,8 @@ export function CampaignActivityTimeline({ campaign }: CampaignActivityTimelineP
       return [
         ...activeEvents,
         {
-          title: "Campaign Dijeda",
-          desc: "Campaign dihentikan sementara oleh UMKM.",
+          title: "Kampanye Dijeda",
+          desc: "Kampanye dihentikan sementara.",
           date: campaign.updatedAt,
           type: "pause",
         },
@@ -79,13 +79,13 @@ export function CampaignActivityTimeline({ campaign }: CampaignActivityTimelineP
         ...activeEvents,
         {
           title: "Ulasan Selesai Divalidasi",
-          desc: "Semua submission telah divalidasi.",
+          desc: "Semua bukti konten telah divalidasi.",
           date: campaign.updatedAt,
           type: "validate",
         },
         {
-          title: "Campaign Selesai",
-          desc: "Campaign telah berakhir secara resmi.",
+          title: "Kampanye Selesai",
+          desc: "Kampanye telah berakhir secara resmi.",
           date: campaign.updatedAt,
           type: "complete",
         },
@@ -201,7 +201,7 @@ export function CampaignActivityTimeline({ campaign }: CampaignActivityTimelineP
             Riwayat Aktivitas Kampanye
           </h3>
           <p className="text-xs text-text-muted">
-            Catatan kronologis update terbaru kampanye ini.
+            Rekaman aktivitas terbaru kampanye ini.
           </p>
         </div>
         <span className="text-[11px] font-extrabold text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200/80 uppercase tracking-wide shrink-0">

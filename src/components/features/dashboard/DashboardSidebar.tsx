@@ -58,7 +58,7 @@ interface SidebarNavItem {
 
 const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
   { label: "Dashboard",  href: "/dashboard/umkm",            icon: LayoutDashboard, exact: true },
-  { label: "Campaign",   href: "/dashboard/umkm/campaign",   icon: Megaphone },
+  { label: "Kampanye",   href: "/dashboard/umkm/campaign",   icon: Megaphone },
   { label: "Kreator",    href: "/dashboard/umkm/kreator",    icon: Users },
   { label: "Negosiasi",  href: "/dashboard/umkm/negosiasi",  icon: MessageCircle },
   { label: "Keuangan",   href: "/dashboard/umkm/keuangan",   icon: Wallet },
@@ -140,7 +140,7 @@ export function DashboardSidebar({
           width: "22px",
           height: "48px"
         }}
-        title={state === "collapsed" ? "Perluas Sidebar" : "Sembunyikan Sidebar"}
+        title={state === "collapsed" ? "Perluas Menu" : "Sembunyikan Menu"}
       >
         {state === "collapsed" ? (
           <ArrowRight className="size-3.5" strokeWidth={2.5} />
@@ -308,7 +308,7 @@ export function DashboardSidebar({
               className="flex items-center gap-2.5 py-2 px-1 rounded-lg text-white/45 hover:text-white/80 transition-all duration-150 text-[0.88rem] font-[650] no-underline group"
             >
               <HelpCircle size={19} className="text-white/30 group-hover:text-white/60 transition-colors" />
-              <span>FaQ & Peraturan</span>
+              <span>FAQ & Peraturan</span>
             </Link>
           </div>
         </div>

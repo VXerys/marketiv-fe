@@ -80,7 +80,7 @@ function ModalFrame({
   );
 }
 
-const VIDEO_SUB_TABS = ["Semua", "Pending", "Approved", "Rejected", "Need Action", "Deleted"];
+const VIDEO_SUB_TABS = ["Semua", "Menunggu", "Disetujui", "Ditolak", "Perlu Aksi", "Dihapus"];
 const CREATOR_ACTION_GRADIENT =
   "linear-gradient(135deg, var(--color-kreator-600), var(--color-kreator-action-end))";
 const CREATOR_DARK_GRADIENT =

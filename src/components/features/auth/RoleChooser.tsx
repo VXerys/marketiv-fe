@@ -8,6 +8,7 @@ const ROLES = [
     icon: Store,
     title: "Pemilik UMKM",
     tagline: "Kelola bisnis & temukan kreator konten berkualitas",
+    cta: "Daftar Jadi Pemilik UMKM",
     bullets: [
       "Buat campaign PPV dengan anggaran fleksibel",
       "Akses direktori ratusan kreator terverifikasi",
@@ -26,7 +27,8 @@ const ROLES = [
     role: "creator" as const,
     icon: Video,
     title: "Konten Kreator",
-    tagline: "Monetisasi konten & terima pembayaran langsung",
+    tagline: "Ubah kontenmu jadi penghasilan",
+    cta: "Daftar Jadi Kreator",
     bullets: [
       "Ambil campaign dari ribuan UMKM aktif",
       "Buat & jual rate card paket kontenmu",
@@ -59,7 +61,7 @@ export function RoleChooser() {
           Kamu ingin daftar sebagai apa?
         </h1>
         <p className="mt-2 text-xs sm:text-sm font-medium leading-relaxed text-ink-500">
-          Pilih peranmu untuk memulai. Kamu dapat mengubah atau menambahkan informasi profil nanti.
+          Pilih peranmu untuk mulai. Profil bisa dilengkapi nanti.
         </p>
       </div>
 
@@ -71,6 +73,7 @@ export function RoleChooser() {
             icon: IconComp,
             title,
             tagline,
+            cta,
             bullets,
             cardGradient,
             border,
@@ -120,7 +123,7 @@ export function RoleChooser() {
                 href={routes.registerWithRole(role)}
                 className={`flex min-h-[46px] w-full items-center justify-center gap-2 rounded-2xl px-5 text-xs sm:text-sm font-[800] text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 ${ctaClass}`}
               >
-                Mulai sebagai {title}
+                {cta}
                 <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" aria-hidden="true" />
               </Link>
             </div>

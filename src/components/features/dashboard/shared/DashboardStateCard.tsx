@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import * as React from "react";
+import { FolderOpen, AlertCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,7 +29,7 @@ export function DashboardStateCard({
 }: DashboardStateCardProps) {
   if (kind === "loading") {
     return (
-      <div className={cn("state-card flex flex-col items-center justify-center p-8 text-center border bg-card text-card-foreground rounded-3xl", className)}>
+      <div className={cn("state-card flex flex-col items-center justify-center p-8 text-center border border-neutral-200/60 bg-white text-card-foreground rounded-[22px] shadow-xs", className)}>
         <Skeleton className="state-icon h-12 w-12 rounded-full mb-4" />
         <Skeleton className="h-5 w-40 rounded-full mb-2" />
         <Skeleton className="h-4 w-64 rounded-full" />
@@ -37,19 +38,19 @@ export function DashboardStateCard({
   }
 
   return (
-    <div className={cn("state-card flex flex-col items-center justify-center p-8 text-center border bg-card text-card-foreground rounded-3xl", className)}>
+    <div className={cn("state-card flex flex-col items-center justify-center p-8 text-center border border-dashed border-neutral-200/80 bg-white/80 text-card-foreground rounded-[22px] shadow-[0_2px_12px_rgba(15,23,42,.03)]", className)}>
       <div>
         {icon ? (
-          <div className={cn("state-icon mx-auto mb-4 flex items-center justify-center h-12 w-12 rounded-full border bg-neutral-50", kind === "error" && "text-red-700! bg-red-50! border-red-200/50!")}>
+          <div className={cn("state-icon mx-auto mb-3.5 flex items-center justify-center h-12 w-12 rounded-2xl border bg-violet-50 text-violet-600 border-violet-100", kind === "error" && "text-red-600 bg-red-50 border-red-200")}>
             {icon}
           </div>
         ) : (
-          <div className={cn("state-icon mx-auto mb-4 flex items-center justify-center h-12 w-12 rounded-full border bg-neutral-50 font-bold", kind === "error" && "text-red-700! bg-red-50! border-red-200/50!")}>
-            {kind === "error" ? "×" : "!"}
+          <div className={cn("state-icon mx-auto mb-3.5 flex items-center justify-center h-12 w-12 rounded-2xl border bg-violet-50 text-violet-600 border-violet-100", kind === "error" && "text-red-600 bg-red-50 border-red-200")}>
+            {kind === "error" ? <AlertCircle className="h-6 w-6" /> : <FolderOpen className="h-6 w-6" />}
           </div>
         )}
-        <h3 className="text-xl font-display font-extrabold text-neutral-900 tracking-tight mb-2">{title}</h3>
-        {description ? <p className="text-neutral-500 font-semibold max-w-md mx-auto text-sm leading-relaxed mb-6">{description}</p> : null}
+        <h3 className="text-base font-display font-extrabold text-neutral-900 tracking-tight mb-1.5">{title}</h3>
+        {description ? <p className="text-neutral-500 font-medium max-w-md mx-auto text-xs leading-relaxed mb-5">{description}</p> : null}
         {actionLabel && onAction ? (
           <DashboardButton onClick={onAction} variant={kind === "error" ? "danger" : "primary"}>
             {actionLabel}

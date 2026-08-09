@@ -56,6 +56,7 @@ export const routes = {
     `/dashboard/kreator/negosiasi/${orderId}`,
   kreatorFinance: "/dashboard/kreator/keuangan",
   kreatorWithdrawal: "/dashboard/kreator/keuangan/withdrawal",
+  kreatorSettings: "/dashboard/kreator/settings",
 
   // Admin
   admin: "/admin",

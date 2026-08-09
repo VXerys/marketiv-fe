@@ -8,9 +8,9 @@ interface CreatorStatsCardsProps {
 export function CreatorStatsCards({ engagementRate, completedJobs }: CreatorStatsCardsProps) {
   const stats = [
     {
-      label: "Engagement Rate",
+      label: "Tingkat Keterlibatan",
       value: engagementRate > 0 ? `${engagementRate.toFixed(1)}%` : "—",
-      desc: "Rasio interaksi audiens aktif",
+      desc: "Seberapa aktif penonton berinteraksi",
       icon: (
         <svg className="w-4 h-4 sm:w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
           <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />

@@ -67,14 +67,14 @@ export function EmailVerificationPending({
   return (
     <AuthCard
       title="Cek email kamu"
-      description={`Kami kirimkan kode verifikasi 6 digit ke ${email}. Masukkan kodenya di bawah untuk mengaktifkan akun.`}
+      description={`Kode 6 digit sudah dikirim ke ${email}. Masukkan di bawah untuk aktifkan akun kamu.`}
       footer={
         <button
           type="button"
           onClick={onContinue}
           className="inline-flex items-center gap-1.5 font-[800] text-orange-600 transition-colors hover:underline"
         >
-          Lewati untuk sekarang
+          Lewati dulu, verifikasi nanti
           <ArrowRight size={13} aria-hidden="true" />
         </button>
       }

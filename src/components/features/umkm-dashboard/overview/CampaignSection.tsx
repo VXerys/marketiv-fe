@@ -14,7 +14,7 @@ interface CampaignSectionProps {
 
 const STATUS_CONFIG: Record<CampaignStatus, { label: string; bg: string; color: string; border: string }> = {
   active: { label: "Aktif", bg: "#f1fbf5", color: "#177b42", border: "rgba(22,163,74,.22)" },
-  draft: { label: "Draft", bg: "#f8fafc", color: "#687386", border: "rgba(148,163,184,.28)" },
+  draft: { label: "Konsep", bg: "#f8fafc", color: "#687386", border: "rgba(148,163,184,.28)" },
   paused: { label: "Dijeda", bg: "#fff7ed", color: "#bd4b0b", border: "rgba(251,146,60,.24)" },
   completed: { label: "Selesai", bg: "#f0f6ff", color: "#2d5bd1", border: "rgba(96,165,250,.25)" },
 };
@@ -197,7 +197,7 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
           color: "#ea580c",
           width: "fit-content",
         }}>
-          Komisi: {formatCurrency(campaign.pricePerThousandViews)} / 1.000 views
+          Komisi: {formatCurrency(campaign.pricePerThousandViews)} / 1.000 Tayangan
         </div>
 
         {/* Stats row */}
@@ -208,7 +208,7 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#737f91", fontSize: ".78rem", fontWeight: 700 }}>
             <Eye size={13} />
-            {formatViews(campaign.totalViews)} views
+            {formatViews(campaign.totalViews)} tayangan
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#737f91", fontSize: ".78rem", fontWeight: 700 }}>
             <Calendar size={13} />
@@ -306,7 +306,7 @@ export function CampaignSection({ campaigns = [], isLoading = false, onCreateCli
             }}
           >
             <span style={{ display: "block", width: 14, height: 2, borderRadius: 999, background: "#f97316" }} />
-            Campaign
+            Kampanye
           </div>
           <h2
             style={{
@@ -319,7 +319,7 @@ export function CampaignSection({ campaigns = [], isLoading = false, onCreateCli
               margin: 0,
             }}
           >
-            Campaign Terbaru Anda
+            Kampanye Terbaru Anda
           </h2>
         </div>
 
@@ -367,7 +367,7 @@ export function CampaignSection({ campaigns = [], isLoading = false, onCreateCli
               }}
             >
               <Plus size={14} />
-              Buat Baru
+              Buat Kampanye Baru
             </button>
           </div>
         )}
@@ -392,10 +392,10 @@ export function CampaignSection({ campaigns = [], isLoading = false, onCreateCli
         >
           <div style={{ fontSize: "2rem", marginBottom: 12 }}>📢</div>
           <h3 style={{ margin: "0 0 6px", fontFamily: "var(--font-plus-jakarta-sans), Sora, sans-serif", fontSize: "1.1rem", fontWeight: 700, color: "#182033" }}>
-            Belum Ada Campaign
+            Belum Ada Kampanye
           </h3>
           <p style={{ margin: "0 0 20px", fontSize: ".82rem", color: "#737f91", maxWidth: 320, marginLeft: "auto", marginRight: "auto" }}>
-            Mulai promosikan bisnis Anda dengan membuat brief campaign pertama.
+            Mulai promosikan bisnis Anda dengan membuat kampanye pertama.
           </p>
           <button
             onClick={onCreateClick}
@@ -416,7 +416,7 @@ export function CampaignSection({ campaigns = [], isLoading = false, onCreateCli
             }}
           >
             <Plus size={14} />
-            Buat Campaign Pertama
+            Buat Kampanye Pertama
           </button>
         </div>
       ) : (

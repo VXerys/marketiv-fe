@@ -70,7 +70,7 @@ export function NegotiationSummaryCards({ negotiations }: NegotiationSummaryCard
       />
       <SummaryCard
         icon={CreditCard}
-        label="Menunggu Bayar"
+        label="Perlu Dibayar"
         value={String(waitingPaymentCount)}
         note="Tawaran disetujui"
         iconBg="#fffbeb"
@@ -79,7 +79,7 @@ export function NegotiationSummaryCards({ negotiations }: NegotiationSummaryCard
       />
       <SummaryCard
         icon={Lock}
-        label="Dalam Escrow"
+        label="Dana Tersimpan Aman"
         value={formatCompactCurrency(escrowLockedValue)}
         note={`${escrowCount} Proyek Aktif`}
         iconBg="#f1fbf5"
@@ -99,7 +99,7 @@ export function NegotiationSummaryCards({ negotiations }: NegotiationSummaryCard
         icon={AlertTriangle}
         label="Dibatalkan"
         value={String(cancelledCount)}
-        note="Tidak dilanjutkan"
+        note="Sudah Dibatalkan"
         iconBg="#f8fafc"
         iconColor="#64748b"
         iconBorder="rgba(100,116,139,.18)"

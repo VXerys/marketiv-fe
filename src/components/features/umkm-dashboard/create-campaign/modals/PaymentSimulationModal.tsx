@@ -47,17 +47,17 @@ export function PaymentSimulationModal({
             </svg>
           </div>
           <ResponsiveModalTitle className="text-sm sm:text-base font-extrabold text-text-primary uppercase tracking-wider text-center">
-            Pembayaran Escrow
+            Simpan Dana Kampanye
           </ResponsiveModalTitle>
           <ResponsiveModalDescription className="text-[11px] text-text-muted leading-relaxed text-center mt-2">
-            Campaign disimpan sebagai draft lalu Anda diarahkan ke pembayaran Midtrans untuk mendepositkan dana escrow.
+            Kampanye disimpan sebagai konsep lalu Anda diarahkan ke pembayaran Midtrans untuk menyimpan dana kampanye.
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
         {/* Invoice breakdown */}
         <div className="rounded-2xl border border-border-soft/60 bg-neutral-50/20 p-4 space-y-2 text-xs font-semibold text-text-secondary mt-4">
           <div className="flex justify-between items-center text-text-muted text-[11px]">
-            <span>Anggaran Escrow</span>
+            <span>Dana Kampanye</span>
             <span className="font-bold text-text-primary">{formatCurrency(totalBudgetEscrow)}</span>
           </div>
           <div className="flex justify-between items-center text-text-muted text-[11px]">

@@ -22,7 +22,7 @@ const INSIGHT_CONFIG: Record<InsightType, {
 }> = {
   insight: {
     icon: TrendingUp,
-    label: "Insight Bisnis",
+    label: "Analisis Bisnis",
     bg: "radial-gradient(circle at 100% 0%, rgba(37,99,235,.12), transparent 14rem), linear-gradient(180deg, #ffffff, #f5f8ff)",
     color: "#2563eb",
     border: "rgba(37,99,235,.14)",
@@ -101,7 +101,7 @@ export function InsightSection({
             }}
           >
             <span style={{ display: "block", width: 14, height: 2, borderRadius: 999, background: "#f97316" }} />
-            AI Insight
+            Rekomendasi Cerdas
           </div>
           <h3
             style={{
@@ -113,7 +113,7 @@ export function InsightSection({
               margin: 0,
             }}
           >
-            Insight & Rekomendasi
+            Saran & Rekomendasi
           </h3>
         </div>
 
@@ -131,7 +131,7 @@ export function InsightSection({
               flexShrink: 0,
             }}
           >
-            {visible.length} insight
+            {visible.length} rekomendasi
           </span>
         )}
       </div>
@@ -177,7 +177,7 @@ export function InsightSection({
             Semua Berjalan Baik!
           </div>
           <div style={{ color: "#737f91", fontSize: ".76rem" }}>
-            Tidak ada insight saat ini.
+            Tidak ada rekomendasi saat ini.
           </div>
         </div>
       ) : (

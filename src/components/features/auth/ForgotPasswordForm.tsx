@@ -82,7 +82,7 @@ export function ForgotPasswordForm() {
           name="email"
           type="email"
           autoComplete="email"
-          placeholder="nama@usaha.id"
+          placeholder="nama@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           error={errors.email}
@@ -94,7 +94,7 @@ export function ForgotPasswordForm() {
           disabled={pending}
           className="min-h-[46px] w-full rounded-full border-0 bg-gradient-to-b from-[#fb7a18] to-primary-600 px-6 text-xs sm:text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(234,88,12,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(234,88,12,.36)] hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-60"
         >
-          {pending ? "Mengirim…" : "Kirim tautan pemulihan"}
+          {pending ? "Mengirim…" : "Kirim Tautan Reset"}
         </button>
       </form>
     </AuthCard>

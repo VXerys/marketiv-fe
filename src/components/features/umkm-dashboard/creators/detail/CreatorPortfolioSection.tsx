@@ -14,7 +14,7 @@ export function CreatorPortfolioSection({ creatorId }: CreatorPortfolioSectionPr
     {
       id: "p1",
       title: "Review Cemilan Viral",
-      views: ((idNum * 12) % 100 + 15) + "K Views",
+      views: ((idNum * 12) % 100 + 15) + "K Tayangan",
       likes: ((idNum * 4) % 10 + 2.5) + "K",
       imgUrl: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=500&fit=crop",
       platform: "tiktok",
@@ -22,7 +22,7 @@ export function CreatorPortfolioSection({ creatorId }: CreatorPortfolioSectionPr
     {
       id: "p2",
       title: "Promo Outerwear Outfit",
-      views: ((idNum * 17) % 120 + 20) + "K Views",
+      views: ((idNum * 17) % 120 + 20) + "K Tayangan",
       likes: ((idNum * 5) % 15 + 4) + "K",
       imgUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop",
       platform: "instagram",
@@ -30,7 +30,7 @@ export function CreatorPortfolioSection({ creatorId }: CreatorPortfolioSectionPr
     {
       id: "p3",
       title: "Daily Skincare routine",
-      views: ((idNum * 23) % 150 + 35) + "K Views",
+      views: ((idNum * 23) % 150 + 35) + "K Tayangan",
       likes: ((idNum * 8) % 20 + 6.2) + "K",
       imgUrl: "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&h=500&fit=crop",
       platform: "tiktok",
@@ -38,7 +38,7 @@ export function CreatorPortfolioSection({ creatorId }: CreatorPortfolioSectionPr
     {
       id: "p4",
       title: "Resep Homemade Dessert",
-      views: ((idNum * 9) % 80 + 10) + "K Views",
+      views: ((idNum * 9) % 80 + 10) + "K Tayangan",
       likes: ((idNum * 3) % 8 + 1.8) + "K",
       imgUrl: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&h=500&fit=crop",
       platform: "instagram",
@@ -52,7 +52,7 @@ export function CreatorPortfolioSection({ creatorId }: CreatorPortfolioSectionPr
           Portofolio Konten Terbaru
         </h3>
         <p className="text-[10px] text-text-muted font-semibold">
-          Daftar video kolaborasi terselesaikan dengan total jangkauan views audiens.
+          Daftar video kolaborasi dengan total penonton yang dijangkau.
         </p>
       </div>
 

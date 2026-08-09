@@ -18,7 +18,7 @@ export default function UmkmError({ error, reset }: ErrorProps) {
       <DashboardStateCard
         kind="error"
         title="Terjadi Kesalahan"
-        description="Gagal memuat data dashboard. Silakan coba lagi beberapa saat lagi."
+        description="Halaman tidak dapat dibuka saat ini. Silakan coba lagi beberapa saat kemudian."
         actionLabel="Coba Lagi"
         onAction={reset}
       />

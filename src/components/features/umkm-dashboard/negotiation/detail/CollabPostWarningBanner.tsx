@@ -23,8 +23,8 @@ export function CollabPostWarningBanner({ compact }: CollabPostWarningBannerProp
           </svg>
         </div>
         <p className="text-[9px] text-[#92400e] font-semibold leading-snug flex-1">
-          <strong className="font-extrabold">Wajib:</strong> Gunakan{" "}
-          <strong className="text-[#b45309]">Collab Post</strong> Instagram/TikTok agar traffic &amp; views masuk langsung ke akun UMKM Anda.
+          Kreator wajib menggunakan fitur{" "}
+          <strong className="text-[#b45309]">Postingan Bersama</strong> Instagram/TikTok agar kunjungan dan tayangan masuk langsung ke akun UMKM Anda.
         </p>
       </div>
     );
@@ -42,8 +42,8 @@ export function CollabPostWarningBanner({ compact }: CollabPostWarningBannerProp
           Ketentuan Publikasi Kolaborasi
         </h4>
         <p className="text-[10px] sm:text-xs text-text-secondary mt-1 leading-relaxed font-semibold">
-          <strong>PENTING:</strong> Kreator wajib menggunakan fitur{" "}
-          <strong className="text-warning-strong">Collab Post</strong> Instagram/TikTok saat publikasi agar traffic, views, dan engagement masuk ke akun UMKM Anda secara langsung.
+          Kreator wajib menggunakan fitur{" "}
+          <strong className="text-warning-strong">Postingan Bersama</strong> Instagram/TikTok saat publikasi agar kunjungan, tayangan, dan interaksi masuk ke akun UMKM Anda secara langsung.
         </p>
       </div>
     </div>

@@ -67,7 +67,7 @@ export function MessageComposer({
     if ((stage === "chatting" || stage === "offer_rejected") && onSendOffer) {
       actions.push({
         icon: "💰",
-        label: "Kirim Custom Offer",
+        label: "Kirim Penawaran Khusus",
         handler: () => { onSendOffer(); setMenuOpen(false); },
       });
     }
@@ -168,7 +168,7 @@ export function MessageComposer({
         {/* Text input */}
         <input
           type="text"
-          placeholder="Tulis pesan negosiasi Anda di sini..."
+          placeholder="Tulis pesan Anda di sini..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onKeyDown={handleKeyDown}

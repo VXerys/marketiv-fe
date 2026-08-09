@@ -72,7 +72,7 @@ export function ChatTimeline({
             </div>
             <div className="space-y-1">
               <p className="text-xs font-extrabold text-text-secondary">Belum Ada Pesan</p>
-              <p className="text-[10px] text-text-muted font-semibold">Kirim pesan pertama Anda untuk memulai diskusi negosiasi.</p>
+              <p className="text-[10px] text-text-muted font-semibold">Kirim pesan pertama Anda untuk memulai percakapan.</p>
             </div>
           </div>
         </div>

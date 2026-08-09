@@ -57,7 +57,7 @@ export function CustomOfferCard({
               ★
             </span>
             <span className="text-[10px] font-extrabold text-primary uppercase tracking-widest">
-              Penawaran Resmi (Custom Offer)
+              Penawaran Harga Khusus
             </span>
           </div>
           <span className={cn(
@@ -81,7 +81,7 @@ export function CustomOfferCard({
 
           <div className="space-y-0.5">
             <span className="block text-[8px] font-bold text-text-muted uppercase tracking-wider">
-              Lingkup Pekerjaan (Scope)
+              Lingkup Pekerjaan
             </span>
             <p className="text-[10px] text-text-secondary leading-relaxed font-semibold">
               {offer.scope}
@@ -119,9 +119,9 @@ export function CustomOfferCard({
 
         {/* Escrow note */}
         <div className="text-[9px] text-text-muted leading-relaxed font-semibold">
-          * Dana pembayaran Anda ditahan di rekening <strong>escrow Marketiv</strong> dan baru
+          * Dana pembayaran Anda disimpan di <strong>sistem aman Marketiv</strong> dan baru
           dilepaskan ke kreator setelah Anda menyetujui hasil kerjanya. Nominal yang Anda bayar
-          persis sebesar harga di atas — fee platform ditanggung kreator.
+          persis sebesar harga di atas — biaya layanan ditanggung kreator.
         </div>
 
         {showPayAction && (
@@ -130,7 +130,7 @@ export function CustomOfferCard({
             onClick={onPay}
             className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary-600 text-white text-xs font-bold transition-all duration-200 cursor-pointer shadow-xs border border-primary hover:border-primary-600 text-center"
           >
-            Lanjut ke Pembayaran Escrow
+            Bayar & Simpan Dana Aman
           </button>
         )}
 
@@ -143,7 +143,7 @@ export function CustomOfferCard({
             onClick={() => onDeleteOffer?.(offer.offerId)}
             className="w-full py-2.5 rounded-xl border border-neutral-200 text-text-secondary hover:bg-neutral-50 text-xs font-bold transition-all duration-200 cursor-pointer text-center"
           >
-            Tarik Penawaran
+            Batalkan Penawaran
           </button>
         )}
       </div>

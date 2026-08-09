@@ -170,7 +170,7 @@ export function UmkmOnboarding({
   return (
     <OnboardingShell
       title="Lengkapi Profil Usaha"
-      description="Data ini yang dilihat kreator saat menimbang campaign dan penawaran dari kamu."
+      description="Informasi ini yang dilihat kreator saat mempertimbangkan campaign dari Anda."
       steps={STEPS}
       currentStep={step}
       footer={
@@ -200,7 +200,7 @@ export function UmkmOnboarding({
           )}
 
           <p className="pt-1 text-center text-[0.72rem] font-semibold leading-relaxed text-text-muted">
-            Kalau dilewati, kamu tetap bisa masuk dashboard dan melengkapinya nanti
+            Kalau dilewati, Anda tetap bisa masuk dashboard dan melengkapinya nanti
             lewat Pengaturan.
           </p>
         </div>
@@ -253,11 +253,11 @@ export function UmkmOnboarding({
             label="Deskripsi Usaha"
             name="description"
             rows={4}
-            placeholder="Jelaskan produk dan apa yang membuat usahamu menarik untuk dipromosikan."
+            placeholder="Jelaskan produk dan apa yang membuat usaha Anda menarik untuk dipromosikan."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             error={errors.description}
-            hint="Dibaca kreator sebelum menerima campaign atau penawaranmu."
+            hint="Dibaca kreator sebelum menerima campaign atau penawaran Anda."
             disabled={busy}
           />
 
@@ -307,7 +307,7 @@ export function UmkmOnboarding({
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             error={errors.phone}
-            hint="Dipakai untuk konfirmasi pesanan dan pencairan dana. Format: 08xx / 628xx."
+            hint="Untuk konfirmasi pesanan dan info pencairan Anda. Format: 08xx atau 628xx."
             disabled={busy}
           />
           <AuthField
@@ -327,7 +327,7 @@ export function UmkmOnboarding({
             value={tiktok}
             onChange={(e) => setTiktok(e.target.value)}
             error={errors.tiktok}
-            hint="Membantu kreator memahami gaya konten yang kamu inginkan."
+            hint="Membantu kreator memahami gaya konten yang Anda inginkan."
             disabled={busy}
           />
         </div>

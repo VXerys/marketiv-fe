@@ -58,44 +58,44 @@ export function CampaignSummaryCards({ summary }: CampaignSummaryCardsProps) {
     <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-5">
       <SummaryCard
         icon={Megaphone}
-        label="Total Campaign"
+        label="Total Kampanye"
         value={String(summary.activeCampaigns + summary.completedCampaigns + (summary.pendingPayments ?? 0))}
         note="Semua status"
         iconBg="#fff7ed" iconColor="#ea580c" iconBorder="rgba(234,88,12,.18)"
       />
       <SummaryCard
         icon={TrendingUp}
-        label="Campaign Aktif"
+        label="Kampanye Aktif"
         value={String(summary.activeCampaigns)}
         note="Sedang berjalan"
         iconBg="#f1fbf5" iconColor="#16a34a" iconBorder="rgba(22,163,74,.18)"
       />
       <SummaryCard
         icon={CheckCircle}
-        label="Campaign Selesai"
+        label="Kampanye Selesai"
         value={String(summary.completedCampaigns)}
         note="Berhasil diselesaikan"
         iconBg="#f0f6ff" iconColor="#2563eb" iconBorder="rgba(37,99,235,.18)"
       />
       <SummaryCard
         icon={Eye}
-        label="Total Views"
+        label="Total Tayangan"
         value={formatCompactViews(summary.totalViews)}
-        note="Dari semua campaign"
+        note="Dari semua kampanye"
         iconBg="#f7f3ff" iconColor="#7c3aed" iconBorder="rgba(124,58,237,.18)"
       />
       <SummaryCard
         icon={Clock}
-        label="Submission Pending"
+        label="Bukti Konten Menunggu"
         value={String(summary.pendingSubmissions)}
         note="Perlu validasi"
         iconBg="#fffbeb" iconColor="#d97706" iconBorder="rgba(217,119,6,.18)"
       />
       <SummaryCard
         icon={Shield}
-        label="Budget Escrow"
+        label="Dana Aman Kampanye"
         value={formatCompactCurrency(summary.escrowBalance)}
-        note="Dana terjamin"
+        note="Dana Anda aman"
         iconBg="#f1fbf5" iconColor="#16a34a" iconBorder="rgba(22,163,74,.18)"
       />
     </div>

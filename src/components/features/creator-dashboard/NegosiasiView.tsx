@@ -397,7 +397,7 @@ export function NegosiasiView() {
               iconClass="text-amber-600 bg-amber-50 border-amber-200/50"
               icon={<MessageSquare className="w-4 h-4" />}
               cardClass="border-amber-200/40 shadow-[0_4px_20px_rgba(217,119,6,.06)] bg-gradient-to-br from-amber-50/20 to-white"
-              badge={totalUnread > 0 ? `${totalUnread} unread` : undefined}
+              badge={totalUnread > 0 ? `${totalUnread} belum dibaca` : undefined}
               badgeClass="bg-violet-50 border-violet-200/40 text-violet-600"
             />
             <MetricTile
@@ -472,7 +472,7 @@ export function NegosiasiView() {
                   ? "Percakapan yang kamu arsipkan akan muncul di sini."
                   : hasActiveFilters
                   ? "Tidak ada negosiasi yang cocok dengan filter pencarian Anda."
-                  : "Kamu belum menerima chat negosiasi dari UMKM untuk penawaran paket Rate Card."
+                  : "Belum ada chat negosiasi masuk dari UMKM buat paket Rate Card kamu."
               }
               actionButton={
                 hasActiveFilters ? (

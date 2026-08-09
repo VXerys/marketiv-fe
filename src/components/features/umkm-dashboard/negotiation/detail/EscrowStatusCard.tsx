@@ -21,7 +21,7 @@ export function EscrowStatusCard({ orderStatus }: EscrowStatusCardProps) {
           </svg>
         </div>
         <span className="text-[10px] font-extrabold text-text-secondary uppercase tracking-wider">
-          Tahapan Aliran Dana Escrow
+          Status Dana Aman Anda
         </span>
       </div>
 

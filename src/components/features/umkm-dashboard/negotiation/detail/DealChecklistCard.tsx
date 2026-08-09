@@ -26,11 +26,11 @@ export function DealChecklistCard({ stage }: DealChecklistCardProps) {
   // Harga dan deadline baru "disepakati" saat kreator menerima offer (awaiting_order+).
   // Dana Escrow Siap hanya saat escrow benar-benar aktif di server (escrow+).
   const checklist = [
-    { label: "Scope Pekerjaan Jelas", checked: o >= 1 },
+    { label: "Lingkup Pekerjaan Jelas", checked: o >= 1 },
     { label: "Harga Disepakati", checked: o >= 2 },
-    { label: "Deadline Disepakati", checked: o >= 2 },
-    { label: "Collab Post Instagram/TikTok", checked: true },
-    { label: "Dana Escrow Siap", checked: o >= 4 },
+    { label: "Batas Waktu Disepakati", checked: o >= 2 },
+    { label: "Postingan Bersama di Instagram/TikTok", checked: true },
+    { label: "Dana Aman Siap", checked: o >= 4 },
   ];
 
   const checkedCount = checklist.filter((i) => i.checked).length;
@@ -47,7 +47,7 @@ export function DealChecklistCard({ stage }: DealChecklistCardProps) {
             </svg>
           </div>
           <span className="text-[10px] font-extrabold text-text-secondary uppercase tracking-wider">
-            Persetujuan Syarat (Deal)
+            Daftar Kesepakatan
           </span>
         </div>
         <span className="text-[9px] font-bold text-text-muted">

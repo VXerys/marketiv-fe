@@ -65,7 +65,7 @@ export function FinanceSummaryCards({ summary }: FinanceSummaryCardsProps) {
       />
       <SummaryCard
         icon={Shield}
-        label="Dana di Escrow"
+        label="Dana Aman Tersimpan"
         value={formatCompactCurrency(summary.escrowBalance)}
         note={formatCurrency(summary.escrowBalance)}
         iconBg="#f0f6ff"
@@ -83,7 +83,7 @@ export function FinanceSummaryCards({ summary }: FinanceSummaryCardsProps) {
       />
       <SummaryCard
         icon={CornerDownLeft}
-        label="Refund Diterima"
+        label="Pengembalian Dana Diterima"
         value={formatCompactCurrency(summary.refundsReceived)}
         note={formatCurrency(summary.refundsReceived)}
         iconBg="#f1fbf5"

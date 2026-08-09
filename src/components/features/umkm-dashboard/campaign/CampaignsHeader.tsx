@@ -16,13 +16,13 @@ export function CampaignsHeader({
       <div>
         <div className="inline-flex items-center gap-2 text-orange-600 text-[.74rem] font-[900] tracking-[.12em] uppercase mb-1.5">
           <span className="block w-[18px] h-0.5 rounded-full bg-orange-500" />
-          Manajemen Campaign
+          Kelola Kampanye
         </div>
         <h2 className="font-display text-[clamp(1.5rem,2.8vw,2.1rem)] font-bold tracking-[-0.065em] text-ink-950 m-0 mb-1.5 leading-none">
-          Campaign Saya
+          Kampanye Saya
         </h2>
         <p className="text-ink-500 text-[.88rem] m-0">
-          Kelola seluruh campaign UMKM Anda dari satu tempat.
+          Kelola seluruh kampanye bisnis Anda dari satu tempat.
         </p>
       </div>
 
@@ -31,10 +31,10 @@ export function CampaignsHeader({
         <button
           onClick={onExportReportClick}
           className="inline-flex items-center gap-1.5 min-h-[42px] px-4 rounded-xl border border-border bg-white/80 text-ink-600 text-[.84rem] font-[760] shadow-sm cursor-pointer hover:bg-white hover:border-border transition-all duration-200"
-          aria-label="Export laporan campaign"
+          aria-label="Unduh laporan kampanye"
         >
           <Download size={15} />
-          Export Laporan
+          Unduh Laporan
         </button>
         <Link
           href="/dashboard/umkm/campaign/buat"
@@ -42,7 +42,7 @@ export function CampaignsHeader({
           onClick={onCreateCampaignClick}
         >
           <Plus size={17} />
-          Buat Campaign Baru
+          Buat Kampanye Baru
         </Link>
       </div>
     </div>

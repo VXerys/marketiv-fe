@@ -23,20 +23,20 @@ interface PageMeta {
 
 function getPageMeta(pathname: string): PageMeta {
   const map: Record<string, PageMeta> = {
-    [BASE]:                      { title: "Dashboard",   subtitle: "Ringkasan bisnis Anda" },
-    [`${BASE}/campaign`]:        { title: "Campaign",    subtitle: "Kelola semua campaign" },
-    [`${BASE}/campaign/buat`]:   { title: "Buat Campaign", subtitle: "Wizard pembuatan campaign" },
-    [`${BASE}/kreator`]:         { title: "Kreator",     subtitle: "Temukan & kelola kreator" },
-    [`${BASE}/negosiasi`]:       { title: "Negosiasi",   subtitle: "Kelola penawaran & negosiasi" },
-    [`${BASE}/keuangan`]:        { title: "Keuangan",    subtitle: "Transaksi & escrow" },
-    [`${BASE}/analitik`]:        { title: "Analitik",    subtitle: "Performa & insight" },
-    [`${BASE}/pengaturan`]:      { title: "Pengaturan",  subtitle: "Profil & konfigurasi akun" },
-    [`${BASE}/panduan`]:         { title: "FAQ & Rules", subtitle: "Kebijakan & bantuan platform" },
-    [`${BASE}/notifikasi`]:      { title: "Notifikasi",  subtitle: "Pusat notifikasi akun" },
+    [BASE]:                      { title: "Dashboard",    subtitle: "Ringkasan bisnis Anda" },
+    [`${BASE}/campaign`]:        { title: "Kampanye",     subtitle: "Kelola semua kampanye" },
+    [`${BASE}/campaign/buat`]:   { title: "Buat Kampanye", subtitle: "Panduan pembuatan kampanye" },
+    [`${BASE}/kreator`]:         { title: "Kreator",      subtitle: "Temukan & kelola kreator" },
+    [`${BASE}/negosiasi`]:       { title: "Negosiasi",    subtitle: "Kelola penawaran & diskusi" },
+    [`${BASE}/keuangan`]:        { title: "Keuangan",     subtitle: "Transaksi & Dana Aman" },
+    [`${BASE}/analitik`]:        { title: "Analitik",     subtitle: "Performa & Laporan" },
+    [`${BASE}/pengaturan`]:      { title: "Pengaturan",   subtitle: "Profil & Pengaturan Akun" },
+    [`${BASE}/panduan`]:         { title: "FAQ & Peraturan", subtitle: "Kebijakan & bantuan" },
+    [`${BASE}/notifikasi`]:      { title: "Notifikasi",   subtitle: "Pusat notifikasi akun" },
   };
   if (map[pathname]) return map[pathname];
   if (new RegExp(`^${BASE}/campaign/[^/]+$`).test(pathname))
-    return { title: "Detail Campaign", subtitle: "Informasi lengkap campaign" };
+    return { title: "Detail Kampanye", subtitle: "Informasi lengkap kampanye" };
   if (new RegExp(`^${BASE}/kreator/[^/]+$`).test(pathname))
     return { title: "Profil Kreator", subtitle: "Detail informasi kreator" };
   if (new RegExp(`^${BASE}/negosiasi/[^/]+$`).test(pathname))
@@ -59,13 +59,13 @@ function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
   
   const mainModule = parts[2];
   const labelMap: Record<string, string> = {
-    campaign: "Campaign",
+    campaign: "Kampanye",
     kreator: "Direktori Kreator",
     negosiasi: "Negosiasi",
     keuangan: "Keuangan",
     analitik: "Analitik",
     pengaturan: "Pengaturan",
-    panduan: "FAQ & Rules",
+    panduan: "FAQ & Peraturan",
     notifikasi: "Notifikasi",
   };
   
@@ -202,7 +202,7 @@ export function DashboardTopbar({ avatarUrl }: DashboardTopbarProps) {
 
           <span className="ml-1.5 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-orange-500/10 border border-orange-500/25 text-orange-600 text-[0.66rem] font-[850] shadow-3xs">
             <Sparkles className="h-3 w-3 text-orange-500 animate-pulse" />
-            BETA TESTER (s.d 31 Agt)
+            BETA TESTER (hingga 31 Agt)
           </span>
         </nav>
       </div>

@@ -18,8 +18,8 @@ interface QuickAction {
 const QUICK_ACTIONS: QuickAction[] = [
   {
     icon: Plus,
-    label: "Buat Campaign",
-    description: "Mulai campaign baru sekarang",
+    label: "Buat Kampanye",
+    description: "Mulai kampanye baru sekarang",
     href: "/dashboard/umkm/campaign/buat",
     primary: true,
     color: "white",
@@ -39,8 +39,8 @@ const QUICK_ACTIONS: QuickAction[] = [
   },
   {
     icon: List,
-    label: "Lihat Campaign",
-    description: "Kelola semua campaign",
+    label: "Lihat Kampanye",
+    description: "Kelola semua kampanye",
     href: "/dashboard/umkm/campaign",
     color: "#7c3aed",
     bg: "radial-gradient(circle at 100% 0%, rgba(124,58,237,.12), transparent 10rem), linear-gradient(180deg, #ffffff, #faf8ff)",
@@ -50,7 +50,7 @@ const QUICK_ACTIONS: QuickAction[] = [
   {
     icon: Wallet,
     label: "Kelola Keuangan",
-    description: "Transaksi & escrow",
+    description: "Transaksi & Dana Aman",
     href: "/dashboard/umkm/keuangan",
     color: "#16a34a",
     bg: "radial-gradient(circle at 100% 0%, rgba(22,163,74,.12), transparent 10rem), linear-gradient(180deg, #ffffff, #f4fcf7)",
@@ -99,7 +99,7 @@ export function QuickActions() {
             margin: 0,
           }}
         >
-          Quick Actions
+          Aksi Cepat
         </h3>
       </div>
 

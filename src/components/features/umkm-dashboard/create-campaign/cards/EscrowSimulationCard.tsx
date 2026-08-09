@@ -2,18 +2,18 @@ export function EscrowSimulationCard() {
   const steps = [
     {
       num: "01",
-      title: "Deposit Escrow",
-      desc: "UMKM mendepositkan anggaran total kampanye ke rekening escrow bersama sebelum kampanye aktif.",
+      title: "Simpan Dana Kampanye",
+      desc: "Anda menyimpan anggaran kampanye ke sistem aman Marketiv sebelum kampanye aktif.",
     },
     {
       num: "02",
-      title: "Kreator Posting",
-      desc: "Kreator mengklaim pekerjaan, memproduksi konten, lalu mempublikasikan bukti posting berupa URL publik.",
+      title: "Kreator Membuat Konten",
+      desc: "Kreator mengklaim pekerjaan, memproduksi konten, lalu mengirimkan tautan video yang sudah diunggah.",
     },
     {
       num: "03",
-      title: "Pelepasan Dana",
-      desc: "Sistem mengaudit data views tayangan kreator, dan merilis dana secara proporsional kepada kreator.",
+      title: "Dana Dicairkan ke Kreator",
+      desc: "Sistem memeriksa jumlah penonton video, dan mencairkan bayaran sesuai jumlah penonton.",
     },
   ];
 
@@ -24,7 +24,7 @@ export function EscrowSimulationCard() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
         </svg>
         <span className="text-[10px] font-extrabold text-text-secondary uppercase tracking-wider">
-          Sistem Keamanan Rekening Escrow
+          Cara Kerja Dana Aman Kampanye
         </span>
       </div>
 
@@ -48,7 +48,7 @@ export function EscrowSimulationCard() {
       
       <div className="bg-primary-50/40 text-primary border border-primary-100/40 rounded-xl p-3.5 text-[10px] leading-relaxed">
         <span className="font-extrabold block mb-0.5">💡 Jaminan Perlindungan UMKM</span>
-        Jika kampanye dibatalkan sebelum masa kuota diklaim, sisa dana yang tertahan di rekening escrow dijamin 100% aman dan akan segera dikembalikan ke saldo dompet Anda.
+        Jika kampanye dibatalkan sebelum jatah kreator terpenuhi, sisa dana yang tersimpan di sistem Marketiv dijamin 100% aman dan akan segera dikembalikan ke saldo dompet Anda.
       </div>
     </div>
   );

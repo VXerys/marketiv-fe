@@ -7,7 +7,7 @@ export const NEGOTIATION_STATUS_FILTERS: ToolbarStatusFilterOption[] = [
   { id: "offer_rejected", label: "Ditolak Kreator" },
   { id: "awaiting_order", label: "Menyiapkan Order" },
   { id: "pending_payment", label: "Menunggu Pembayaran" },
-  { id: "escrow", label: "Escrow" },
+  { id: "escrow", label: "Dana Aman" },
   { id: "in_progress", label: "Sedang Dikerjakan" },
   { id: "revision", label: "Revisi" },
   { id: "approved", label: "Disetujui" },
@@ -17,16 +17,16 @@ export const NEGOTIATION_STATUS_FILTERS: ToolbarStatusFilterOption[] = [
 
 export const NEGOTIATION_SORT_OPTIONS: ToolbarSortOption[] = [
   { id: "newest", label: "Terbaru" },
-  { id: "deadline", label: "Deadline Terdekat" },
+  { id: "deadline", label: "Batas Waktu Terdekat" },
   { id: "price_desc", label: "Harga Tertinggi" },
   { id: "unread", label: "Belum Dibaca" },
 ];
 
 export const ESCROW_STEPS: EscrowStep[] = [
-  { label: "Offer Dibuat", desc: "Tawaran kolaborasi diajukan" },
-  { label: "Pembayaran UMKM", desc: "UMKM mentransfer dana via VA/QRIS" },
-  { label: "Dana Terkunci Escrow", desc: "Sistem mengamankan budget" },
-  { label: "Kreator Eksekusi", desc: "Produksi & pengiriman draf video" },
-  { label: "Verifikasi Collab Post", desc: "URL tayang divalidasi sistem" },
+  { label: "Penawaran Dibuat", desc: "Tawaran kolaborasi diajukan" },
+  { label: "Pembayaran Anda", desc: "Anda membayar via Virtual Account atau QRIS" },
+  { label: "Dana Tersimpan Aman", desc: "Sistem menyimpan anggaran Anda" },
+  { label: "Kreator Mengerjakan Konten", desc: "Kreator membuat dan mengirim video" },
+  { label: "Verifikasi Postingan Bersama", desc: "Sistem memeriksa tautan video yang diunggah" },
   { label: "Dana Cair ke Kreator", desc: "Pembayaran diselesaikan" },
 ];

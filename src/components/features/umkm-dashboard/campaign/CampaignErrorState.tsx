@@ -14,10 +14,10 @@ export function CampaignErrorState({ onRetry, errorMsg }: CampaignErrorStateProp
         </svg>
       </div>
       <h3 className="text-2xl font-display font-extrabold text-neutral-950 mb-3 tracking-tight">
-        Gagal memuat campaign
+        Gagal Memuat Kampanye
       </h3>
       <p className="text-neutral-500 max-w-lg text-sm leading-relaxed mb-8 font-medium">
-        {errorMsg || "Terjadi kesalahan saat mengambil data campaign. Silakan coba lagi."}
+        {errorMsg || "Terjadi kesalahan saat membuka daftar kampanye Anda. Silakan coba lagi."}
       </p>
       <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
         <DashboardButton variant="primary" onClick={onRetry}>

@@ -502,7 +502,7 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
 
             <div className="space-y-4 text-xs font-semibold text-neutral-700">
               <p className="text-neutral-500 leading-relaxed font-medium">
-                Sebelum mengklaim pekerjaan kampanye ini, Anda wajib menyetujui seluruh ketentuan pengerjaan Campaign Mode berikut:
+                Sebelum klaim campaign ini, kamu perlu setujui semua ketentuan pengerjaan Campaign Mode berikut:
               </p>
 
               <div className="space-y-3 pt-2">
@@ -565,9 +565,9 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="text-lg font-black text-neutral-900 mb-2 leading-none">Campaign Berhasil Diklaim</h3>
+            <h3 className="text-lg font-black text-neutral-900 mb-2 leading-none">Job Berhasil Diklaim!</h3>
             <p className="text-xs text-neutral-500 font-medium leading-relaxed max-w-xs mx-auto mb-6">
-              Pekerjaan telah ditambahkan ke dashboard pengerjaan Anda. Silakan selesaikan konten video sebelum tanggal tenggat waktu.
+              Job kamu udah masuk ke Pekerjaan Aktif. Yuk selesaikan sebelum deadline!
             </p>
             <div className="flex gap-3">
               <button

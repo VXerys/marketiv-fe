@@ -875,7 +875,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
           {portfolioItems.length === 0 ? (
             <CreatorEmptyState
               title="Belum Ada Portofolio"
-              description="Tambahkan konten video terbaik Anda agar brand bisa melihat karya Anda."
+              description="Tambahkan konten video terbaik kamu biar brand bisa lihat karya kamu."
             />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
@@ -951,12 +951,12 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
       <SettingsCard>
         <CardSectionHeader title="Notifikasi Kampanye & Pekerjaan" />
         <p className="px-6 pt-4 text-[0.72rem] font-[700] text-neutral-400">
-          Segera tersedia — preferensi belum bisa disimpan (belum ada tempat penyimpanannya).
+          Fitur notifikasi akan segera hadir.
         </p>
         <div className="px-6 py-1">
           <NotifToggleRow
             label="Campaign Baru Sesuai Niche"
-            description="Terima notifikasi saat ada campaign baru yang cocok dengan kategori konten Anda."
+            description="Terima notifikasi saat ada campaign baru yang cocok dengan kategori konten kamu."
             checked={notifCampaign}
             onChange={setNotifCampaign}
             disabled
@@ -970,7 +970,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
           />
           <NotifToggleRow
             label="Update Status Order Rate Card"
-            description="Notifikasi saat UMKM melakukan order, konfirmasi, atau revisi pada paket Anda."
+            description="Notifikasi saat UMKM melakukan order, konfirmasi, atau revisi pada paket kamu."
             checked={notifOrder}
             onChange={setNotifOrder}
             disabled
@@ -1052,7 +1052,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               <div>
                 <p className="text-[0.82rem] font-[700] text-blue-800">Akun Terverifikasi</p>
                 <p className="text-[0.72rem] font-[500] text-blue-600 mt-0.5">
-                  Identitas Anda telah diverifikasi oleh tim Marketiv
+                  Identitas kamu telah diverifikasi oleh tim Marketiv
                 </p>
               </div>
             </div>
@@ -1062,7 +1062,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               <div>
                 <p className="text-[0.82rem] font-[700] text-neutral-600">Verifikasi Tertunda</p>
                 <p className="text-[0.72rem] font-[500] text-neutral-400 mt-0.5">
-                  Tim Marketiv sedang memproses verifikasi identitas Anda
+                  Tim Marketiv sedang memproses verifikasi identitas kamu
                 </p>
               </div>
             </div>
@@ -1154,7 +1154,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto relative">
       <CreatorPageHeader
         title="Pengaturan"
-        description="Kelola profil publik, portofolio, notifikasi, dan keamanan akun Anda."
+        description="Kelola profil publik, portofolio, notifikasi, dan keamanan akun kamu."
       />
 
       <div className="flex flex-col lg:flex-row gap-6 items-start">
@@ -1297,7 +1297,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               Profil Berhasil Diperbarui
             </h3>
             <p className="text-[0.82rem] text-neutral-500 font-[500] leading-relaxed max-w-xs mx-auto mb-6">
-              Detail profil publik dan tautan sosial media Anda telah berhasil disinkronisasikan ke
+              Detail profil publik dan tautan sosial media kamu berhasil disinkronisasikan ke
               platform Marketiv.
             </p>
             <CreatorBtn onClick={() => setIsProfileSuccessOpen(false)} className="w-full">

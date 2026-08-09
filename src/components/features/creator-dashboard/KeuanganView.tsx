@@ -210,7 +210,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
         { value: "all", label: "Semua Sumber" },
         { value: "campaign", label: "Campaign" },
         { value: "rate card", label: "Rate Card" },
-        { value: "withdrawal", label: "Withdrawal" },
+        { value: "withdrawal", label: "Penarikan" },
       ],
     },
     {
@@ -219,10 +219,10 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
       onChange: setFilterStatus,
       options: [
         { value: "all", label: "Semua Status" },
-        { value: "success", label: "Success" },
-        { value: "pending", label: "Pending" },
-        { value: "processing", label: "Processing" },
-        { value: "failed", label: "Failed" },
+        { value: "success", label: "Berhasil" },
+        { value: "pending", label: "Menunggu" },
+        { value: "processing", label: "Diproses" },
+        { value: "failed", label: "Gagal" },
       ],
     },
     {
@@ -332,7 +332,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
               )}
             >
               <ArrowDownToLine size={17} />
-              Ajukan Withdrawal
+              Ajukan Penarikan
             </button>
           </div>
         </div>
@@ -374,7 +374,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
 
                   <MetricCard
                     icon={<Clock />}
-                    label="Pending Payout"
+                    label="Pencairan Tertunda"
                     value={formatCurrency(walletMetrics.pendingPayouts)}
                     helper="Menunggu audit/validasi views"
                     tone="warning"
@@ -438,11 +438,11 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
               {/* Ledger Table */}
               {processedTransactions.length === 0 ? (
                 <CreatorEmptyState
-                  title={isFilterActive ? "Transaksi tidak ditemukan" : "Buku Besar Kosong"}
+                  title={isFilterActive ? "Transaksi tidak ditemukan" : "Belum Ada Transaksi"}
                   description={
                     isFilterActive
-                      ? "Tidak ada catatan transaksi wallet yang memenuhi kriteria filter Anda."
-                      : "Anda belum melakukan transaksi keuangan apapun di platform Marketiv."
+                      ? "Tidak ada transaksi yang cocok dengan filter yang kamu pilih."
+                      : "Kamu belum punya riwayat transaksi di Marketiv."
                   }
                   actionButton={
                     isFilterActive ? (

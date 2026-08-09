@@ -512,7 +512,7 @@ export function RateCardView({ initialPackages, ordersCount }: RateCardViewProps
               </button>
               {isAtLimit && (
                 <p className="text-[10px] text-amber-600 font-bold sm:text-right leading-snug">
-                  Anda sudah mencapai maksimal 3 paket. Hapus satu paket untuk menambah baru.
+                  Kamu sudah punya 3 paket. Hapus satu dulu buat nambah yang baru.
                 </p>
               )}
             </div>

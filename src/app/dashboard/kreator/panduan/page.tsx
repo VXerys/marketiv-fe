@@ -31,7 +31,7 @@ const RULES_DATA = [
   },
   {
     id: 2,
-    title: "Submit Video Maksimum 24 Jam Setelah Posting",
+    title: "Kirim Video Maksimum 24 Jam Setelah Posting",
     desc: "Video harus diajukan ke Platform lewat tombol Klaim dalam 24 jam sejak waktu posting. Lewat dari itu, video tidak terdeteksi sistem.",
     Icon: Clock,
     color: "#16a34a",
@@ -77,7 +77,7 @@ const RULES_DATA = [
   {
     id: 7,
     title: "Collab Post Hanya Boleh Diajukan Pengunggah Asli",
-    desc: "Untuk video Collab Post di mana satu video terhubung dengan dua atau lebih akun, hanya akun yang melakukan unggahan asli yang berhak mengajukan video. Akun yang hanya ditandai sebagai kolaborator tidak berhak submit.",
+    desc: "Untuk video Collab Post di mana satu video terhubung dengan dua atau lebih akun, hanya akun yang melakukan unggahan asli yang berhak mengajukan video. Akun yang hanya ditandai sebagai kolaborator tidak berhak mengajukan.",
     Icon: Share2,
     color: "#0891b2",
     bg: "#ecfeff",
@@ -89,27 +89,27 @@ const FAQ_DATA = [
   {
     question: "Apakah ada biaya yang dipotong dari penghasilan?",
     answer:
-      "Ya, terdapat biaya platform sebesar 20% dari total penghasilan kotor Anda (berlaku mulai 1 Juli 2026). Selain itu, terdapat biaya pencairan (withdrawal fee) sebesar Rp 10.000 per transaksi pencairan.",
+      "Ya, terdapat biaya platform sebesar 20% dari total penghasilan kotor kamu (berlaku mulai 1 Juli 2026). Selain itu, terdapat biaya pencairan sebesar Rp 10.000 per transaksi pencairan.",
   },
   {
     question: "Kapan bisa pencairan?",
     answer:
-      "Pencairan dana dapat diajukan kapan saja setelah saldo masuk ke wallet Anda, dengan waktu proses kliring bank berkisar antara 1-3 hari kerja.",
+      "Pencairan dana dapat diajukan kapan saja setelah saldo masuk ke wallet kamu, dengan waktu proses kliring bank berkisar antara 1-3 hari kerja.",
   },
   {
     question: "Apakah pencairan otomatis setelah video disetujui?",
     answer:
-      "Tidak, pencairan tidak otomatis. Anda harus mengajukan penarikan dana secara manual melalui menu Keuangan di dashboard Kreator Anda.",
+      "Tidak, pencairan tidak otomatis. Kamu harus ajukan penarikan dana secara manual melalui menu Keuangan di dashboard Kreator kamu.",
   },
   {
     question: "Kenapa pencairan belum cair?",
     answer:
-      "Pastikan Anda telah mengisi data rekening bank dengan benar. Keterlambatan pencairan biasanya disebabkan oleh proses verifikasi bank penerima, kliring antar-bank pada hari libur, atau kendala sistem pembayaran pihak ketiga.",
+      "Pastikan kamu sudah isi data rekening bank dengan benar. Keterlambatan pencairan biasanya disebabkan oleh proses verifikasi bank penerima, kliring antar-bank pada hari libur, atau kendala sistem pembayaran pihak ketiga.",
   },
   {
     question: "Apakah masih bisa pencairan setelah kampanye berakhir?",
     answer:
-      "Ya, saldo yang telah masuk ke wallet Anda tetap aman dan dapat dicairkan kapan saja, bahkan setelah kampanye yang bersangkutan telah berakhir.",
+      "Ya, saldo yang udah masuk ke wallet kamu tetap aman dan bisa dicairkan kapan saja, bahkan setelah kampanye yang bersangkutan berakhir.",
   },
   {
     question: "Apa itu batas maksimum pembayaran per video?",
@@ -153,9 +153,9 @@ export default function KreatorPanduanPage() {
         {/* Tab Selector */}
         <div className="flex p-1.5 rounded-2xl bg-neutral-100 border border-neutral-200/60 max-w-md shadow-3xs">
           {[
-            { id: "rules", label: "Rules" },
+            { id: "rules", label: "Aturan" },
             { id: "faq", label: "FAQ" },
-            { id: "terms", label: "Terms & Conditions" },
+            { id: "terms", label: "Syarat & Ketentuan" },
           ].map((tab) => {
             const isActive = activeTab === tab.id;
             return (

@@ -20,7 +20,7 @@ export function CampaignAssetCard({ assetUrl }: CampaignAssetCardProps) {
     <DashboardCard variant="default">
       <div className="p-6 border-b border-border-soft">
         <h3 className="text-sm font-extrabold text-text-primary uppercase tracking-wider">
-          Aset Mentah / Media Produk
+          Foto & Video Produk
         </h3>
       </div>
       <div className="p-6 space-y-4">
@@ -43,7 +43,7 @@ export function CampaignAssetCard({ assetUrl }: CampaignAssetCardProps) {
               onClick={handleCopy}
               className="h-[36px] px-4 shrink-0 text-xs"
             >
-              {copied ? "Tersalin!" : "Salin Link"}
+              {copied ? "Tersalin!" : "Salin Tautan"}
             </DashboardButton>
           </div>
         </div>
@@ -61,7 +61,7 @@ export function CampaignAssetCard({ assetUrl }: CampaignAssetCardProps) {
             <svg className="w-4 h-4 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
-            <span>Buka Link Aset Eksternal</span>
+            <span>Buka Folder Foto & Video</span>
           </DashboardButton>
         </div>
 
@@ -71,8 +71,8 @@ export function CampaignAssetCard({ assetUrl }: CampaignAssetCardProps) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <div>
-            <span className="font-bold block mb-0.5">Konsep Berbagi Aset Mentah</span>
-            Untuk mengunggah video bahan mentah berukuran besar, Marketiv hanya menyimpan link eksternal seperti Google Drive/Dropbox. Hal ini menjaga kinerja hosting dan performa browser klien tetap kencang.
+            <span className="font-bold block mb-0.5">Cara Kerja Penyimpanan Foto & Video</span>
+            File berukuran besar disimpan di Google Drive atau OneDrive Anda, bukan di server Marketiv. Klik tombol di atas untuk membuka folder tersebut.
           </div>
         </div>
 

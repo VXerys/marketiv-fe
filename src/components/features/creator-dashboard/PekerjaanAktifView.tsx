@@ -88,7 +88,7 @@ function ActiveJobCard({
 
   // Key = label hasil getSubStatusLabel (lihat src/lib/creator-status.ts)
   const STATUS_CHIP: Record<string, string> = {
-    "Belum Submit":      "bg-blue-600/90 text-white border-blue-400/30",
+    "Belum Kirim":       "bg-blue-600/90 text-white border-blue-400/30",
     "Menunggu Review":   "bg-amber-500/90 text-white border-amber-300/30",
     "Perlu Ditinjau":    "bg-amber-500/90 text-white border-amber-300/30",
     "Disetujui":         "bg-emerald-600/90 text-white border-emerald-400/30",
@@ -247,7 +247,7 @@ function ActiveJobCard({
                 boxShadow: "var(--shadow-kreator)",
               }}
             >
-              Submit Bukti
+              Kirim Bukti
             </Link>
           ) : (
             <div className="flex-[2] flex items-center justify-center bg-neutral-50 border border-neutral-200/50 text-[10px] font-extrabold text-neutral-400 rounded-[12px] py-2.5 tracking-wider select-none">
@@ -318,7 +318,7 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
     if (work.fraudStatus && work.fraudStatus !== "safe") return getFraudStatusLabel(work.fraudStatus);
     if (work.submissionStatus) return getSubmissionStatusLabel(work.submissionStatus);
     if (work.status === "approved") return "Selesai";
-    return "Belum Submit";
+    return "Belum Kirim";
   };
 
   const countBelumSubmit  = works.filter(w => !w.submissionStatus && w.status === "claimed").length;
@@ -375,7 +375,7 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
       onChange: setSelectedStatus,
       options: [
         { value: "all", label: "Semua Status" },
-        { value: "belum-submit", label: "Belum Submit" },
+        { value: "belum-submit", label: "Belum Kirim" },
         { value: "pending", label: "Menunggu Validasi" },
         { value: "valid", label: "Valid / Selesai" },
         { value: "review-fraud", label: "Review / Fraud" },
@@ -416,7 +416,7 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
           {/* Summary tiles */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-7">
             <MetricCard
-              label="Belum Submit"
+              label="Belum Kirim"
               value={countBelumSubmit}
               helper="Butuh posting bukti"
               tone="default"
@@ -464,7 +464,7 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
               description={
                 hasActiveFilters
                   ? "Tidak ada pekerjaan aktif yang cocok dengan filter pencarianmu."
-                  : "Kamu belum mengklaim campaign apa pun dari pool pekerjaan."
+                  : "Kamu belum klaim campaign apa pun dari Job Pool."
               }
               actionLabel={hasActiveFilters ? "Reset Filter" : "Cari Job di Job Pool"}
               onAction={

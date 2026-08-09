@@ -66,7 +66,7 @@ export function RateCardPackageCard({ pkg, onSelectPackage }: RateCardPackageCar
         {/* Deliverables list */}
         <div className="space-y-2">
           <span className="block text-[8px] font-bold text-text-muted uppercase tracking-wider">
-            Detail Deliverables
+            Yang Akan Anda Dapatkan
           </span>
           <ul className="feature-list">
             {pkg.deliverables.map((item, idx) => (
@@ -88,7 +88,7 @@ export function RateCardPackageCard({ pkg, onSelectPackage }: RateCardPackageCar
             : "bg-white hover:bg-orange-50/50 text-ink-800 border border-border shadow-3xs hover:border-orange-200/50"
         )}
       >
-        Mulai Negosiasi
+        Pilih Paket Ini
       </button>
     </div>
   );

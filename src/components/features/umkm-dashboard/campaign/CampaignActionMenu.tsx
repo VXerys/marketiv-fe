@@ -70,7 +70,7 @@ export function CampaignActionMenu({
                 }}
                 className="w-full text-left px-4 py-2 text-xs font-bold text-text-primary hover:bg-neutral-50 transition-colors flex items-center gap-2 cursor-pointer"
               >
-                Edit Draft
+                Ubah Konsep
               </button>
             )}
             <button
@@ -80,7 +80,7 @@ export function CampaignActionMenu({
               }}
               className="w-full text-left px-4 py-2 text-xs font-bold text-text-primary hover:bg-neutral-50 transition-colors flex items-center gap-2 cursor-pointer"
             >
-              Duplikasi Campaign
+              Salin Kampanye
             </button>
             {onExport && (
               <button
@@ -101,7 +101,7 @@ export function CampaignActionMenu({
                 }}
                 className="w-full text-left px-4 py-2 text-xs font-bold text-danger hover:bg-danger-soft/30 transition-colors flex items-center gap-2 cursor-pointer"
               >
-                Batalkan Campaign
+                Batalkan Kampanye
               </button>
             )}
           </div>

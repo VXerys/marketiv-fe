@@ -110,16 +110,7 @@ export function RegisterUmkmForm() {
   }
 
   return (
-    <AuthSplit
-      role="umkm"
-      heroTitle="Gabung sebagai Pemilik UMKM"
-      heroTagline="Reach yang lebih luas untuk bisnismu lewat kreator konten terpercaya."
-      heroBullets={[
-        { icon: "📣", text: "Buat campaign dengan budget fleksibel" },
-        { icon: "🎯", text: "Temukan kreator yang tepat untuk nicemu" },
-        { icon: "🔒", text: "Pembayaran aman via sistem escrow" },
-      ]}
-    >
+    <AuthSplit role="umkm">
       <div className="mx-auto w-full max-w-sm">
         {/* Radix UI Role Tabs Switcher */}
         <AuthRoleTabs activeRole="umkm" onRoleChange={handleRoleChange} />
@@ -130,7 +121,7 @@ export function RegisterUmkmForm() {
             Daftar sebagai Pemilik UMKM
           </h1>
           <p className="text-xs font-medium text-text-muted">
-            Buat akun untuk mulai membuat campaign dan bekerja sama dengan kreator.
+            Buat akun gratis dan mulai cari kreator untuk promosi bisnis Anda.
           </p>
         </div>
 
@@ -193,7 +184,7 @@ export function RegisterUmkmForm() {
               value={form.phone}
               onChange={set("phone")}
               error={errors.phone}
-              hint="Dipakai untuk konfirmasi pesanan dan pencairan dana."
+              hint="Untuk konfirmasi pesanan dan info pembayaran Anda."
               disabled={pending}
             />
             <PasswordField
@@ -214,7 +205,7 @@ export function RegisterUmkmForm() {
             disabled={pending}
             className="min-h-[46px] w-full rounded-full border-0 bg-gradient-to-b from-[#fb7a18] to-primary-600 px-6 text-xs sm:text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(234,88,12,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(234,88,12,.36)] hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-60"
           >
-            {pending ? "Mendaftarkan…" : "Daftar sebagai Pemilik UMKM"}
+            {pending ? "Mendaftarkan…" : "Buat Akun UMKM"}
           </button>
         </form>
 

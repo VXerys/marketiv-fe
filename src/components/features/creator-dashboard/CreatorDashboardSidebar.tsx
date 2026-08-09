@@ -14,12 +14,13 @@ import {
   Wallet,
   Settings,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
   BadgeCheck,
+  ArrowRight,
+  X,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { routes } from "@/lib/constants/routes";
 import { LogoutConfirmDialog } from "@/components/features/dashboard/shared/LogoutConfirmDialog";
 import {
   Sidebar,
@@ -98,20 +99,24 @@ export function CreatorDashboardSidebar({
         color: "rgba(255,255,255,.7)",
       }}
     >
-      {/* Sidebar Toggle Button */}
+      {/* Protruding Tab Toggle Button (Shopeers/Dashify Style) — centered vertically on viewport */}
       <button
         onClick={toggleSidebar}
-        className={cn(
-          "absolute -right-3.5 top-7 z-30 flex h-7 w-7 items-center justify-center rounded-full text-white/70 hover:text-white transition-all duration-200 cursor-pointer shadow-md hover:scale-110",
-          "bg-violet-600 border border-violet-400/30"
-        )}
-        title={isCollapsed ? "Buka Sidebar" : "Tutup Sidebar"}
-        aria-label={isCollapsed ? "Buka Sidebar" : "Tutup Sidebar"}
+        className="absolute z-50 flex items-center justify-center rounded-r-md cursor-pointer transition-all duration-250 bg-[#0d1b2e] text-white/60 hover:text-white border border-l-0 border-white/5 shadow-[2px_0_8px_rgba(0,0,0,0.15)]"
+        style={{
+          right: "-22px",
+          top: "50%",
+          transform: "translateY(-50%)",
+          width: "22px",
+          height: "48px"
+        }}
+        title={state === "collapsed" ? "Perluas Menu" : "Sembunyikan Menu"}
+        aria-label={state === "collapsed" ? "Perluas Menu" : "Sembunyikan Menu"}
       >
-        {isCollapsed ? (
-          <ChevronRight size={14} className="stroke-[2.5]" />
+        {state === "collapsed" ? (
+          <ArrowRight className="size-3.5" strokeWidth={2.5} />
         ) : (
-          <ChevronLeft size={14} className="stroke-[2.5]" />
+          <X className="size-3.5" strokeWidth={2.5} />
         )}
       </button>
 
@@ -247,7 +252,7 @@ export function CreatorDashboardSidebar({
               style={{ border: "1px solid transparent" }}
             >
               <Link
-                href="/dashboard/kreator/pengaturan"
+                href={routes.kreatorSettings}
                 onClick={onCloseSidebar}
                 className="flex items-center gap-3 w-full group-data-[collapsible=icon]:justify-center"
               >

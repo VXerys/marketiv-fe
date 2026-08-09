@@ -139,7 +139,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
     if (w.fraudStatus && w.fraudStatus !== "safe") return getFraudStatusLabel(w.fraudStatus);
     if (w.submissionStatus) return getSubmissionStatusLabel(w.submissionStatus);
     if (w.status === "approved") return "Selesai";
-    return "Belum Submit";
+    return "Belum Kirim";
   };
 
   const validateUrl = (url: string, plat: "tiktok" | "instagram"): boolean => {
@@ -249,7 +249,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
 
   // Key = label hasil getSubStatusLabel (lihat src/lib/creator-status.ts)
   const STATUS_BADGE: Record<string, string> = {
-    "Belum Submit":       "bg-blue-500/25 text-blue-200 border-blue-400/30",
+    "Belum Kirim":        "bg-blue-500/25 text-blue-200 border-blue-400/30",
     "Menunggu Review":    "bg-amber-500/25 text-amber-200 border-amber-400/30",
     "Perlu Ditinjau":     "bg-amber-500/25 text-amber-200 border-amber-400/30",
     "Disetujui":          "bg-emerald-500/25 text-emerald-200 border-emerald-400/30",
@@ -375,7 +375,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                           boxShadow: "var(--shadow-kreator-cta)",
                         }}
                       >
-                        Submit Bukti Tayang
+                        Kirim Bukti Tayang
                       </button>
                     ) : (
                       <div className="min-h-[44px] px-6 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-xs font-extrabold text-white/50 select-none">
@@ -498,10 +498,10 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                     <div id="submit-form-section" className="bg-white border border-neutral-200/60 rounded-[22px] p-6 shadow-[0_2px_12px_rgba(15,23,42,.04)] space-y-6">
                       <div>
                         <h3 className="text-[10px] font-extrabold text-neutral-400 uppercase tracking-widest border-b border-neutral-100 pb-3">
-                          Submit Bukti Tayang (Link URL)
+                          Kirim Bukti Tayang (Link URL)
                         </h3>
                         <p className="text-[11px] text-amber-700 font-bold mt-2 bg-amber-50 border border-amber-200/60 rounded-xl px-3 py-2 leading-relaxed">
-                          PASTIKAN video sudah di-posting di akun TikTok atau Instagram Reels Anda terlebih dahulu.
+                          PASTIKAN video sudah kamu posting di TikTok atau Instagram Reels terlebih dahulu.
                         </p>
                       </div>
 
@@ -734,7 +734,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                         >
                           <div className="w-1.5 h-1.5 rounded-full bg-white" />
                         </div>
-                        <h5 className="font-extrabold text-neutral-900 leading-tight">Bukti Video Di-submit</h5>
+                        <h5 className="font-extrabold text-neutral-900 leading-tight">Bukti Video Dikirim</h5>
                         <p className="text-[10px] text-neutral-400 font-bold mt-0.5">
                           {work.submittedAt
                             ? new Date(work.submittedAt).toLocaleDateString("id-ID", {
@@ -744,7 +744,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                                 hour: "2-digit",
                                 minute: "2-digit",
                               })
-                            : "Belum diserahkan"}
+                            : "Belum dikirim"}
                         </p>
                       </div>
 
@@ -863,7 +863,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                       <div className="space-y-4">
                         <div className="p-5 bg-neutral-50 rounded-[16px] border border-neutral-200/30 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
                           <div className="space-y-1">
-                            <h4 className="text-xs font-black text-neutral-900">Verified Post URL</h4>
+                            <h4 className="text-xs font-black text-neutral-900">URL Postingan Terverifikasi</h4>
                             <a
                               href={work.contentUrl}
                               target="_blank"
@@ -952,7 +952,7 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
               onClick={() => { window.location.href = "/dashboard/kreator/pekerjaan-aktif"; }}
               fullWidthOnMobile
             >
-              Kembali ke List
+              Kembali ke Daftar
             </DashboardButton>
           </div>
         }

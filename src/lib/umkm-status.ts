@@ -16,7 +16,7 @@ type BadgeVariant = "neutral" | "success" | "warning" | "info" | "danger";
 
 export function getCampaignStatusLabel(status: CampaignStatus): string {
   const map: Record<CampaignStatus, string> = {
-    draft: "Draft",
+    draft: "Konsep",
     active: "Aktif",
     paused: "Dijeda",
     completed: "Selesai",
@@ -57,7 +57,7 @@ export function getFraudStatusLabel(status: FraudStatus): string {
   const map: Record<FraudStatus, string> = {
     safe: "Aman",
     review: "Perlu Ditinjau",
-    rejected: "Terindikasi Fraud",
+    rejected: "Tidak Valid",
   };
   return map[status] || status;
 }
@@ -74,7 +74,7 @@ export function getFraudStatusVariant(status: FraudStatus): BadgeVariant {
 export function getNegotiationStatusLabel(status: OrderStatus): string {
   const map: Record<OrderStatus, string> = {
     pending_payment: "Menunggu Pembayaran",
-    escrow: "Dana di Escrow",
+    escrow: "Dana Tersimpan Aman",
     in_progress: "Sedang Dikerjakan",
     revision: "Revisi",
     approved: "Disetujui",
@@ -104,9 +104,9 @@ export function getTransactionStatusLabel(status: TransactionStatus): string {
     failed: "Gagal",
     expired: "Kedaluwarsa",
     cancelled: "Dibatalkan",
-    held: "Dana Ditahan (Escrow)",
+    held: "Dana Tersimpan Aman",
     released: "Dana Dicairkan",
-    refunded: "Dikembalikan (Refund)",
+    refunded: "Dana Dikembalikan",
     // Nilai yang benar-benar ditulis ke `transactions.status` oleh backend.
     completed: "Selesai",
   };

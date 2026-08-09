@@ -13,14 +13,14 @@ export function CampaignEmptyState({ onCreateClick }: CampaignEmptyStateProps) {
         </svg>
       </div>
       <h3 className="text-2xl font-display font-extrabold text-neutral-950 mb-3 tracking-tight">
-        Belum ada campaign
+        Belum Ada Kampanye
       </h3>
       <p className="text-neutral-500 max-w-lg text-sm leading-relaxed mb-8 font-medium">
-        Mulai buat campaign pertama Anda untuk menjangkau kreator mikro dan memantau performanya dari dashboard ini.
+        Mulai promosikan bisnis Anda dengan membuat kampanye pertama untuk menjangkau para kreator.
       </p>
       <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
         <DashboardButton variant="primary" size="md" onClick={onCreateClick}>
-          Buat Campaign Baru
+          Buat Kampanye Baru
         </DashboardButton>
       </div>
     </div>

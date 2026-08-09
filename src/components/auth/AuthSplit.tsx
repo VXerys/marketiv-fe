@@ -10,10 +10,6 @@ import { MarketivLogo } from "@/components/ui/MarketivLogo";
 
 interface AuthSplitProps {
   role: "umkm" | "creator";
-  heroTitle?: string;
-  heroTagline?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  heroBullets?: readonly any[];
   children: React.ReactNode;
   className?: string;
 }
@@ -44,20 +40,20 @@ const ROLE_CONFIG = {
     heroImage: "/creator_auth_hero.jpg",
     badgeText: "Untuk Kreator Konten",
     badgeClass: "bg-violet-500/20 text-violet-200 border-violet-400/40 backdrop-blur-md",
-    title: "Berkarya bersama brand lokal.",
-    tagline: "Temukan peluang kolaborasi dengan UMKM dan bangun portofolio melalui konten yang Anda buat.",
+    title: "Ubah kontenmu jadi cuan.",
+    tagline: "Ambil campaign dari brand lokal, bikin konten sesuai gaya kamu, dan dapat bayaran langsung ke saldo.",
     benefits: [
       {
-        title: "Campaign sesuai niche",
-        desc: "Temukan pekerjaan yang relevan dengan gaya konten Anda.",
+        title: "Campaign sesuai niche kamu",
+        desc: "Pilih pekerjaan yang cocok dengan gaya konten kamu.",
       },
       {
-        title: "Kolaborasi yang lebih jelas",
-        desc: "Brief, pekerjaan, dan status tersedia dalam satu alur.",
+        title: "Arahan & status satu tempat",
+        desc: "Arahan, progres, dan status semua ada di satu dashboard.",
       },
       {
-        title: "Pembayaran melalui Marketiv",
-        desc: "Status pekerjaan dan pembayaran tercatat dalam platform.",
+        title: "Bayaran langsung ke saldo",
+        desc: "Semua tercatat rapi — cairkan kapan kamu mau.",
       },
     ],
   },
@@ -96,7 +92,7 @@ export function AuthSplit({
 
           <span className="inline-flex items-center gap-1.5 rounded-full border border-neutral-200/80 bg-neutral-50/80 px-3 py-1 text-[0.7rem] font-extrabold text-text-muted shadow-2xs">
             <Sparkles className="h-3 w-3 text-orange-500" />
-            Official Platform
+            Platform Resmi
           </span>
         </div>
 

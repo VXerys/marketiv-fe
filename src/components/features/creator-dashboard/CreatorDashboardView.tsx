@@ -24,6 +24,8 @@ import {
   BadgeCheck,
   TrendingUp,
   CheckCircle2,
+  Sparkles,
+  ArrowRight,
 } from "lucide-react";
 import {
   CreatorProfile,
@@ -381,7 +383,7 @@ export function CreatorDashboardView({
                         </span>
                       ) : (
                         <span className="px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200/50 text-amber-700 text-[9px] font-extrabold uppercase tracking-wider shadow-3xs">
-                          Pending
+                          Sedang Diverifikasi
                         </span>
                       )}
                     </div>
@@ -449,12 +451,12 @@ export function CreatorDashboardView({
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             <MetricCard label="Job Tersedia"        value={currentMetrics.availableJobsCount}                helper="Kampanye pool"          tone="kreator" icon={<Briefcase       className="w-4 h-4" />} />
             <MetricCard label="Pekerjaan Aktif"     value={currentMetrics.activeJobsCount}                   helper="Sedang dikerjakan"      tone="info"    icon={<FileCheck       className="w-4 h-4" />} />
-            <MetricCard label="Submission Pending"  value={currentMetrics.pendingSubmissionsCount}           helper="Menunggu audit admin"   tone="warning" icon={<Clock           className="w-4 h-4" />} />
+            <MetricCard label="Sedang Divalidasi"   value={currentMetrics.pendingSubmissionsCount}           helper="Menunggu audit admin"   tone="warning" icon={<Clock           className="w-4 h-4" />} />
             <MetricCard label="Saldo Tersedia"      value={formatCompactCurrency(currentMetrics.balance)}    helper="Tarik ke rekening bank" tone="success" icon={<Wallet          className="w-4 h-4" />} badge="Utama" highlight />
-            <MetricCard label="Pending Payout"      value={formatCompactCurrency(currentMetrics.pendingPayouts)} helper="Proses verifikasi"  tone="default" icon={<ArrowDownToLine className="w-4 h-4" />} />
+            <MetricCard label="Pencairan Tertunda"  value={formatCompactCurrency(currentMetrics.pendingPayouts)} helper="Proses verifikasi"  tone="default" icon={<ArrowDownToLine className="w-4 h-4" />} />
             <MetricCard label="Views Tervalidasi"   value={formatCount(currentMetrics.validatedViewsCount)}  helper="Total views valid"      tone="info"    icon={<Eye             className="w-4 h-4" />} />
             <MetricCard label="Rate Card Aktif"     value={currentMetrics.activeRateCardsCount}              helper="Paket penawaran"        tone="success" icon={<Tag             className="w-4 h-4" />} />
-            <MetricCard label="Order Negosiasi"     value={currentMetrics.negotiationOrdersCount}            helper="Rate Card orders"       tone="accent"  icon={<MessageCircle   className="w-4 h-4" />} />
+            <MetricCard label="Pesanan Negosiasi"   value={currentMetrics.negotiationOrdersCount}            helper="Pesanan Rate Card"      tone="accent"  icon={<MessageCircle   className="w-4 h-4" />} />
           </div>
 
           {/* 3 ── Quick Actions */}
@@ -486,7 +488,7 @@ export function CreatorDashboardView({
                 <div className="h-9 w-9 rounded-[12px] bg-indigo-50 border border-indigo-200/50 flex items-center justify-center group-hover:bg-indigo-100/80 transition-colors duration-200">
                   <Upload className="w-4 h-4 text-indigo-600" />
                 </div>
-                <span className="text-center text-[10px] font-extrabold leading-tight text-neutral-700 transition-colors group-hover:text-kreator-700">Submit Bukti</span>
+                <span className="text-center text-[10px] font-extrabold leading-tight text-neutral-700 transition-colors group-hover:text-kreator-700">Kirim Bukti</span>
               </Link>
 
               {/* Kelola Rate Card */}
@@ -529,7 +531,7 @@ export function CreatorDashboardView({
 
               {/* Edit Profil */}
               <Link
-                href="/dashboard/kreator/profil"
+                href="/dashboard/kreator/settings"
                 className="group flex flex-col items-center justify-center gap-2 rounded-[18px] border border-neutral-200/60 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-kreator-400/30 hover:bg-kreator-50/40 hover:shadow-kreator cursor-pointer"
               >
                 <div className="h-9 w-9 rounded-[12px] bg-blue-50 border border-blue-200/50 flex items-center justify-center group-hover:bg-blue-100/80 transition-colors duration-200">
@@ -562,7 +564,7 @@ export function CreatorDashboardView({
               <DashboardStateCard
                 kind="empty"
                 title="Tidak ada rekomendasi baru"
-                description="Seluruh kampanye yang sesuai dengan kualifikasi profil Anda telah diklaim. Silakan kunjungi Job Pool umum."
+                description="Semua campaign yang cocok buat kamu sudah diklaim. Coba cek Job Pool buat nemuin yang lain."
                 actionLabel="Buka Job Pool"
                 onAction={() => { window.location.href = "/dashboard/kreator/job-pool"; }}
               />
@@ -593,8 +595,11 @@ export function CreatorDashboardView({
               {activeWorks.length === 0 ? (
                 <DashboardStateCard
                   kind="empty"
-                  title="Tidak ada pekerjaan berjalan"
-                  description="Saat ini Anda tidak memiliki kampanye aktif. Klaim job di atas untuk memulai."
+                  title="Belum Ada Pekerjaan Aktif"
+                  description="Kamu belum mengklaim campaign apa pun. Mulai hasilkan uang dengan memilih campaign yang cocok dari Job Pool!"
+                  actionLabel="Jelajahi Job Pool"
+                  onAction={() => { window.location.href = "/dashboard/kreator/job-pool"; }}
+                  icon={<Briefcase className="h-6 w-6" />}
                 />
               ) : (
                 <div className="space-y-3">
@@ -640,6 +645,29 @@ export function CreatorDashboardView({
                       </div>
                     );
                   })}
+
+                  {activeWorks.length < 3 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-[18px] border border-dashed border-violet-200/90 bg-gradient-to-r from-violet-50/70 via-purple-50/40 to-fuchsia-50/50 p-4 sm:p-5 shadow-xs transition-all duration-200 hover:border-violet-300">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600/10 text-violet-600 border border-violet-200/50">
+                          <Sparkles className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h5 className="text-xs font-extrabold text-neutral-800">Masih Ada Kuota Pekerjaan!</h5>
+                          <p className="text-[11px] font-semibold text-neutral-500 mt-0.5">
+                            Jelajahi Job Pool untuk mengambil campaign lain dan tingkatkan penghasilanmu.
+                          </p>
+                        </div>
+                      </div>
+                      <Link
+                        href="/dashboard/kreator/job-pool"
+                        className="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-white text-[11px] font-extrabold shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-violet-200 bg-violet-600 hover:bg-violet-700"
+                      >
+                        <span>Cari Job Baru</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

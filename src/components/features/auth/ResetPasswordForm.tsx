@@ -47,7 +47,7 @@ export function ResetPasswordForm({
       return;
     }
 
-    toast.success("Password berhasil diperbarui. Silakan masuk.");
+    toast.success("Password berhasil diperbarui. Sekarang kamu bisa masuk.");
     router.replace(routes.login);
   }
 

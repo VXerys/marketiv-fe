@@ -459,7 +459,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
   const milestones = [
     { label: "Inisiasi Negosiasi & Deal", done: ms >= 2 },
     { label: "Pembayaran Escrow UMKM", done: ms >= 4 },
-    { label: "Submit Collab Post URL", done: !!neg.submittedCollabUrl },
+    { label: "Kirim URL Collab Post", done: !!neg.submittedCollabUrl },
     { label: "Pelepasan Dana Escrow", done: neg.stage === "completed" },
   ];
   const doneCount = milestones.filter(m => m.done).length;

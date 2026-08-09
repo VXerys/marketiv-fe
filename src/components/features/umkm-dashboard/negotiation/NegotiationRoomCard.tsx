@@ -196,12 +196,12 @@ export function NegotiationRoomCard({
           <div className="flex flex-wrap items-center gap-3 text-[.72rem] font-bold text-ink-400">
             <span className="flex items-center gap-1">
               <AlertCircle size={11} className="shrink-0" />
-              Deadline: {deadlineTime(order.deadline)}
+              Batas Waktu: {deadlineTime(order.deadline)}
             </span>
             <span className="w-1 h-1 rounded-full bg-neutral-300 shrink-0" />
             <span className="flex items-center gap-1">
               <Clock size={11} className="shrink-0" />
-              Update: {formatTime(order.lastMessageAt)}
+              Pesan Terakhir: {formatTime(order.lastMessageAt)}
             </span>
           </div>
         </div>
@@ -224,8 +224,8 @@ export function NegotiationRoomCard({
           {onToggleArchive && (
             <button
               onClick={onToggleArchive}
-              title={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
-              aria-label={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
+              title={isArchived ? "Kembalikan ke daftar aktif" : "Arsipkan percakapan"}
+              aria-label={isArchived ? "Kembalikan ke daftar aktif" : "Arsipkan percakapan"}
               className="inline-flex items-center justify-center h-9 w-9 rounded-xl border border-neutral-200 text-ink-400 hover:text-primary hover:border-neutral-300 transition-colors cursor-pointer"
             >
               {isArchived ? <ArchiveRestore size={15} /> : <Archive size={15} />}
@@ -236,7 +236,7 @@ export function NegotiationRoomCard({
             className="inline-flex items-center gap-1.5 min-h-[36px] px-4 rounded-xl bg-ink-950 text-white text-[.82rem] font-[800] transition-all duration-150 hover:bg-primary hover:shadow-[0_8px_20px_rgba(234,88,12,.22)] hover:-translate-y-px active:scale-[0.98] active:translate-y-0 cursor-pointer select-none no-underline"
           >
             <MessageSquare size={14} className="shrink-0" />
-            Buka Room Chat
+            Buka Percakapan
           </Link>
         </div>
       </div>

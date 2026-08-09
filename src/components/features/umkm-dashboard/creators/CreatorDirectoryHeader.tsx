@@ -57,7 +57,7 @@ export function CreatorDirectoryHeader() {
               lineHeight: 1.5,
             }}
           >
-            Kreator mikro yang siap mempromosikan bisnis UMKM Anda ke audiens yang tepat.
+            Para kreator yang siap mempromosikan bisnis UMKM Anda ke penonton yang tepat.
           </p>
         </div>
 

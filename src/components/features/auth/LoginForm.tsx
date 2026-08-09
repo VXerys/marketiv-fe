@@ -16,28 +16,14 @@ import { routes, dashboardByRole } from "@/lib/constants/routes";
 
 const ROLE_CONFIG = {
   umkm: {
-    heroTitle: "Selamat Datang di Marketiv",
-    heroTagline: "Kelola promosi usaha, temukan kreator handal, dan pantau hasil penayangan produkmu.",
-    heroBullets: [
-      { icon: "📣", text: "Promosi produk via video kreator pilihan" },
-      { icon: "🤝", text: "Pencocokan sesuai kategori usahamu" },
-      { icon: "💰", text: "Sistem garansi pembayaran aman & terukur" },
-    ],
     title: "Masuk sebagai Pemilik UMKM",
-    description: "Lanjutkan ke dashboard bisnis kamu.",
+    description: "Lanjutkan ke dashboard bisnis Anda.",
     btnClass: "bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white shadow-[0_10px_28px_rgba(234,88,12,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(234,88,12,.36)]",
     registerHref: routes.registerWithRole("umkm"),
   },
   creator: {
-    heroTitle: "Selamat Datang di Marketiv",
-    heroTagline: "Temukan kampanye UMKM, buat konten kreatif, dan dapatkan bayaran resmi.",
-    heroBullets: [
-      { icon: "🎬", text: "Terima pekerjaan promosi video dari UMKM" },
-      { icon: "💼", text: "Tawarkan paket rate card kreator kamu" },
-      { icon: "💸", text: "Pencairan penghasilan cepat & transparan" },
-    ],
-    title: "Masuk sebagai Konten Kreator",
-    description: "Lanjutkan ke dashboard kreatormu.",
+    title: "Masuk sebagai Kreator",
+    description: "Dashboard kreator kamu udah nunggu.",
     btnClass: "bg-gradient-to-b from-violet-600 to-blue-600 text-white shadow-[0_10px_28px_rgba(124,58,237,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(124,58,237,.36)]",
     registerHref: routes.registerWithRole("creator"),
   },
@@ -100,7 +86,7 @@ export function LoginForm({ next, role: initialRole = "umkm" }: LoginFormProps) 
     return (
       <AuthCard
         title="Akun Ditangguhkan"
-        description="Akun ini sedang ditangguhkan sehingga tidak bisa masuk. Hubungi admin Marketiv untuk proses peninjauan."
+        description="Akun ini ditangguhkan dan tidak bisa digunakan untuk masuk. Hubungi admin Marketiv."
         footer={
           <button
             onClick={() => setSuspended(false)}
@@ -120,12 +106,7 @@ export function LoginForm({ next, role: initialRole = "umkm" }: LoginFormProps) 
   const cfg = ROLE_CONFIG[activeRole];
 
   return (
-    <AuthSplit
-      role={activeRole}
-      heroTitle={cfg.heroTitle}
-      heroTagline={cfg.heroTagline}
-      heroBullets={cfg.heroBullets}
-    >
+    <AuthSplit role={activeRole}>
       <div className="mx-auto w-full max-w-sm">
         {/* Radix UI Role Tabs Switcher */}
         <AuthRoleTabs activeRole={activeRole} onRoleChange={handleRoleChange} />
@@ -177,7 +158,7 @@ export function LoginForm({ next, role: initialRole = "umkm" }: LoginFormProps) 
             disabled={pending}
             className={`min-h-[46px] w-full rounded-full border-0 px-6 text-xs sm:text-sm font-extrabold hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-60 ${cfg.btnClass}`}
           >
-            {pending ? "Memproses…" : `Masuk ${activeRole === "umkm" ? "UMKM" : "Kreator"}`}
+            {pending ? "Memproses…" : "Masuk ke Dashboard"}
           </button>
         </form>
 

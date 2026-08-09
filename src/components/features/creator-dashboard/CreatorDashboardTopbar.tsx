@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { routes } from "@/lib/constants/routes";
 import { Bell, Menu, Sparkles } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { logoMarketivPng } from "@/assets/icons";
@@ -27,7 +29,7 @@ function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
     else if (sub === "rate-card") items.push({ label: "Rate Card" });
     else if (sub === "negosiasi") items.push({ label: "Negosiasi" });
     else if (sub === "keuangan") items.push({ label: "Keuangan" });
-    else if (sub === "pengaturan") items.push({ label: "Pengaturan" });
+    else if (sub === "settings" || sub === "pengaturan") items.push({ label: "Pengaturan" });
   }
 
   return items;
@@ -171,7 +173,7 @@ export function CreatorDashboardTopbar({ creatorAvatar }: CreatorDashboardTopbar
 
         {/* Avatar — menampilkan foto profil Kreator yang sebenarnya (fix P0-C 2026-08-08) */}
         <Link
-          href="/dashboard/kreator/pengaturan"
+          href={routes.kreatorSettings}
           className="w-10 h-10 rounded-xl border border-neutral-200/70 shadow-3xs overflow-hidden hover:scale-105 hover:shadow-[0_4px_12px_rgba(124,58,237,.18)] active:scale-95 transition-all duration-200 relative block shrink-0 cursor-pointer"
           aria-label="Profil akun"
         >

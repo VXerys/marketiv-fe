@@ -13,7 +13,7 @@ export function NegotiationNotFoundState() {
       <div className="space-y-1">
         <h3 className="text-sm font-extrabold text-text-primary">Negosiasi Tidak Ditemukan</h3>
         <p className="text-xs text-text-secondary max-w-sm mx-auto font-medium">
-          Maaf, data negosiasi yang Anda cari tidak dapat ditemukan. Kemungkinan tautan sudah kadaluarsa atau ID tidak valid.
+          Maaf, data negosiasi yang Anda cari tidak dapat ditemukan. Kemungkinan tautan sudah kedaluwarsa atau tautan sudah tidak berlaku.
         </p>
       </div>
       <Link

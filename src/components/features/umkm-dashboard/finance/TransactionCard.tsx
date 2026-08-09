@@ -46,7 +46,7 @@ export function TransactionCard({ transaction, onOpenDetails, onOpenPayment }: T
       <div className="flex justify-between items-center gap-4">
         <div className="space-y-0.5">
           <span className="text-[.66rem] font-extrabold text-neutral-400 uppercase tracking-wider block">
-            Nominal
+            Jumlah
           </span>
           <span className={cn(
             "font-display text-[1rem] font-black tracking-tight",

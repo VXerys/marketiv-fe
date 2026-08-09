@@ -13,10 +13,10 @@ export function NegotiationHeader() {
           Kelola Negosiasi
         </div>
         <h2 className="font-display text-[clamp(1.5rem,2.8vw,2.1rem)] font-bold tracking-[-0.065em] text-ink-950 m-0 mb-1.5 leading-none">
-          Negosiasi Rate Card
+          Diskusi Paket Harga Kreator
         </h2>
         <p className="text-ink-500 text-[.88rem] m-0">
-          Kelola percakapan, penawaran, dan pembayaran escrow untuk kerja sama kreator pilihan Anda.
+          Kelola percakapan, penawaran harga, dan dana aman untuk kerja sama kreator pilihan Anda.
         </p>
       </div>
 

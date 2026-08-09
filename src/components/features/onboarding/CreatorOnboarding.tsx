@@ -159,7 +159,7 @@ export function CreatorOnboarding({ initialName }: { initialName?: string }) {
   return (
     <OnboardingShell
       title="Lengkapi Profil Kreator"
-      description="Profil yang lengkap adalah syarat kamu tampil di direktori UMKM dan bisa mengambil campaign dari Job Pool."
+      description="Profil lengkap bikin kamu lebih mudah ditemukan UMKM dan bisa langsung klaim campaign."
       steps={STEPS}
       currentStep={step}
       footer={
@@ -189,8 +189,8 @@ export function CreatorOnboarding({ initialName }: { initialName?: string }) {
           )}
 
           <p className="pt-1 text-center text-[0.72rem] font-semibold leading-relaxed text-text-muted">
-            Kalau dilewati, kamu tetap bisa masuk dashboard — tapi belum muncul di
-            direktori UMKM dan belum bisa klaim campaign.
+            Kalau dilewati sekarang, kamu bisa lengkapi nanti — tapi belum bisa
+            muncul di direktori atau klaim campaign.
           </p>
         </div>
       }
@@ -231,7 +231,7 @@ export function CreatorOnboarding({ initialName }: { initialName?: string }) {
             value={city}
             onChange={(e) => setCity(e.target.value)}
             error={errors.city}
-            hint="Dipakai UMKM untuk mencari kreator terdekat."
+            hint="UMKM pakai ini buat cari kreator di sekitar mereka."
             disabled={busy}
           />
         </div>
@@ -247,7 +247,7 @@ export function CreatorOnboarding({ initialName }: { initialName?: string }) {
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             error={errors.bio}
-            hint="Tampil di kartu profilmu pada direktori UMKM."
+            hint="Ini yang dilihat UMKM pertama kali di profil kamu."
             disabled={busy}
           />
 
@@ -294,7 +294,7 @@ export function CreatorOnboarding({ initialName }: { initialName?: string }) {
             value={tiktok}
             onChange={(e) => setTiktok(e.target.value)}
             error={errors.tiktok}
-            hint="Wajib — TikTok adalah platform yang dipakai UMKM untuk menilai kreator."
+            hint="TikTok-mu jadi portofolio utama kamu di Marketiv — wajib diisi."
             disabled={busy}
           />
         </div>

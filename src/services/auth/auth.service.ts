@@ -74,7 +74,7 @@ function authMessage(err: unknown, fallback: string): string {
   switch (type) {
     case "user_already_exists":
     case "user_email_already_exists":
-      return "Email ini sudah terdaftar. Silakan login atau gunakan email lain.";
+      return "Email ini sudah terdaftar. Coba masuk atau pakai email lain.";
     case "user_invalid_credentials":
       return "Email atau password salah.";
     case "user_blocked":
@@ -87,7 +87,7 @@ function authMessage(err: unknown, fallback: string): string {
     case "user_invalid_token":
       return "Kode salah atau sudah kedaluwarsa. Minta kode baru.";
     case "general_rate_limit_exceeded":
-      return "Terlalu banyak percobaan. Coba lagi beberapa menit lagi.";
+      return "Terlalu banyak percobaan. Tunggu beberapa menit dulu.";
     default:
       return fallback;
   }

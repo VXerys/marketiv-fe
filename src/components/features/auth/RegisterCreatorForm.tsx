@@ -94,13 +94,6 @@ export function RegisterCreatorForm() {
   return (
     <AuthSplit
       role="creator"
-      heroTitle="Gabung sebagai Konten Kreator"
-      heroTagline="Monetisasi kontenmu dan raih penghasilan dari UMKM yang butuh kreator sepertimu."
-      heroBullets={[
-        { icon: "🎯", text: "Ambil campaign PPV dari UMKM aktif" },
-        { icon: "💼", text: "Buat & jual rate card paket konten" },
-        { icon: "💸", text: "Cairkan penghasilan kapan saja" },
-      ]}
     >
       <div className="mx-auto w-full max-w-sm">
         {/* Radix UI Role Tabs Switcher */}
@@ -112,7 +105,7 @@ export function RegisterCreatorForm() {
             Daftar sebagai Konten Kreator
           </h1>
           <p className="text-xs font-medium text-text-muted">
-            Buat akun untuk mengambil campaign dan menjual rate card kamu.
+            Buat akun gratis dan mulai terima campaign dari UMKM hari ini.
           </p>
         </div>
 
@@ -159,7 +152,7 @@ export function RegisterCreatorForm() {
             disabled={pending}
             className="min-h-[46px] w-full rounded-full border-0 bg-gradient-to-b from-violet-600 to-blue-600 px-6 text-xs sm:text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(124,58,237,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(124,58,237,.36)] hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-60"
           >
-            {pending ? "Mendaftarkan…" : "Daftar sebagai Konten Kreator"}
+            {pending ? "Mendaftarkan…" : "Buat Akun Kreator"}
           </button>
         </form>
 

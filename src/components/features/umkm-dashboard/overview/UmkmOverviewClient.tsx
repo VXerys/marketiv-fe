@@ -76,7 +76,7 @@ export function UmkmOverviewClient() {
             }}
             className="text-sm font-bold text-primary-600 underline underline-offset-2 cursor-pointer"
           >
-            Coba lagi
+            Coba Lagi
           </button>
         </div>
       </UmkmDashboardChrome>

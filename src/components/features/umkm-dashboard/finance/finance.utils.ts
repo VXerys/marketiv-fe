@@ -25,9 +25,9 @@ export function getStatusLabel(status: TransactionStatus): string {
     case "pending":
       return "Menunggu Pembayaran";
     case "held":
-      return "Dalam Escrow";
+      return "Dana Tersimpan Aman";
     case "paid":
-      return "Sukses";
+      return "Pembayaran Berhasil";
     case "released":
       return "Dana Dicairkan";
     case "failed":
@@ -37,7 +37,7 @@ export function getStatusLabel(status: TransactionStatus): string {
     case "cancelled":
       return "Dibatalkan";
     case "refunded":
-      return "Refunded / Dikembalikan";
+      return "Dana Dikembalikan";
     default:
       return status;
   }
@@ -52,9 +52,9 @@ export function getTypeLabel(type: TransactionType): string {
     case "payment":
       return "Pembayaran";
     case "fee":
-      return "Platform Fee";
+      return "Biaya Layanan";
     case "refund":
-      return "Refund";
+      return "Pengembalian Dana";
     case "release":
       return "Pencairan";
     default:
@@ -65,9 +65,9 @@ export function getTypeLabel(type: TransactionType): string {
 export function getReferenceLabel(type: ReferenceType): string {
   switch (type) {
     case "campaign":
-      return "Campaign Mode";
+      return "Mode Kampanye";
     case "rate_card":
-      return "Rate Card Mode";
+      return "Mode Paket Harga";
     default:
       return type;
   }

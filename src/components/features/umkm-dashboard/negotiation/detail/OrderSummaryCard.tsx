@@ -67,7 +67,7 @@ export function OrderSummaryCard({ order, onCancelOrder }: OrderSummaryCardProps
 
         {/* Scope */}
         <div className="border-t border-dashed border-border-soft pt-3 space-y-1">
-          <span className="block text-[9px] font-bold text-text-muted uppercase tracking-wider">Lingkup Deliverable</span>
+          <span className="block text-[9px] font-bold text-text-muted uppercase tracking-wider">Lingkup Pekerjaan</span>
           <p className="text-[10px] text-text-secondary leading-relaxed font-semibold">{order.scope}</p>
         </div>
 

@@ -20,7 +20,7 @@ export function FinanceEmptyState({ isFiltered = false, onResetFilters }: Financ
       <p className="text-[.82rem] text-ink-400 font-medium mt-1.5 max-w-sm leading-relaxed">
         {isFiltered
           ? "Tidak ada transaksi yang cocok dengan kata kunci pencarian atau filter yang Anda gunakan saat ini."
-          : "Akun Anda belum memiliki riwayat transaksi finansial, pembayaran escrow, atau platform fee."}
+          : "Akun Anda belum memiliki riwayat transaksi, pembayaran kampanye, dana aman, atau biaya layanan."}
       </p>
 
       {isFiltered && onResetFilters && (

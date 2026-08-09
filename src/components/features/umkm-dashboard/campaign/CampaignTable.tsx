@@ -54,7 +54,7 @@ export function CampaignTable({
       ...(isDeleteVisible
         ? [
             {
-              label: "Terbitkan Campaign",
+              label: "Terbitkan Kampanye",
               onClick: () => onPublish(campaign),
             },
           ]
@@ -62,13 +62,13 @@ export function CampaignTable({
       ...(isEditVisible
         ? [
             {
-              label: "Edit Draft",
+              label: "Ubah Konsep",
               onClick: () => onEdit(campaign),
             },
           ]
         : []),
       {
-        label: "Duplikasi Campaign",
+        label: "Salin Kampanye",
         onClick: () => onDuplicate(campaign),
       },
       {
@@ -78,7 +78,7 @@ export function CampaignTable({
       ...(!isCancelDisabled
         ? [
             {
-              label: "Batalkan Campaign",
+              label: "Batalkan Kampanye",
               onClick: () => onCancel(campaign),
               tone: "danger" as const,
             },
@@ -87,7 +87,7 @@ export function CampaignTable({
       ...(isDeleteVisible
         ? [
             {
-              label: "Hapus Draft",
+              label: "Hapus Konsep",
               onClick: () => onDelete(campaign),
               tone: "danger" as const,
             },
@@ -102,7 +102,7 @@ export function CampaignTable({
         {campaign.thumbnailUrl ? (
           <Image src={campaign.thumbnailUrl} alt={campaign.title} fill sizes="40px" className="object-cover" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-[9px] font-bold text-neutral-400">N/A</div>
+          <div className="flex h-full w-full items-center justify-center text-[9px] font-bold text-neutral-400">—</div>
         )}
       </div>
     );
@@ -115,9 +115,9 @@ export function CampaignTable({
           const counts = submissionCounts[campaign.id] || { pending: 0, valid: 0, dispute: 0 };
           const detailUrl = `/dashboard/umkm/campaign/${campaign.id}`;
           const cells: ResponsiveDataCell[] = [
-            { label: "Views", value: formatCompactNumber(campaign.totalViews), align: "right" },
+            { label: "Tayangan", value: formatCompactNumber(campaign.totalViews), align: "right" },
             {
-              label: "Budget",
+              label: "Anggaran",
               value: (
                 <span>
                   {formatCurrency(campaign.usedBudget)}
@@ -130,18 +130,18 @@ export function CampaignTable({
             },
             { label: "Kuota Kreator", value: `${campaign.usedQuota} / ${campaign.creatorQuota}` },
             {
-              label: "Submissions",
+              label: "Bukti Konten",
               value: (
                 <span className="flex flex-wrap gap-1.5">
                   <DashboardBadge tone="amber" size="sm">
-                    {counts.pending} P
+                    {counts.pending} Menunggu
                   </DashboardBadge>
                   <DashboardBadge tone="green" size="sm">
-                    {counts.valid} V
+                    {counts.valid} Disetujui
                   </DashboardBadge>
                   {counts.dispute > 0 ? (
                     <DashboardBadge tone="red" size="sm">
-                      {counts.dispute} D
+                      {counts.dispute} Sengketa
                     </DashboardBadge>
                   ) : null}
                 </span>
@@ -181,13 +181,13 @@ export function CampaignTable({
         <table className="w-full table-fixed border-collapse text-left">
           <thead>
             <tr className="border-b border-border-soft bg-neutral-50/50 text-[10px] font-bold uppercase tracking-wider text-text-secondary sm:text-xs">
-              <th className="w-[28%] px-6 py-4">Campaign</th>
+              <th className="w-[28%] px-6 py-4">Kampanye</th>
               <th className="w-[10%] px-4 py-4">Status</th>
-              <th className="w-[10%] px-4 py-4">Niche</th>
-              <th className="w-[9%] px-4 py-4 text-right">Views</th>
-              <th className="w-[16%] px-4 py-4 text-right">Budget (Terpakai/Total)</th>
+              <th className="w-[10%] px-4 py-4">Kategori</th>
+              <th className="w-[9%] px-4 py-4 text-right">Tayangan</th>
+              <th className="w-[16%] px-4 py-4 text-right">Anggaran (Terpakai/Total)</th>
               <th className="w-[9%] px-4 py-4 text-center">Kuota Kreator</th>
-              <th className="w-[10%] px-4 py-4 text-center">Submissions</th>
+              <th className="w-[10%] px-4 py-4 text-center">Bukti Konten</th>
               <th className="w-[8%] px-4 py-4">Dibuat</th>
               <th className="w-[10%] px-6 py-4 text-center">Aksi</th>
             </tr>
@@ -233,14 +233,14 @@ export function CampaignTable({
                   <td className="px-4 py-4">
                     <div className="flex flex-wrap items-center justify-center gap-1.5">
                       <DashboardBadge tone="amber" className="px-1.5 text-[9px] font-bold">
-                        {counts.pending} P
+                        {counts.pending} Menunggu
                       </DashboardBadge>
                       <DashboardBadge tone="green" className="px-1.5 text-[9px] font-bold">
-                        {counts.valid} V
+                        {counts.valid} Disetujui
                       </DashboardBadge>
                       {counts.dispute > 0 ? (
                         <DashboardBadge tone="red" className="px-1.5 text-[9px] font-bold">
-                          {counts.dispute} D
+                          {counts.dispute} Sengketa
                         </DashboardBadge>
                       ) : null}
                     </div>
@@ -249,7 +249,7 @@ export function CampaignTable({
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <DashboardButton variant="secondary" size="sm" href={detailUrl} className="h-7 px-3 text-[10px]">
-                        Buka
+                        Lihat Detail
                       </DashboardButton>
                       <DashboardActionMenu items={actionItems} />
                     </div>
