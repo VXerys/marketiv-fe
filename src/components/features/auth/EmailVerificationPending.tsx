@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { MailCheck, RefreshCcw, ArrowRight } from "lucide-react";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthErrorBanner } from "@/components/auth/AuthField";
@@ -27,6 +27,9 @@ const COOLDOWN_SECONDS = 60;
 /**
  * Layar setelah register — user memasukkan kode OTP 6 digit dari email untuk
  * mengaktifkan akun. Menggunakan visual 6-slot InputOTP dengan countdown cooldown 60s.
+ * 
+ * NOTE: Auto-submit dihapus untuk mencegah race condition double-submit session deletion.
+ * Menggunakan synchronous ref lock (`verifyingRef`) sebagai mutex agar request OTP hanya berjalan 1x.
  */
 export function EmailVerificationPending({
   email,
@@ -45,6 +48,9 @@ export function EmailVerificationPending({
   // ⏱️ Cooldown timer 60 detik untuk tombol resend OTP
   const [cooldown, setCooldown] = useState(COOLDOWN_SECONDS);
 
+  // 🔒 Synchronous ref lock untuk cegah race condition / double submit
+  const verifyingRef = useRef(false);
+
   useEffect(() => {
     if (cooldown <= 0) return;
     const timer = setInterval(() => {
@@ -57,20 +63,26 @@ export function EmailVerificationPending({
 
   const submitOtp = useCallback(
     async (otpCode: string) => {
-      if (otpCode.length !== 6 || verifying) return;
+      if (otpCode.length !== 6 || verifyingRef.current) return;
+
+      verifyingRef.current = true;
       setVerifyError(null);
       setVerifying(true);
 
-      const res = await confirmEmailOtp({ userId, email, password, code: otpCode });
-      setVerifying(false);
+      try {
+        const res = await confirmEmailOtp({ userId, email, password, code: otpCode });
 
-      if (res.success) {
-        onContinue();
-      } else {
-        setVerifyError(res.error ?? "Kode salah atau kedaluwarsa. Minta kode baru.");
+        if (res.success) {
+          onContinue();
+        } else {
+          setVerifyError(res.error ?? "Kode salah atau kedaluwarsa. Minta kode baru.");
+        }
+      } finally {
+        verifyingRef.current = false;
+        setVerifying(false);
       }
     },
-    [userId, email, password, verifying, onContinue]
+    [userId, email, password, onContinue]
   );
 
   async function handleVerify(e: React.FormEvent) {
@@ -81,7 +93,7 @@ export function EmailVerificationPending({
   }
 
   async function handleResend() {
-    if (cooldown > 0 || resending) return;
+    if (cooldown > 0 || resending || verifyingRef.current) return;
 
     setResending(true);
     setResendError(null);

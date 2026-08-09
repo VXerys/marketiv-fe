@@ -77,7 +77,12 @@ export function RegisterCreatorForm() {
         userId={verifyUserId}
         password={form.password}
         onContinue={async () => {
-          await refresh();
+          const sessionRes = await refresh();
+          if (!sessionRes.success || !sessionRes.data) {
+            setBanner(sessionRes.error ?? "Gagal memuat sesi setelah verifikasi. Coba lagi.");
+            setVerificationSent(false);
+            return;
+          }
           router.replace(routes.onboarding);
         }}
       />

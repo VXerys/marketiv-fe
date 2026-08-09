@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { dashboardByRole } from "@/lib/constants/routes";
+import { routes, dashboardByRole } from "@/lib/constants/routes";
 
 /**
  * Lempar user yang sudah punya sesi keluar dari halaman auth.
@@ -15,11 +15,12 @@ import { dashboardByRole } from "@/lib/constants/routes";
  *   1. loading / belum ada user   → render children (form login/register)
  *   2. user ada tapi email belum  → render children (layar OTP masih di sini)
  *      terverifikasi
- *   3. user ada + email verified  → redirect ke dashboard sesuai role
+ *   3. user ada + email verified + profile incomplete → redirect ke /onboarding
+ *   4. user ada + email verified + profile complete → redirect ke dashboard
  *
  * Ini memastikan layar OTP (EmailVerificationPending) tetap ditampilkan
- * meskipun Appwrite session sudah aktif setelah register, karena
- * emailVerification masih false.
+ * meskipun Appwrite session sudah aktif setelah register, dan setelah OTP verified,
+ * navigation owner mengarahkan dengan deterministik ke /onboarding atau dashboard.
  */
 export function RedirectIfAuthenticated({
   next,
@@ -35,7 +36,14 @@ export function RedirectIfAuthenticated({
     if (loading || !user) return;
     // User belum verifikasi email → jangan redirect, biarkan layar OTP render.
     if (!user.emailVerified) return;
-    router.replace(next || dashboardByRole[user.role]);
+
+    if (next) {
+      router.replace(next);
+    } else if (!user.isProfileCompleted) {
+      router.replace(routes.onboarding);
+    } else {
+      router.replace(dashboardByRole[user.role]);
+    }
   }, [loading, user, next, router]);
 
   // errorCode "not_found" = akun & sesi ada, tapi baris `users` belum terbentuk
