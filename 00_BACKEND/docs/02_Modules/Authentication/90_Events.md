@@ -44,6 +44,27 @@ tersedia. Callback harus membaca `getSession()`; bila hasilnya `not_found`,
 artinya provisioning profil belum selesai. Cabang itu memicu recovery sinkron
 sesuai role, bukan menganggap user belum login.
 
+## Email Verified
+
+```text
+Appwrite Auth user update
+↓ emailVerification === true
+user-email-verified
+↓ lookup users by userId
+↓ set users.email_verified_at bila masih kosong
+```
+
+| Aspek | Detail |
+| --- | --- |
+| Trigger | `users.*.update` dari Appwrite Auth |
+| Function | `user-email-verified` |
+| Guard | Hanya payload dengan `emailVerification === true` |
+| Efek | Isi `users.email_verified_at` secara idempoten |
+
+Event ini dipakai oleh alur OTP register: `account.createSession(userId, otp)`
+menandai email Auth terverifikasi, lalu Function menyinkronkan timestamp ke
+mirror `users`.
+
 > **Welcome Notification — tidak ada.** Dokumen ini sebelumnya menyebut
 > `create-user-wallet` mengirim notifikasi `type: system` bertajuk "Selamat
 > datang di Marketiv" sebagai "Efek 3". Function itu tidak pernah menulis

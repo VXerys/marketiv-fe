@@ -52,8 +52,9 @@ Catatan: Login Google OAuth via `account.createOAuth2Session()` dipanggil langsu
 
 ### Forgot Password (`forgotPassword`)
 
-- Email terdaftar → `account.createRecovery()` dipanggil.
+- Email terdaftar → Function `request-password-otp` mengirim Appwrite Email OTP dan mengembalikan `userId`.
 - Email kosong → throw `AuthServiceError('validation', 'Email wajib diisi.')`.
+- Request ke-4 dalam 10 menit dari email+IP sama → Function mengembalikan 429 dan tidak mengirim OTP.
 
 ### Reset Password (`resetPassword`)
 
@@ -61,6 +62,19 @@ Catatan: Login Google OAuth via `account.createOAuth2Session()` dipanggil langsu
 - UserId kosong → throw `AuthServiceError('validation', 'User ID wajib diisi.')`.
 - Secret kosong → throw `AuthServiceError('validation', 'Secret reset password wajib diisi.')`.
 - Password kosong → throw `AuthServiceError('validation', 'Password baru wajib diisi.')`.
+
+### Reset Password OTP (`resetPasswordWithOtp`)
+
+- Input valid (`userId`, OTP 6 digit, password baru) → Function `reset-password-with-otp` memverifikasi OTP via `account.createSession()`, lalu `users.updatePassword()` sukses.
+- OTP salah/kedaluwarsa → Function mengembalikan 401 dan password tidak berubah.
+- `userId` kosong → Function mengembalikan 400.
+- OTP bukan 6 digit angka → Function mengembalikan 400.
+
+### Email Verification Sync (`user-email-verified`)
+
+- Payload Auth `emailVerification: true` → baris `users` berdasarkan `userId` diisi `email_verified_at`.
+- Payload tanpa `emailVerification: true` → Function no-op.
+- Baris `users.email_verified_at` sudah terisi → Function no-op idempoten.
 
 ### Error Mapping (`mapError`)
 

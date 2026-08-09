@@ -16,6 +16,7 @@ export function ForgotPasswordForm() {
   const [banner, setBanner] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [resetUserId, setResetUserId] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,10 +37,14 @@ export function ForgotPasswordForm() {
       setBanner(res.error ?? "Gagal mengirim email pemulihan.");
       return;
     }
+    setResetUserId(res.data?.userId ?? null);
     setSent(true);
   }
 
   if (sent) {
+    const resetParams = new URLSearchParams({ email });
+    if (resetUserId) resetParams.set("userId", resetUserId);
+
     return (
       <AuthCard
         title="Cek email kamu"
@@ -62,7 +67,7 @@ export function ForgotPasswordForm() {
           </div>
 
           <Link
-            href={`/reset-password?email=${encodeURIComponent(email)}`}
+            href={`/reset-password?${resetParams.toString()}`}
             className="flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full border-0 bg-gradient-to-b from-[#fb7a18] to-primary-600 px-6 text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(234,88,12,.28),inset_0_1px_0_rgba(255,255,255,.22)] transition-all hover:-translate-y-px hover:shadow-[0_14px_36px_rgba(234,88,12,.36)] cursor-pointer"
           >
             <span>Masukkan Kode OTP 6-Digit</span>

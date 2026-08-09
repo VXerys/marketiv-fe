@@ -63,6 +63,11 @@ export interface RegisterOutcome {
   provisionErrorCode?: ServiceErrorCode;
 }
 
+export interface PasswordOtpRequestOutcome {
+  /** Auth user id returned by Appwrite Email OTP. Required to verify OTP later. */
+  userId: string | null;
+}
+
 /**
  * Pesan yang bisa dibaca manusia untuk kegagalan Appwrite Auth.
  *
@@ -364,34 +369,34 @@ export async function login(
  */
 export async function requestPasswordRecovery(
   input: ForgotPasswordInput
-): Promise<ServiceResult<null>> {
+): Promise<ServiceResult<PasswordOtpRequestOutcome>> {
   const parsed = parseOrErrors(forgotPasswordSchema, input);
   if (!parsed.ok) {
     return failValidation(
       Object.values(parsed.errors)[0] ?? "Email wajib diisi.",
-      noData<null>()
+      noData<PasswordOtpRequestOutcome>()
     );
   }
 
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(400);
-    return ok(null);
+    return ok({ userId: "mock-reset-user" });
   }
 
   try {
-    await account.createRecovery({
-      email: parsed.data.email,
-      url: `${window.location.origin}${AUTH_CONFIG.recoveryPath}`,
-    });
-    return ok(null);
+    const payload = await executeFunction<PasswordOtpRequestOutcome>(
+      FUNCTION_IDS.requestPasswordOtp,
+      { email: parsed.data.email }
+    );
+    return ok({ userId: payload.userId ?? null });
   } catch (err) {
     return fail(
       authMessage(
         err,
-        "Email pemulihan belum bisa dikirim. Fitur ini belum aktif di project — hubungi admin Marketiv."
+        "Email pemulihan belum bisa dikirim. Tunggu beberapa menit lalu coba lagi."
       ),
       mapWriteErrorCode(err),
-      noData<null>()
+      noData<PasswordOtpRequestOutcome>()
     );
   }
 }
@@ -441,7 +446,7 @@ export async function completePasswordRecovery(
 
 /** Selesaikan pemulihan password dengan kode OTP 6-digit. */
 export async function completePasswordRecoveryWithOtp(
-  args: { email: string; otpCode: string } & ResetPasswordInput
+  args: { userId: string; otpCode: string } & ResetPasswordInput
 ): Promise<ServiceResult<null>> {
   const parsed = parseOrErrors(resetPasswordSchema, {
     password: args.password,
@@ -455,9 +460,9 @@ export async function completePasswordRecoveryWithOtp(
   }
 
   const otpCode = args.otpCode.trim();
-  if (!args.email || otpCode.length !== 6) {
+  if (!args.userId || !/^\d{6}$/.test(otpCode)) {
     return failValidation(
-      "Masukkan alamat email dan kode OTP 6 digit secara lengkap.",
+      "Permintaan reset tidak lengkap atau kode OTP belum valid. Minta kode baru.",
       noData<null>()
     );
   }
@@ -468,9 +473,9 @@ export async function completePasswordRecoveryWithOtp(
   }
 
   try {
-    await account.updateRecovery({
-      userId: args.email,
-      secret: otpCode,
+    await executeFunction(FUNCTION_IDS.resetPasswordWithOtp, {
+      userId: args.userId,
+      otpCode,
       password: parsed.data.password,
     });
     return ok(null);

@@ -81,11 +81,17 @@ Klik Lupa Password
 ↓
 Input Email
 ↓
-Kirim Link Reset
+request-password-otp Function
+↓ rate limit 3 request / 10 menit per email+IP
+↓ Appwrite Email OTP dikirim
 ↓
-Buka Email
+Buka /reset-password dengan email + userId
 ↓
-Reset Password
+Input OTP 6 digit + password baru
+↓
+reset-password-with-otp Function
+↓ verify OTP server-side
+↓ users.updatePassword()
 ↓
 Login
 ```

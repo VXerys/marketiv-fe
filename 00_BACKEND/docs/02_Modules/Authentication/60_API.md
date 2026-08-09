@@ -112,9 +112,42 @@ Catatan: UI Marketiv tidak memakai `account.get()` saja sebagai bukti login siap
 
 ---
 
-### `forgotPassword(email, redirectUrl?)` — [Client SDK]
+### `forgotPassword(email)` — [Function]
 
-Kirim link reset password ke email. `redirectUrl` opsional (default: `/reset-password`).
+Kirim OTP email 6 digit untuk reset password via Function `request-password-otp`.
+
+Input:
+
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+Return:
+
+```json
+{
+  "success": true,
+  "userId": "auth-user-id"
+}
+```
+
+Function melakukan server-side rate limit 3 request per 10 menit per email+IP. Response tidak pernah berisi OTP mentah.
+
+### `resetPasswordWithOtp(userId, otpCode, newPassword)` — [Function]
+
+Setel password baru via Function `reset-password-with-otp`. Function memverifikasi OTP dengan Appwrite `account.createSession(userId, otpCode)` sebelum memanggil `users.updatePassword(userId, newPassword)`.
+
+Input:
+
+```json
+{
+  "userId": "auth-user-id",
+  "otpCode": "123456",
+  "password": "new-password"
+}
+```
 
 ### `resetPassword(userId, secret, newPassword)` — [Client SDK]
 

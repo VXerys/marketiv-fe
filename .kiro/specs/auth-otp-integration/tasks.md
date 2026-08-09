@@ -16,14 +16,14 @@ Status Task Terbaru setelah fix OTP redirect race condition.
 
 ---
 
-### ⚙️ ROLE B: BACKEND ENGINEER (TIM BACKEND) — 25% DONE (1/4 Tasks)
+### ⚙️ ROLE B: BACKEND ENGINEER (TIM BACKEND) — 100% DONE (4/4 Tasks)
 - [x] **AUTH-BE-01** [Done]: Integrasi Client SDK `createEmailToken` & `createSession` di `auth.service.ts`.
-- [ ] **AUTH-BE-02** [Pending]: Buat Appwrite Function / Handler untuk Reset Password via Kode OTP 6-digit.
-- [ ] **AUTH-BE-03** [Pending]: Server-side Rate Limiter Pengiriman OTP (Max 3x per 10 menit per Email/IP).
-- [ ] **AUTH-BE-04** [Pending]: Verifikasi Cloud Function `user-email-verified` merespons event `emailVerification` untuk sync DB.
+- [x] **AUTH-BE-02** [Done]: Buat Appwrite Function / Handler untuk Reset Password via Kode OTP 6-digit.
+- [x] **AUTH-BE-03** [Done]: Server-side Rate Limiter Pengiriman OTP (Max 3x per 10 menit per Email/IP).
+- [x] **AUTH-BE-04** [Done]: Verifikasi Cloud Function `user-email-verified` merespons event `emailVerification` untuk sync DB.
 
 ---
 
 ### 🧪 ROLE C: FULLSTACK & QA AUDITOR — 0% DONE (0/2 Tasks)
-- [ ] **AUTH-QA-01** [Pending]: E2E Test Flow: Register -> Kirim OTP Email -> Input OTP -> Terverifikasi.
-- [ ] **AUTH-QA-02** [Pending]: E2E Test Flow: Lupa Password -> OTP Email -> Input OTP + Pass Baru -> Success Login.
+- [ ] **AUTH-QA-01** [Pending]: E2E Test Flow: Register -> Kirim OTP Email -> Input OTP -> Terverifikasi. Spec Playwright live-gated sudah ditambahkan; verifikasi live butuh browser Playwright + kredensial/OTP email.
+- [ ] **AUTH-QA-02** [Pending]: E2E Test Flow: Lupa Password -> OTP Email -> Input OTP + Pass Baru -> Success Login. Spec Playwright live-gated sudah ditambahkan; verifikasi live butuh browser Playwright + kredensial/OTP email.

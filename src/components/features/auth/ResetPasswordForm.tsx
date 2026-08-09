@@ -33,6 +33,7 @@ export function ResetPasswordForm({ userId, secret }: ResetPasswordFormProps) {
   const isUrlMode = Boolean(userId && secret);
 
   const initialEmail = searchParams?.get("email") ?? "";
+  const resetUserId = searchParams?.get("userId") ?? "";
 
   const [email, setEmail] = useState(initialEmail);
   const [otpCode, setOtpCode] = useState("");
@@ -64,6 +65,10 @@ export function ResetPasswordForm({ userId, secret }: ResetPasswordFormProps) {
         setBanner("Masukkan kode 6 digit OTP yang dikirim ke email kamu.");
         return;
       }
+      if (!resetUserId) {
+        setBanner("Permintaan reset tidak lengkap. Minta kode OTP baru dari halaman lupa password.");
+        return;
+      }
     }
 
     setPending(true);
@@ -73,7 +78,7 @@ export function ResetPasswordForm({ userId, secret }: ResetPasswordFormProps) {
       res = await completePasswordRecovery({ userId, secret, ...parsed.data });
     } else {
       res = await completePasswordRecoveryWithOtp({
-        email,
+        userId: resetUserId,
         otpCode,
         ...parsed.data,
       });

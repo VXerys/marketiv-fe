@@ -77,15 +77,15 @@ export const registerCreatorSchema = z.object({
 });
 export type RegisterCreatorInput = z.infer<typeof registerCreatorSchema>;
 
-/** Lupa password — hanya email; tautan dikirim Appwrite. */
+/** Lupa password — hanya email; OTP dikirim lewat Function server-side. */
 export const forgotPasswordSchema = z.object({
   email: emailAddress(),
 });
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
 /**
- * Reset password. `userId` & `secret` datang dari query string tautan email,
- * bukan dari input user, jadi tidak divalidasi di sini.
+ * Reset password. Untuk link legacy, `userId` & `secret` datang dari query string.
+ * Untuk OTP, Function server-side memvalidasi `userId` + OTP sebelum ganti password.
  */
 export const resetPasswordSchema = z
   .object({

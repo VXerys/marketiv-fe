@@ -307,6 +307,112 @@
       ]
     },
     {
+      "$id": "otp_rate_limits",
+      "name": "OTP Rate Limits",
+      "$permissions": [],
+      "enabled": true,
+      "databaseId": "6a4c8598001da3b0d7f0",
+      "rowSecurity": true,
+      "columns": [
+        {
+          "key": "key",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 64,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "email",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "ip",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 100,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "count",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "default": 1,
+          "min": 0,
+          "max": 999999999
+        },
+        {
+          "key": "windowStart",
+          "type": "datetime",
+          "required": true,
+          "array": false,
+          "default": null
+        },
+        {
+          "key": "updatedAt",
+          "type": "datetime",
+          "required": true,
+          "array": false,
+          "default": null
+        }
+      ],
+      "indexes": [
+        {
+          "key": "idx_key",
+          "type": "unique",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "key"
+          ]
+        },
+        {
+          "key": "idx_email",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "email"
+          ]
+        },
+        {
+          "key": "idx_ip",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "ip"
+          ]
+        },
+        {
+          "key": "idx_updatedAt",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "updatedAt"
+          ]
+        }
+      ]
+    },
+    {
       "$id": "umkm_profiles",
       "name": "UMKM Profiles",
       "$permissions": [
@@ -3727,6 +3833,47 @@
       ]
     },
     {
+      "$id": "request-password-otp",
+      "name": "Request Password OTP",
+      "runtime": "node-22",
+      "execute": [
+        "any"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/request-password-otp",
+      "scopes": [
+        "documents.read",
+        "documents.write",
+        "users.read"
+      ]
+    },
+    {
+      "$id": "reset-password-with-otp",
+      "name": "Reset Password With OTP",
+      "runtime": "node-22",
+      "execute": [
+        "any"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/reset-password-with-otp",
+      "scopes": [
+        "users.write",
+        "sessions.write"
+      ]
+    },
+    {
       "$id": "accept-tos",
       "name": "Accept ToS",
       "runtime": "node-22",
@@ -4530,11 +4677,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
+      "path": "functions/track-order-review",
       "scopes": [
         "documents.read",
         "documents.write"
-      ],
-      "path": "functions/track-order-review"
+      ]
     },
     {
       "$id": "auto-approve-orders",
@@ -4548,11 +4695,11 @@
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",
+      "path": "functions/auto-approve-orders",
       "scopes": [
         "documents.read",
         "documents.write"
-      ],
-      "path": "functions/auto-approve-orders"
+      ]
     }
   ]
 }

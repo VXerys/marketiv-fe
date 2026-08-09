@@ -73,13 +73,6 @@ export function EmailVerificationPending({
     [userId, email, password, verifying, onContinue]
   );
 
-  // Auto-submit saat 6 digit terisi penuh
-  useEffect(() => {
-    if (code.length === 6 && !verifying && !verifyError) {
-      void submitOtp(code);
-    }
-  }, [code, verifying, verifyError, submitOtp]);
-
   async function handleVerify(e: React.FormEvent) {
     e.preventDefault();
     if (code.length === 6) {
@@ -143,8 +136,12 @@ export function EmailVerificationPending({
             maxLength={6}
             value={code}
             onChange={(val) => {
+              const nextCode = val.replace(/\D/g, "").slice(0, 6);
               setVerifyError(null);
-              setCode(val.replace(/\D/g, "").slice(0, 6));
+              setCode(nextCode);
+              if (nextCode.length === 6 && !verifying) {
+                setTimeout(() => void submitOtp(nextCode), 0);
+              }
             }}
             disabled={verifying}
             className="w-full flex justify-center gap-1 sm:gap-2"

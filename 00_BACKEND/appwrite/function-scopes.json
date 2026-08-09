@@ -35,6 +35,14 @@
     "documents.read",
     "documents.write"
   ],
+  "patch-campaign-draft": [
+    "documents.read",
+    "documents.write"
+  ],
+  "patch-campaign-status": [
+    "documents.read",
+    "documents.write"
+  ],
   "create-order": [
     "documents.read",
     "documents.write"
@@ -46,6 +54,15 @@
   "create-user-profile": [
     "documents.read",
     "documents.write"
+  ],
+  "request-password-otp": [
+    "documents.read",
+    "documents.write",
+    "users.read"
+  ],
+  "reset-password-with-otp": [
+    "users.write",
+    "sessions.write"
   ],
   "create-user-wallet": [
     "documents.read",

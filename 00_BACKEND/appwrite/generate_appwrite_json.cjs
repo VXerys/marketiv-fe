@@ -119,6 +119,27 @@ const collections = [
         ]
     },
     {
+        $id: "otp_rate_limits",
+        name: "OTP Rate Limits",
+        $permissions: [],
+        documentSecurity: true,
+        enabled: true,
+        attributes: [
+            createStringAttr("key", true, 64),
+            createStringAttr("email", true, 255),
+            createStringAttr("ip", true, 100),
+            createIntAttr("count", true, 1),
+            createDatetimeAttr("windowStart", true),
+            createDatetimeAttr("updatedAt", true)
+        ],
+        indexes: [
+            createIndex("idx_key", "unique", ["key"]),
+            createIndex("idx_email", "key", ["email"]),
+            createIndex("idx_ip", "key", ["ip"]),
+            createIndex("idx_updatedAt", "key", ["updatedAt"])
+        ]
+    },
+    {
         $id: "umkm_profiles",
         name: "UMKM Profiles",
         $permissions: ["read(\"any\")", "create(\"users\")"],
@@ -944,6 +965,34 @@ const functions = [
         path: "../functions/create-user-profile"
     },
     {
+        $id: "request-password-otp",
+        name: "Request Password OTP",
+        runtime: "node-22",
+        execute: ["any"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/request-password-otp"
+    },
+    {
+        $id: "reset-password-with-otp",
+        name: "Reset Password With OTP",
+        runtime: "node-22",
+        execute: ["any"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/reset-password-with-otp"
+    },
+    {
         $id: "accept-tos",
         name: "Accept ToS",
         runtime: "node-22",
@@ -1291,20 +1340,6 @@ const functions = [
         commands: "npm install",
         path: "../functions/create-offer"
     },
-    {
-        $id: "review-submission",
-        name: "Review Submission",
-        runtime: "node-22",
-        execute: ["users"],
-        events: [],
-        schedule: "",
-        timeout: 15,
-        enabled: true,
-        logging: true,
-        entrypoint: "src/main.js",
-        commands: "npm install",
-        path: "../functions/review-submission"
-    },
     // ── Fix SEC-H1: guard campaign money fields (2026-08-08) ──────────────────
     // Campaign row tidak lagi punya Permission.update dari browser.
     // Semua mutasi field draft dan status disalurkan lewat dua Function ini.
@@ -1335,6 +1370,20 @@ const functions = [
         entrypoint: "src/main.js",
         commands: "npm install",
         path: "../functions/patch-campaign-status"
+    },
+    {
+        $id: "review-submission",
+        name: "Review Submission",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/review-submission"
     },
     // ── Function DTO baca (Sprint 1 / s1-appwrite-read) ────────────────────────
     // Agregasi & join yang tidak bisa dipetakan setia dari satu collection.
@@ -1533,6 +1582,34 @@ const functions = [
         entrypoint: "src/main.js",
         commands: "npm install",
         path: "../functions/fee-rate-flip"
+    },
+    {
+        $id: "track-order-review",
+        name: "track-order-review",
+        runtime: "node-22",
+        execute: [],
+        events: [`databases.${databaseId}.collections.deliverables.documents.*.create`],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/track-order-review"
+    },
+    {
+        $id: "auto-approve-orders",
+        name: "auto-approve-orders",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "0 * * * *",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/auto-approve-orders"
     }
 ];
 

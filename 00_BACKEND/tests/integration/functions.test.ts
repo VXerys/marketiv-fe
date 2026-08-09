@@ -8,8 +8,17 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // ---- in-memory datastore shared by the node-appwrite mock ----
 const store: Record<string, any[]> = {};
+const authUsers: Record<string, any> = {};
+const emailTokens: any[] = [];
+const sessions: any[] = [];
 const seed = (collection: string, docs: any[]) => { store[collection] = docs; };
-const reset = () => { for (const k of Object.keys(store)) delete store[k]; };
+const seedAuthUser = (user: any) => { authUsers[user.$id] = user; };
+const reset = () => {
+  for (const k of Object.keys(store)) delete store[k];
+  for (const k of Object.keys(authUsers)) delete authUsers[k];
+  emailTokens.length = 0;
+  sessions.length = 0;
+};
 
 const ID = {
   unique: () => `id-${Math.random().toString(36).slice(2, 10)}`,
@@ -30,8 +39,19 @@ const Permission = {
 };
 
 class Databases {
-  async listDocuments(_db: string, collection: string, _q: any[] = []) {
-    return { documents: store[collection] || [], total: (store[collection] || []).length };
+  async listDocuments(_db: string, collection: string, q: any[] = []) {
+    let docs = [...(store[collection] || [])];
+    for (const query of q) {
+      if (query?.method === 'equal') {
+        docs = docs.filter((doc) => {
+          const values = Array.isArray(query.value) ? query.value : [query.value];
+          return values.includes(doc[query.attr]);
+        });
+      }
+    }
+    const limit = q.find((query) => query?.method === 'limit')?.value;
+    if (typeof limit === 'number') docs = docs.slice(0, limit);
+    return { documents: docs, total: docs.length };
   }
   async createDocument(_db: string, collection: string, docId: string, data: any, _p?: any[]) {
     const existing = (store[collection] || []).find((d) => d.$id === docId);
@@ -64,12 +84,52 @@ class Databases {
   }
 }
 class Client { setEndpoint() { return this; } setProject() { return this; } setKey() { return this; } }
+class Account {
+  async createEmailToken(userId: string, email: string) {
+    emailTokens.push({ userId, email });
+    return { userId, secret: 'server-secret', expire: new Date(Date.now() + 15 * 60_000).toISOString() };
+  }
+  async createSession(userId: string, secret: string) {
+    if (!/^\d{6}$/.test(secret) || secret === '000000') {
+      const e: any = new Error('invalid token');
+      e.code = 401;
+      throw e;
+    }
+    sessions.push({ userId, secret });
+    return { $id: 'session-1', userId };
+  }
+}
+class Users {
+  async list(queries: any[] = [], search?: string) {
+    let users = Object.values(authUsers);
+    if (search) {
+      const needle = search.toLowerCase();
+      users = users.filter((user: any) => String(user.email || '').toLowerCase().includes(needle));
+    }
+    for (const query of queries) {
+      if (query?.method === 'equal') {
+        const values = Array.isArray(query.value) ? query.value : [query.value];
+        users = users.filter((user: any) => values.includes(user[query.attr]));
+      }
+    }
+    return { users, total: users.length };
+  }
+  async updatePassword(userId: string, password: string) {
+    if (!authUsers[userId]) {
+      const e: any = new Error('not found');
+      e.code = 404;
+      throw e;
+    }
+    authUsers[userId].password = password;
+    return authUsers[userId];
+  }
+}
 class Storage { async createFile() { return { $id: 'file-1' }; } async deleteFile() { return true; } }
 class Functions { async createExecution() { return { $id: 'e1', status: 'success', responseBody: '{}' }; } }
 class Messaging { async createPush() { return { $id: 'm1' }; } }
 
 vi.mock('node-appwrite', () => ({
-  Client, Databases, ID, Query, Role, Permission, Storage, Functions, Messaging,
+  Client, Databases, Account, Users, ID, Query, Role, Permission, Storage, Functions, Messaging,
 }));
 
 // helper to build a fake req/res
@@ -142,6 +202,123 @@ describe('create-user-wallet function', () => {
     expect(wallets).toHaveLength(1);
     expect(wallets[0].balance).toBe(0);
     expect(wallets[0].pendingBalance).toBe(0);
+  });
+});
+
+describe('user-email-verified function', () => {
+  it('syncs email_verified_at when Appwrite Auth emailVerification becomes true', async () => {
+    process.env.USERS_COLLECTION_ID = 'users';
+    seed('users', [{ $id: 'row-1', userId: 'auth-1', role: 'umkm', email: 'a@x.com', email_verified_at: null }]);
+    const main = (await import('../../functions/user-email-verified/src/main.js')).default;
+    const req = makeReq({ bodyJson: { $id: 'auth-1', emailVerification: true } });
+    const res = makeRes();
+
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].body.success).toBe(true);
+    expect(store.users[0].email_verified_at).toEqual(expect.any(String));
+  });
+
+  it('ignores non-verification user update events', async () => {
+    process.env.USERS_COLLECTION_ID = 'users';
+    seed('users', [{ $id: 'row-1', userId: 'auth-1', role: 'umkm', email: 'a@x.com', email_verified_at: null }]);
+    const main = (await import('../../functions/user-email-verified/src/main.js')).default;
+    const req = makeReq({ bodyJson: { $id: 'auth-1', emailVerification: false } });
+    const res = makeRes();
+
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0]).toEqual({ empty: true });
+    expect(store.users[0].email_verified_at).toBeNull();
+  });
+});
+
+describe('request-password-otp function', () => {
+  it('sends Email OTP for an existing Auth user and records rate-limit state', async () => {
+    process.env.USERS_COLLECTION_ID = 'users';
+    process.env.OTP_RATE_LIMITS_COLLECTION_ID = 'otp_rate_limits';
+    seedAuthUser({ $id: 'auth-1', email: 'User@Example.com' });
+    seed('users', [{ $id: 'row-1', userId: 'auth-1', role: 'umkm', email: 'User@Example.com' }]);
+    const main = (await import('../../functions/request-password-otp/src/main.js')).default;
+    const req = makeReq({
+      headers: { 'x-forwarded-for': '203.0.113.10' },
+      bodyJson: { email: ' user@example.com ' },
+    });
+    const res = makeRes();
+
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(200);
+    expect(res.calls[0].body).toMatchObject({ success: true, userId: 'auth-1' });
+    expect(emailTokens).toEqual([{ userId: 'auth-1', email: 'user@example.com' }]);
+    expect(store.otp_rate_limits[0]).toMatchObject({
+      email: 'user@example.com',
+      ip: '203.0.113.10',
+      count: 1,
+    });
+  });
+
+  it('blocks the fourth OTP request per email and IP within ten minutes', async () => {
+    process.env.USERS_COLLECTION_ID = 'users';
+    process.env.OTP_RATE_LIMITS_COLLECTION_ID = 'otp_rate_limits';
+    seedAuthUser({ $id: 'auth-1', email: 'user@example.com' });
+    seed('users', [{ $id: 'row-1', userId: 'auth-1', role: 'umkm', email: 'user@example.com' }]);
+    const main = (await import('../../functions/request-password-otp/src/main.js')).default;
+    const request = () => makeReq({
+      headers: { 'x-forwarded-for': '203.0.113.10' },
+      bodyJson: { email: 'user@example.com' },
+    });
+
+    await main({ req: request(), res: makeRes(), log: () => {}, error: () => {} });
+    await main({ req: request(), res: makeRes(), log: () => {}, error: () => {} });
+    await main({ req: request(), res: makeRes(), log: () => {}, error: () => {} });
+    const res = makeRes();
+    await main({ req: request(), res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(429);
+    expect(res.calls[0].body.error).toContain('Terlalu banyak');
+    expect(emailTokens).toHaveLength(3);
+  });
+});
+
+describe('reset-password-with-otp function', () => {
+  it('verifies the OTP before updating the Auth user password', async () => {
+    seedAuthUser({ $id: 'auth-1', email: 'user@example.com', password: 'old-password' });
+    const main = (await import('../../functions/reset-password-with-otp/src/main.js')).default;
+    const req = makeReq({
+      bodyJson: {
+        userId: 'auth-1',
+        otpCode: '123456',
+        password: 'new-secure-password',
+      },
+    });
+    const res = makeRes();
+
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(200);
+    expect(res.calls[0].body).toEqual({ success: true });
+    expect(sessions).toEqual([{ userId: 'auth-1', secret: '123456' }]);
+    expect(authUsers['auth-1'].password).toBe('new-secure-password');
+  });
+
+  it('does not update password when OTP verification fails', async () => {
+    seedAuthUser({ $id: 'auth-1', email: 'user@example.com', password: 'old-password' });
+    const main = (await import('../../functions/reset-password-with-otp/src/main.js')).default;
+    const req = makeReq({
+      bodyJson: {
+        userId: 'auth-1',
+        otpCode: '000000',
+        password: 'new-secure-password',
+      },
+    });
+    const res = makeRes();
+
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(401);
+    expect(res.calls[0].body.error).toContain('Kode OTP');
+    expect(authUsers['auth-1'].password).toBe('old-password');
   });
 });
 

@@ -10,9 +10,8 @@ export const metadata: Metadata = {
 };
 
 /**
- * `userId` & `secret` datang dari tautan email Appwrite. Dibaca di server —
- * useSearchParams di klien akan memaksa boundary <Suspense> dan menggagalkan
- * build dengan CSR bailout.
+ * `userId` & `secret` datang dari tautan recovery legacy Appwrite. Flow OTP
+ * membawa `userId` + `email` di query dan dibaca client-side oleh form.
  */
 export default async function ResetPasswordPage({
   searchParams,
