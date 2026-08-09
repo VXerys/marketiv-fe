@@ -4359,6 +4359,63 @@
         "documents.read",
         "documents.write"
       ]
+    },
+    {
+      "$id": "request-password-otp",
+      "name": "Request Password OTP",
+      "runtime": "node-22",
+      "execute": [
+        "any"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "ignore": [
+        "node_modules",
+        ".env"
+      ],
+      "path": "functions/request-password-otp",
+      "scopes": [
+        "documents.read",
+        "documents.write",
+        "users.read",
+        "sessions.write"
+      ],
+      "vars": {
+        "APPWRITE_DATABASE_ID": "6a4c8598001da3b0d7f0",
+        "USERS_COLLECTION_ID": "users",
+        "OTP_RATE_LIMITS_COLLECTION_ID": "otp_rate_limits"
+      }
+    },
+    {
+      "$id": "reset-password-with-otp",
+      "name": "Reset Password With OTP",
+      "runtime": "node-22",
+      "execute": [
+        "any"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "ignore": [
+        "node_modules",
+        ".env"
+      ],
+      "path": "functions/reset-password-with-otp",
+      "scopes": [
+        "sessions.write",
+        "users.write",
+        "sessions.read"
+      ],
+      "vars": {}
     }
   ]
 }
