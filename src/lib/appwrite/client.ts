@@ -19,4 +19,8 @@ if (appwriteConfig.projectId) {
   client.setProject(appwriteConfig.projectId);
 }
 
+// Set locale ke Bahasa Indonesia agar Appwrite memilih email template "id"
+// yang sudah dikonfigurasi di Console (OTP, reset password, verifikasi).
+client.setLocale("id");
+
 export { client };
