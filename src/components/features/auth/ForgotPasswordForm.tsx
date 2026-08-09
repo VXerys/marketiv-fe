@@ -16,7 +16,6 @@ export function ForgotPasswordForm() {
   const [banner, setBanner] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [sent, setSent] = useState(false);
-  const [resetUserId, setResetUserId] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,21 +33,19 @@ export function ForgotPasswordForm() {
     setPending(false);
 
     if (!res.success) {
-      setBanner(res.error ?? "Gagal mengirim email pemulihan.");
+      setBanner(res.error ?? "Gagal mengirim kode OTP pemulihan.");
       return;
     }
-    setResetUserId(res.data?.userId ?? null);
     setSent(true);
   }
 
   if (sent) {
     const resetParams = new URLSearchParams({ email });
-    if (resetUserId) resetParams.set("userId", resetUserId);
 
     return (
       <AuthCard
         title="Cek email kamu"
-        description={`Kami telah mengirimkan kode 6 digit OTP / tautan pemulihan ke ${email}.`}
+        description={`Kode OTP 6 digit telah dikirim ke ${email}.`}
         footer={
           <Link href={routes.login} className="font-extrabold text-orange-600 hover:underline">
             Kembali ke halaman masuk
@@ -59,9 +56,9 @@ export function ForgotPasswordForm() {
           <div className="flex gap-3 rounded-2xl border border-emerald-200/70 bg-emerald-50 px-4 py-3.5">
             <MailCheck size={18} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden="true" />
             <div>
-              <p className="text-[0.8rem] font-[800] text-emerald-800">Kode OTP / Tautan Dikirim!</p>
+              <p className="text-[0.8rem] font-[800] text-emerald-800">Kode OTP Terkirim!</p>
               <p className="mt-0.5 text-[0.74rem] font-semibold leading-relaxed text-emerald-700">
-                Cek kotak masuk dan folder spam. Gunakan kode 6 digit OTP untuk mengatur ulang password.
+                Cek kotak masuk dan folder spam. Gunakan kode 6 digit OTP untuk membuat password baru.
               </p>
             </div>
           </div>

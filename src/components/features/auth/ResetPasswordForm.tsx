@@ -16,6 +16,7 @@ import {
   completePasswordRecovery,
   completePasswordRecoveryWithOtp,
 } from "@/services/auth/auth.service";
+import { logout as logoutSession } from "@/services/auth/session.service";
 import { resetPasswordSchema, PASSWORD_MIN } from "@/lib/validations/auth.schema";
 import { parseOrErrors } from "@/lib/validations/to-field-errors";
 import { routes } from "@/lib/constants/routes";
@@ -29,11 +30,10 @@ export function ResetPasswordForm({ userId, secret }: ResetPasswordFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Mode URL link recovery if userId & secret exist
+  // Mode URL link recovery jika userId & secret tersedia di props (legacy mode)
   const isUrlMode = Boolean(userId && secret);
 
   const initialEmail = searchParams?.get("email") ?? "";
-  const resetUserId = searchParams?.get("userId") ?? "";
 
   const [email, setEmail] = useState(initialEmail);
   const [otpCode, setOtpCode] = useState("");
@@ -65,10 +65,6 @@ export function ResetPasswordForm({ userId, secret }: ResetPasswordFormProps) {
         setBanner("Masukkan kode 6 digit OTP yang dikirim ke email kamu.");
         return;
       }
-      if (!resetUserId) {
-        setBanner("Permintaan reset tidak lengkap. Minta kode OTP baru dari halaman lupa password.");
-        return;
-      }
     }
 
     setPending(true);
@@ -78,7 +74,7 @@ export function ResetPasswordForm({ userId, secret }: ResetPasswordFormProps) {
       res = await completePasswordRecovery({ userId, secret, ...parsed.data });
     } else {
       res = await completePasswordRecoveryWithOtp({
-        userId: resetUserId,
+        email,
         otpCode,
         ...parsed.data,
       });
@@ -90,6 +86,8 @@ export function ResetPasswordForm({ userId, secret }: ResetPasswordFormProps) {
       return;
     }
 
+    // Invalidate browser session so RedirectIfAuthenticated on /login does not bounce active session
+    await logoutSession();
     toast.success("Password berhasil diperbarui. Sekarang kamu bisa masuk.");
     router.replace(routes.login);
   }
@@ -193,7 +191,10 @@ export function ResetPasswordForm({ userId, secret }: ResetPasswordFormProps) {
   );
 }
 
-/** Tautan tanpa userId/secret — tetap izinkan reset via OTP 6-digit! */
-export function InvalidRecoveryLink() {
+/** Component untuk alur reset via OTP 6-digit */
+export function OtpResetPasswordForm() {
   return <ResetPasswordForm />;
 }
+
+/** @deprecated Alias legacy untuk kompatibilitas */
+export const InvalidRecoveryLink = OtpResetPasswordForm;

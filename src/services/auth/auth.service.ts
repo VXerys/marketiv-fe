@@ -3,7 +3,7 @@ import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
 import { AUTH_CONFIG } from "@/config/auth.config";
 import { mockDelay } from "@/lib/mock-delay";
 import { account } from "@/lib/appwrite/account";
-import { executeFunction, FUNCTION_IDS } from "@/lib/appwrite/functions";
+import { executeFunction, FUNCTION_IDS, FunctionExecutionError } from "@/lib/appwrite/functions";
 import { parseOrErrors } from "@/lib/validations/to-field-errors";
 import {
   loginSchema,
@@ -369,34 +369,37 @@ export async function login(
  */
 export async function requestPasswordRecovery(
   input: ForgotPasswordInput
-): Promise<ServiceResult<PasswordOtpRequestOutcome>> {
+): Promise<ServiceResult<null>> {
   const parsed = parseOrErrors(forgotPasswordSchema, input);
   if (!parsed.ok) {
     return failValidation(
       Object.values(parsed.errors)[0] ?? "Email wajib diisi.",
-      noData<PasswordOtpRequestOutcome>()
+      noData<null>()
     );
   }
 
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(400);
-    return ok({ userId: "mock-reset-user" });
+    return ok(null);
   }
 
   try {
-    const payload = await executeFunction<PasswordOtpRequestOutcome>(
+    await executeFunction(
       FUNCTION_IDS.requestPasswordOtp,
       { email: parsed.data.email }
     );
-    return ok({ userId: payload.userId ?? null });
+    return ok(null);
   } catch (err) {
+    if (err instanceof FunctionExecutionError) {
+      return fail(err.message, err.code, noData<null>());
+    }
     return fail(
       authMessage(
         err,
         "Email pemulihan belum bisa dikirim. Tunggu beberapa menit lalu coba lagi."
       ),
       mapWriteErrorCode(err),
-      noData<PasswordOtpRequestOutcome>()
+      noData<null>()
     );
   }
 }
@@ -444,9 +447,9 @@ export async function completePasswordRecovery(
   }
 }
 
-/** Selesaikan pemulihan password dengan kode OTP 6-digit. */
+/** Selesaikan pemulihan password dengan email & kode OTP 6-digit. */
 export async function completePasswordRecoveryWithOtp(
-  args: { userId: string; otpCode: string } & ResetPasswordInput
+  args: { email: string; otpCode: string } & ResetPasswordInput
 ): Promise<ServiceResult<null>> {
   const parsed = parseOrErrors(resetPasswordSchema, {
     password: args.password,
@@ -459,10 +462,11 @@ export async function completePasswordRecoveryWithOtp(
     );
   }
 
+  const email = args.email.trim();
   const otpCode = args.otpCode.trim();
-  if (!args.userId || !/^\d{6}$/.test(otpCode)) {
+  if (!email || !/^\d{6}$/.test(otpCode)) {
     return failValidation(
-      "Permintaan reset tidak lengkap atau kode OTP belum valid. Minta kode baru.",
+      "Email atau kode OTP 6 digit belum valid. Minta kode baru.",
       noData<null>()
     );
   }
@@ -474,12 +478,15 @@ export async function completePasswordRecoveryWithOtp(
 
   try {
     await executeFunction(FUNCTION_IDS.resetPasswordWithOtp, {
-      userId: args.userId,
+      email,
       otpCode,
       password: parsed.data.password,
     });
     return ok(null);
   } catch (err) {
+    if (err instanceof FunctionExecutionError) {
+      return fail(err.message, err.code, noData<null>());
+    }
     return fail(
       authMessage(err, "Kode OTP salah atau kedaluwarsa. Minta kode baru."),
       mapWriteErrorCode(err),
