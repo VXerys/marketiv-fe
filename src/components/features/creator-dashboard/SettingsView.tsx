@@ -573,13 +573,18 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
 
         {/* Avatar row — overlaps banner only, never the name */}
         <div className="px-6 -mt-14 relative flex items-end justify-between gap-3">
-          {/* Avatar — larger */}
           <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-[22px] border-4 border-white shadow-lg overflow-hidden bg-neutral-100 shrink-0 group/avatar">
-            <img
-              src={profile.avatarUrl}
-              alt={profile.name}
-              className="w-full h-full object-cover"
-            />
+            {profile.avatarUrl ? (
+              <img
+                src={profile.avatarUrl}
+                alt={profile.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-violet-600 to-indigo-700 flex items-center justify-center text-white text-2xl sm:text-3xl font-black">
+                {profile.name?.charAt(0)?.toUpperCase() || "K"}
+              </div>
+            )}
             <label
               className={cn(
                 "absolute inset-0 bg-neutral-950/55 transition-opacity flex items-center justify-center text-[0.65rem] font-[900] text-white uppercase tracking-wider",
