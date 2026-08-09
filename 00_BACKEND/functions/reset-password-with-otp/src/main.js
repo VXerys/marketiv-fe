@@ -1,4 +1,4 @@
-import { Account, Client, Users } from "node-appwrite";
+import { Account, Client, Query, Users } from "node-appwrite";
 
 const PASSWORD_MIN = 8;
 const PASSWORD_MAX = 256;
@@ -7,11 +7,11 @@ export default async ({ req, res, error }) => {
   try {
     const env = getEnv(req);
     const payload = getPayload(req);
-    const userId = String(payload.userId || "").trim();
+    const email = normalizeEmail(payload.email);
     const otpCode = String(payload.otpCode || "").trim();
     const password = String(payload.password || "");
 
-    const validationError = validateInput({ userId, otpCode, password });
+    const validationError = validateInput({ email, otpCode, password });
     if (validationError) {
       return json(res, { success: false, error: validationError }, 400);
     }
@@ -20,6 +20,14 @@ export default async ({ req, res, error }) => {
     const users = createUsersClient(env);
 
     let session = null;
+    const authUser = await findAuthUserByEmail(env, email);
+    
+    if (!authUser) {
+      return json(res, { success: false, error: "Kode OTP salah atau kedaluwarsa. Minta kode baru." }, 401);
+    }
+    
+    const userId = authUser.$id;
+
     try {
       session = await account.createSession(userId, otpCode);
     } catch {
@@ -79,13 +87,25 @@ function getPayload(req) {
   return typeof rawBody === "object" ? rawBody : JSON.parse(rawBody);
 }
 
-function validateInput({ userId, otpCode, password }) {
-  if (!userId) return "User ID wajib diisi.";
+function validateInput({ email, otpCode, password }) {
+  if (!email) return "Email wajib diisi.";
   if (!/^\d{6}$/.test(otpCode)) return "Masukkan kode OTP 6 digit.";
   if (!password) return "Password baru wajib diisi.";
   if (password.length < PASSWORD_MIN) return `Password minimal ${PASSWORD_MIN} karakter.`;
   if (password.length > PASSWORD_MAX) return `Password maksimal ${PASSWORD_MAX} karakter.`;
   return "";
+}
+
+function normalizeEmail(value) {
+  const email = String(value || "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "";
+  return email;
+}
+
+async function findAuthUserByEmail(env, email) {
+  const users = createUsersClient(env);
+  const result = await users.list([Query.limit(10)], email);
+  return (result.users || []).find((user) => String(user.email || "").toLowerCase() === email) || null;
 }
 
 function json(res, body, statusCode = 200) {

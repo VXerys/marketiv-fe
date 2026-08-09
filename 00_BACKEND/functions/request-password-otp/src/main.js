@@ -33,13 +33,13 @@ export default async ({ req, res, log, error }) => {
     if (!authUser) {
       // Jangan bocorkan apakah email terdaftar. Tidak ada OTP dikirim.
       log(`Password OTP diminta untuk email tanpa akun: ${email}`);
-      return json(res, { success: true, userId: null });
+      return json(res, { success: true });
     }
 
     const account = createPublicAccountClient(env);
     await account.createEmailToken(authUser.$id, email);
 
-    return json(res, { success: true, userId: authUser.$id });
+    return json(res, { success: true });
   } catch (err) {
     error(err?.stack || err?.message || String(err));
     return json(res, { success: false, error: "Gagal mengirim kode OTP. Coba lagi." }, 500);

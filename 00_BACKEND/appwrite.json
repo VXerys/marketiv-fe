@@ -4413,7 +4413,8 @@
       "scopes": [
         "sessions.write",
         "users.write",
-        "sessions.read"
+        "sessions.read",
+        "users.read"
       ],
       "vars": {}
     }
