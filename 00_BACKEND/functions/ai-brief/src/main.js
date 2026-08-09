@@ -1,69 +1,106 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { VertexAI } from "@google-cloud/vertexai";
 import { Client, Databases } from "node-appwrite";
 
-/**
- * Batas kolom `campaign_briefs` di appwrite.config.json. Model tidak terikat
- * apa pun, jadi keluarannya HARUS dipangkas di sini sebelum ditulis.
- *
- * Sebelumnya kelima field ditulis apa adanya: begitu Gemini melewati batas,
- * createDocument gagal 400 dan errornya cuma masuk log — brief hilang tanpa ada
- * yang tahu. Itu akar masalah di balik permintaan menaikkan `doAndDont` ke 4000,
- * yang ternyata mustahil: `campaign_briefs` sudah ~63.8KB dari plafon baris
- * MariaDB (~65.5KB) karena `briefDetail` 10000 char = 40KB.
- */
-const COLUMN_LIMITS = {
-  objective: 2000,
-  contentAngle: 2000,
-  cta: 1000,
-  briefDetail: 10000,
-  doAndDont: 400
-};
-
-/** Pangkas string biasa; nilai non-string diperlakukan sebagai kosong. */
-function clamp(value, max) {
-  if (typeof value !== "string") return "";
-  return value.length <= max ? value : value.slice(0, max);
+function cleanResponse(content) {
+  let cleaned = content.replace(/<think[\s\S]*?<\/think>/gi, "");
+  cleaned = cleaned.replace(/<\/?think>/gi, "");
+  const thinkingPrefixPattern = /^[\s\S]*?(?:Thinking Process|Reasoning|Analysis|Internal Thought)[\s\S]*?\n\n/i;
+  if (thinkingPrefixPattern.test(cleaned)) {
+    cleaned = cleaned.replace(thinkingPrefixPattern, "");
+  }
+  // Strip markdown formatting from JSON response
+  cleaned = cleaned.replace(/```json\s*/gi, "");
+  cleaned = cleaned.replace(/```\s*/g, "");
+  return cleaned.trim();
 }
 
-/**
- * `doAndDont` disimpan sebagai JSON, jadi tidak boleh dipotong sebagai string —
- * hasilnya JSON rusak yang gagal di-parse pembacanya. Sebagai gantinya butir
- * dibuang dari ekor sampai hasil stringify-nya muat.
- *
- * Mirror packDoAndDontJson() di src/lib/validations/campaign.schema.ts:107 —
- * jalur tulis wizard sudah memangkas begini sejak Sprint 3; Function inilah satu-
- * satunya penulis yang belum. Urutan buangnya sengaja sama supaya brief dari AI
- * dan brief dari wizard tidak berperilaku berbeda.
- */
-function clampDoAndDont(raw, max) {
-  const packed = {
-    do: Array.isArray(raw?.do) ? raw.do.filter((s) => typeof s === "string") : [],
-    dont: Array.isArray(raw?.dont) ? raw.dont.filter((s) => typeof s === "string") : []
-  };
+async function callVertexAI(prompt, env) {
+  const projectId = env.VERTEX_AI_PROJECT_ID;
+  const clientEmail = env.VERTEX_AI_CLIENT_EMAIL;
+  const privateKeyRaw = env.VERTEX_AI_PRIVATE_KEY;
+  const location = env.VERTEX_AI_LOCATION || "us-central1";
+  const model = env.VERTEX_AI_MODEL || "gemini-2.5-flash";
 
-  let json = JSON.stringify(packed);
-  while (json.length > max && (packed.do.length > 0 || packed.dont.length > 0)) {
-    if (packed.dont.length >= packed.do.length) packed.dont.pop();
-    else packed.do.pop();
-    json = JSON.stringify(packed);
+  if (!projectId || !clientEmail || !privateKeyRaw) {
+    throw new Error("Vertex AI credentials missing");
   }
 
-  // Jaring pengaman: satu butir tunggal pun bisa melebihi batas, dan loop di atas
-  // berhenti saat kedua daftar kosong. `{"do":[],"dont":[]}` = 19 karakter, jadi
-  // selalu muat.
-  return json.length <= max ? json : JSON.stringify({ do: [], dont: [] });
+  const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
+
+  const vertexAI = new VertexAI({
+    project: projectId,
+    location,
+    googleAuthOptions: {
+      credentials: {
+        client_email: clientEmail,
+        private_key: privateKey,
+      },
+    },
+  });
+
+  const generativeModel = vertexAI.getGenerativeModel({
+    model,
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 2048,
+      responseMimeType: "application/json",
+    },
+  });
+
+  const chat = generativeModel.startChat({ history: [] });
+  const result = await chat.sendMessage(prompt);
+  const response = result.response;
+  const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!text) {
+    throw new Error("Empty Vertex AI response");
+  }
+  return text;
+}
+
+async function callOpenRouter(prompt, env) {
+  const apiKey = env.OPENROUTER_API_KEY;
+  const baseUrl = "https://openrouter.ai/api/v1";
+  const model = env.OPENROUTER_MODEL || "qwen/qwen3.5-35b-a3b";
+
+  if (!apiKey) {
+    throw new Error("OPENROUTER_API_KEY missing");
+  }
+
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 2048,
+      response_format: { type: "json_object" },
+      reasoning: { effort: "none" }
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`OpenRouter API error: ${errText}`);
+  }
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) {
+    throw new Error("Empty OpenRouter response");
+  }
+  return text;
 }
 
 export default async ({ req, res, log, error }) => {
-  const GEMINI_API_KEY = req.variables?.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-
-  if (!GEMINI_API_KEY) {
-    return res.json({ success: false, error: "GEMINI_API_KEY not configured" }, 500);
-  }
-
   if (req.method !== "POST") {
     return res.json({ success: false, error: "Method not allowed" }, 405);
   }
+
+  const env = { ...process.env, ...(req.variables || {}) };
 
   try {
     const {
@@ -93,6 +130,7 @@ export default async ({ req, res, log, error }) => {
       : `This is a CLIPPING campaign. Direct the creator to cut/re-edit an existing long video from the provided source link. Include dynamic subtitles and a strong hook in the first 3 seconds.`;
 
     const prompt = `Generate a structured campaign brief for a TikTok content campaign.
+IMPORTANT: ALL output values in the JSON MUST be in Indonesian language (Bahasa Indonesia).
 
 Product Name: ${productName || "Not specified"}
 Description: ${description}
@@ -115,25 +153,25 @@ Return a JSON object with this exact structure (no markdown, no code fences, raw
     "do": ["array of do's"],
     "dont": ["array of don'ts"]
   }
-}
+}`;
 
-Hard length limits (output exceeding these is truncated before storage):
-- objective: max ${COLUMN_LIMITS.objective} characters
-- contentAngle: max ${COLUMN_LIMITS.contentAngle} characters
-- cta: max ${COLUMN_LIMITS.cta} characters
-- briefDetail: max ${COLUMN_LIMITS.briefDetail} characters
-- doAndDont: the whole object serialized as JSON must stay under ${COLUMN_LIMITS.doAndDont} characters.
-  Keep it to roughly 3 do's and 3 dont's, one short sentence each.`;
-
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    let rawContent;
+    try {
+      rawContent = await callVertexAI(prompt, env);
+      log("Responding via Vertex AI (Primary)");
+    } catch (vertexError) {
+      log(`Vertex AI failed: ${vertexError.message}. Falling back to OpenRouter...`);
+      try {
+        rawContent = await callOpenRouter(prompt, env);
+        log("Responding via OpenRouter (Fallback)");
+      } catch (orError) {
+        throw new Error(`All providers failed. OpenRouter err: ${orError.message}`);
+      }
+    }
 
     let brief;
     try {
-      const cleaned = responseText.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+      const cleaned = cleanResponse(rawContent);
       brief = JSON.parse(cleaned);
     } catch (parseError) {
       log("Failed to parse AI response as JSON, returning raw text as briefDetail");
@@ -141,39 +179,25 @@ Hard length limits (output exceeding these is truncated before storage):
         objective: "",
         contentAngle: "",
         cta: "",
-        briefDetail: responseText,
+        briefDetail: cleanResponse(rawContent),
         doAndDont: { do: [], dont: [] }
       };
     }
 
-    // Satu kali pangkas, dipakai untuk tulisan DB DAN untuk respons — supaya
-    // yang dilihat UMKM di layar persis sama dengan yang tersimpan. Sebelumnya
-    // respons mengembalikan keluaran mentah Gemini sementara tulisan DB gagal
-    // diam-diam, jadi keduanya bisa berbeda tanpa ada yang tahu.
-    const stored = {
-      objective: clamp(brief.objective, COLUMN_LIMITS.objective),
-      contentAngle: clamp(brief.contentAngle, COLUMN_LIMITS.contentAngle),
-      cta: clamp(brief.cta, COLUMN_LIMITS.cta),
-      briefDetail: clamp(brief.briefDetail, COLUMN_LIMITS.briefDetail),
-      doAndDont: clampDoAndDont(brief.doAndDont, COLUMN_LIMITS.doAndDont)
-    };
-
-    let briefSaveError = null;
-
     try {
       const client = new Client()
-        .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT || process.env.APPWRITE_ENDPOINT)
-        .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-        .setKey(req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY);
+        .setEndpoint(env.APPWRITE_ENDPOINT || env.APPWRITE_FUNCTION_ENDPOINT)
+        .setProject(env.APPWRITE_FUNCTION_PROJECT_ID)
+        .setKey(env.APPWRITE_FUNCTION_API_KEY);
 
       const databases = new Databases(client);
 
       await databases.createDocument(
-        req.variables?.APPWRITE_DATABASE_ID || process.env.APPWRITE_DATABASE_ID,
+        env.APPWRITE_DATABASE_ID,
         "ai_requests",
         "unique()",
         {
-          userId: req.variables?.APPWRITE_FUNCTION_USER_ID || req.body.userId || "",
+          userId: env.APPWRITE_FUNCTION_USER_ID || req.body.userId || "",
           feature: "brief",
           prompt: prompt,
           response: JSON.stringify(brief)
@@ -181,8 +205,8 @@ Hard length limits (output exceeding these is truncated before storage):
       );
 
       if (campaignId) {
-        const briefCollectionId = process.env.CAMPAIGN_BRIEFS_COLLECTION_ID || "campaign_briefs";
-        const dbId = req.variables?.APPWRITE_DATABASE_ID || process.env.APPWRITE_DATABASE_ID;
+        const briefCollectionId = env.CAMPAIGN_BRIEFS_COLLECTION_ID || "campaign_briefs";
+        const dbId = env.APPWRITE_DATABASE_ID;
         try {
           const existing = await databases.listDocuments(dbId, briefCollectionId, [
             (await import("node-appwrite")).Query.equal("campaignId", campaignId),
@@ -191,36 +215,35 @@ Hard length limits (output exceeding these is truncated before storage):
           if (existing.documents.length === 0) {
             await databases.createDocument(
               dbId, briefCollectionId, "unique()",
-              { campaignId, ...stored, generatedByAi: true }
+              {
+                campaignId,
+                objective: brief.objective || "",
+                contentAngle: brief.contentAngle || "",
+                cta: brief.cta || "",
+                briefDetail: brief.briefDetail || "",
+                doAndDont: JSON.stringify(brief.doAndDont || { do: [], dont: [] }),
+                generatedByAi: true
+              }
             );
             log(`Campaign brief saved for campaign ${campaignId}`);
           }
         } catch (briefErr) {
-          // Jangan ditelan. Brief yang gagal tersimpan tapi tetap dibalas
-          // `success: true` membuat UMKM mengira briefnya sudah tercatat.
-          briefSaveError = briefErr.message;
           error("Failed to save campaign brief:", briefErr.message);
         }
       }
     } catch (logError) {
-      // Kegagalan menulis jejak `ai_requests` memang tidak fatal — briefnya
-      // sendiri sudah dihasilkan dan tetap dikembalikan ke pemanggil.
       error("Failed to log to ai_requests:", logError.message);
     }
 
     return res.json({
       success: true,
       brief: {
-        objective: stored.objective,
-        contentAngle: stored.contentAngle,
-        cta: stored.cta,
-        briefDetail: stored.briefDetail,
-        // Kontrak respons memakai objek, kolomnya menyimpan JSON string.
-        doAndDont: JSON.parse(stored.doAndDont)
-      },
-      // Hanya muncul saat penyimpanan gagal — field opsional, pemanggil lama
-      // tidak terpengaruh.
-      ...(briefSaveError ? { briefSaveError } : {})
+        objective: brief.objective || "",
+        contentAngle: brief.contentAngle || "",
+        cta: brief.cta || "",
+        briefDetail: brief.briefDetail || "",
+        doAndDont: brief.doAndDont || { do: [], dont: [] }
+      }
     });
 
   } catch (err) {

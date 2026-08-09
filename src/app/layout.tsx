@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Sora } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { BetaTesterModal } from "@/components/ui/BetaTesterModal";
+import { ChatbotFab } from "@/components/features/chatbot/ChatbotFab";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -31,6 +32,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <BetaTesterModal />
+          <ChatbotFab />
         </AuthProvider>
         <Toaster />
       </body>

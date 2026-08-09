@@ -20,9 +20,18 @@
 # production
 /build
 
-# misc
+# misc & secrets
 .DS_Store
 *.pem
+*.key
+*.cert
+*.p12
+*.pfx
+*-*-*.json
+*service-account*.json
+*credentials*.json
+/marketiv-*.json
+marketiv-498811-f28c21d0b15b.json
 
 # debug
 npm-debug.log*

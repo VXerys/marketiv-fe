@@ -19,14 +19,14 @@ export const CHATBOT_KNOWLEDGE = {
     },
     {
       problem: "Literasi Digital Rendah — UMKM kesulitan menyusun brief pemasaran",
-      solution: "AI-Assisted Brief Builder yang memandu UMKM langkah demi langkah membuat brief profesional",
+      solution: "AI-Assisted Brief Builder — UMKM cukup memasukkan nama produk dan niche, lalu menekan 'Bantu Saya dengan AI'. Draf brief akan dibuat otomatis dan bisa diedit sebelum publish.",
     },
   ],
 
   campaignMode: {
     name: "Campaign Mode",
     tagline: "Viral / Performance-Based",
-    description: "Model pemasaran pay-per-view yang dirancang untuk efisiensi dan jangkauan massal. UMKM hanya membayar berdasarkan performa aktual.",
+    description: "Model pemasaran pay-per-view yang dirancang untuk efisiensi dan jangkauan massal. UMKM hanya membayar berdasarkan performa aktual. Terdapat 2 tipe: UGC (Kreator membuat konten dari awal) dan Clipping (Kreator mengedit/meremix raw video dari UMKM).",
     flow: [
       "UMKM membuat brief kampanye dan upload raw video/aset",
       "Kreator melihat daftar campaign yang tersedia dan mengklaim job yang sesuai",
@@ -55,11 +55,13 @@ export const CHATBOT_KNOWLEDGE = {
       "UMKM browse katalog/portofolio Kreator yang tersedia",
       "UMKM menginisiasi chat dengan Kreator yang diminati",
       "UMKM dan Kreator bernegosiasi harga dan deliverables melalui chat",
-      "Setelah deal, pembayaran masuk ke sistem Escrow (melindungi kedua pihak)",
+      "UMKM mengirim 'Custom Offer' resmi via widget chat",
+      "Kreator Menerima (Accept) Custom Offer tersebut",
+      "UMKM melakukan pembayaran dan dana ditahan di sistem Escrow (Status: Menunggu Pembayaran -> Escrow)",
       "Kreator mengeksekusi pembuatan konten",
       "Konten WAJIB diposting sebagai 'Collab Post' (Instagram/TikTok) agar UMKM mendapat direct traffic",
     ],
-    rules: ["WAJIB ada fitur Chat Negosiasi antara UMKM dan Kreator", "WAJIB ada sistem Escrow untuk melindungi kedua belah pihak", "WAJIB menggunakan fitur Collab Post agar UMKM mendapat direct traffic dari audiens Kreator"],
+    rules: ["WAJIB ada fitur Chat Negosiasi antara UMKM dan Kreator", "WAJIB ada sistem Escrow untuk melindungi kedua belah pihak — dilarang bertransaksi di luar platform", "WAJIB menggunakan fitur Collab Post agar UMKM mendapat direct traffic dari audiens Kreator"],
     benefits: {
       umkm: ["Bisa memilih kreator spesifik yang sesuai brand", "Negosiasi langsung untuk deliverables yang jelas", "Jaminan keamanan transaksi via Escrow", "Direct traffic dari audiens kreator via Collab Post"],
       creator: ["Harga tetap yang disepakati bersama", "Komunikasi langsung dengan klien", "Kolaborasi premium dengan brand"],
@@ -109,6 +111,26 @@ export const CHATBOT_KNOWLEDGE = {
     {
       question: "Apakah ada fitur chat?",
       answer: "Tergantung mode-nya! Di Campaign Mode, TIDAK ada chat — ini disengaja untuk menghilangkan drama revisi dan mempercepat proses. Di Rate Card Mode, WAJIB ada chat negosiasi antara UMKM dan Kreator.",
+    },
+    {
+      question: "Apa bedanya tipe campaign UGC dan Clipping?",
+      answer: "Di Campaign Mode ada 2 tipe: UGC (User Generated Content) di mana kreator memikirkan dan membuat video dari awal berdasarkan produk/brief. Sedangkan Clipping, UMKM menyediakan raw video/aset mentah dan kreator bertugas mengedit atau me-remix video tersebut menjadi konten yang menarik.",
+    },
+    {
+      question: "Bagaimana cara kerja Custom Offer di Rate Card Mode?",
+      answer: "Di ruang chat Rate Card Mode, setelah negosiasi selesai, UMKM akan mengirim 'Custom Offer' (Tawaran Khusus). Jika Kreator menekan Terima (Accept), maka UMKM harus segera membayar dan dana akan masuk ke sistem Escrow Marketiv agar pekerjaan bisa dimulai.",
+    },
+    {
+      question: "Apa yang terjadi jika hasil konten tidak sesuai di Rate Card Mode?",
+      answer: "UMKM dilindungi oleh sistem Dispute (Sengketa). Jika kreator tidak menepati janji sesuai Custom Offer, UMKM dapat membuka sengketa sebelum dana Escrow dicairkan. Admin Marketiv akan meninjau bukti chat dan hasil kerja untuk memberikan keputusan yang adil.",
+    },
+    {
+      question: "Apakah boleh bertransaksi di luar Marketiv?",
+      answer: "DILARANG KERAS. Seluruh transaksi wajib menggunakan sistem Escrow Marketiv untuk menjamin keamanan dana UMKM dan menjamin bayaran Kreator. Bertransaksi di luar platform berisiko tinggi terkena penipuan.",
+    },
+    {
+      question: "Bagaimana cara kreator menarik penghasilan?",
+      answer: "Kreator dapat masuk ke menu Keuangan di dashboard. Setelah pekerjaan selesai dan dana Escrow cair, kreator bisa melakukan Penarikan Dana (Withdrawal) langsung ke rekening bank atau e-wallet yang didaftarkan.",
     },
   ],
 

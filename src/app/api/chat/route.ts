@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { VertexAI } from "@google-cloud/vertexai";
 import { CHATBOT_KNOWLEDGE } from "@/data/chatbotKnowledge";
 import type { ChatMessage, ChatRequest } from "@/types/chat";
 
@@ -98,58 +99,137 @@ function cleanResponse(content: string): string {
   return cleaned;
 }
 
+// --- PRIMARY PROVIDER: Google Vertex AI ---
+async function callVertexAI(systemPrompt: string, messages: ChatMessage[]): Promise<string> {
+  const projectId = process.env.VERTEX_AI_PROJECT_ID;
+  const clientEmail = process.env.VERTEX_AI_CLIENT_EMAIL;
+  const privateKeyRaw = process.env.VERTEX_AI_PRIVATE_KEY;
+  const location = process.env.VERTEX_AI_LOCATION || "us-central1";
+  const model = process.env.VERTEX_AI_MODEL || "gemini-1.5-flash";
+
+  if (!projectId || !clientEmail || !privateKeyRaw) {
+    throw new Error("Vertex AI credentials are not fully configured in environment variables.");
+  }
+
+  // Handle escaped newlines that can occur when reading from .env files
+  const privateKey = privateKeyRaw.replace(/\\n/g, "\n");
+
+  const vertexAI = new VertexAI({
+    project: projectId,
+    location,
+    googleAuthOptions: {
+      credentials: {
+        client_email: clientEmail,
+        private_key: privateKey,
+      },
+    },
+  });
+
+  const generativeModel = vertexAI.getGenerativeModel({
+    model,
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 1024,
+    },
+    systemInstruction: {
+      role: "system",
+      parts: [{ text: systemPrompt }],
+    },
+  });
+
+  // Build chat history (all messages except the last user message)
+  const history = messages.slice(0, -1).map((msg) => ({
+    role: msg.role === "assistant" ? "model" : "user",
+    parts: [{ text: msg.content }],
+  }));
+
+  // The last message is the current user input
+  const lastMessage = messages[messages.length - 1];
+
+  const chat = generativeModel.startChat({ history });
+  const result = await chat.sendMessage(lastMessage.content);
+  const response = result.response;
+  const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!text) {
+    throw new Error("Vertex AI returned an empty response.");
+  }
+
+  return text;
+}
+
+// --- BACKUP PROVIDER: OpenRouter ---
+async function callOpenRouter(systemPrompt: string, messages: ChatMessage[]): Promise<string> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  const baseUrl = "https://openrouter.ai/api/v1";
+  const model = process.env.OPENROUTER_MODEL || "qwen/qwen3-30b-a3b:free";
+
+  if (!apiKey) {
+    throw new Error("OPENROUTER_API_KEY is not configured.");
+  }
+
+  const apiMessages: ChatMessage[] = [{ role: "system", content: systemPrompt }, ...messages];
+
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      "HTTP-Referer": "https://marketiv.id",
+      "X-Title": "Marketiv Chatbot",
+    },
+    body: JSON.stringify({
+      model,
+      messages: apiMessages,
+      temperature: 0.7,
+      max_tokens: 1024,
+      reasoning: { effort: "none" },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    throw new Error(`OpenRouter API error (${response.status}): ${errorData}`);
+  }
+
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content;
+
+  if (!text) {
+    throw new Error("OpenRouter returned an empty response.");
+  }
+
+  return text;
+}
+
+// --- MAIN HANDLER ---
 export async function POST(request: NextRequest) {
   try {
     const body: ChatRequest = await request.json();
     const { messages, currentPath } = body;
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    const baseUrl = "https://openrouter.ai/api/v1";
-    const model = process.env.OPENROUTER_MODEL || "qwen/qwen3-30b-a3b:free";
-
-    if (!apiKey) {
-      return NextResponse.json({ error: "OPENROUTER_API_KEY is not configured" }, { status: 500 });
-    }
-
     // Build system prompt with knowledge base + route context
     const systemPrompt = buildSystemPrompt(currentPath || "/");
 
-    // Prepare messages for OpenRouter API (OpenAI-compatible format)
-    const apiMessages: ChatMessage[] = [{ role: "system", content: systemPrompt }, ...messages];
+    let rawContent: string;
 
-    // Call OpenRouter API — disable thinking/reasoning at API level
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        "HTTP-Referer": "https://marketiv.id",
-        "X-Title": "Marketiv Chatbot",
-      },
-      body: JSON.stringify({
-        model,
-        messages: apiMessages,
-        temperature: 0.7,
-        max_tokens: 1024,
-        reasoning: { effort: "none" },
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error("OpenRouter API error:", errorData);
-      return NextResponse.json({ error: "Failed to get response from AI" }, { status: response.status });
+    // Step 1: Try Primary Provider (Vertex AI)
+    try {
+      rawContent = await callVertexAI(systemPrompt, messages);
+      console.log("[Chat API] Responding via Vertex AI (Primary)");
+    } catch (vertexError) {
+      // Step 2: Vertex AI failed — fallback to OpenRouter
+      console.warn("[Chat API] Vertex AI failed, falling back to OpenRouter:", vertexError);
+      rawContent = await callOpenRouter(systemPrompt, messages);
+      console.log("[Chat API] Responding via OpenRouter (Fallback)");
     }
-
-    const data = await response.json();
-    const rawContent = data.choices?.[0]?.message?.content || "Maaf, saya tidak bisa memproses permintaan ini.";
 
     // Strip any remaining thinking/reasoning content as safety net
     const assistantMessage = cleanResponse(rawContent);
 
     return NextResponse.json({ message: assistantMessage });
   } catch (error) {
-    console.error("Chat API error:", error);
+    console.error("[Chat API] All providers failed:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

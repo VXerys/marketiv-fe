@@ -6,7 +6,6 @@ import { FeaturesSection } from "@/components/features/landing/FeaturesSection";
 import { CuanEstimatorSection } from "@/components/features/landing/CuanEstimatorSection";
 import { TransparencySection } from "@/components/features/landing/TransparencySection";
 import { FAQSection } from "@/components/features/landing/FAQSection";
-import { ChatbotFab } from "@/components/features/chatbot/ChatbotFab";
 
 export default function LandingPage() {
   return (
@@ -19,7 +18,6 @@ export default function LandingPage() {
       <TransparencySection />
       <FAQSection />
       <Footer />
-      <ChatbotFab />
     </main>
   );
 }
