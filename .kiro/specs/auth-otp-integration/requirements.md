@@ -17,32 +17,27 @@ Audit teliti terhadap seluruh codebase Marketiv (Frontend, Services, & Appwrite 
 | **Phase 3: Dashboard Kreator & Job Pool** | 16 | 15 | 1 | 0 | **93.7%** |
 | **Phase 4: Negosiasi Rate Card & Chat** | 14 | 14 | 0 | 0 | **100%** |
 | **Phase 5: Midtrans Payment & Escrow** | 10 | 8.5 | 1.5 | 0 | **85.0%** |
-| 🔐 **Phase 6: Auth & OTP Integration** | 12 | 6 | 2 | 4 | **50.0%** |
+| 🔐 **Phase 6: Auth & OTP Integration** | 11 | 6 | 0 | 5 | **54.5%** |
 | 📊 **Phase 7: Admin Operations & P2MW Reports** | 10 | 1.5 | 0.5 | 8 | **15.0%** |
-| **TOTAL KESELURUHAN SE-PROJECT** | **92** | **74** | **6** | **12** | **80.4%** |
+| **TOTAL KESELURUHAN SE-PROJECT** | **91** | **74** | **4** | **13** | **81.3%** |
 
 ---
 
-## 2. DETAIL PROGRESS MODUL AUTH & OTP (PHASE 6: 50% COMPLETE)
+## 2. DETAIL PROGRESS MODUL AUTH & OTP (PHASE 6: 54.5% COMPLETE)
 
 ### 2.1 Yang Sudah Selesai (Done — 6 Tasks)
-1. ✅ **Appwrite Native OTP Engine**: Menggantikan magic link dengan `createEmailToken` & `createSession` di `auth.service.ts`.
-2. ✅ **Inline OTP Register UI**: Form `EmailVerificationPending.tsx` dengan filter digit angka & note kedaluwarsa 15 menit.
-3. ✅ **Session Recovery Fallback**: Sesi dipulihkan via `createEmailPasswordSession` jika OTP gagal agar user tidak ter-logout.
-4. ✅ **Component Primitives `InputOTP`**: Komponen dasar UI `src/components/ui/input-otp.tsx` tersedia.
-5. ✅ **Cleanup Route Verification**: Menghapus `/verify-email` & `routes.verifyEmail` yang usang.
-6. ✅ **Centralized Route Constants**: Deklarasi `routes.kreatorSettings` & canonical routing.
+1. ✅ **AUTH-FE-01**: Refactor Register ke Inline 6-digit OTP Email Token & Session Recovery.
+2. ✅ **AUTH-FE-02**: Upgrade UI `EmailVerificationPending` ke visual 6-slot `<InputOTP>` component (`InputOTPGroup`, `InputOTPSlot`, `InputOTPSeparator`) + auto-submit.
+3. ✅ **AUTH-FE-03**: Countdown Timer 60s cooldown pada tombol Kirim Ulang Kode OTP.
+4. ✅ **AUTH-FE-04**: Refactor `ForgotPasswordForm` & `ResetPasswordForm` ke alur Kode OTP 6-digit (dengan `completePasswordRecoveryWithOtp`).
+5. ✅ **AUTH-FE-05**: Client Zod Validation & numeric filtering schema untuk 6-digit OTP angka murni.
+6. ✅ **AUTH-BE-01**: Integrasi Appwrite Client SDK `createEmailToken` & `createSession` di `auth.service.ts`.
 
 ---
 
-### 2.2 Yang Sedang Dalam Proses (In Progress — 2 Tasks)
-1. 🟡 **AUTH-FE-02**: Upgrade `EmailVerificationPending.tsx` dari `<input type="text">` biasa ke komponen visual slot `<InputOTP>` 6-digit.
-2. 🟡 **AUTH-FE-03**: Countdown Timer Cooldown 60 detik pada tombol Kirim Ulang OTP untuk cegah spamming.
-
----
-
-### 2.3 Yang Masih Belum Dikerjakan (Pending — 4 Tasks)
-1. 🔴 **AUTH-FE-04 / BE-02**: Refactor Lupa & Reset Password (`/forgot-password` & `/reset-password`) dari URL link recovery ke Kode OTP 6-digit.
-2. 🔴 **AUTH-FE-05**: Client Zod Validation Schema untuk 6-digit OTP angka murni (`/^\d{6}$/`).
-3. 🔴 **AUTH-BE-03**: Server-side Rate Limiting pengiriman OTP (Max 3x per 10 menit per IP/Email).
-4. 🔴 **AUTH-BE-04**: Event Trigger Verification Sync DB `users.email_verified_at`.
+### 2.2 Yang Masih Belum Dikerjakan (Pending Backend & QA — 5 Tasks)
+1. 🔴 **AUTH-BE-02**: Appwrite Function / Handler Reset Password via Kode OTP 6-digit server-side.
+2. 🔴 **AUTH-BE-03**: Server-side Rate Limiting pengiriman OTP (Max 3x per 10 menit per IP/Email).
+3. 🔴 **AUTH-BE-04**: Verifikasi Cloud Function `user-email-verified` merespons event `emailVerification` untuk sync DB.
+4. 🔴 **AUTH-QA-01**: E2E Test Register -> Email OTP Verification -> Auto Login.
+5. 🔴 **AUTH-QA-02**: E2E Test Reset Password via OTP 6-digit.
