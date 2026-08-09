@@ -55,10 +55,13 @@ export default async ({ req, res, error }) => {
 };
 
 function getEnv(req) {
+  const apiKey = process.env.APPWRITE_API_KEY || req.headers["x-appwrite-key"];
+  console.log("Using API Key length:", apiKey ? apiKey.length : 0);
+  
   const env = {
     appwriteEndpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT || process.env.APPWRITE_ENDPOINT,
     appwriteProjectId: process.env.APPWRITE_FUNCTION_PROJECT_ID || process.env.APPWRITE_PROJECT_ID,
-    appwriteApiKey: req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY,
+    appwriteApiKey: apiKey,
   };
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
