@@ -256,6 +256,7 @@ describe('request-password-otp function', () => {
       ip: '203.0.113.10',
       count: 1,
     });
+    expect(store.otp_rate_limits[0].$id).toHaveLength(36);
   });
 
   it('blocks the fourth OTP request per email and IP within ten minutes', async () => {

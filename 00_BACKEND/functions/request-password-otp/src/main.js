@@ -148,7 +148,7 @@ async function hitRateLimit(databases, env, email, ip, nowMs) {
 }
 
 function rateLimitKey(email, ip) {
-  return createHash("sha256").update(`${email}|${ip}`).digest("hex").slice(0, 48);
+  return createHash("sha256").update(`${email}|${ip}`).digest("hex").slice(0, 36);
 }
 
 function json(res, body, statusCode = 200) {
