@@ -72,7 +72,10 @@ function createDatabasesClient(env) {
 }
 
 function createPublicAccountClient(env) {
-  const client = new Client().setEndpoint(env.appwriteEndpoint).setProject(env.appwriteProjectId);
+  const client = new Client()
+    .setEndpoint(env.appwriteEndpoint)
+    .setProject(env.appwriteProjectId)
+    .setLocale("id");
   return new Account(client);
 }
 
