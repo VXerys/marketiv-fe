@@ -1,17 +1,18 @@
 # 🔐 TASKS: AUDIT AUTHENTICATION & OTP SYSTEM
 
-Status Task Terbaru setelah Penyelesaian Seluruh Task Frontend (Role A).
+Status Task Terbaru setelah fix OTP redirect race condition.
 
 ---
 
 ## 👥 ROLE ASSIGNMENTS
 
-### 🎨 ROLE A: FRONTEND / LEAD DEV (USER) — 100% DONE (5/5 Tasks)
+### 🎨 ROLE A: FRONTEND / LEAD DEV (USER) — 100% DONE (6/6 Tasks)
 - [x] **AUTH-FE-01** [Done]: Refactor Register ke Inline 6-digit OTP Email Token & Session Recovery.
 - [x] **AUTH-FE-02** [Done]: Upgrade UI `EmailVerificationPending` ke komponen `<InputOTP>` 6-slot visual + auto-submit.
 - [x] **AUTH-FE-03** [Done]: Tambahkan Countdown Timer 60 detik cooldown pada tombol Kirim Ulang OTP.
-- [x] **AUTH-FE-04** [Done]: Refactor `ForgotPasswordForm` & `ResetPasswordForm` ke alur Kode OTP 6-digit (menggantikan link URL recovery).
-- [x] **AUTH-FE-05** [Done]: Client-side numeric filtering & 6-digit Zod validation schema untuk OTP.
+- [x] **AUTH-FE-04** [Done]: Refactor `ForgotPasswordForm` & `ResetPasswordForm` ke alur Kode OTP 6-digit.
+- [x] **AUTH-FE-05** [Done]: Client-side numeric filtering & 6-digit validation schema untuk OTP.
+- [x] **AUTH-FE-06** [Done]: Fix OTP redirect race — `emailVerified` gate di `SessionUser`, `RedirectIfAuthenticated`, hapus `refresh()` sebelum OTP screen, error handling `requestEmailOtp`, tangkap `userId` dari `account.create()`.
 
 ---
 
