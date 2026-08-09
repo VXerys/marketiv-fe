@@ -17,27 +17,30 @@ Audit teliti terhadap seluruh codebase Marketiv (Frontend, Services, & Appwrite 
 | **Phase 3: Dashboard Kreator & Job Pool** | 16 | 15 | 1 | 0 | **93.7%** |
 | **Phase 4: Negosiasi Rate Card & Chat** | 14 | 14 | 0 | 0 | **100%** |
 | **Phase 5: Midtrans Payment & Escrow** | 10 | 8.5 | 1.5 | 0 | **85.0%** |
-| 🔐 **Phase 6: Auth & OTP Integration** | 11 | 6 | 0 | 5 | **54.5%** |
+| 🔐 **Phase 6: Auth & OTP Integration** | 11 | 7 | 0 | 4 | **63.6%** |
 | 📊 **Phase 7: Admin Operations & P2MW Reports** | 10 | 1.5 | 0.5 | 8 | **15.0%** |
-| **TOTAL KESELURUHAN SE-PROJECT** | **91** | **74** | **4** | **13** | **81.3%** |
+| **TOTAL KESELURUHAN SE-PROJECT** | **91** | **75** | **4** | **12** | **82.4%** |
 
 ---
 
-## 2. DETAIL PROGRESS MODUL AUTH & OTP (PHASE 6: 54.5% COMPLETE)
+## 2. REKAPITULASI CANONICAL REGISTER & OTP FLOW (UPDATED & FIXED)
 
-### 2.1 Yang Sudah Selesai (Done — 6 Tasks)
-1. ✅ **AUTH-FE-01**: Refactor Register ke Inline 6-digit OTP Email Token & Session Recovery.
-2. ✅ **AUTH-FE-02**: Upgrade UI `EmailVerificationPending` ke visual 6-slot `<InputOTP>` component (`InputOTPGroup`, `InputOTPSlot`, `InputOTPSeparator`) + auto-submit.
-3. ✅ **AUTH-FE-03**: Countdown Timer 60s cooldown pada tombol Kirim Ulang Kode OTP.
-4. ✅ **AUTH-FE-04**: Refactor `ForgotPasswordForm` & `ResetPasswordForm` ke alur Kode OTP 6-digit (dengan `completePasswordRecoveryWithOtp`).
-5. ✅ **AUTH-FE-05**: Client Zod Validation & numeric filtering schema untuk 6-digit OTP angka murni.
-6. ✅ **AUTH-BE-01**: Integrasi Appwrite Client SDK `createEmailToken` & `createSession` di `auth.service.ts`.
+### A. Manual Register Flow (Email + Password)
+```
+User Submit Register (Email + Password)
+  ➜ 1. Appwrite Auth buat akun login (account.create)
+  ➜ 2. Kirim Kode OTP 6-Digit (requestEmailOtp)
+  ➜ 3. Tampilkan Layar OTP (InputOTP 6-digit + Timer 60s)
+  ➜ 4. User Input OTP & Verifikasi Terkonfirmasi
+  ➜ 5. Redirect ke Onboarding (/onboarding)
+```
+- **Fix Applied**: Menghapus pemblokiran early-exit `profileProvisioned` di `RegisterUmkmForm.tsx` & `RegisterCreatorForm.tsx`. Pendaftaran email manual selalu beralih ke pengiriman OTP & layar OTP 6-digit sebelum lanjut ke onboarding.
 
----
-
-### 2.2 Yang Masih Belum Dikerjakan (Pending Backend & QA — 5 Tasks)
-1. 🔴 **AUTH-BE-02**: Appwrite Function / Handler Reset Password via Kode OTP 6-digit server-side.
-2. 🔴 **AUTH-BE-03**: Server-side Rate Limiting pengiriman OTP (Max 3x per 10 menit per IP/Email).
-3. 🔴 **AUTH-BE-04**: Verifikasi Cloud Function `user-email-verified` merespons event `emailVerification` untuk sync DB.
-4. 🔴 **AUTH-QA-01**: E2E Test Register -> Email OTP Verification -> Auto Login.
-5. 🔴 **AUTH-QA-02**: E2E Test Reset Password via OTP 6-digit.
+### B. Google OAuth Register Flow
+```
+User Klik "Daftar dengan Google"
+  ➜ Google OAuth Callback & Auth Verification
+    ➜ Email Otomatis Terverifikasi
+      ➜ Direct Redirect ke Onboarding (/onboarding) [TANPA OTP]
+```
+- **Status**: ✅ **100% Selesai & Valid**. Identitas terverifikasi oleh Google OAuth Provider.

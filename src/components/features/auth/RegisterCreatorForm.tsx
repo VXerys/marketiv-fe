@@ -8,7 +8,6 @@ import { AuthSplit } from "@/components/auth/AuthSplit";
 import { AuthRoleTabs, AuthRole } from "@/components/auth/AuthRoleTabs";
 import { AuthField, PasswordField, AuthErrorBanner } from "@/components/auth/AuthField";
 import { GoogleButton } from "./GoogleButton";
-import { ProfileProvisionNotice } from "./ProfileProvisionNotice";
 import { EmailVerificationPending } from "./EmailVerificationPending";
 import { registerCreator, requestEmailOtp } from "@/services/auth/auth.service";
 import { registerCreatorSchema, PASSWORD_MIN } from "@/lib/validations/auth.schema";
@@ -25,7 +24,6 @@ export function RegisterCreatorForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [banner, setBanner] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [provisionFailed, setProvisionFailed] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState(false);
   const [verifyUserId, setVerifyUserId] = useState("");
 
@@ -58,23 +56,11 @@ export function RegisterCreatorForm() {
       return;
     }
 
-    if (!res.data.profileProvisioned) {
-      setPending(false);
-      setProvisionFailed(
-        "Pembuatan profil otomatis belum aktif di server. Akun kamu sudah tersimpan."
-      );
-      return;
-    }
-
     setVerifyUserId(res.data.user.userId);
     await requestEmailOtp({ userId: res.data.user.userId, email: form.email });
     await refresh();
     setVerificationSent(true);
     setPending(false);
-  }
-
-  if (provisionFailed) {
-    return <ProfileProvisionNotice role="creator" message={provisionFailed} />;
   }
 
   if (verificationSent) {
