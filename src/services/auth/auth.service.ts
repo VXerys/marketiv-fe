@@ -435,6 +435,50 @@ export async function completePasswordRecovery(
   }
 }
 
+/** Selesaikan pemulihan password dengan kode OTP 6-digit. */
+export async function completePasswordRecoveryWithOtp(
+  args: { email: string; otpCode: string } & ResetPasswordInput
+): Promise<ServiceResult<null>> {
+  const parsed = parseOrErrors(resetPasswordSchema, {
+    password: args.password,
+    passwordConfirm: args.passwordConfirm,
+  });
+  if (!parsed.ok) {
+    return failValidation(
+      Object.values(parsed.errors)[0] ?? "Password baru belum valid.",
+      noData<null>()
+    );
+  }
+
+  const otpCode = args.otpCode.trim();
+  if (!args.email || otpCode.length !== 6) {
+    return failValidation(
+      "Masukkan alamat email dan kode OTP 6 digit secara lengkap.",
+      noData<null>()
+    );
+  }
+
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    return ok(null);
+  }
+
+  try {
+    await account.updateRecovery({
+      userId: args.email,
+      secret: otpCode,
+      password: parsed.data.password,
+    });
+    return ok(null);
+  } catch (err) {
+    return fail(
+      authMessage(err, "Kode OTP salah atau kedaluwarsa. Minta kode baru."),
+      mapWriteErrorCode(err),
+      noData<null>()
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Verifikasi email lewat OTP (Email Token)
 // ---------------------------------------------------------------------------

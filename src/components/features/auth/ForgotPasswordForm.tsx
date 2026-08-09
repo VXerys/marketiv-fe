@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { MailCheck } from "lucide-react";
+import { MailCheck, ArrowRight } from "lucide-react";
 import { AuthCard } from "@/components/auth/AuthCard";
 import { AuthField, AuthErrorBanner } from "@/components/auth/AuthField";
 import { requestPasswordRecovery } from "@/services/auth/auth.service";
@@ -43,19 +43,31 @@ export function ForgotPasswordForm() {
     return (
       <AuthCard
         title="Cek email kamu"
-        description="Kalau email tersebut terdaftar, kami sudah mengirim tautan untuk mengatur ulang password."
+        description={`Kami telah mengirimkan kode 6 digit OTP / tautan pemulihan ke ${email}.`}
         footer={
           <Link href={routes.login} className="font-extrabold text-orange-600 hover:underline">
             Kembali ke halaman masuk
           </Link>
         }
       >
-        <div className="flex gap-3 rounded-xl border border-emerald-200/70 bg-emerald-50 px-4 py-3">
-          <MailCheck size={16} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden="true" />
-          <p className="text-xs font-semibold leading-relaxed text-emerald-800">
-            Tautan berlaku terbatas. Kalau belum masuk dalam beberapa menit, cek
-            folder spam sebelum meminta tautan baru.
-          </p>
+        <div className="space-y-4">
+          <div className="flex gap-3 rounded-2xl border border-emerald-200/70 bg-emerald-50 px-4 py-3.5">
+            <MailCheck size={18} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden="true" />
+            <div>
+              <p className="text-[0.8rem] font-[800] text-emerald-800">Kode OTP / Tautan Dikirim!</p>
+              <p className="mt-0.5 text-[0.74rem] font-semibold leading-relaxed text-emerald-700">
+                Cek kotak masuk dan folder spam. Gunakan kode 6 digit OTP untuk mengatur ulang password.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href={`/reset-password?email=${encodeURIComponent(email)}`}
+            className="flex min-h-[46px] w-full items-center justify-center gap-2 rounded-full border-0 bg-gradient-to-b from-[#fb7a18] to-primary-600 px-6 text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(234,88,12,.28),inset_0_1px_0_rgba(255,255,255,.22)] transition-all hover:-translate-y-px hover:shadow-[0_14px_36px_rgba(234,88,12,.36)] cursor-pointer"
+          >
+            <span>Masukkan Kode OTP 6-Digit</span>
+            <ArrowRight size={14} />
+          </Link>
         </div>
       </AuthCard>
     );
@@ -64,7 +76,7 @@ export function ForgotPasswordForm() {
   return (
     <AuthCard
       title="Lupa Password"
-      description="Masukkan email akun kamu. Kami kirimkan tautan untuk membuat password baru."
+      description="Masukkan email akun kamu. Kami kirimkan kode OTP 6-digit untuk membuat password baru."
       footer={
         <>
           Ingat passwordnya?{" "}
@@ -94,7 +106,7 @@ export function ForgotPasswordForm() {
           disabled={pending}
           className="min-h-[46px] w-full rounded-full border-0 bg-gradient-to-b from-[#fb7a18] to-primary-600 px-6 text-xs sm:text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(234,88,12,.28),inset_0_1px_0_rgba(255,255,255,.22)] hover:shadow-[0_14px_36px_rgba(234,88,12,.36)] hover:-translate-y-px active:scale-[.98] transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-60"
         >
-          {pending ? "Mengirim…" : "Kirim Tautan Reset"}
+          {pending ? "Mengirim Kode OTP…" : "Kirim Kode OTP Reset"}
         </button>
       </form>
     </AuthCard>

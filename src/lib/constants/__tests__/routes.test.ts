@@ -1,3 +1,4 @@
+import { describe, it, expect } from "vitest";
 import { routes } from "../routes";
 
 describe("Creator Route Constants & Navigation Guard", () => {
