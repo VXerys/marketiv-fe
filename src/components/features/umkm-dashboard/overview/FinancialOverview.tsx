@@ -41,8 +41,8 @@ export function FinancialOverview({
     {
       icon: Clock,
       label: "Pending Verifikasi",
-      value: pendingValidation !== undefined ? String(pendingValidation) : "—",
-      note: "submission",
+      value: pendingValidation !== undefined ? `${pendingValidation} Submission` : "—",
+      note: "Submission",
       color: "#2563eb",
       bg: "radial-gradient(circle at 100% 0%, rgba(37,99,235,.08), transparent 8rem), linear-gradient(180deg, #ffffff, #f0f6ff)",
       iconBg: "#f0f6ff",
@@ -64,190 +64,98 @@ export function FinancialOverview({
 
   return (
     <div
-      style={{
-        padding: "20px",
-        borderRadius: 24,
-        border: "1px solid rgba(17,24,39,.08)",
-        background:
-          "radial-gradient(circle at 100% 0%, rgba(249,115,22,.05), transparent 14rem), linear-gradient(180deg, #ffffff 0%, #fffdf9 100%)",
-        boxShadow: "0 6px 20px rgba(15,23,42,.05), 0 1px 0 rgba(255,255,255,.9) inset",
-      }}
+      className="relative rounded-3xl bg-white border border-slate-200/80 p-5 sm:p-6 shadow-[0_4px_20px_rgba(15,23,42,0.04)] h-full flex flex-col justify-between overflow-hidden"
     >
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 12,
-          marginBottom: 16,
-        }}
-      >
-        <div>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 7,
-              color: "#ea580c",
-              fontSize: ".72rem",
-              fontWeight: 900,
-              letterSpacing: ".12em",
-              textTransform: "uppercase",
-              marginBottom: 5,
-            }}
-          >
-            <span style={{ display: "block", width: 14, height: 2, borderRadius: 999, background: "#f97316" }} />
-            Keuangan
+      <div className="flex flex-col h-full justify-between">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 mb-3 shrink-0">
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 block mb-0.5">
+              RINGKASAN KEUANGAN
+            </span>
+            <h3 className="text-base font-black text-slate-900 tracking-tight font-display">
+              Status Dana & Transaksi
+            </h3>
           </div>
-          <h3
-            style={{
-              fontFamily: "var(--font-sora), var(--font-plus-jakarta-sans), sans-serif",
-              fontSize: "1.1rem",
-              fontWeight: 700,
-              letterSpacing: "-.045em",
-              color: "#182033",
-              margin: 0,
-            }}
+
+          <button
+            type="button"
+            onClick={onViewFinanceClick}
+            className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-orange-600 transition-colors cursor-pointer shrink-0"
           >
-            Ringkasan Keuangan
-          </h3>
+            <span>Lihat Semua</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
         </div>
 
-        <button
-          onClick={onViewFinanceClick}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            height: 32,
-            padding: "0 12px",
-            borderRadius: 10,
-            border: "1px solid rgba(17,24,39,.09)",
-            background: "rgba(255,255,255,.75)",
-            color: "#556174",
-            fontSize: ".74rem",
-            fontWeight: 760,
-            cursor: "pointer",
-            whiteSpace: "nowrap",
-            boxShadow: "0 2px 8px rgba(15,23,42,.04)",
-            flexShrink: 0,
-          }}
-        >
-          Lihat Semua
-          <ChevronRight size={12} />
-        </button>
+        {/* Finance grid */}
+        {isLoading ? (
+          <div className="grid gap-2.5 flex-1">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="p-3 rounded-2xl bg-slate-50 space-y-2">
+                <div className="w-1/3 h-3 rounded bg-slate-200 animate-pulse" />
+                <div className="w-2/3 h-5 rounded bg-slate-200 animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2.5 flex-1 justify-between">
+            {items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.label}
+                  className="hover-card-animate p-3 rounded-2xl border transition-all flex-1 flex flex-col justify-between overflow-hidden min-h-0"
+                  style={{
+                    background: item.bg,
+                    borderColor: item.border,
+                  }}
+                >
+                  {/* Top row inside card: Label + Note */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider truncate">
+                      {item.label}
+                    </span>
+                    <span
+                      className="px-2 py-0.5 rounded-md text-[10px] font-extrabold shrink-0 whitespace-nowrap"
+                      style={{
+                        background: item.highlight ? "rgba(255,255,255,0.75)" : "rgba(241,245,249,0.8)",
+                        border: item.highlight ? `1px solid ${item.border}` : "1px solid rgba(17,24,39,0.06)",
+                        color: item.highlight ? item.color : "#64748b",
+                      }}
+                    >
+                      {item.note}
+                    </span>
+                  </div>
+
+                  {/* Main value row: Icon + Number */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div
+                      className="w-7 h-7 rounded-lg grid place-items-center shrink-0 border"
+                      style={{
+                        background: item.iconBg,
+                        borderColor: item.border,
+                      }}
+                    >
+                      <Icon size={14} color={item.color} />
+                    </div>
+                    <div
+                      className="font-display font-black text-slate-900 text-xs sm:text-sm tracking-tight truncate min-w-0"
+                      style={{
+                        color: item.highlight ? item.color : "#0f172a",
+                      }}
+                    >
+                      {item.value}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-
-      {/* Finance grid */}
-      {isLoading ? (
-        <div style={{ display: "grid", gap: 9 }}>
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              style={{
-                padding: "11px 13px",
-                borderRadius: 14,
-                background: "#f8fafc",
-                display: "grid",
-                gap: 6,
-              }}
-            >
-              <div style={{ width: "40%", height: 10, borderRadius: 5, background: "#eef2f7", position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent)", animation: "shimmer 1.45s infinite" }} />
-              </div>
-              <div style={{ width: "60%", height: 16, borderRadius: 5, background: "#eef2f7", position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent)", animation: "shimmer 1.45s infinite" }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={{ display: "grid", gap: 8 }}>
-          {items.map((item) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={item.label}
-                className="hover-card-animate"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: item.highlight ? "12px 13px" : "10px 13px",
-                  borderRadius: 14,
-                  background: item.bg,
-                  border: `1px solid ${item.border}`,
-                  boxShadow: item.highlight ? "0 4px 12px rgba(15,23,42,.03)" : "0 2px 6px rgba(15,23,42,.015)",
-                }}
-              >
-                {/* Icon */}
-                <div
-                  style={{
-                    width: 34,
-                    height: 34,
-                    borderRadius: 11,
-                    display: "grid",
-                    placeItems: "center",
-                    background: item.iconBg,
-                    border: `1px solid ${item.border}`,
-                    flexShrink: 0,
-                    boxShadow: item.highlight ? "0 3px 8px rgba(0,0,0,.03)" : "none",
-                  }}
-                >
-                  <Icon size={15} color={item.color} />
-                </div>
-
-                {/* Label + value */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      color: "#9ca8b8",
-                      fontSize: ".7rem",
-                      fontWeight: 700,
-                      marginBottom: 2,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {item.label}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "var(--font-sora), var(--font-plus-jakarta-sans), sans-serif",
-                      fontSize: item.highlight ? "1.05rem" : ".95rem",
-                      fontWeight: item.highlight ? 800 : 700,
-                      color: item.highlight ? item.color : "#182033",
-                      letterSpacing: "-.025em",
-                      wordBreak: "break-word",
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {item.value}
-                  </div>
-                </div>
-
-                {/* Note chip */}
-                <div
-                  style={{
-                    flexShrink: 0,
-                    padding: "3px 8px",
-                    borderRadius: 7,
-                    background: item.highlight ? "rgba(255,255,255,.65)" : "#f3f6f9",
-                    border: item.highlight ? `1px solid ${item.border}` : "1px solid rgba(17,24,39,.05)",
-                    fontSize: ".65rem",
-                    fontWeight: 780,
-                    color: item.highlight ? item.color : "#737f91",
-                  }}
-                >
-                  {item.note}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
+
+

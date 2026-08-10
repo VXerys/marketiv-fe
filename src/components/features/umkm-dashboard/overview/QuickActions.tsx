@@ -62,140 +62,75 @@ const QUICK_ACTIONS: QuickAction[] = [
 export function QuickActions() {
   return (
     <div
-      style={{
-        padding: "20px",
-        borderRadius: 24,
-        border: "1px solid rgba(17,24,39,.08)",
-        background:
-          "radial-gradient(circle at 100% 0%, rgba(249,115,22,.05), transparent 12rem), linear-gradient(180deg, #ffffff 0%, #fffdf9 100%)",
-        boxShadow: "0 6px 20px rgba(15,23,42,.05), 0 1px 0 rgba(255,255,255,.9) inset",
-      }}
+      className="relative rounded-3xl bg-white border border-slate-200/80 p-5 sm:p-6 shadow-[0_4px_20px_rgba(15,23,42,0.04)] h-full flex flex-col justify-between"
     >
-      {/* Header */}
-      <div style={{ marginBottom: 14 }}>
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            color: "#ea580c",
-            fontSize: ".72rem",
-            fontWeight: 900,
-            letterSpacing: ".12em",
-            textTransform: "uppercase",
-            marginBottom: 5,
-          }}
-        >
-          <span style={{ display: "block", width: 14, height: 2, borderRadius: 999, background: "#f97316" }} />
-          Aksi Cepat
+      <div className="flex flex-col h-full justify-between">
+        {/* Header */}
+        <div className="mb-3 shrink-0">
+          <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 block mb-0.5">
+            AKSI CEPAT
+          </span>
+          <h3 className="text-base font-black text-slate-900 tracking-tight font-display">
+            Akses Fitur Utama
+          </h3>
         </div>
-        <h3
-          style={{
-            fontFamily: "var(--font-sora), var(--font-plus-jakarta-sans), sans-serif",
-            fontSize: "1.1rem",
-            fontWeight: 700,
-            letterSpacing: "-.045em",
-            color: "#182033",
-            margin: 0,
-          }}
-        >
-          Aksi Cepat
-        </h3>
-      </div>
 
-      {/* Grid 2×2 */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
-          gap: 10,
-        }}
-      >
-        {QUICK_ACTIONS.map((action) => (
-          <Link
-            key={action.label}
-            href={action.href}
-            className="hover-card-animate"
-            style={{
-              position: "relative",
-              overflow: "hidden",
-              padding: "14px 13px 14px",
-              borderRadius: 18,
-              border: `1px solid ${action.border}`,
-              background: action.bg,
-              display: "flex",
-              flexDirection: "column",
-              textDecoration: "none",
-              color: "inherit",
-              boxShadow: action.primary
-                ? `0 10px 24px ${action.shadowColor}, inset 0 1px 0 rgba(255,255,255,.22)`
-                : `0 4px 10px ${action.shadowColor}`,
-            }}
-          >
-            {/* Arrow indicator — top right */}
-            <div
+        {/* Grid 2×2 */}
+        <div className="grid grid-cols-2 gap-2.5 flex-1">
+          {QUICK_ACTIONS.map((action) => (
+            <Link
+              key={action.label}
+              href={action.href}
+              className="hover-card-animate relative overflow-hidden p-3 rounded-2xl flex flex-col justify-between transition-all"
               style={{
-                position: "absolute",
-                top: 11,
-                right: 11,
-                width: 22,
-                height: 22,
-                borderRadius: 8,
-                display: "grid",
-                placeItems: "center",
-                background: action.primary ? "rgba(255,255,255,.18)" : "rgba(255,255,255,.75)",
-                border: action.primary ? "1px solid rgba(255,255,255,.14)" : `1px solid ${action.border}`,
+                border: `1px solid ${action.border}`,
+                background: action.bg,
+                boxShadow: action.primary
+                  ? `0 10px 24px ${action.shadowColor}, inset 0 1px 0 rgba(255,255,255,.22)`
+                  : `0 4px 10px ${action.shadowColor}`,
               }}
             >
-              <ArrowUpRight size={11} color={action.primary ? "rgba(255,255,255,.85)" : action.color} />
-            </div>
+              {/* Arrow indicator */}
+              <div
+                className="absolute top-2.5 right-2.5 w-5 h-5 rounded-md grid place-items-center"
+                style={{
+                  background: action.primary ? "rgba(255,255,255,.18)" : "rgba(255,255,255,.75)",
+                  border: action.primary ? "1px solid rgba(255,255,255,.14)" : `1px solid ${action.border}`,
+                }}
+              >
+                <ArrowUpRight size={11} color={action.primary ? "rgba(255,255,255,.85)" : action.color} />
+              </div>
 
-            {/* Icon container */}
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 12,
-                display: "grid",
-                placeItems: "center",
-                marginBottom: 12,
-                background: action.primary ? "rgba(255,255,255,.2)" : "rgba(255,255,255,.82)",
-                border: action.primary ? "1px solid rgba(255,255,255,.16)" : `1px solid ${action.border}`,
-                boxShadow: action.primary ? "0 4px 10px rgba(0,0,0,.12)" : "0 2px 6px rgba(0,0,0,.04)",
-              }}
-            >
-              <action.icon size={16} color={action.primary ? "white" : action.color} />
-            </div>
+              {/* Icon container */}
+              <div
+                className="w-7 h-7 rounded-lg grid place-items-center mb-2 shrink-0"
+                style={{
+                  background: action.primary ? "rgba(255,255,255,.2)" : "rgba(255,255,255,.82)",
+                  border: action.primary ? "1px solid rgba(255,255,255,.16)" : `1px solid ${action.border}`,
+                }}
+              >
+                <action.icon size={14} color={action.primary ? "white" : action.color} />
+              </div>
 
-            <strong
-              style={{
-                display: "block",
-                fontFamily: "var(--font-plus-jakarta-sans), sans-serif",
-                fontSize: ".86rem",
-                fontWeight: 800,
-                letterSpacing: "-.02em",
-                color: action.primary ? "white" : "#182033",
-                marginBottom: 3,
-                paddingRight: 20,
-                lineHeight: 1.25,
-              }}
-            >
-              {action.label}
-            </strong>
-            <span
-              style={{
-                display: "block",
-                fontSize: ".72rem",
-                fontWeight: 600,
-                color: action.primary ? "rgba(255,255,255,.72)" : "#737f91",
-                lineHeight: 1.4,
-              }}
-            >
-              {action.description}
-            </span>
-          </Link>
-        ))}
+              <div>
+                <strong
+                  className="block font-display text-xs font-black tracking-tight leading-snug mb-0.5 pr-4"
+                  style={{ color: action.primary ? "white" : "#0f172a" }}
+                >
+                  {action.label}
+                </strong>
+                <span
+                  className="block text-[10px] font-semibold leading-tight line-clamp-2"
+                  style={{ color: action.primary ? "rgba(255,255,255,.75)" : "#64748b" }}
+                >
+                  {action.description}
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
+

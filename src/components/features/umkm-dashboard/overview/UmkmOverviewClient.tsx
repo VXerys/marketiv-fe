@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { UmkmPageWrapper } from "../shared/UmkmPageWrapper";
 import { HeroOverview } from "./HeroOverview";
-import { KPISection } from "./KPISection";
 import { CampaignSection } from "./CampaignSection";
 import { ActivityTimeline } from "./ActivityTimeline";
 import { FinancialOverview } from "./FinancialOverview";
@@ -85,10 +84,8 @@ export function UmkmOverviewClient() {
 
   return (
     <UmkmDashboardChrome businessName={data.businessName}>
-      {/* UmkmPageWrapper handles responsive padding, 26px gap, and 1400px max-width */}
       <UmkmPageWrapper>
-        {/* Hero banner. Tanpa angka → strip, bukan "2.4jt"/"Rp 12.5 jt" karangan
-            yang dulu tampil kalau data gagal dibaca. */}
+        {/* 1. Hero banner with 4 integrated KPI cards */}
         <HeroOverview
           businessName={data.businessName}
           campaignAktif={data.kpis?.campaignActive}
@@ -105,41 +102,37 @@ export function UmkmOverviewClient() {
           }
         />
 
-        {/* KPI metrics row */}
-        <KPISection kpisData={data.kpis} />
-
-        {/* Core dashboard layout stacked and grouped */}
-        <div className="space-y-6">
-          {/* Campaign Section (Full Width) */}
-          <CampaignSection
-            campaigns={data.campaigns}
-            onCreateClick={handleCreateCampaign}
-            onViewAllClick={handleViewCampaigns}
-          />
-
-          {/* Secondary Grid (Balanced Columns) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left Column: Finance & Quick Actions */}
-            <div className="space-y-6">
-              <FinancialOverview
-                escrowBalance={data.kpis?.escrowBalance}
-                totalSpend={data.kpis?.totalSpend}
-                pendingValidation={data.kpis?.pendingSubmissions}
-                onViewFinanceClick={handleViewFinance}
-              />
-              <QuickActions />
-            </div>
-
-            {/* Right Column: Insights & Activity Timeline */}
-            <div className="space-y-6">
-              <InsightSection
-                insights={data.insights}
-                onSearchCreatorClick={handleSearchCreator}
-                onViewAnalyticsClick={handleViewAnalytics}
-              />
-              <ActivityTimeline activities={data.activities} />
-            </div>
+        {/* 2. Middle Row: Campaign Section (Left 2/3) + Activity Timeline (Right 1/3) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+          <div className="lg:col-span-2">
+            <CampaignSection
+              campaigns={data.campaigns}
+              onCreateClick={handleCreateCampaign}
+              onViewAllClick={handleViewCampaigns}
+            />
           </div>
+          <div className="lg:col-span-1 flex flex-col">
+            <ActivityTimeline
+              activities={data.activities}
+              onViewAllClick={() => router.push("/dashboard/umkm/notifikasi")}
+            />
+          </div>
+        </div>
+
+        {/* 3. Bottom Row: Quick Actions (Col 1) + Financial Overview (Col 2) + Insights (Col 3) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+          <QuickActions />
+          <FinancialOverview
+            escrowBalance={data.kpis?.escrowBalance}
+            totalSpend={data.kpis?.totalSpend}
+            pendingValidation={data.kpis?.pendingSubmissions}
+            onViewFinanceClick={handleViewFinance}
+          />
+          <InsightSection
+            insights={data.insights}
+            onSearchCreatorClick={handleSearchCreator}
+            onViewAnalyticsClick={handleViewAnalytics}
+          />
         </div>
       </UmkmPageWrapper>
     </UmkmDashboardChrome>

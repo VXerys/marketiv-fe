@@ -11,6 +11,19 @@ interface Insight {
   text: string;
 }
 
+const FALLBACK_INSIGHTS: Insight[] = [
+  {
+    id: "fb-1",
+    type: "recommendation",
+    text: "Optimalisasi Jam Posting: Upload video di jam 18.00 - 21.00 untuk potensi views maksimal.",
+  },
+  {
+    id: "fb-2",
+    type: "insight",
+    text: "Tingkatkan Retensi: Sertakan promo unik di 3 detik pertama video campaign.",
+  },
+];
+
 const INSIGHT_CONFIG: Record<InsightType, {
   icon: React.ComponentType<{ size?: number; color?: string }>;
   label: string;
@@ -18,7 +31,6 @@ const INSIGHT_CONFIG: Record<InsightType, {
   color: string;
   border: string;
   iconBg: string;
-  pillBg: string;
 }> = {
   insight: {
     icon: TrendingUp,
@@ -27,7 +39,6 @@ const INSIGHT_CONFIG: Record<InsightType, {
     color: "#2563eb",
     border: "rgba(37,99,235,.14)",
     iconBg: "rgba(37,99,235,.09)",
-    pillBg: "rgba(37,99,235,.07)",
   },
   warning: {
     icon: AlertTriangle,
@@ -36,7 +47,6 @@ const INSIGHT_CONFIG: Record<InsightType, {
     color: "#d97706",
     border: "rgba(217,119,6,.16)",
     iconBg: "rgba(217,119,6,.09)",
-    pillBg: "rgba(217,119,6,.07)",
   },
   recommendation: {
     icon: Lightbulb,
@@ -45,7 +55,6 @@ const INSIGHT_CONFIG: Record<InsightType, {
     color: "#ea580c",
     border: "rgba(249,115,22,.16)",
     iconBg: "rgba(249,115,22,.09)",
-    pillBg: "rgba(249,115,22,.07)",
   },
 };
 
@@ -63,248 +72,137 @@ export function InsightSection({
   onViewAnalyticsClick,
 }: InsightSectionProps) {
   const [dismissed, setDismissed] = useState<string[]>([]);
-  const visible = insights.filter((i) => !dismissed.includes(i.id));
+  const userVisible = insights.filter((i) => !dismissed.includes(i.id));
+  
+  // Combine user insights with fallbacks so 4 grid slots are always filled
+  const combined = [...userVisible];
+  for (const fb of FALLBACK_INSIGHTS) {
+    if (combined.length < 4 && !dismissed.includes(fb.id)) {
+      combined.push(fb);
+    }
+  }
+  const displayInsights = combined.slice(0, 4);
 
   return (
     <div
-      style={{
-        padding: "20px",
-        borderRadius: 24,
-        border: "1px solid rgba(17,24,39,.08)",
-        background:
-          "radial-gradient(circle at 0% 100%, rgba(249,115,22,.05), transparent 14rem), linear-gradient(180deg, #ffffff 0%, #fffdf9 100%)",
-        boxShadow: "0 6px 20px rgba(15,23,42,.05), 0 1px 0 rgba(255,255,255,.9) inset",
-      }}
+      className="relative rounded-3xl bg-white border border-slate-200/80 p-5 sm:p-6 shadow-[0_4px_20px_rgba(15,23,42,0.04)] h-full flex flex-col justify-between"
     >
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          marginBottom: 16,
-        }}
-      >
-        <div>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              color: "#ea580c",
-              fontSize: ".72rem",
-              fontWeight: 900,
-              letterSpacing: ".12em",
-              textTransform: "uppercase",
-              marginBottom: 5,
-            }}
-          >
-            <span style={{ display: "block", width: 14, height: 2, borderRadius: 999, background: "#f97316" }} />
-            Rekomendasi Cerdas
+      <div className="flex flex-col h-full justify-between">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 mb-3 shrink-0">
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 block mb-0.5">
+              REKOMENDASI CERDAS
+            </span>
+            <h3 className="text-base font-black text-slate-900 tracking-tight font-display">
+              Saran & Rekomendasi
+            </h3>
           </div>
-          <h3
-            style={{
-              fontFamily: "var(--font-sora), var(--font-plus-jakarta-sans), sans-serif",
-              fontSize: "1.1rem",
-              fontWeight: 700,
-              letterSpacing: "-.045em",
-              color: "#182033",
-              margin: 0,
-            }}
-          >
-            Saran & Rekomendasi
-          </h3>
+
+          <span className="px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200/60 text-[10px] font-extrabold shrink-0">
+            {displayInsights.length} saran
+          </span>
         </div>
 
-        {visible.length > 0 && (
-          <span
-            style={{
-              fontSize: ".7rem",
-              fontWeight: 800,
-              padding: "4px 10px",
-              borderRadius: 999,
-              background: "rgba(249,115,22,.07)",
-              border: "1px solid rgba(249,115,22,.14)",
-              color: "#ea580c",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-            }}
-          >
-            {visible.length} rekomendasi
-          </span>
+        {isLoading ? (
+          <div className="grid grid-cols-2 gap-2.5 flex-1">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="p-3 rounded-2xl bg-slate-50 space-y-2">
+                <div className="w-1/2 h-3 rounded bg-slate-200 animate-pulse" />
+                <div className="w-full h-8 rounded bg-slate-200 animate-pulse" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          /* Grid 2×2 matching QuickActions */
+          <div className="grid grid-cols-2 gap-2.5 flex-1">
+            {displayInsights.map((insight) => {
+              let mappedType: InsightType = "insight";
+              if (insight.type === "warning") mappedType = "warning";
+              else if (insight.type === "info" || insight.type === "purple" || insight.type === "success") mappedType = "insight";
+              else mappedType = "recommendation";
+
+              const cfg = INSIGHT_CONFIG[mappedType];
+
+              let ctaLabel = "";
+              let ctaAction: (() => void) | undefined;
+              if (insight.text.toLowerCase().includes("kreator")) {
+                ctaLabel = "Cari Kreator";
+                ctaAction = onSearchCreatorClick;
+              } else if (
+                insight.text.toLowerCase().includes("performa") ||
+                insight.text.toLowerCase().includes("views") ||
+                insight.text.toLowerCase().includes("analisis")
+              ) {
+                ctaLabel = "Lihat Analitik";
+                ctaAction = onViewAnalyticsClick;
+              } else {
+                ctaLabel = "Pelajari";
+                ctaAction = onViewAnalyticsClick;
+              }
+
+              return (
+                <div
+                  key={insight.id}
+                  className="hover-card-animate relative p-3 rounded-2xl border flex flex-col justify-between transition-all"
+                  style={{
+                    background: cfg.bg,
+                    borderColor: cfg.border,
+                  }}
+                >
+                  {/* Dismiss */}
+                  <button
+                    type="button"
+                    onClick={() => setDismissed((d) => [...d, insight.id])}
+                    className="absolute top-2.5 right-2.5 w-4 h-4 rounded-md border-0 bg-white/70 hover:bg-white text-slate-400 hover:text-slate-700 grid place-items-center cursor-pointer transition-colors"
+                  >
+                    <X size={10} />
+                  </button>
+
+                  <div>
+                    {/* Icon + type label */}
+                    <div className="flex items-center gap-1.5 mb-1.5 pr-4">
+                      <div
+                        className="w-5 h-5 rounded-md grid place-items-center shrink-0"
+                        style={{ background: cfg.iconBg }}
+                      >
+                        <cfg.icon size={12} color={cfg.color} />
+                      </div>
+                      <span
+                        className="text-[10px] font-black tracking-tight truncate"
+                        style={{ color: cfg.color }}
+                      >
+                        {cfg.label}
+                      </span>
+                    </div>
+
+                    <p className="text-[10px] font-medium text-slate-600 leading-tight line-clamp-3 mb-1">
+                      {insight.text}
+                    </p>
+                  </div>
+
+                  {ctaLabel && (
+                    <button
+                      type="button"
+                      onClick={ctaAction}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-extrabold bg-white/80 hover:bg-white transition-colors cursor-pointer border self-start mt-1"
+                      style={{
+                        borderColor: cfg.border,
+                        color: cfg.color,
+                      }}
+                    >
+                      <span>{ctaLabel}</span>
+                      <ArrowRight size={9} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
-
-      {isLoading ? (
-        <div style={{ display: "grid", gap: 10 }}>
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              style={{
-                padding: "13px 14px",
-                borderRadius: 16,
-                background: "#f8fafc",
-                border: "1px solid rgba(17,24,39,.05)",
-                display: "grid",
-                gap: 7,
-              }}
-            >
-              <div style={{ width: "35%", height: 11, borderRadius: 6, background: "#eef2f7", position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent)", animation: "shimmer 1.45s infinite" }} />
-              </div>
-              <div style={{ width: "90%", height: 10, borderRadius: 6, background: "#eef2f7", position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent)", animation: "shimmer 1.45s infinite" }} />
-              </div>
-              <div style={{ width: "70%", height: 10, borderRadius: 6, background: "#eef2f7", position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, transparent, rgba(255,255,255,.8), transparent)", animation: "shimmer 1.45s infinite" }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : visible.length === 0 ? (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "28px 16px",
-            borderRadius: 16,
-            background: "rgba(249,115,22,.025)",
-            border: "1px dashed rgba(249,115,22,.14)",
-          }}
-        >
-          <div style={{ fontSize: "1.6rem", marginBottom: 8 }}>✨</div>
-          <div style={{ fontWeight: 700, color: "#182033", fontSize: ".88rem", marginBottom: 3 }}>
-            Semua Berjalan Baik!
-          </div>
-          <div style={{ color: "#737f91", fontSize: ".76rem" }}>
-            Tidak ada rekomendasi saat ini.
-          </div>
-        </div>
-      ) : (
-        <div style={{ display: "grid", gap: 10 }}>
-          {visible.map((insight) => {
-            let mappedType: InsightType = "insight";
-            if (insight.type === "warning") mappedType = "warning";
-            else if (insight.type === "info" || insight.type === "purple" || insight.type === "success") mappedType = "insight";
-            else mappedType = "recommendation";
-
-            const cfg = INSIGHT_CONFIG[mappedType];
-
-            let ctaLabel = "";
-            let ctaAction: (() => void) | undefined;
-            if (insight.text.toLowerCase().includes("kreator")) {
-              ctaLabel = "Cari Kreator";
-              ctaAction = onSearchCreatorClick;
-            } else if (
-              insight.text.toLowerCase().includes("performa") ||
-              insight.text.toLowerCase().includes("views")
-            ) {
-              ctaLabel = "Lihat Analitik";
-              ctaAction = onViewAnalyticsClick;
-            }
-
-            return (
-              <div
-                key={insight.id}
-                className="hover-card-animate"
-                style={{
-                  position: "relative",
-                  padding: "13px 14px",
-                  borderRadius: 16,
-                  background: cfg.bg,
-                  border: `1px solid ${cfg.border}`,
-                  boxShadow: "0 2px 8px rgba(15,23,42,.03)",
-                }}
-              >
-                {/* Dismiss */}
-                <button
-                  onClick={() => setDismissed((d) => [...d, insight.id])}
-                  style={{
-                    position: "absolute",
-                    top: 10,
-                    right: 10,
-                    width: 22,
-                    height: 22,
-                    border: "none",
-                    borderRadius: 7,
-                    background: "rgba(255,255,255,.65)",
-                    color: "#9ca8b8",
-                    display: "grid",
-                    placeItems: "center",
-                    cursor: "pointer",
-                    transition: ".15s ease",
-                  }}
-                >
-                  <X size={11} />
-                </button>
-
-                {/* Icon + type label */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 9 }}>
-                  <div
-                    style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: 10,
-                      display: "grid",
-                      placeItems: "center",
-                      background: cfg.iconBg,
-                      flexShrink: 0,
-                    }}
-                  >
-                    <cfg.icon size={14} color={cfg.color} />
-                  </div>
-                  <span
-                    style={{
-                      fontSize: ".72rem",
-                      fontWeight: 800,
-                      color: cfg.color,
-                      letterSpacing: ".01em",
-                    }}
-                  >
-                    {cfg.label}
-                  </span>
-                </div>
-
-                <p
-                  style={{
-                    margin: "0 0 10px",
-                    color: "#556174",
-                    fontSize: ".8rem",
-                    lineHeight: 1.55,
-                    paddingRight: ctaLabel ? 0 : 18,
-                  }}
-                >
-                  {insight.text}
-                </p>
-
-                {ctaLabel && ctaAction && (
-                  <button
-                    onClick={ctaAction}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: 5,
-                      minHeight: 28,
-                      padding: "0 10px",
-                      borderRadius: 8,
-                      border: `1px solid ${cfg.border}`,
-                      background: "rgba(255,255,255,.72)",
-                      color: cfg.color,
-                      fontSize: ".74rem",
-                      fontWeight: 780,
-                      cursor: "pointer",
-                      transition: ".15s ease",
-                    }}
-                  >
-                    {ctaLabel}
-                    <ArrowRight size={11} />
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
+
+

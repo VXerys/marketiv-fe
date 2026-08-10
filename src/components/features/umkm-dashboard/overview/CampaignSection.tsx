@@ -69,12 +69,12 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
   
   // Custom cover gradients based on niche
   const coverGradients: Record<string, string> = {
-    kuliner: "linear-gradient(135deg, #fb923c, #c2410c)",
-    fashion: "linear-gradient(135deg, #16a34a, #84cc16)",
-    pariwisata: "linear-gradient(135deg, #1e3a5f, #93c5fd)",
-    edukasi: "linear-gradient(135deg, #a78bfa, #6d28d9)",
-    kecantikan: "linear-gradient(135deg, #f472b6, #be185d)",
-    lainnya: "linear-gradient(135deg, #6b7280, #374151)",
+    kuliner: "linear-gradient(135deg, #ea580c, #c2410c)",
+    fashion: "linear-gradient(135deg, #16a34a, #15803d)",
+    pariwisata: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+    edukasi: "linear-gradient(135deg, #7c3aed, #6d28d9)",
+    kecantikan: "linear-gradient(135deg, #db2777, #be185d)",
+    lainnya: "linear-gradient(135deg, #475569, #334155)",
   };
 
   const coverGradient = coverGradients[campaign.niche] || coverGradients.kuliner;
@@ -83,199 +83,104 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
   return (
     <Link
       href={`/dashboard/umkm/campaign/${campaign.id}`}
-      className="flex flex-col overflow-hidden bg-white border border-neutral-200/80 rounded-[28px] shadow-[0_12px_36px_-12px_rgba(0,0,0,0.05)] cursor-pointer hover-card-animate"
-      style={{
-        textDecoration: "none",
-        color: "inherit",
-      }}
+      className="flex flex-col overflow-hidden bg-white border border-slate-200/90 rounded-3xl shadow-[0_4px_20px_rgba(15,23,42,0.04)] hover:shadow-[0_10px_30px_rgba(15,23,42,0.08)] cursor-pointer hover-card-animate h-full justify-between transition-all"
     >
+      {/* Cover Header */}
       <div
+        className="h-36 relative overflow-hidden shrink-0 flex flex-col justify-between p-3.5"
         style={{
-          height: 160,
-          position: "relative",
-          overflow: "hidden",
           background: coverGradient,
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "radial-gradient(circle at 18% 24%, rgba(255,255,255,.82) 0 10%, transparent 11%), radial-gradient(circle at 82% 22%, rgba(255,255,255,.38) 0 8%, transparent 9%), linear-gradient(180deg, transparent 34%, rgba(12,23,43,.32))",
-          }}
-        />
-        {/* Status badge */}
-        <div
-          style={{
-            position: "absolute",
-            top: 12,
-            left: 12,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            minHeight: 28,
-            padding: "0 10px",
-            borderRadius: 999,
-            background: "rgba(255,255,255,.88)",
-            border: `1px solid ${statusCfg.border}`,
-            color: statusCfg.color,
-            fontSize: ".72rem",
-            fontWeight: 800,
-            backdropFilter: "blur(10px)",
-          }}
-        >
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: statusCfg.color }} />
-          {statusCfg.label}
+        {/* Subtle overlay texture */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.2),transparent_70%)]" />
+
+        {/* Top Header Row: Status badge */}
+        <div className="relative z-10 flex items-center justify-between">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md shadow-sm border border-white/40">
+            <span className="w-2 h-2 rounded-full" style={{ background: statusCfg.color }} />
+            <span className="text-[11px] font-black tracking-tight" style={{ color: statusCfg.color }}>
+              {statusCfg.label}
+            </span>
+          </div>
+
+          <span className="px-2.5 py-1 rounded-full bg-black/25 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-wider border border-white/20">
+            {campaign.niche}
+          </span>
         </div>
-        {/* Budget chip bottom right */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: 12,
-            right: 12,
-            padding: "8px 12px",
-            borderRadius: 14,
-            background: "rgba(255,255,255,.88)",
-            border: "1px solid rgba(255,255,255,.32)",
-            boxShadow: "0 12px 28px rgba(15,23,42,.10)",
-            fontWeight: 850,
-            fontSize: ".82rem",
-            color: "#182033",
-            letterSpacing: "-.02em",
-            backdropFilter: "blur(10px)",
-          }}
-        >
-          {formatBudget(campaign.totalBudgetEscrow)}
+
+        {/* Bottom Banner Row: Budget chip */}
+        <div className="relative z-10 flex justify-end">
+          <div className="px-3 py-1.5 rounded-xl bg-white/95 backdrop-blur-md shadow-md border border-white/60 text-slate-900 font-black text-xs tracking-tight">
+            {formatBudget(campaign.totalBudgetEscrow)}
+          </div>
         </div>
       </div>
 
       {/* Body */}
-      <div style={{ padding: "16px 18px", display: "grid", gap: 12, flex: 1 }}>
-        <div>
-          <span style={{
-            display: "inline-block",
-            fontSize: "9px",
-            fontWeight: 900,
-            color: nicheCfg.text,
-            textTransform: "uppercase",
-            letterSpacing: "0.12em",
-            marginBottom: "6px",
-            background: nicheCfg.bg,
-            padding: "2px 8px",
-            borderRadius: "6px",
-            border: `1px solid ${nicheCfg.border}`,
-            userSelect: "none"
-          }}>
-            {campaign.niche}
-          </span>
-          <h3
-            style={{
-              margin: "0 0 4px",
-              fontFamily: "var(--font-plus-jakarta-sans), Sora, sans-serif",
-              fontSize: "1.05rem",
-              lineHeight: 1.2,
-              letterSpacing: "-.04em",
-              color: "#182033",
-            }}
-          >
+      <div className="p-4 sm:p-5 flex flex-col justify-between flex-1 gap-3">
+        <div className="space-y-2">
+          {/* Title */}
+          <h3 className="font-display font-black text-slate-900 text-base sm:text-lg leading-snug tracking-tight line-clamp-1">
             {campaign.title}
           </h3>
-        </div>
 
-        {/* CPM / Reward Rate Info */}
-        <div style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "4px 10px",
-          borderRadius: 10,
-          background: "rgba(249,115,22,.05)",
-          border: "1px solid rgba(249,115,22,.10)",
-          fontSize: ".7rem",
-          fontWeight: 800,
-          color: "#ea580c",
-          width: "fit-content",
-        }}>
-          Komisi: {formatCurrency(campaign.pricePerThousandViews)} / 1.000 Tayangan
-        </div>
-
-        {/* Stats row */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#737f91", fontSize: ".78rem", fontWeight: 700 }}>
-            <Users size={13} />
-            {campaign.usedQuota}/{campaign.creatorQuota} Kreator
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#737f91", fontSize: ".78rem", fontWeight: 700 }}>
-            <Eye size={13} />
-            {formatViews(campaign.totalViews)} tayangan
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#737f91", fontSize: ".78rem", fontWeight: 700 }}>
-            <Calendar size={13} />
-            {new Date(campaign.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+          {/* CPM / Reward Rate Info */}
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-orange-50 border border-orange-200/80 text-orange-700 text-xs font-black">
+            <span>Komisi:</span>
+            <span>{formatCurrency(campaign.pricePerThousandViews)}</span>
+            <span className="text-orange-500 font-semibold">/ 1rb Tayangan</span>
           </div>
         </div>
 
-        {/* Progress */}
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
-            <span style={{ fontSize: "10px", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "#737f91" }}>
-              Anggaran Terpakai
+        {/* Stats row with high contrast icons & text */}
+        <div className="flex items-center gap-3 text-xs font-extrabold text-slate-700 flex-wrap pt-1 border-t border-slate-100">
+          <div className="flex items-center gap-1.5">
+            <Users size={14} className="text-slate-500 shrink-0" />
+            <span>{campaign.usedQuota}/{campaign.creatorQuota} Kreator</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Eye size={14} className="text-slate-500 shrink-0" />
+            <span>{formatViews(campaign.totalViews)} tayangan</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Calendar size={14} className="text-slate-500 shrink-0" />
+            <span>{new Date(campaign.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
+          </div>
+        </div>
+
+        {/* Progress & Budget */}
+        <div className="pt-2">
+          <div className="flex items-center justify-between gap-2 mb-1.5 text-xs font-black">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              ANGGARAN TERPAKAI
             </span>
-            <span style={{ fontSize: "12px", fontWeight: 800, color: "#1e293b", display: "flex", alignItems: "center" }}>
-              {formatBudget(campaign.usedBudget)}{" "}
-              <span style={{ color: "#94a3b8", fontWeight: 500, margin: "0 4px" }}>/</span>{" "}
-              {formatBudget(campaign.totalBudgetEscrow)}{" "}
+            <div className="flex items-center gap-1.5 whitespace-nowrap text-slate-900 font-extrabold">
+              <span>{formatBudget(campaign.usedBudget)}</span>
+              <span className="text-slate-300 font-normal">/</span>
+              <span className="text-slate-500">{formatBudget(campaign.totalBudgetEscrow)}</span>
               <span
-                style={{
-                  marginLeft: 6,
-                  fontSize: "11px",
-                  padding: "2px 6px",
-                  borderRadius: 6,
-                  fontWeight: 700,
-                  border: progressPercent >= 100 ? "1px solid #bbf7d0" : "1px solid #ffedd5",
-                  background: progressPercent >= 100 ? "#f0fdf4" : "#fff7ed",
-                  color: progressPercent >= 100 ? "#16a34a" : "#ea580c",
-                }}
+                className={`px-1.5 py-0.5 rounded-md text-[10px] font-black border ${
+                  progressPercent >= 100
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-orange-50 text-orange-600 border-orange-200"
+                }`}
               >
                 {progressPercent}%
               </span>
-            </span>
+            </div>
           </div>
-          <div
-            style={{
-              position: "relative",
-              height: 10,
-              borderRadius: 999,
-              background: "#f1f5f9",
-              overflow: "hidden",
-              boxShadow: "inset 0 1.5px 3px rgba(15,23,42,0.06)",
-            }}
-          >
+
+          <div className="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden relative shadow-inner">
             <div
-              style={{
-                height: "100%",
-                width: `${progressPercent}%`,
-                borderRadius: "inherit",
-                background: progressPercent >= 100
-                  ? "linear-gradient(90deg, #10b981, #14b8a6, #34d399)"
-                  : "linear-gradient(90deg, #ea580c, #f97316, #fbbf24)",
-                transition: "width .8s cubic-bezier(.2,.8,.2,1)",
-                position: "relative",
-              }}
+              className={`h-full rounded-full transition-all duration-700 relative ${
+                progressPercent >= 100
+                  ? "bg-gradient-to-r from-emerald-500 to-teal-400"
+                  : "bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-400"
+              }`}
+              style={{ width: `${progressPercent}%` }}
             >
-              {/* Glossy top highlight */}
-              <div
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  right: 0,
-                  top: 0,
-                  height: "35%",
-                  background: "rgba(255, 255, 255, 0.25)",
-                  borderRadius: 999,
-                }}
-              />
+              <div className="absolute inset-0 bg-white/20 rounded-full h-1/2" />
             </div>
           </div>
         </div>
