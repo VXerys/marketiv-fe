@@ -164,6 +164,9 @@ class MockClient {
   setKey(key: string) {
     return this;
   }
+  setLocale(locale: string) {
+    return this;
+  }
 }
 
 export const Account = MockAccount;

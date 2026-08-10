@@ -73,6 +73,7 @@ import {
   cancelPaymentInAppwrite,
   publishCampaignInAppwrite,
   reviewSubmissionInAppwrite,
+  getSubmissionCountsFromAppwrite,
 } from "./umkm-appwrite.service";
 import type {
   UmkmFinanceOverview,
@@ -145,6 +146,26 @@ export async function getCampaignSubmissions(campaignId: string): Promise<Servic
     return { success: true, data: submissions };
   }
   return getCampaignSubmissionsFromAppwrite(campaignId);
+}
+
+/** UMKM-PERF-01: batch counts — replaces N+1 per-campaign pattern in CampaignsPage. */
+export async function getSubmissionCounts(
+  campaignIds: string[]
+): Promise<ServiceResult<Record<string, { pending: number; valid: number; dispute: number }>>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(200);
+    const counts: Record<string, { pending: number; valid: number; dispute: number }> = {};
+    for (const id of campaignIds) {
+      const subs = mockSubmissions.filter((s) => s.campaignId === id);
+      counts[id] = {
+        pending: subs.filter((s) => s.validationStatus === "pending").length,
+        valid: subs.filter((s) => s.validationStatus === "approved").length,
+        dispute: subs.filter((s) => s.fraudStatus !== "safe").length,
+      };
+    }
+    return { success: true, data: counts };
+  }
+  return getSubmissionCountsFromAppwrite(campaignIds);
 }
 
 export async function getPendingSubmissions(): Promise<ServiceResult<CampaignSubmission[]>> {

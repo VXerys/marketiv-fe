@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import {
   getCampaigns,
   getDashboardSummary,
-  getCampaignSubmissions,
+  getSubmissionCounts,
   getUmkmProfile,
   updateCampaignStatus,
   duplicateCampaign,
@@ -89,23 +89,15 @@ export function CampaignsPage() {
       }
 
       if (campaignsRes.success && campaignsRes.data) {
-        setCampaigns(campaignsRes.data);
+        const campaignList = campaignsRes.data;
+        setCampaigns(campaignList);
 
-        // TODO(P1-backend): N+1 query — move submission aggregation to a backend DTO
-        // (getCampaignsWithSubmissionCounts) so 1 campaign list = 1 request.
-        const subCounts: Record<string, { pending: number; valid: number; dispute: number }> = {};
-        await Promise.all(
-          campaignsRes.data.map(async (c) => {
-            const subRes = await getCampaignSubmissions(c.id);
-            if (subRes.success && subRes.data) {
-              const pending = subRes.data.filter((s) => s.validationStatus === "pending").length;
-              const valid = subRes.data.filter((s) => s.validationStatus === "approved").length;
-              const dispute = subRes.data.filter((s) => s.fraudStatus !== "safe").length;
-              subCounts[c.id] = { pending, valid, dispute };
-            }
-          })
-        );
-        setSubmissionCounts(subCounts);
+        // UMKM-PERF-01: single batch query, zero N+1
+        const campaignIds = campaignList.map((c) => c.id);
+        const subCountsRes = await getSubmissionCounts(campaignIds);
+        if (subCountsRes.success && subCountsRes.data) {
+          setSubmissionCounts(subCountsRes.data);
+        }
       } else {
         setError(campaignsRes.error || "Gagal memuat campaign.");
       }

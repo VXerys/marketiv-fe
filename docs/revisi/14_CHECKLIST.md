@@ -41,7 +41,13 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
 
 ## P2
 
-- `[ ] UMKM-PERF-01`
+- `[x] UMKM-PERF-01` campaign N+1
+  Note: Tambah `getSubmissionCountsFromAppwrite(campaignIds[])` di `umkm-appwrite.service.ts` — satu
+  `listDocuments` dengan `Query.equal("campaignId", campaignIds)` lalu aggregate in-memory.
+  `CampaignsPage.tsx` diganti dari N+1 `Promise.all(campaigns.map(c => getCampaignSubmissions(c.id)))`
+  menjadi satu panggilan `getSubmissionCounts(campaignIds)`. Wrapper `getSubmissionCounts` ditambah di
+  `umkm-dashboard.service.ts` (mock path + appwrite path). `MockClient.setLocale()` ditambah ke test mock.
+  `@/` alias ditambah ke `00_BACKEND/vitest.config.ts`.
 - `[ ] UMKM-UX-01`
 - `[ ] UMKM-DATA-01`
 - `[ ] UMKM-DATA-02`
@@ -106,6 +112,19 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
 - `UMKM-LEGAL-01`
   Verification:
   `src/app/dashboard/umkm/panduan/page.tsx` updated 5% to 2% and creator flat netto 0%.
+- `UMKM-PERF-01`
+  Verification:
+  `cd 00_BACKEND && npx vitest run tests/unit/perf-01-submission-counts.test.ts`
+  Result: 3/3 tests pass — empty-map short-circuit, batch aggregation correct counts, missing campaignId absent.
+  Key assertion: `expect(mockListDocuments).toHaveBeenCalledTimes(1)` confirms no N+1.
+  Files changed:
+  - `src/services/umkm/umkm-appwrite.service.ts` (+`getSubmissionCountsFromAppwrite`)
+  - `src/services/umkm/umkm-dashboard.service.ts` (+`getSubmissionCounts` wrapper)
+  - `src/components/features/umkm-dashboard/campaign/CampaignsPage.tsx` (replace N+1 loop)
+  - `00_BACKEND/src/test-mocks/appwrite.ts` (+`MockClient.setLocale`)
+  - `00_BACKEND/vitest.config.ts` (+`@/` alias)
+  - `00_BACKEND/tests/unit/perf-01-submission-counts.test.ts` (new test file)
+
 
 ## Update rule
 

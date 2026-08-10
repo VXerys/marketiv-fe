@@ -428,6 +428,44 @@ export async function getCampaignSubmissionsFromAppwrite(
   }
 }
 
+/** UMKM-PERF-01: aggregate submission status counts for all campaigns owned by the UMKM in one query.
+ *
+ * Pattern: list campaigns → collect IDs → single listDocuments with campaignId=[...] →
+ * group by campaignId in memory.  Zero per-campaign requests.
+ *
+ * Returns `Record<campaignId, { pending; valid; dispute }>`.
+ * Missing campaign IDs are absent from the map (caller defaults to 0).
+ */
+export async function getSubmissionCountsFromAppwrite(
+  campaignIds: string[]
+): Promise<ServiceResult<Record<string, { pending: number; valid: number; dispute: number }>>> {
+  const empty: Record<string, { pending: number; valid: number; dispute: number }> = {};
+  if (campaignIds.length === 0) return { success: true, data: empty };
+
+  const auth = await requireUserId<typeof empty>(empty);
+  if (!auth.ok) return auth.result;
+
+  try {
+    // Single query — Appwrite `equal` with array uses OR semantics (same as getPendingSubmissionsFromAppwrite).
+    const res = await databases.listDocuments(DB, COLLECTIONS.submissions, [
+      Query.equal("campaignId", campaignIds.slice(0, 100)),
+      Query.limit(500),
+    ]);
+
+    const counts: Record<string, { pending: number; valid: number; dispute: number }> = {};
+    for (const doc of res.documents as unknown as Doc[]) {
+      const cid = str(doc.campaignId);
+      if (!counts[cid]) counts[cid] = { pending: 0, valid: 0, dispute: 0 };
+      if (str(doc.validationStatus) === "pending") counts[cid].pending++;
+      if (str(doc.validationStatus) === "approved") counts[cid].valid++;
+      if (str(doc.fraudStatus) !== "safe" && str(doc.fraudStatus) !== "") counts[cid].dispute++;
+    }
+    return { success: true, data: counts };
+  } catch (err) {
+    return failFromError<typeof empty>(err, empty);
+  }
+}
+
 export async function getPendingSubmissionsFromAppwrite(): Promise<ServiceResult<CampaignSubmission[]>> {
   const auth = await requireUserId<CampaignSubmission[]>([]);
   if (!auth.ok) return auth.result;
