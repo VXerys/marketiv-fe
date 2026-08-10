@@ -48,7 +48,10 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
   menjadi satu panggilan `getSubmissionCounts(campaignIds)`. Wrapper `getSubmissionCounts` ditambah di
   `umkm-dashboard.service.ts` (mock path + appwrite path). `MockClient.setLocale()` ditambah ke test mock.
   `@/` alias ditambah ke `00_BACKEND/vitest.config.ts`.
-- `[ ] UMKM-UX-01`
+- `[x] UMKM-UX-01` payment modal
+  Note: Di `CreateCampaignWizard.tsx`, ubah aksi `handleNext` pada langkah terakhir dari memanggil
+  `handleConfirmPayment()` secara langsung menjadi `setIsPaymentOpen(true)` agar PaymentSimulationModal
+  terbuka terlebih dahulu, sesuai desain.
 - `[ ] UMKM-DATA-01`
 - `[ ] UMKM-DATA-02`
 - `[ ] UMKM-DATA-03`
@@ -124,7 +127,10 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
   - `00_BACKEND/src/test-mocks/appwrite.ts` (+`MockClient.setLocale`)
   - `00_BACKEND/vitest.config.ts` (+`@/` alias)
   - `00_BACKEND/tests/unit/perf-01-submission-counts.test.ts` (new test file)
-
+- `UMKM-UX-01`
+  Verification:
+  `src/components/features/umkm-dashboard/create-campaign/CreateCampaignWizard.tsx` (handleNext).
+  Klik tombol "Lanjut Pembayaran" di Step 5 akan memanggil `setIsPaymentOpen(true)` dan memunculkan `PaymentSimulationModal`.
 
 ## Update rule
 

@@ -147,8 +147,8 @@ export function CreateCampaignWizard({ campaignId, initialState, initialMeta }: 
         setCurrentStep((prev) => prev + 1);
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
-        // Last step: Langsung buat pembayaran & buka Midtrans Snap!
-        void handleConfirmPayment();
+        // Last step: Buka modal konfirmasi sebelum lanjut ke Midtrans Snap
+        setIsPaymentOpen(true);
       }
     }
   };
