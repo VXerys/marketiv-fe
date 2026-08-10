@@ -4108,6 +4108,26 @@
             ]
         },
         {
+            "$id": "mark-notifications-read",
+            "name": "Mark Notifications Read",
+            "runtime": "node-22",
+            "execute": [
+                "users"
+            ],
+            "events": [],
+            "schedule": "",
+            "timeout": 15,
+            "enabled": true,
+            "logging": true,
+            "entrypoint": "src/main.js",
+            "commands": "npm install",
+            "path": "functions/mark-notifications-read",
+            "scopes": [
+                "documents.read",
+                "documents.write"
+            ]
+        },
+        {
             "$id": "patch-conversation-archive",
             "name": "Patch Conversation Archive",
             "runtime": "node-22",

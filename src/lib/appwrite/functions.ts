@@ -45,6 +45,7 @@ export const FUNCTION_IDS = {
   sendMessage: "send-message",
   createOffer: "create-offer",
   reviewSubmission: "review-submission",
+  markNotificationsRead: "mark-notifications-read",
   // ── Fix SEC-H1: guard campaign money fields (2026-08-08) ────────────────
   /**
    * Dua Function ini menggantikan client-side updateDocument pada koleksi campaigns.

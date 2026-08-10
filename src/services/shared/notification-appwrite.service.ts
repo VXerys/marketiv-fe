@@ -4,6 +4,7 @@ import { appwriteConfig } from "@/lib/appwrite/config";
 import type { ServiceResult } from "@/types/domain";
 import type { AppNotification, NotifType } from "@/types/notification.types";
 import type { UserRole } from "@/types/domain";
+import { executeFunction, FUNCTION_IDS } from "@/lib/appwrite/functions";
 import {
   type Doc,
   str,
@@ -108,14 +109,33 @@ export async function getNotificationsFromAppwrite(
   if (!auth.ok) return auth.result;
 
   try {
-    const res = await databases.listDocuments(DB, COLLECTION, [
-      Query.equal("userId", auth.userId),
-      Query.orderDesc("$createdAt"),
-      Query.limit(PAGE_LIMIT),
-    ]);
-    return ok(
-      (res.documents as unknown as Doc[]).map((d) => mapNotification(d, role))
-    );
+    const notifications: AppNotification[] = [];
+    let cursor: string | null = null;
+    let hasMore = true;
+
+    while (hasMore) {
+      const queries = [
+        Query.equal("userId", auth.userId),
+        Query.orderDesc("$createdAt"),
+        Query.limit(PAGE_LIMIT),
+      ];
+      if (cursor) queries.push(Query.cursorAfter(cursor));
+
+      const res = await databases.listDocuments(DB, COLLECTION, queries);
+      const docs = res.documents as unknown as Doc[];
+      
+      for (const d of docs) {
+        notifications.push(mapNotification(d, role));
+      }
+
+      if (docs.length < PAGE_LIMIT) {
+        hasMore = false;
+      } else {
+        cursor = str(docs[docs.length - 1].$id);
+      }
+    }
+
+    return ok(notifications);
   } catch (err) {
     return failFromError<AppNotification[]>(err, []);
   }
@@ -143,13 +163,7 @@ export async function markAllNotificationsReadInAppwrite(
   if (ids.length === 0) return ok(null);
 
   try {
-    const results = await Promise.allSettled(
-      ids.map((id) => databases.updateDocument(DB, COLLECTION, id, { isRead: true }))
-    );
-    const rejected = results.find((r) => r.status === "rejected");
-    if (rejected && rejected.status === "rejected") {
-      return failFromWriteError<null>(rejected.reason, noData<null>());
-    }
+    await executeFunction(FUNCTION_IDS.markNotificationsRead, { ids });
     return ok(null);
   } catch (err) {
     return failFromWriteError<null>(err, noData<null>());
