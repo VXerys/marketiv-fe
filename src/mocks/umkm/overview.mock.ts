@@ -32,17 +32,17 @@ export const mockUmkmOverview: Omit<UmkmOverviewData, "campaigns"> = {
   insights: [
     {
       id: "ins-1",
-      text: "Campaign Kuliner/Food memiliki performa views 28% lebih tinggi minggu ini.",
+      text: "Kampanye Produk Makanan Anda mendapat 28% lebih banyak penonton minggu ini.",
       type: "purple",
     },
     {
       id: "ins-2",
-      text: "Tambahkan kreator ke campaign aktif Anda untuk meningkatkan estimasi views mingguan.",
+      text: "Tambahkan kreator ke kampanye Anda agar promosi usaha makin luas.",
       type: "info",
     },
     {
       id: "ins-3",
-      text: "Dana escrow sebesar Rp 3.250.000 aman terjamin di dalam escrow pool Marketiv.",
+      text: "Dana pemasaran Anda disimpan aman oleh sistem hingga video selesai disetujui.",
       type: "success",
     },
   ],

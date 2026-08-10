@@ -1,9 +1,9 @@
 "use client";
 
-import { Lightbulb, AlertTriangle, TrendingUp, X, ArrowRight, BarChart2 } from "lucide-react";
+import { Lightbulb, AlertTriangle, TrendingUp, X, ArrowRight, BarChart2, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 
-type InsightType = "insight" | "warning" | "recommendation";
+type InsightType = "insight" | "warning" | "recommendation" | "security";
 
 interface Insight {
   id: string;
@@ -12,36 +12,49 @@ interface Insight {
 }
 
 const INSIGHT_CONFIG: Record<InsightType, {
-  icon: React.ComponentType<{ size?: number; color?: string }>;
+  icon: React.ComponentType<{ size?: number; className?: string; color?: string }>;
   label: string;
   bg: string;
   color: string;
   border: string;
   iconBg: string;
+  btnBg: string;
 }> = {
   insight: {
     icon: TrendingUp,
-    label: "Analisis Bisnis",
-    bg: "radial-gradient(circle at 100% 0%, rgba(37,99,235,.12), transparent 14rem), linear-gradient(180deg, #ffffff, #f5f8ff)",
+    label: "Analisis Usaha",
+    bg: "linear-gradient(180deg, #ffffff, #f0f6ff)",
     color: "#2563eb",
-    border: "rgba(37,99,235,.14)",
-    iconBg: "rgba(37,99,235,.09)",
+    border: "rgba(37,99,235,.16)",
+    iconBg: "rgba(37,99,235,.1)",
+    btnBg: "bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200",
   },
   warning: {
     icon: AlertTriangle,
     label: "Perlu Perhatian",
-    bg: "radial-gradient(circle at 100% 0%, rgba(217,119,6,.12), transparent 14rem), linear-gradient(180deg, #ffffff, #fffbeb)",
+    bg: "linear-gradient(180deg, #ffffff, #fffbeb)",
     color: "#d97706",
-    border: "rgba(217,119,6,.16)",
-    iconBg: "rgba(217,119,6,.09)",
+    border: "rgba(217,119,6,.18)",
+    iconBg: "rgba(217,119,6,.1)",
+    btnBg: "bg-amber-50 text-amber-800 hover:bg-amber-100 border-amber-200",
   },
   recommendation: {
     icon: Lightbulb,
-    label: "Rekomendasi",
-    bg: "radial-gradient(circle at 100% 0%, rgba(249,115,22,.12), transparent 14rem), linear-gradient(180deg, #ffffff, #fff8ef)",
+    label: "Saran Usaha",
+    bg: "linear-gradient(180deg, #ffffff, #fff8ef)",
     color: "#ea580c",
-    border: "rgba(249,115,22,.16)",
-    iconBg: "rgba(249,115,22,.09)",
+    border: "rgba(249,115,22,.18)",
+    iconBg: "rgba(249,115,22,.1)",
+    btnBg: "bg-orange-50 text-orange-700 hover:bg-orange-100 border-orange-200",
+  },
+  security: {
+    icon: ShieldCheck,
+    label: "Keamanan Dana",
+    bg: "linear-gradient(180deg, #ffffff, #f0fdf4)",
+    color: "#16a34a",
+    border: "rgba(22,163,74,.18)",
+    iconBg: "rgba(22,163,74,.1)",
+    btnBg: "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border-emerald-200",
   },
 };
 
@@ -59,63 +72,74 @@ export function InsightSection({
   onViewAnalyticsClick,
 }: InsightSectionProps) {
   const [dismissed, setDismissed] = useState<string[]>([]);
-  const displayInsights = insights.filter((i) => !dismissed.includes(i.id));
+  
+  // Maksimal 2 saran per permintaan user
+  const displayInsights = insights
+    .filter((i) => !dismissed.includes(i.id))
+    .slice(0, 2);
 
   return (
-    <div
-      className="relative rounded-3xl bg-white border border-slate-200/80 p-5 sm:p-6 shadow-[0_4px_20px_rgba(15,23,42,0.04)] h-full flex flex-col justify-between"
-    >
-      <div className="flex flex-col h-full justify-between">
+    <div className="relative rounded-3xl bg-white border border-slate-200/90 p-5 sm:p-6 shadow-[0_4px_20px_rgba(15,23,42,0.04)] h-full flex flex-col justify-between">
+      <div className="flex flex-col h-full justify-between gap-4">
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 mb-3 shrink-0">
+        <div className="flex items-center justify-between gap-3 shrink-0">
           <div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 block mb-0.5">
+            <span className="text-[11px] font-black uppercase tracking-wider text-orange-600 block mb-0.5">
               INSIGHT & SARAN
             </span>
             <h3 className="text-base font-black text-slate-900 tracking-tight font-display">
-              Insight Performa
+              Saran & Petunjuk Usaha
             </h3>
           </div>
 
           {displayInsights.length > 0 && (
-            <span className="px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200/60 text-[10px] font-extrabold shrink-0">
-              {displayInsights.length} insight
+            <span className="px-2.5 py-1 rounded-full bg-orange-50 text-orange-700 border border-orange-200/80 text-[11px] font-extrabold shrink-0">
+              {displayInsights.length} saran
             </span>
           )}
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-2 gap-2.5 flex-1">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="p-3 rounded-2xl bg-slate-50 space-y-2">
-                <div className="w-1/2 h-3 rounded bg-slate-200 animate-pulse" />
-                <div className="w-full h-8 rounded bg-slate-200 animate-pulse" />
+          <div className="flex flex-col gap-3 flex-1">
+            {[1, 2].map((i) => (
+              <div key={i} className="p-4 rounded-2xl bg-slate-50 space-y-2 border border-slate-100">
+                <div className="w-1/3 h-4 rounded bg-slate-200 animate-pulse" />
+                <div className="w-full h-10 rounded bg-slate-200 animate-pulse" />
               </div>
             ))}
           </div>
         ) : displayInsights.length === 0 ? (
-          /* Empty state — no fabricated fallbacks */
+          /* Empty state */
           <div className="flex-1 flex flex-col items-center justify-center gap-3 py-6 px-4 text-center">
-            <div className="w-11 h-11 rounded-2xl bg-slate-100 border border-slate-200/80 grid place-items-center">
-              <BarChart2 size={20} className="text-slate-400" />
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200/80 grid place-items-center">
+              <BarChart2 size={22} className="text-slate-400" />
             </div>
             <div>
-              <p className="text-[0.84rem] font-bold text-slate-700 mb-1">
-                Belum ada insight
+              <p className="text-sm font-bold text-slate-800 mb-1">
+                Belum ada saran baru
               </p>
-              <p className="text-[0.74rem] text-slate-400 leading-relaxed max-w-[220px]">
-                Insight berbasis performa akan tersedia setelah campaign memiliki data yang cukup untuk dianalisis.
+              <p className="text-xs text-slate-500 leading-relaxed max-w-[240px]">
+                Saran bisnis akan tampil di sini setelah kampanye Anda berjalan dan memiliki cukup data.
               </p>
             </div>
           </div>
         ) : (
-          /* Grid 2×2 */
-          <div className="grid grid-cols-2 gap-2.5 flex-1">
+          /* Full-width stacked cards (max 2) — clear text, zero truncation, high readability for UMKM 30-60 y/o */
+          <div className="flex flex-col gap-3 flex-1 justify-start">
             {displayInsights.map((insight) => {
               let mappedType: InsightType = "insight";
               if (insight.type === "warning") mappedType = "warning";
-              else if (insight.type === "info" || insight.type === "purple" || insight.type === "success") mappedType = "insight";
-              else mappedType = "recommendation";
+              else if (insight.type === "recommendation") mappedType = "recommendation";
+              else if (
+                insight.type === "success" ||
+                insight.text.toLowerCase().includes("escrow") ||
+                insight.text.toLowerCase().includes("dana") ||
+                insight.text.toLowerCase().includes("aman")
+              ) {
+                mappedType = "security";
+              } else {
+                mappedType = "insight";
+              }
 
               const cfg = INSIGHT_CONFIG[mappedType];
 
@@ -127,67 +151,69 @@ export function InsightSection({
               } else if (
                 insight.text.toLowerCase().includes("performa") ||
                 insight.text.toLowerCase().includes("views") ||
-                insight.text.toLowerCase().includes("analisis")
+                insight.text.toLowerCase().includes("analisis") ||
+                insight.text.toLowerCase().includes("penonton")
               ) {
                 ctaLabel = "Lihat Analitik";
                 ctaAction = onViewAnalyticsClick;
               } else {
-                ctaLabel = "Pelajari";
+                ctaLabel = "Pelajari Selengkapnya";
                 ctaAction = onViewAnalyticsClick;
               }
+
+              const Icon = cfg.icon;
 
               return (
                 <div
                   key={insight.id}
-                  className="hover-card-animate relative p-3 rounded-2xl border flex flex-col justify-between transition-all"
+                  className="relative p-4 rounded-2xl border flex flex-col justify-between transition-all duration-200 hover:shadow-sm"
                   style={{
                     background: cfg.bg,
                     borderColor: cfg.border,
                   }}
                 >
-                  {/* Dismiss */}
+                  {/* Dismiss button */}
                   <button
                     type="button"
+                    aria-label="Tutup saran ini"
                     onClick={() => setDismissed((d) => [...d, insight.id])}
-                    className="absolute top-2.5 right-2.5 w-4 h-4 rounded-md border-0 bg-white/70 hover:bg-white text-slate-400 hover:text-slate-700 grid place-items-center cursor-pointer transition-colors"
+                    className="absolute top-3.5 right-3.5 w-6 h-6 rounded-lg border border-slate-200/60 bg-white/80 hover:bg-white text-slate-400 hover:text-slate-700 grid place-items-center cursor-pointer transition-colors"
                   >
-                    <X size={10} />
+                    <X size={12} />
                   </button>
 
-                  <div>
-                    {/* Icon + type label */}
-                    <div className="flex items-center gap-1.5 mb-1.5 pr-4">
+                  <div className="pr-6">
+                    {/* Badge: Icon + Label (Full text, no truncate) */}
+                    <div className="flex items-center gap-2 mb-2">
                       <div
-                        className="w-5 h-5 rounded-md grid place-items-center shrink-0"
+                        className="w-6 h-6 rounded-lg grid place-items-center shrink-0"
                         style={{ background: cfg.iconBg }}
                       >
-                        <cfg.icon size={12} color={cfg.color} />
+                        <Icon size={14} className="shrink-0" color={cfg.color} />
                       </div>
                       <span
-                        className="text-[10px] font-black tracking-tight truncate"
+                        className="text-xs font-extrabold tracking-tight"
                         style={{ color: cfg.color }}
                       >
                         {cfg.label}
                       </span>
                     </div>
 
-                    <p className="text-[10px] font-medium text-slate-600 leading-tight line-clamp-3 mb-1">
+                    {/* Body Text: Full text, NO line-clamp, clear font size for UMKM (30-60 y/o) */}
+                    <p className="text-xs sm:text-sm font-medium text-slate-700 leading-relaxed mb-3">
                       {insight.text}
                     </p>
                   </div>
 
+                  {/* Action CTA button */}
                   {ctaLabel && (
                     <button
                       type="button"
                       onClick={ctaAction}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-extrabold bg-white/80 hover:bg-white transition-colors cursor-pointer border self-start mt-1"
-                      style={{
-                        borderColor: cfg.border,
-                        color: cfg.color,
-                      }}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border self-start ${cfg.btnBg}`}
                     >
                       <span>{ctaLabel}</span>
-                      <ArrowRight size={9} />
+                      <ArrowRight size={12} />
                     </button>
                   )}
                 </div>
