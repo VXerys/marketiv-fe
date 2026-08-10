@@ -27,7 +27,7 @@ export const BUCKET_RULES: Record<
   { maxBytes: number; extensions: string[] }
 > = {
   avatars: { maxBytes: 5_000_000, extensions: ["jpg", "jpeg", "png", "webp"] },
-  logos: { maxBytes: 5_000_000, extensions: ["jpg", "jpeg", "png", "webp", "svg"] },
+  logos: { maxBytes: 5_000_000, extensions: ["jpg", "jpeg", "png", "webp"] },
   portfolios: { maxBytes: 50_000_000, extensions: ["jpg", "jpeg", "png", "webp", "pdf", "mp4"] },
   campaignAssets: { maxBytes: 100_000_000, extensions: [] },
 };

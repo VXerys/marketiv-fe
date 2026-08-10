@@ -235,7 +235,7 @@ export function PengaturanClient() {
             <input
               ref={logoInputRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/svg+xml"
+              accept="image/jpeg,image/png,image/webp"
               onChange={handleLogoChange}
               className="hidden"
             />
