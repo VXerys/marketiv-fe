@@ -73,7 +73,8 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
   Note: Public SVG upload (removed svg from allowed extensions in storage.ts and PengaturanClient.tsx)
 - `[x] UMKM-PRIV-01`
   Note: Moved `address` from `umkm_profiles` to `users` collection to separate private owner fields. `users` already stores private fields like `phone`, and `umkm_profiles` remains the public projection (`read("any")`). Updated `create-user-profile` function and `umkm-appwrite.service.ts` to query/update `address` in `users`.
-- `[ ] UMKM-SUP-01`
+- `[x] UMKM-SUP-01`
+  Note: Replaced `href="#"` with `mailto:marketiv.official@gmail.com` on "Hubungi Admin" link in DashboardSidebar.tsx.
 
 ## P3
 
