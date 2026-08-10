@@ -1,4 +1,5 @@
 import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
+import { requireActiveRole } from "../../_shared/require-active-role.js";
 
 /**
  * Buka (atau lanjutkan) ruang negosiasi antara UMKM pemanggil dan seorang kreator.
@@ -46,24 +47,24 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Profil kreator ini belum tertaut ke akun yang sah." }, 400);
     }
 
-    const databases = createDatabasesClient(env);
-
-    const usersRes = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
-      Query.equal("userId", umkmId),
-      Query.limit(1),
-    ]);
-    const userDoc = usersRes.documents[0] || null;
-    if (!userDoc) {
-      return json(res, { error: "Profil Pengguna tidak ditemukan." }, 404);
-    }
-    if (userDoc.status && userDoc.status !== "active") {
-      log(`Create conversation ditolak untuk ${umkmId}: status akun ${userDoc.status}`);
-      return json(res, { error: "Akun Anda sedang tidak aktif." }, 403);
-    }
-    if (userDoc.role !== "umkm") {
-      log(`Create conversation ditolak untuk ${umkmId}: role ${userDoc.role}`);
-      return json(res, { error: "Hanya UMKM yang dapat memulai percakapan." }, 403);
-    }
+	    const databases = createDatabasesClient(env);
+	    try {
+	      await requireActiveRole({
+	        databases,
+	        databaseId: env.databaseId,
+	        usersCollectionId: env.usersCollectionId,
+	        userId: umkmId,
+	        role: "umkm",
+	        log,
+	        actionLabel: "Create conversation",
+	        notFoundMessage: "Profil Pengguna tidak ditemukan.",
+	        inactiveMessage: "Akun Anda sedang tidak aktif.",
+	        wrongRoleMessage: "Hanya UMKM yang dapat memulai percakapan.",
+	      });
+	    } catch (err) {
+	      if (err?.statusCode) return json(res, { error: err.message }, err.statusCode);
+	      throw err;
+	    }
 
     const existing = await findByPair(databases, env, umkmId, creatorId);
     if (existing) {
@@ -105,13 +106,11 @@ export default async ({ req, res, log, error }) => {
   }
 };
 
-/** Permission baris: kedua peserta membaca dan memperbarui. */
+/** Permission baris: kedua peserta hanya membaca. */
 function participantPermissions(umkmId, creatorId) {
   return [
     Permission.read(Role.user(umkmId)),
     Permission.read(Role.user(creatorId)),
-    Permission.update(Role.user(umkmId)),
-    Permission.update(Role.user(creatorId)),
   ];
 }
 

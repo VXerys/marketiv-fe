@@ -58,9 +58,11 @@ export default async ({ req, res, log, error }) => {
     const newRevCount = Math.max(existingRevision, version - 1);
 
     await databases.updateDocument(env.databaseId, env.ordersCollectionId, orderId, {
+      status: order.status === "revision" ? "in_progress" : order.status,
       review_deadline_at: deadline,
       revision_count: newRevCount,
-      revision_limit: revLimit
+      revision_limit: revLimit,
+      reminder_sent_at: null
     });
     
     log(`Order ${orderId} review deadline set to ${deadline}`);

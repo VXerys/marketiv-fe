@@ -67,12 +67,16 @@ export default async ({ req, res, log, error }) => {
       return json(res, { status: "ignored", reason: "offer status is not accepted" });
     }
 
-    const databases = createDatabasesClient(env);
+	    const databases = createDatabasesClient(env);
+	    const [umkm, creator] = await Promise.all([
+	      getUser(databases, env, offer.umkmId),
+	      getUser(databases, env, offer.creatorId)
+	    ]);
 
-    // T-14: order = aksi finansial, wajib setuju T&C terbaru. Pihak yang
-    // bertransaksi adalah kreator (menerima penawaran). Function ini
-    // event-driven — tidak ada user untuk dibalas 403, jadi order tidak
-    // dibuat dan UMKM diberi tahu agar alur tidak mati senyap.
+	    // T-14: order = aksi finansial, wajib setuju T&C terbaru. Pihak yang
+	    // bertransaksi adalah kreator (menerima penawaran). Function ini
+	    // event-driven — tidak ada user untuk dibalas 403, jadi order tidak
+	    // dibuat dan UMKM diberi tahu agar alur tidak mati senyap.
     const agreedTos = creator?.tos_version === env.currentTosVersion && Boolean(creator?.tos_accepted_at);
     if (!agreedTos) {
       log(`Order untuk offer ${offer.$id} ditolak: kreator ${offer.creatorId} belum setuju T&C ${env.currentTosVersion}`);

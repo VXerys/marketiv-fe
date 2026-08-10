@@ -1,4 +1,5 @@
 import { Client, Databases, ID, Permission, Role, Query } from "node-appwrite";
+import { requireActiveRole } from "../../_shared/require-active-role.js";
 
 /**
  * Kirim Custom Offer di dalam ruang negosiasi. UMKM-ONLY —
@@ -46,27 +47,27 @@ export default async ({ req, res, log, error }) => {
     const invalid = validate({ conversationId, title, description, deadline, price, revisionLimit });
     if (invalid) return json(res, { error: invalid }, 400);
 
-    const databases = createDatabasesClient(env);
-    
-    const usersRes = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
-      Query.equal("userId", userId),
-      Query.limit(1)
-    ]);
-    const userDoc = usersRes.documents[0] || null;
-    if (!userDoc) {
-      return json(res, { error: "Profil Pengguna tidak ditemukan." }, 404);
-    }
-    if (userDoc.status && userDoc.status !== "active") {
-      log(`Create offer ditolak untuk ${userId}: status akun ${userDoc.status}`);
-      return json(res, { error: "Akun Anda sedang tidak aktif." }, 403);
-    }
-    if (userDoc.role !== "umkm") {
-      log(`Create offer ditolak untuk ${userId}: role ${userDoc.role}`);
-      return json(res, { error: "Hanya UMKM yang dapat mengirim penawaran." }, 403);
-    }
+	    const databases = createDatabasesClient(env);
+	    try {
+	      await requireActiveRole({
+	        databases,
+	        databaseId: env.databaseId,
+	        usersCollectionId: env.usersCollectionId,
+	        userId,
+	        role: "umkm",
+	        log,
+	        actionLabel: "Create offer",
+	        notFoundMessage: "Profil Pengguna tidak ditemukan.",
+	        inactiveMessage: "Akun Anda sedang tidak aktif.",
+	        wrongRoleMessage: "Hanya UMKM yang dapat mengirim penawaran.",
+	      });
+	    } catch (err) {
+	      if (err?.statusCode) return json(res, { error: err.message }, err.statusCode);
+	      throw err;
+	    }
 
 
-    let conversation;
+	    let conversation;
     try {
       conversation = await databases.getDocument(
         env.databaseId,

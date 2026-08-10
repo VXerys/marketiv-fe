@@ -204,20 +204,73 @@ describe('user.service — integration (success paths)', () => {
 describe('chat.service — integration (success paths)', () => {
   beforeEach(() => __resetStore());
 
-  it('createConversation returns existing for duplicate pair', async () => {
-    __seed('conversations', [{ $id: 'conv1', umkm_id: 'u1', creator_id: 'c1' }]);
+  it('createConversation delegates to backend function', async () => {
     __mockAccountGet(() => ({ $id: 'u1' }));
-    const { createConversation } = await import('../../src/services/chat.service');
+    const calls: Array<{ functionId: string; data: any }> = [];
+    (mockAppwrite as any).__mockFunctionExecution((functionId: string, data: string) => {
+      calls.push({ functionId, data: JSON.parse(data) });
+      return {
+        $id: 'exec-1',
+        status: 'success',
+        responseBody: JSON.stringify({ conversationId: 'conv1' }),
+      };
+    });
+    const { createConversation } = await import('../../src/services/chat.service.ts');
     const conv = await createConversation({ umkmId: 'u1', creatorId: 'c1' });
     expect(conv.id).toBe('conv1');
+    expect(calls).toEqual([{ functionId: 'create-conversation', data: { creatorId: 'c1' } }]);
   });
 
-  it('sendMessage stores message and updates conversation last_message', async () => {
-    __seed('conversations', [{ $id: 'conv1', umkm_id: 'u1', creator_id: 'c1' }]);
+  it('sendMessage delegates to backend function', async () => {
     __mockAccountGet(() => ({ $id: 'u1' }));
-    const { sendMessage } = await import('../../src/services/chat.service');
+    const calls: Array<{ functionId: string; data: any }> = [];
+    (mockAppwrite as any).__mockFunctionExecution((functionId: string, data: string) => {
+      calls.push({ functionId, data: JSON.parse(data) });
+      return {
+        $id: 'exec-2',
+        status: 'success',
+        responseBody: JSON.stringify({
+          id: 'msg1',
+          conversationId: 'conv1',
+          senderId: 'u1',
+          type: 'text',
+          content: 'Halo',
+          createdAt: '2026-08-10T00:00:00.000Z',
+        }),
+      };
+    });
+    const { sendMessage } = await import('../../src/services/chat.service.ts');
     const msg = await sendMessage({ conversationId: 'conv1', type: 'text', content: 'Halo' });
     expect(msg.content).toBe('Halo');
+    expect(calls).toEqual([{ functionId: 'send-message', data: { conversationId: 'conv1', content: 'Halo' } }]);
+  });
+
+  it('markConversationAsRead delegates unread update to backend function', async () => {
+    __mockAccountGet(() => ({ $id: 'u1' }));
+    const calls: Array<{ functionId: string; data: any }> = [];
+    (mockAppwrite as any).__mockFunctionExecution((functionId: string, data: string) => {
+      calls.push({ functionId, data: JSON.parse(data) });
+      return { $id: 'exec-3', status: 'success', responseBody: JSON.stringify({ ok: true }) };
+    });
+    const { markConversationAsRead } = await import('../../src/services/chat.service.ts');
+    await markConversationAsRead('conv1');
+    expect(calls).toEqual([{ functionId: 'mark-conversation-read', data: { conversationId: 'conv1' } }]);
+  });
+
+  it('archiveConversation delegates archive flag to backend function', async () => {
+    __mockAccountGet(() => ({ $id: 'u1' }));
+    const calls: Array<{ functionId: string; data: any }> = [];
+    (mockAppwrite as any).__mockFunctionExecution((functionId: string, data: string) => {
+      calls.push({ functionId, data: JSON.parse(data) });
+      return { $id: 'exec-4', status: 'success', responseBody: JSON.stringify({ ok: true }) };
+    });
+    const { archiveConversation, unarchiveConversation } = await import('../../src/services/chat.service.ts');
+    await archiveConversation('conv1');
+    await unarchiveConversation('conv1');
+    expect(calls).toEqual([
+      { functionId: 'patch-conversation-archive', data: { conversationId: 'conv1', isArchived: true } },
+      { functionId: 'patch-conversation-archive', data: { conversationId: 'conv1', isArchived: false } },
+    ]);
   });
 });
 
@@ -299,13 +352,38 @@ describe('submission.service — integration (success paths)', () => {
 describe('order.service — integration (success paths)', () => {
   beforeEach(() => __resetStore());
 
-  it('uploadDeliverable increments version and sets in_progress', async () => {
+  it('uploadDeliverable increments version without mutating order client-side', async () => {
     __seed('orders', [{ $id: 'o1', creatorId: 'creator-1', umkmId: 'u1', amount: 100000, status: 'escrow' }]);
     __seed('deliverables', []);
     __mockAccountGet(() => ({ $id: 'creator-1' }));
-    const { uploadDeliverable } = await import('../../src/services/order.service');
+    const { uploadDeliverable } = await import('../../src/services/order.service.ts');
     const d = await uploadDeliverable({ orderId: 'o1', source: 'external_url', fileUrl: 'https://x.com/a' });
     expect(d.version).toBe(1);
     expect(d.status).toBe('submitted');
+    expect((__mockStore.orders || [])[0].status).toBe('escrow');
+  });
+
+  it('requestRevision stores revision without mutating order client-side', async () => {
+    __seed('orders', [{ $id: 'o1', creatorId: 'creator-1', umkmId: 'u1', amount: 100000, status: 'in_progress' }]);
+    __seed('revisions', []);
+    __mockAccountGet(() => ({ $id: 'u1' }));
+    const { requestRevision } = await import('../../src/services/order.service.ts');
+    const revision = await requestRevision({ orderId: 'o1', message: 'Tolong revisi hook video.' });
+    expect(revision.status).toBe('open');
+    expect((__mockStore.orders || [])[0].status).toBe('in_progress');
+  });
+
+  it('cancelOrder delegates transition to backend function', async () => {
+    __seed('orders', [{ $id: 'o1', creatorId: 'creator-1', umkmId: 'u1', amount: 100000, status: 'pending_payment' }]);
+    __mockAccountGet(() => ({ $id: 'u1' }));
+    const calls: Array<{ functionId: string; data: any }> = [];
+    (mockAppwrite as any).__mockFunctionExecution((functionId: string, data: string) => {
+      calls.push({ functionId, data: JSON.parse(data) });
+      return { $id: 'exec-1', status: 'success', responseBody: JSON.stringify({ ok: true, status: 'cancelled' }) };
+    });
+    const { cancelOrder } = await import('../../src/services/order.service.ts');
+    await cancelOrder('o1');
+    expect(calls).toEqual([{ functionId: 'cancel-order', data: { orderId: 'o1' } }]);
+    expect((__mockStore.orders || [])[0].status).toBe('pending_payment');
   });
 });

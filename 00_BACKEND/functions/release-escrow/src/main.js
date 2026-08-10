@@ -34,8 +34,11 @@ export default async ({ req, res, log, error }) => {
       return json(res, { status: "ignored", reason: `order status is ${order.status}` });
     }
 
-    const escrow = await findHeldEscrow(databases, env, orderId);
-    if (!escrow) return json(res, { status: "ignored", reason: "held escrow not found" });
+    const escrow = await findEscrowForRelease(databases, env, orderId);
+    if (!escrow) return json(res, { status: "ignored", reason: "releasable escrow not found" });
+    if (escrow.status === "released") {
+      return json(res, { status: "already_released", escrowId: escrow.$id });
+    }
 
     const wallet = await findWallet(databases, env, creatorId);
     if (!wallet) throw new Error(`Wallet not found for creator ${creatorId}`);
@@ -47,48 +50,50 @@ export default async ({ req, res, log, error }) => {
     // Sejajar calculateCreatorPayout() di src/services/wallet.service.ts:129.
     const creatorAmount = escrowAmount - feeAmount;
 
-    // Urutannya sengaja: escrow di-flip ke `released` LEBIH DULU, baru wallet
-    // dikredit. Kalau eksekusi berhenti di antara keduanya, `findHeldEscrow`
-    // pada percobaan berikutnya mengembalikan null sehingga kreator tidak
-    // dibayar dua kali — dana tertahan dan bisa dikoreksi manual. Urutan
-    // sebaliknya (kredit dulu) akan membayar dua kali saat event terkirim ulang,
-    // dan itu tidak bisa ditarik kembali.
-    await databases.updateDocument(env.databaseId, env.escrowsCollectionId, escrow.$id, { status: "released" });
-    // Increment atomik: kreator bisa punya beberapa order yang dirilis dalam
-    // detik yang sama, dan `wallet.balance` di sini adalah bacaan dari sebelum
-    // escrow di-flip. Menulis hasil hitungan dari bacaan itu akan menghapus
-    // pelepasan lain yang kebetulan bersamaan.
-    await incrementColumn(
-      env, env.walletsCollectionId, wallet.$id, "balance", creatorAmount
-    );
+    if (escrow.status !== "releasing") {
+      await databases.updateDocument(env.databaseId, env.escrowsCollectionId, escrow.$id, { status: "releasing" });
+      escrow.status = "releasing";
+    }
 
-    await ensureTransaction(databases, env, {
+    const releaseTransaction = await ensureTransaction(databases, env, {
       userId: creatorId,
       amount: creatorAmount,
-      // `release` + referenceType `escrow` adalah kunci yang dibaca
-      // get-creator-dashboard-summary:99 sebagai pendapatan Rate Card. Nominalnya
-      // kini bersih setelah fee — itu memang yang diterima kreator.
       type: "release",
       referenceId: escrow.$id,
       referenceType: "escrow",
-      status: "completed"
+      status: "processing"
     });
 
-    if (feeAmount > 0) {
-      await ensureTransaction(databases, env, {
+    const feeTransaction = feeAmount > 0
+      ? await ensureTransaction(databases, env, {
         userId: creatorId,
         amount: feeAmount,
-        // Tipe `fee` tidak ikut terhitung sebagai pendapatan di dashboard
-        // (EARNING_TYPE = "release"), jadi baris ini murni jejak transparansi
-        // bagi kreator atas potongan yang diambil platform.
         type: "fee",
         referenceId: escrow.$id,
         referenceType: "escrow",
-        status: "completed"
-      });
+        status: "processing"
+      })
+      : null;
+
+    if (releaseTransaction.status !== "completed") {
+      // Increment atomik: kreator bisa punya beberapa order yang dirilis dalam
+      // detik yang sama. Kredit wallet hanya dijalankan selama ledger release
+      // masih `processing`, sehingga retry normal menyelesaikan state `releasing`
+      // yang gagal sebelum kredit selesai.
+      await incrementColumn(
+        env, env.walletsCollectionId, wallet.$id, "balance", creatorAmount
+      );
+      await markTransactionCompleted(databases, env, releaseTransaction.$id);
+    }
+
+    if (feeAmount > 0) {
+      if (feeTransaction?.status !== "completed") {
+        await markTransactionCompleted(databases, env, feeTransaction.$id);
+      }
     }
 
     await updateOrderCompleted(databases, env, orderId);
+    await databases.updateDocument(env.databaseId, env.escrowsCollectionId, escrow.$id, { status: "released" });
 
     await notify(databases, env, {
       userId: creatorId,
@@ -155,10 +160,10 @@ function parseBody(req) {
   return typeof rawBody === "object" ? rawBody : JSON.parse(rawBody);
 }
 
-async function findHeldEscrow(databases, env, orderId) {
+async function findEscrowForRelease(databases, env, orderId) {
   const result = await databases.listDocuments(env.databaseId, env.escrowsCollectionId, [
     Query.equal("orderId", orderId),
-    Query.equal("status", "held"),
+    Query.equal("status", ["held", "releasing", "released"]),
     Query.limit(1)
   ]);
   return result.documents[0] || null;
@@ -175,23 +180,30 @@ async function findWallet(databases, env, userId) {
  * platform). Karena `type` ikut jadi kunci, keduanya tidak saling menimpa.
  */
 async function ensureTransaction(databases, env, transaction) {
-  const existing = await databases.listDocuments(env.databaseId, env.transactionsCollectionId, [
-    Query.equal("referenceId", transaction.referenceId),
-    Query.equal("referenceType", transaction.referenceType),
-    Query.equal("type", transaction.type),
-    Query.limit(1)
-  ]);
-  if (existing.documents[0]) return existing.documents[0];
+  const documentId = deterministicTransactionId(
+    transaction.referenceId,
+    transaction.referenceType,
+    transaction.type
+  );
+  try {
+    return await databases.getDocument(env.databaseId, env.transactionsCollectionId, documentId);
+  } catch (err) {
+    if (err?.code !== 404) throw err;
+  }
 
-  return databases.createDocument(
+  return await databases.createDocument(
     env.databaseId,
     env.transactionsCollectionId,
-    ID.unique(),
+    documentId,
     transaction,
-    // `transactions` punya $permissions kosong + rowSecurity, jadi permission
-    // baris adalah satu-satunya jalur baca bagi pemiliknya.
     [Permission.read(Role.user(transaction.userId))]
   );
+}
+
+async function markTransactionCompleted(databases, env, transactionId) {
+  await databases.updateDocument(env.databaseId, env.transactionsCollectionId, transactionId, {
+    status: "completed"
+  });
 }
 
 async function updateOrderCompleted(databases, env, orderId) {
@@ -239,6 +251,11 @@ async function notify(databases, env, payload, log) {
 function deterministicNotificationId(sourceId, kind) {
   const digest = createHash("sha256").update(`${sourceId}:${kind}`).digest("hex");
   return `ntf${digest.slice(0, 29)}`;
+}
+
+function deterministicTransactionId(referenceId, referenceType, type) {
+  const digest = createHash("sha256").update(`${referenceId}:${referenceType}:${type}`).digest("hex");
+  return `tx${digest.slice(0, 30)}`;
 }
 
 function rupiah(value) {

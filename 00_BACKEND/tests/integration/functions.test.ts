@@ -12,12 +12,14 @@ const authUsers: Record<string, any> = {};
 const emailTokens: any[] = [];
 const sessions: any[] = [];
 const seed = (collection: string, docs: any[]) => { store[collection] = docs; };
+const createCalls: Array<{ collection: string; docId: string; data: any; permissions?: any[] }> = [];
 const seedAuthUser = (user: any) => { authUsers[user.$id] = user; };
 const reset = () => {
   for (const k of Object.keys(store)) delete store[k];
   for (const k of Object.keys(authUsers)) delete authUsers[k];
   emailTokens.length = 0;
   sessions.length = 0;
+  createCalls.length = 0;
 };
 
 const ID = {
@@ -26,6 +28,8 @@ const ID = {
 };
 const Query = {
   equal: (a: string, v: any) => ({ method: 'equal', attr: a, value: v }),
+  notEqual: (a: string, v: any) => ({ method: 'notEqual', attr: a, value: v }),
+  isNull: (a: string) => ({ method: 'isNull', attr: a }),
   limit: (n: number) => ({ method: 'limit', value: n }),
   offset: (n: number) => ({ method: 'offset', value: n }),
   orderDesc: (a: string) => ({ method: 'orderDesc', attr: a }),
@@ -47,13 +51,17 @@ class Databases {
           const values = Array.isArray(query.value) ? query.value : [query.value];
           return values.includes(doc[query.attr]);
         });
+      } else if (query?.method === 'notEqual') {
+        docs = docs.filter((doc) => doc[query.attr] !== query.value);
+      } else if (query?.method === 'isNull') {
+        docs = docs.filter((doc) => doc[query.attr] == null);
       }
     }
     const limit = q.find((query) => query?.method === 'limit')?.value;
     if (typeof limit === 'number') docs = docs.slice(0, limit);
     return { documents: docs, total: docs.length };
   }
-  async createDocument(_db: string, collection: string, docId: string, data: any, _p?: any[]) {
+  async createDocument(_db: string, collection: string, docId: string, data: any, permissions?: any[]) {
     const existing = (store[collection] || []).find((d) => d.$id === docId);
     if (existing) {
       const e: any = new Error('document already exists');
@@ -63,6 +71,7 @@ class Databases {
     const doc = { $id: docId, $createdAt: new Date().toISOString(), $updatedAt: new Date().toISOString(), ...data };
     if (!store[collection]) store[collection] = [];
     store[collection].push(doc);
+    createCalls.push({ collection, docId, data, permissions });
     return doc;
   }
   async getDocument(_db: string, collection: string, docId: string) {
@@ -166,8 +175,14 @@ describe('create-order function', () => {
     process.env.APPWRITE_DATABASE_ID = 'db';
     process.env.ORDERS_COLLECTION_ID = 'orders';
     process.env.OFFERS_COLLECTION_ID = 'offers';
+    process.env.USERS_COLLECTION_ID = 'users';
+    process.env.NOTIFICATIONS_COLLECTION_ID = 'notifications';
+    process.env.CURRENT_TOS_VERSION = 'v3.1';
+    seed('users', [
+      { $id: 'user-umkm', userId: 'u1', role: 'umkm', status: 'active' },
+      { $id: 'user-creator', userId: 'c1', role: 'creator', status: 'active', tos_version: 'v3.1', tos_accepted_at: '2026-08-10T00:00:00.000Z' },
+    ]);
     const main = (await import('../../functions/create-order/src/main.js')).default;
-    // Appwrite event payload: the offer document with $id, status, and oldStatus
     const req = makeReq({ bodyJson: { $id: 'o1', status: 'accepted', oldStatus: 'pending', creatorId: 'c1', umkmId: 'u1', price: 100000, deadline: '2026-12-31', revisionLimit: 2 } });
     const res = makeRes();
     const result = await main({ req, res, log: () => {}, error: () => {} });
@@ -175,6 +190,11 @@ describe('create-order function', () => {
     const order = (store['orders'] || []).find((o) => o.$id === result.body.orderId);
     expect(order.status).toBe('pending_payment');
     expect(order.amount).toBe(100000);
+    const createOrderCall = createCalls.find((call) => call.collection === 'orders' && call.docId === result.body.orderId);
+    expect(createOrderCall?.permissions).toEqual([
+      Permission.read(Role.user('u1')),
+      Permission.read(Role.user('c1')),
+    ]);
   });
 
   it('ignores non pending->accepted transitions', async () => {
@@ -185,6 +205,145 @@ describe('create-order function', () => {
     const res = makeRes();
     await main({ req, res, log: () => {}, error: () => {} });
     expect(res.calls[0].body.status).toBe('ignored');
+  });
+});
+
+describe('sync-order-revision function', () => {
+  it('moves order to revision and marks latest deliverable as revision_requested', async () => {
+    process.env.APPWRITE_DATABASE_ID = 'db';
+    process.env.ORDERS_COLLECTION_ID = 'orders';
+    process.env.DELIVERABLES_COLLECTION_ID = 'deliverables';
+    seed('orders', [{
+      $id: 'order-1',
+      umkmId: 'umkm-1',
+      creatorId: 'creator-1',
+      status: 'in_progress',
+      review_deadline_at: '2026-08-15T00:00:00.000Z',
+      reminder_sent_at: '2026-08-14T00:00:00.000Z',
+    }]);
+    seed('deliverables', [
+      { $id: 'd1', orderId: 'order-1', version: 1, status: 'submitted' },
+    ]);
+    const main = (await import('../../functions/sync-order-revision/src/main.js')).default;
+    const req = makeReq({ bodyJson: { $id: 'rev-1', orderId: 'order-1', message: 'Perbaiki CTA' } });
+    const res = makeRes();
+
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(store.orders[0].status).toBe('revision');
+    expect(store.orders[0].review_deadline_at).toBeNull();
+    expect(store.orders[0].reminder_sent_at).toBeNull();
+    expect(store.deliverables[0].status).toBe('revision_requested');
+  });
+});
+
+describe('create-conversation function', () => {
+  it('creates conversation with participant read-only permissions', async () => {
+    process.env.USERS_COLLECTION_ID = 'users';
+    process.env.CONVERSATIONS_COLLECTION_ID = 'conversations';
+    seed('users', [{ $id: 'u1', userId: 'umkm-1', role: 'umkm', status: 'active' }]);
+    const main = (await import('../../functions/create-conversation/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'umkm-1' }, bodyJson: { creatorId: 'creator-1' } });
+    const res = makeRes();
+
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].body.conversationId).toBeDefined();
+    const created = store.conversations[0];
+    expect(created).toMatchObject({ umkm_id: 'umkm-1', creator_id: 'creator-1' });
+  });
+});
+
+describe('send-message function', () => {
+  it('creates message with participant read-only permissions', async () => {
+    process.env.CONVERSATIONS_COLLECTION_ID = 'conversations';
+    process.env.MESSAGES_COLLECTION_ID = 'messages';
+    seed('conversations', [{ $id: 'conv-1', umkm_id: 'umkm-1', creator_id: 'creator-1' }]);
+    const main = (await import('../../functions/send-message/src/main.js')).default;
+    const req = makeReq({
+      headers: { 'x-appwrite-user-id': 'umkm-1' },
+      bodyJson: { conversationId: 'conv-1', content: 'Halo kreator' },
+    });
+    const res = makeRes();
+
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].body.content).toBe('Halo kreator');
+    expect(store.messages[0]).toMatchObject({
+      conversation_id: 'conv-1',
+      sender_id: 'umkm-1',
+      content: 'Halo kreator',
+    });
+  });
+});
+
+describe('mark-conversation-read function', () => {
+  it('marks unread messages from other participant as read', async () => {
+    process.env.CONVERSATIONS_COLLECTION_ID = 'conversations';
+    process.env.MESSAGES_COLLECTION_ID = 'messages';
+    seed('conversations', [{ $id: 'conv-1', umkm_id: 'umkm-1', creator_id: 'creator-1' }]);
+    seed('messages', [
+      { $id: 'm1', conversation_id: 'conv-1', sender_id: 'creator-1', read_at: null },
+      { $id: 'm2', conversation_id: 'conv-1', sender_id: 'umkm-1', read_at: null },
+    ]);
+    const main = (await import('../../functions/mark-conversation-read/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'umkm-1' }, bodyJson: { conversationId: 'conv-1' } });
+    const res = makeRes();
+
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].body.ok).toBe(true);
+    expect(store.messages[0].read_at).toBeTruthy();
+    expect(store.messages[1].read_at).toBeNull();
+  });
+});
+
+describe('patch-conversation-archive function', () => {
+  it('archives conversation for participant request', async () => {
+    process.env.CONVERSATIONS_COLLECTION_ID = 'conversations';
+    seed('conversations', [{ $id: 'conv-1', umkm_id: 'umkm-1', creator_id: 'creator-1', is_archived: false }]);
+    const main = (await import('../../functions/patch-conversation-archive/src/main.js')).default;
+    const req = makeReq({
+      headers: { 'x-appwrite-user-id': 'umkm-1' },
+      bodyJson: { conversationId: 'conv-1', isArchived: true },
+    });
+    const res = makeRes();
+
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].body.ok).toBe(true);
+    expect(store.conversations[0].is_archived).toBe(true);
+  });
+});
+
+describe('track-order-review function', () => {
+  it('moves revised order back to in_progress on new deliverable', async () => {
+    process.env.APPWRITE_DATABASE_ID = 'db';
+    process.env.ORDERS_COLLECTION_ID = 'orders';
+    seed('orders', [{
+      $id: 'order-1',
+      status: 'revision',
+      revision_count: 1,
+      revision_limit: 2,
+      reminder_sent_at: '2026-08-14T00:00:00.000Z',
+    }]);
+    const main = (await import('../../functions/track-order-review/src/main.js')).default;
+    const req = makeReq({
+      bodyJson: {
+        $id: 'd2',
+        orderId: 'order-1',
+        version: 2,
+        $createdAt: '2026-08-10T00:00:00.000Z',
+      },
+    });
+    const res = makeRes();
+
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(store.orders[0].status).toBe('in_progress');
+    expect(store.orders[0].revision_count).toBe(1);
+    expect(store.orders[0].reminder_sent_at).toBeNull();
+    expect(store.orders[0].review_deadline_at).toBe('2026-08-13T00:00:00.000Z');
   });
 });
 
@@ -428,6 +587,20 @@ describe('release-escrow function', () => {
     process.env.ORDERS_COLLECTION_ID = 'orders';
     process.env.WALLETS_COLLECTION_ID = 'wallets';
     process.env.TRANSACTIONS_COLLECTION_ID = 'transactions';
+    const mockTablesDb = (url: string, init: any) => {
+      const m = url.match(/\/tablesdb\/[^/]+\/tables\/([^/]+)\/rows\/([^/]+)\/([^/]+)\/(increment|decrement)$/);
+      if (!m) return { ok: false, status: 404, text: async () => '' };
+      const [, table, rowId, column, op] = m;
+      const doc = (store[table] || []).find((d: any) => d.$id === rowId);
+      if (doc) {
+        const body = JSON.parse(init.body);
+        if (op === 'increment') doc[column] = Number(doc[column] || 0) + Number(body.value);
+        else doc[column] = Number(doc[column] || 0) - Number(body.value);
+      }
+      return { ok: true, status: 200, text: async () => JSON.stringify(doc), json: async () => doc };
+    };
+    const oldFetch = globalThis.fetch;
+    (globalThis as any).fetch = mockTablesDb;
     seed('escrows', [{ $id: 'e1', orderId: 'o1', amount: 100000, status: 'held' }]);
     seed('orders', [{ $id: 'o1', umkmId: 'u1', creatorId: 'c1', amount: 100000, status: 'in_progress' }]);
     seed('wallets', [{ $id: 'w1', userId: 'c1', balance: 0, pendingBalance: 0 }]);
@@ -439,7 +612,81 @@ describe('release-escrow function', () => {
     const escrow = (store['escrows'] || []).find((e) => e.$id === 'e1');
     expect(escrow.status).toBe('released');
     const wallet = (store['wallets'] || []).find((w) => w.$id === 'w1');
-    expect(wallet.balance).toBe(100000);
+    expect(wallet.balance).toBe(98000);
+    (globalThis as any).fetch = oldFetch;
+  });
+
+  it('keeps escrow recoverable when wallet credit fails, then retry completes exactly once', async () => {
+    process.env.APPWRITE_DATABASE_ID = 'db';
+    process.env.ESCROWS_COLLECTION_ID = 'escrows';
+    process.env.ORDERS_COLLECTION_ID = 'orders';
+    process.env.WALLETS_COLLECTION_ID = 'wallets';
+    process.env.TRANSACTIONS_COLLECTION_ID = 'transactions';
+    seed('escrows', [{ $id: 'e2', orderId: 'o2', amount: 100000, status: 'held', fee_rate: 0.02 }]);
+    seed('orders', [{ $id: 'o2', umkmId: 'u1', creatorId: 'c2', amount: 100000, status: 'in_progress' }]);
+    seed('wallets', [{ $id: 'w2', userId: 'c2', balance: 0, pendingBalance: 0 }]);
+
+    let failIncrement = true;
+    const mockTablesDb = (url: string, init: any) => {
+      const m = url.match(/\/tablesdb\/[^/]+\/tables\/([^/]+)\/rows\/([^/]+)\/([^/]+)\/(increment|decrement)$/);
+      if (!m) return { ok: false, status: 404, text: async () => '' };
+      const [, table, rowId, column, op] = m;
+      if (table === 'wallets' && column === 'balance' && op === 'increment' && failIncrement) {
+        failIncrement = false;
+        return { ok: false, status: 500, text: async () => 'forced wallet increment failure' };
+      }
+      const doc = (store[table] || []).find((d: any) => d.$id === rowId);
+      if (doc) {
+        const body = JSON.parse(init.body);
+        if (op === 'increment') doc[column] = Number(doc[column] || 0) + Number(body.value);
+        else doc[column] = Number(doc[column] || 0) - Number(body.value);
+      }
+      return { ok: true, status: 200, text: async () => JSON.stringify(doc), json: async () => doc };
+    };
+    const oldFetch = globalThis.fetch;
+    (globalThis as any).fetch = mockTablesDb;
+
+    const main = (await import('../../functions/release-escrow/src/main.js')).default;
+    const req = makeReq({ bodyJson: { $id: 'd2', status: 'approved', orderId: 'o2' } });
+
+    await main({ req, res: makeRes(), log: () => {}, error: () => {} });
+    expect(store.escrows[0].status).toBe('releasing');
+    expect(store.wallets[0].balance).toBe(0);
+
+    await main({ req, res: makeRes(), log: () => {}, error: () => {} });
+    expect(store.escrows[0].status).toBe('released');
+    expect(store.wallets[0].balance).toBe(98000);
+    const releaseTx = (store.transactions || []).filter((tx: any) => tx.referenceId === 'e2' && tx.type === 'release');
+    expect(releaseTx).toHaveLength(1);
+    expect(releaseTx[0].status).toBe('completed');
+    const feeTx = (store.transactions || []).filter((tx: any) => tx.referenceId === 'e2' && tx.type === 'fee');
+    expect(feeTx).toHaveLength(1);
+    expect(feeTx[0].status).toBe('completed');
+
+    (globalThis as any).fetch = oldFetch;
+  });
+});
+
+describe('reconcile-release-escrow function', () => {
+  it('finalizes escrows stuck in releasing when ledger already completed', async () => {
+    process.env.APPWRITE_DATABASE_ID = 'db';
+    process.env.ESCROWS_COLLECTION_ID = 'escrows';
+    process.env.ORDERS_COLLECTION_ID = 'orders';
+    process.env.TRANSACTIONS_COLLECTION_ID = 'transactions';
+    seed('escrows', [{ $id: 'e3', orderId: 'o3', amount: 100000, status: 'releasing' }]);
+    seed('orders', [{ $id: 'o3', status: 'in_progress' }]);
+    seed('transactions', [
+      { $id: 'tx-release', referenceId: 'e3', referenceType: 'escrow', type: 'release', status: 'completed' },
+      { $id: 'tx-fee', referenceId: 'e3', referenceType: 'escrow', type: 'fee', status: 'completed' },
+    ]);
+
+    const main = (await import('../../functions/reconcile-release-escrow/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ bodyJson: {} }), res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].body.finalized).toBe(1);
+    expect(store.escrows[0].status).toBe('released');
+    expect(store.orders[0].status).toBe('completed');
   });
 });
 

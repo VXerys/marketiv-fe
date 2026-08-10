@@ -1273,6 +1273,20 @@ const functions = [
         path: "../functions/release-escrow"
     },
     {
+        $id: "reconcile-release-escrow",
+        name: "Reconcile Release Escrow",
+        runtime: "node-22",
+        execute: [],
+        events: [],
+        schedule: "*/15 * * * *",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/reconcile-release-escrow"
+    },
+    {
         $id: "send-chat-notification",
         name: "Send Chat Notification",
         runtime: "node-22",
@@ -1325,6 +1339,34 @@ const functions = [
         entrypoint: "src/main.js",
         commands: "npm install",
         path: "../functions/send-message"
+    },
+    {
+        $id: "mark-conversation-read",
+        name: "Mark Conversation Read",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/mark-conversation-read"
+    },
+    {
+        $id: "patch-conversation-archive",
+        name: "Patch Conversation Archive",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/patch-conversation-archive"
     },
     {
         $id: "create-offer",
@@ -1570,6 +1612,20 @@ const functions = [
         path: "../functions/cancel-payment"
     },
     {
+        $id: "cancel-order",
+        name: "Cancel Order",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/cancel-order"
+    },
+    {
         $id: "fee-rate-flip",
         name: "Fee Rate Flip Monitor",
         runtime: "node-22",
@@ -1588,7 +1644,7 @@ const functions = [
         name: "track-order-review",
         runtime: "node-22",
         execute: [],
-        events: [`databases.${databaseId}.collections.deliverables.documents.*.create`],
+        events: [`databases.${databaseId}.tables.deliverables.rows.*.create`],
         schedule: "",
         timeout: 15,
         enabled: true,
@@ -1596,6 +1652,20 @@ const functions = [
         entrypoint: "src/main.js",
         commands: "npm install",
         path: "../functions/track-order-review"
+    },
+    {
+        $id: "sync-order-revision",
+        name: "Sync Order Revision",
+        runtime: "node-22",
+        execute: [],
+        events: [`databases.${databaseId}.tables.revisions.rows.*.create`],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/sync-order-revision"
     },
     {
         $id: "auto-approve-orders",

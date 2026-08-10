@@ -1,5 +1,5 @@
-import { ID, Permission, Query, Role } from 'appwrite';
-import { account, COLLECTIONS, DATABASE_ID, databases } from '../lib/appwrite';
+import { Query } from 'appwrite';
+import { account, COLLECTIONS, DATABASE_ID, FUNCTIONS, databases, functions } from '../lib/appwrite';
 
 export type MessageType = 'text' | 'offer' | 'system';
 
@@ -79,6 +79,15 @@ const mapError = (err: any, fallbackMessage: string): ChatServiceError => {
   return new ChatServiceError(err?.type || 'unknown', fallbackMessage, err);
 };
 
+const parseFunctionResponse = <T>(responseBody: string): T => {
+  if (!responseBody) throw new ChatServiceError('server', 'Response function kosong.');
+  try {
+    return JSON.parse(responseBody) as T;
+  } catch (err) {
+    throw new ChatServiceError('server', 'Response function tidak valid.', err);
+  }
+};
+
 const requireText = (value: string | undefined, message: string): string => {
   const trimmed = value?.trim();
   if (!trimmed) throw new ChatServiceError('validation', message);
@@ -103,27 +112,27 @@ export const createConversation = async (data: CreateConversationInput): Promise
 
   try {
     const user = await account.get();
-    if (![umkmId, creatorId].includes(user.$id)) {
+    if (user.$id !== umkmId) {
       throw new ChatServiceError('forbidden', 'Kamu tidak dapat membuat percakapan untuk user lain.');
     }
-
-    const existing = await databases.listDocuments(DATABASE_ID, COLLECTIONS.conversations, [
-      Query.equal('umkm_id', umkmId),
-      Query.equal('creator_id', creatorId),
-      Query.limit(1),
-    ]);
-
-    if (existing.documents[0]) return mapConversation(existing.documents[0]);
-
-    const document = await databases.createDocument(
-      DATABASE_ID,
-      COLLECTIONS.conversations,
-      ID.unique(),
-      { umkm_id: umkmId, creator_id: creatorId },
-      [Permission.read(Role.user(umkmId)), Permission.read(Role.user(creatorId)), Permission.update(Role.user(umkmId)), Permission.update(Role.user(creatorId))]
+    const execution = await functions.createExecution(
+      FUNCTIONS.createConversation,
+      JSON.stringify({ creatorId }),
+      false
     );
-
-    return mapConversation(document);
+    if (execution.status === 'failed') {
+      throw new ChatServiceError('server', 'Gagal membuat percakapan. Coba lagi.');
+    }
+    const result = parseFunctionResponse<{ conversationId?: string; error?: string }>(execution.responseBody);
+    if (!result.conversationId) {
+      throw new ChatServiceError('server', result.error || 'Response percakapan tidak lengkap.');
+    }
+    return {
+      id: result.conversationId,
+      umkmId,
+      creatorId,
+      isArchived: false,
+    };
   } catch (err) {
     throw mapError(err, 'Gagal membuat percakapan. Coba lagi.');
   }
@@ -138,41 +147,37 @@ export const sendMessage = async (data: SendMessageInput): Promise<ChatMessage> 
   }
 
   try {
-    const user = await account.get();
-    const conversationDocument = await databases.getDocument(DATABASE_ID, COLLECTIONS.conversations, conversationId);
-    const conversation = mapConversation(conversationDocument);
-    ensureParticipant(conversation, user.$id);
-
-    const payload: Record<string, any> = {
-      conversation_id: conversationId,
-      sender_id: user.$id,
-      message_type: type,
-    };
-
-    if (data.content?.trim()) payload.content = data.content.trim();
-    if (data.offerId) payload.offer_id = data.offerId;
-
-    const message = await databases.createDocument(
-      DATABASE_ID,
-      COLLECTIONS.messages,
-      ID.unique(),
-      payload,
-      // `update` diberikan ke kedua pihak supaya penerima bisa menulis `read_at`
-      // setelah read("users") di level koleksi dicabut.
-      [
-        Permission.read(Role.user(conversation.umkmId)),
-        Permission.read(Role.user(conversation.creatorId)),
-        Permission.update(Role.user(conversation.umkmId)),
-        Permission.update(Role.user(conversation.creatorId)),
-      ]
+    const execution = await functions.createExecution(
+      FUNCTIONS.sendMessage,
+      JSON.stringify({
+        conversationId,
+        content: data.content?.trim(),
+      }),
+      false
     );
-
-    await databases.updateDocument(DATABASE_ID, COLLECTIONS.conversations, conversationId, {
-      last_message: buildLastMessage(data),
-      last_message_at: new Date().toISOString(),
-    });
-
-    return mapMessage(message);
+    if (execution.status === 'failed') {
+      throw new ChatServiceError('server', 'Gagal mengirim pesan. Coba lagi.');
+    }
+    const result = parseFunctionResponse<{
+      id?: string;
+      conversationId?: string;
+      senderId?: string;
+      type?: MessageType;
+      content?: string;
+      createdAt?: string;
+      error?: string;
+    }>(execution.responseBody);
+    if (!result.id || !result.conversationId || !result.senderId || !result.type) {
+      throw new ChatServiceError('server', result.error || 'Response pesan tidak lengkap.');
+    }
+    return {
+      id: result.id,
+      conversationId: result.conversationId,
+      senderId: result.senderId,
+      type: result.type,
+      content: result.content,
+      createdAt: result.createdAt,
+    };
   } catch (err) {
     throw mapError(err, 'Gagal mengirim pesan. Coba lagi.');
   }
@@ -182,22 +187,16 @@ export const markConversationAsRead = async (conversationId: string): Promise<vo
   requireText(conversationId, 'Conversation ID wajib diisi.');
 
   try {
-    const user = await account.get();
-
-    const unreadMessages = await databases.listDocuments(DATABASE_ID, COLLECTIONS.messages, [
-      Query.equal('conversation_id', conversationId),
-      Query.notEqual('sender_id', user.$id),
-      Query.isNull('read_at'),
-      Query.limit(100),
-    ]);
-
-    const now = new Date().toISOString();
-
-    for (const msg of unreadMessages.documents) {
-      await databases.updateDocument(DATABASE_ID, COLLECTIONS.messages, msg.$id, {
-        read_at: now,
-      });
+    const execution = await functions.createExecution(
+      FUNCTIONS.markConversationRead,
+      JSON.stringify({ conversationId }),
+      false
+    );
+    if (execution.status === 'failed') {
+      throw new ChatServiceError('server', 'Gagal menandai pesan telah dibaca.');
     }
+    const result = parseFunctionResponse<{ ok?: boolean; error?: string }>(execution.responseBody);
+    if (!result.ok) throw new ChatServiceError('server', result.error || 'Gagal menandai pesan telah dibaca.');
   } catch (err) {
     throw mapError(err, 'Gagal menandai pesan telah dibaca.');
   }
@@ -266,14 +265,16 @@ export const archiveConversation = async (conversationId: string): Promise<void>
   requireText(conversationId, 'Conversation ID wajib diisi.');
 
   try {
-    const user = await account.get();
-    const document = await databases.getDocument(DATABASE_ID, COLLECTIONS.conversations, conversationId);
-    const conversation = mapConversation(document);
-    ensureParticipant(conversation, user.$id);
-
-    await databases.updateDocument(DATABASE_ID, COLLECTIONS.conversations, conversationId, {
-      is_archived: true,
-    });
+    const execution = await functions.createExecution(
+      FUNCTIONS.patchConversationArchive,
+      JSON.stringify({ conversationId, isArchived: true }),
+      false
+    );
+    if (execution.status === 'failed') {
+      throw new ChatServiceError('server', 'Gagal mengarsipkan percakapan.');
+    }
+    const result = parseFunctionResponse<{ ok?: boolean; error?: string }>(execution.responseBody);
+    if (!result.ok) throw new ChatServiceError('server', result.error || 'Gagal mengarsipkan percakapan.');
   } catch (err) {
     throw mapError(err, 'Gagal mengarsipkan percakapan.');
   }
@@ -284,14 +285,16 @@ export const unarchiveConversation = async (conversationId: string): Promise<voi
   requireText(conversationId, 'Conversation ID wajib diisi.');
 
   try {
-    const user = await account.get();
-    const document = await databases.getDocument(DATABASE_ID, COLLECTIONS.conversations, conversationId);
-    const conversation = mapConversation(document);
-    ensureParticipant(conversation, user.$id);
-
-    await databases.updateDocument(DATABASE_ID, COLLECTIONS.conversations, conversationId, {
-      is_archived: false,
-    });
+    const execution = await functions.createExecution(
+      FUNCTIONS.patchConversationArchive,
+      JSON.stringify({ conversationId, isArchived: false }),
+      false
+    );
+    if (execution.status === 'failed') {
+      throw new ChatServiceError('server', 'Gagal mengembalikan percakapan dari arsip.');
+    }
+    const result = parseFunctionResponse<{ ok?: boolean; error?: string }>(execution.responseBody);
+    if (!result.ok) throw new ChatServiceError('server', result.error || 'Gagal mengembalikan percakapan dari arsip.');
   } catch (err) {
     throw mapError(err, 'Gagal mengembalikan percakapan dari arsip.');
   }

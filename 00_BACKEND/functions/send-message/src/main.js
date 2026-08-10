@@ -94,13 +94,11 @@ export default async ({ req, res, log, error }) => {
   }
 };
 
-/** Permission baris: kedua peserta membaca dan memperbarui. */
+/** Permission baris: kedua peserta hanya membaca. */
 function participantPermissions(umkmId, creatorId) {
   return [
     Permission.read(Role.user(umkmId)),
     Permission.read(Role.user(creatorId)),
-    Permission.update(Role.user(umkmId)),
-    Permission.update(Role.user(creatorId)),
   ];
 }
 

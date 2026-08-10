@@ -132,6 +132,10 @@
     "documents.read",
     "documents.write"
   ],
+  "reconcile-release-escrow": [
+    "documents.read",
+    "documents.write"
+  ],
   "request-withdrawal": [
     "documents.read",
     "documents.write"
@@ -157,7 +161,19 @@
     "documents.read",
     "documents.write"
   ],
+  "mark-conversation-read": [
+    "documents.read",
+    "documents.write"
+  ],
+  "patch-conversation-archive": [
+    "documents.read",
+    "documents.write"
+  ],
   "cancel-payment": [
+    "documents.read",
+    "documents.write"
+  ],
+  "cancel-order": [
     "documents.read",
     "documents.write"
   ],
@@ -188,6 +204,10 @@
     "documents.write"
   ],
   "track-order-review": [
+    "documents.read",
+    "documents.write"
+  ],
+  "sync-order-revision": [
     "documents.read",
     "documents.write"
   ],

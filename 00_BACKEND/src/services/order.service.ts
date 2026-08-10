@@ -1,5 +1,5 @@
 import { ID, Permission, Query, Role } from 'appwrite';
-import { account, COLLECTIONS, DATABASE_ID, databases } from '../lib/appwrite';
+import { account, COLLECTIONS, DATABASE_ID, databases, FUNCTIONS, functions } from '../lib/appwrite';
 
 export type OrderStatus = 'pending_payment' | 'escrow' | 'in_progress' | 'revision' | 'approved' | 'completed' | 'cancelled';
 export type DeliverableSource = 'storage' | 'external_url';
@@ -114,6 +114,17 @@ const mapError = (err: any, fallbackMessage: string): OrderServiceError => {
   }
 
   return new OrderServiceError(err?.type || 'unknown', fallbackMessage, err);
+};
+
+const parseFunctionResponse = <T>(responseBody: string): T => {
+  if (!responseBody) {
+    throw new OrderServiceError('server', 'Response function kosong.');
+  }
+  try {
+    return JSON.parse(responseBody) as T;
+  } catch (err) {
+    throw new OrderServiceError('server', 'Response function tidak valid.', err);
+  }
 };
 
 export const getOrders = async (params?: { status?: OrderStatus }): Promise<Order[]> => {
@@ -256,12 +267,6 @@ export const uploadDeliverable = async (input: UploadDeliverableInput): Promise<
       ],
     );
 
-    if (order.status !== 'in_progress') {
-      await databases.updateDocument(DATABASE_ID, COLLECTIONS.orders, input.orderId, {
-        status: 'in_progress',
-      });
-    }
-
     return mapDeliverable(deliverable);
   } catch (err) {
     throw mapError(err, 'Gagal mengunggah deliverable.');
@@ -349,10 +354,6 @@ export const requestRevision = async (input: RequestRevisionInput): Promise<Revi
       ],
     );
 
-    await databases.updateDocument(DATABASE_ID, COLLECTIONS.orders, input.orderId, {
-      status: 'revision',
-    });
-
     return mapRevision(revision);
   } catch (err) {
     throw mapError(err, 'Gagal meminta revisi.');
@@ -363,20 +364,18 @@ export const cancelOrder = async (orderId: string): Promise<void> => {
   if (!orderId) throw new OrderServiceError('validation', 'Order ID wajib diisi.');
 
   try {
-    const user = await account.get();
-    const order = await databases.getDocument(DATABASE_ID, COLLECTIONS.orders, orderId);
-
-    if (order.umkmId !== user.$id) {
-      throw new OrderServiceError('forbidden', 'Hanya UMKM pemilik order yang dapat membatalkan.');
+    const execution = await functions.createExecution(
+      FUNCTIONS.cancelOrder,
+      JSON.stringify({ orderId }),
+      false
+    );
+    if (execution.status === 'failed') {
+      throw new OrderServiceError('server', 'Gagal membatalkan order.');
     }
-
-    if (order.status !== 'pending_payment') {
-      throw new OrderServiceError('validation', 'Hanya order dengan status pending_payment yang dapat dibatalkan.');
+    const result = parseFunctionResponse<{ ok?: boolean; error?: string }>(execution.responseBody);
+    if (!result.ok) {
+      throw new OrderServiceError('server', result.error || 'Gagal membatalkan order.');
     }
-
-    await databases.updateDocument(DATABASE_ID, COLLECTIONS.orders, orderId, {
-      status: 'cancelled',
-    });
   } catch (err) {
     throw mapError(err, 'Gagal membatalkan order.');
   }
