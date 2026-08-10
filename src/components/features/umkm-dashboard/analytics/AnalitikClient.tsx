@@ -99,6 +99,7 @@ export function AnalitikClient() {
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<UmkmDashboardSummary | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaignsError, setCampaignsError] = useState<string | null>(null);
   const [businessName, setBusinessName] = useState("");
 
   const fetchData = useCallback(async (isActive: () => boolean) => {
@@ -116,9 +117,17 @@ export function AnalitikClient() {
     }
 
     setSummary(summaryRes.data ?? null);
-    setCampaigns(
-      [...(campaignsRes.data ?? [])].sort((a, b) => b.usedQuota - a.usedQuota)
-    );
+
+    if (!campaignsRes.success) {
+      setCampaignsError(campaignsRes.error ?? "Gagal memuat data campaign.");
+      setCampaigns([]);
+    } else {
+      setCampaignsError(null);
+      setCampaigns(
+        [...(campaignsRes.data ?? [])].sort((a, b) => b.usedQuota - a.usedQuota)
+      );
+    }
+
     if (profileRes.success && profileRes.data) {
       setBusinessName(profileRes.data.businessName);
     }
@@ -273,7 +282,17 @@ export function AnalitikClient() {
             </span>
           </div>
 
-          {campaigns.length === 0 ? (
+          {campaignsError ? (
+            <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-center shadow-xs">
+              <p className="text-sm font-semibold text-red-600 mb-3">{campaignsError}</p>
+              <button
+                onClick={handleRetry}
+                className="text-xs font-bold bg-white text-red-600 border border-red-200 px-4 py-2 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                Coba Lagi
+              </button>
+            </div>
+          ) : campaigns.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-10 text-center">
               <Megaphone size={32} className="text-neutral-200" />
               <p className="text-[0.84rem] font-[600] text-ink-400">Belum ada campaign</p>

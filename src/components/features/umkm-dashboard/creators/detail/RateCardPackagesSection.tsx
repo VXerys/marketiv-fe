@@ -7,11 +7,15 @@ interface RateCardPackagesSectionProps {
   /** Paket dari getCreatorRateCards() — bukan lagi fabrikasi per kategori. */
   packages: RateCardPackage[];
   onSelectPackage: (pkg: RateCardPackage) => void;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 export function RateCardPackagesSection({
   packages,
   onSelectPackage,
+  error,
+  onRetry,
 }: RateCardPackagesSectionProps) {
   return (
     <div className="space-y-4">
@@ -30,7 +34,19 @@ export function RateCardPackagesSection({
         </p>
       </div>
 
-      {packages.length === 0 ? (
+      {error ? (
+        <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-center shadow-xs">
+          <p className="text-sm font-semibold text-red-600 mb-3">{error}</p>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="text-xs font-bold bg-white text-red-600 border border-red-200 px-4 py-2 rounded-lg hover:bg-red-50 transition-colors"
+            >
+              Coba Lagi
+            </button>
+          )}
+        </div>
+      ) : packages.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-10 text-center shadow-xs">
           <p className="text-xs font-semibold text-slate-500">
             Kreator ini belum mempublikasikan paket harga.

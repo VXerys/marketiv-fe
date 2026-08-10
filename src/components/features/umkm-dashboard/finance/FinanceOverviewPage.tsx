@@ -26,6 +26,7 @@ export function FinanceOverviewPage() {
   const [escrowOverview, setEscrowOverview] = useState<EscrowOverview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [financeError, setFinanceError] = useState<string | null>(null);
 
   // Filter and Search States
   const [searchQuery, setSearchQuery] = useState("");
@@ -65,8 +66,16 @@ export function FinanceOverviewPage() {
         return;
       }
       setTransactions(txRes.data);
-      setSummary(financeRes.success && financeRes.data ? financeRes.data.finance : null);
-      setEscrowOverview(financeRes.success && financeRes.data ? financeRes.data.escrow : null);
+
+      if (!financeRes.success) {
+        setFinanceError(financeRes.error || "Gagal memuat ringkasan keuangan.");
+        setSummary(null);
+        setEscrowOverview(null);
+      } else {
+        setFinanceError(null);
+        setSummary(financeRes.data?.finance ?? null);
+        setEscrowOverview(financeRes.data?.escrow ?? null);
+      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Terjadi kesalahan sistem";
       setError(errorMessage);
@@ -176,11 +185,23 @@ export function FinanceOverviewPage() {
       {/* Header */}
       <FinanceHeader onTriggerExport={() => setIsExportOpen(true)} />
 
+      {financeError && (
+        <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-center shadow-xs">
+          <p className="text-sm font-semibold text-red-600 mb-3">{financeError}</p>
+          <button
+            onClick={loadData}
+            className="text-xs font-bold bg-white text-red-600 border border-red-200 px-4 py-2 rounded-lg hover:bg-red-50 transition-colors"
+          >
+            Coba Lagi Memuat Ringkasan
+          </button>
+        </div>
+      )}
+
       {/* Summary metrics — dari service (getFinanceSummary), bukan hitung ulang klien */}
-      {summary && <FinanceSummaryCards summary={summary} />}
+      {summary && !financeError && <FinanceSummaryCards summary={summary} />}
 
       {/* Escrow overview diagram — dari service (getEscrowOverview) */}
-      {escrowOverview && <EscrowOverviewCard overview={escrowOverview} />}
+      {escrowOverview && !financeError && <EscrowOverviewCard overview={escrowOverview} />}
 
       {/* Control bar / Toolbar — sticky direct child of space-y-6 container */}
       <FinanceToolbar

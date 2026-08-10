@@ -27,6 +27,7 @@ export function CreatorDetailPage({ creatorId }: CreatorDetailPageProps) {
   const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<RateCardPackage | null>(null);
+  const [packagesError, setPackagesError] = useState<string | null>(null);
 
   // Fetch nyata lewat facade service (s1-creators).
   const loadData = useCallback(async () => {
@@ -49,7 +50,14 @@ export function CreatorDetailPage({ creatorId }: CreatorDetailPageProps) {
       }
 
       setCreator(creatorRes.data);
-      setPackages((packagesRes.data ?? []).map(toRateCardPackageView));
+
+      if (!packagesRes.success) {
+        setPackagesError(packagesRes.error || "Gagal memuat paket rate card.");
+        setPackages([]);
+      } else {
+        setPackagesError(null);
+        setPackages((packagesRes.data ?? []).map(toRateCardPackageView));
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan sistem.");
     } finally {
@@ -108,6 +116,8 @@ export function CreatorDetailPage({ creatorId }: CreatorDetailPageProps) {
       <RateCardPackagesSection
         packages={packages}
         onSelectPackage={handleSelectPackage}
+        error={packagesError}
+        onRetry={loadData}
       />
 
       <hr className="border-border-soft" />

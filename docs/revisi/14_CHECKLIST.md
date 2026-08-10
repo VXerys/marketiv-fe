@@ -56,7 +56,10 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
   Note: Memperbaiki fungsi `get-creator-directory` agar mengembalikan `{ items, total, nextCursor }` menggunakan `listPaged`.
   Di frontend, `PaginatedCreators` type ditambahkan, lalu service serta `CreatorDirectoryPage.tsx`
   diperbarui untuk memakai paginasi dan melempar `total` yang akurat ke `CreatorSummaryCards`.
-- `[ ] UMKM-DATA-02`
+- `[x] UMKM-DATA-02` partial failure shown empty
+  Note: Pada halaman `CreatorDetailPage.tsx`, `FinanceOverviewPage.tsx`, dan `AnalitikClient.tsx`,
+  ditambahkan penanganan state error di level komponen (section-level) alih-alih me-fallback data ke `[]` atau `null`
+  secara diam-diam. Tombol "Coba Lagi" disisipkan untuk area yang error tanpa merusak data section lainnya.
 - `[ ] UMKM-DATA-03`
 - `[ ] UMKM-NOTIF-01`
 - `[ ] UMKM-SET-01`
