@@ -292,6 +292,7 @@ export async function getOverviewFromAppwrite(): Promise<ServiceResult<UmkmOverv
       creatorJoined: campaigns.reduce((n, c) => n + c.usedQuota, 0),
       viewsValid: summary.totalViews,
       pendingSubmissions: summary.pendingSubmissions,
+      isTruncated: summary.isTruncated,
     },
     // Notifikasi gagal/kosong bukan alasan menggagalkan halaman — timeline
     // tinggal kosong. Sampai permission baris Function penulis diperbaiki

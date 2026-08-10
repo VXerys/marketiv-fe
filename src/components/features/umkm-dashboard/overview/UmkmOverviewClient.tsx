@@ -85,6 +85,14 @@ export function UmkmOverviewClient() {
   return (
     <UmkmDashboardChrome businessName={data.businessName}>
       <UmkmPageWrapper>
+        {data.kpis?.isTruncated && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
+            <p className="text-sm font-semibold text-amber-700">
+              Sebagian data ringkasan di bawah ini adalah estimasi (mencapai batas maksimal sistem 5000 data).
+            </p>
+          </div>
+        )}
+
         {/* 1. Hero banner with 4 integrated KPI cards */}
         <HeroOverview
           businessName={data.businessName}

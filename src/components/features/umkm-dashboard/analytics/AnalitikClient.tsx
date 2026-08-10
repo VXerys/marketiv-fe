@@ -191,9 +191,17 @@ export function AnalitikClient() {
           <h1 className="text-[1.8rem] font-[850] text-ink-900 leading-tight tracking-[-0.03em] font-display">
             Analitik & Insight
           </h1>
-          <p className="text-[0.88rem] text-ink-500 font-[500]">
+          <p className="text-[0.88rem] text-ink-500 font-[500] mb-4">
             Ringkasan performa campaign dan aktivitas bisnis Anda di Marketiv.
           </p>
+
+          {summary.isTruncated && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
+              <p className="text-sm font-semibold text-amber-700">
+                Sebagian data analitik di bawah ini adalah estimasi (mencapai batas maksimal sistem 5000 data).
+              </p>
+            </div>
+          )}
         </div>
 
         {/* ── KPI Baris 1 — Campaign & Views ── */}

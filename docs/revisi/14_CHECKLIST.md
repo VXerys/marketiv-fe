@@ -60,7 +60,11 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
   Note: Pada halaman `CreatorDetailPage.tsx`, `FinanceOverviewPage.tsx`, dan `AnalitikClient.tsx`,
   ditambahkan penanganan state error di level komponen (section-level) alih-alih me-fallback data ke `[]` atau `null`
   secara diam-diam. Tombol "Coba Lagi" disisipkan untuk area yang error tanpa merusak data section lainnya.
-- `[ ] UMKM-DATA-03`
+- `[x] UMKM-DATA-03` Aggregate cap 5000
+  Note: Memodifikasi Appwrite Functions (`get-umkm-finance-summary` & `get-umkm-dashboard-summary`)
+  agar mengembalikan `isTruncated: true` jika jumlah data menyentuh `MAX_DOCS` (5000).
+  Di sisi frontend, type diperbarui dan komponen `FinanceSummaryCards`, `UmkmOverviewClient`, serta `AnalitikClient`
+  menampilkan banner warning bahwa "Sebagian data adalah estimasi" ketika flag tersebut bernilai `true`.
 - `[ ] UMKM-NOTIF-01`
 - `[ ] UMKM-SET-01`
 - `[ ] UMKM-SET-02`

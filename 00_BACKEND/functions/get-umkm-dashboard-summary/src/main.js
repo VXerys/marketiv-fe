@@ -51,6 +51,11 @@ export default async ({ req, res, log, error }) => {
 
     const heldEscrowTotal = await sumHeldEscrows(databases, env, orders);
 
+    const isTruncated =
+      campaigns.length >= MAX_DOCS ||
+      submissions.length >= MAX_DOCS ||
+      orders.length >= MAX_DOCS;
+
     const summary = {
       activeCampaigns: campaigns.filter((c) => c.status === "active").length,
       completedCampaigns: campaigns.filter((c) => c.status === "completed").length,
@@ -72,11 +77,12 @@ export default async ({ req, res, log, error }) => {
       pendingSubmissions: submissions.filter((s) => s.status === "pending").length,
       activeNegotiations: orders.filter((o) => !ORDER_CLOSED_STATUSES.has(o.status)).length,
       pendingPayments: orders.filter((o) => o.status === "pending_payment").length,
+      isTruncated,
     };
 
     log(
       `Dashboard summary for ${userId}: ${campaigns.length} campaigns, ` +
-        `${submissions.length} submissions, ${orders.length} orders`
+        `${submissions.length} submissions, ${orders.length} orders${isTruncated ? " (TRUNCATED)" : ""}`
     );
     return json(res, summary);
   } catch (err) {

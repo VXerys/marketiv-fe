@@ -108,6 +108,13 @@ export function FinanceSummaryCards({ summary }: FinanceSummaryCardsProps) {
         iconColor="#16a34a"
         iconBorder="rgba(22,163,74,.18)"
       />
+      {summary.isTruncated && (
+        <div className="col-span-full mt-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
+          <p className="text-sm font-semibold text-amber-700">
+            Sebagian data di atas adalah estimasi (mencapai batas maksimal sistem 5000 data).
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -75,12 +75,20 @@ export default async ({ req, res, log, error }) => {
       (c) => c.remainingBudget
     );
 
+    const isTruncated =
+      payments.length >= MAX_DOCS ||
+      transactions.length >= MAX_DOCS ||
+      campaigns.length >= MAX_DOCS ||
+      orders.length >= MAX_DOCS ||
+      heldEscrows.length >= MAX_DOCS;
+
     const escrow = {
       activeEscrow: campaignEscrow + rateCardEscrow,
       pendingRelease,
       refundEligible,
       campaignEscrow,
       rateCardEscrow,
+      isTruncated,
     };
 
     // ── Finance ──────────────────────────────────────────────────────────────
@@ -97,11 +105,12 @@ export default async ({ req, res, log, error }) => {
       // Fee dibaca dari kolom, bukan dihitung ulang — tarif bisa berubah per periode.
       platformFees: sum(paidPayments, (p) => p.fee_amount),
       successfulTransactionsCount: paidPayments.length,
+      isTruncated,
     };
 
     log(
       `Finance summary for ${userId}: ${payments.length} payments, ` +
-        `${campaigns.length} campaigns, ${heldEscrows.length} held escrows`
+        `${campaigns.length} campaigns, ${heldEscrows.length} held escrows${isTruncated ? " (TRUNCATED)" : ""}`
     );
     return json(res, { finance, escrow });
   } catch (err) {

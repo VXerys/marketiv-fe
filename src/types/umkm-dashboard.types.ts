@@ -305,6 +305,7 @@ export interface UmkmDashboardSummary {
   pendingSubmissions: number;
   activeNegotiations: number;
   pendingPayments: number;
+  isTruncated?: boolean;
 }
 
 /**
@@ -327,6 +328,7 @@ export interface UmkmOverviewKpis {
   creatorJoined: number;
   viewsValid: number;
   pendingSubmissions: number;
+  isTruncated?: boolean;
 }
 
 export interface UmkmOverviewInsight {
@@ -364,6 +366,7 @@ export interface UmkmFinanceSummary {
   refundsReceived: number;
   platformFees: number;
   successfulTransactionsCount: number;
+  isTruncated?: boolean;
 }
 
 export interface EscrowOverview {
@@ -372,5 +375,6 @@ export interface EscrowOverview {
   refundEligible: number;
   campaignEscrow: number;
   rateCardEscrow: number;
+  isTruncated?: boolean;
 }
 
