@@ -87,6 +87,7 @@ const COLLECTIONS = {
   conversations: "conversations",
   messages: "messages",
   payments: "payments",
+  users: "users",
 } as const;
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -959,13 +960,35 @@ export async function getUmkmSettingsProfileFromAppwrite(): Promise<
   const auth = await requireUserId<UmkmSettingsProfile>(empty);
   if (!auth.ok) return auth.result;
   try {
-    const res = await databases.listDocuments(DB, COLLECTIONS.umkmProfiles, [
-      Query.equal("userId", auth.userId),
-      Query.limit(1),
+    const [resUmkm, resUser] = await Promise.all([
+      databases.listDocuments(DB, COLLECTIONS.umkmProfiles, [
+        Query.equal("userId", auth.userId),
+        Query.limit(1),
+      ]),
+      databases.listDocuments(DB, COLLECTIONS.users, [
+        Query.equal("userId", auth.userId),
+        Query.limit(1),
+      ]),
     ]);
-    const doc = res.documents[0] as unknown as Doc | undefined;
+    
+    const doc = resUmkm.documents[0] as unknown as Doc | undefined;
     if (!doc) return fail("Profil UMKM tidak ditemukan.", "not_found", empty);
-    return ok(mapUmkmSettingsProfile(doc));
+    
+    const userDoc = resUser.documents[0] as unknown as Doc | undefined;
+    const profile = {
+      docId: str(doc.$id),
+      userId: str(doc.userId),
+      businessName: str(doc.businessName),
+      category: str(doc.category),
+      description: str(doc.description),
+      city: str(doc.city),
+      address: str(userDoc?.address),
+      tiktok: str(doc.tiktok),
+      logoUrl: str(doc.logoUrl),
+      isProfileCompleted: doc.isProfileCompleted === true,
+    };
+    
+    return ok(profile);
   } catch (err) {
     return failFromError<UmkmSettingsProfile>(err, empty);
   }
@@ -1011,13 +1034,32 @@ export async function updateUmkmProfileInAppwrite(
     const doc = res.documents[0] as unknown as Doc | undefined;
     if (!doc) return fail("Profil UMKM tidak ditemukan.", "not_found", empty);
 
-    const updated = await databases.updateDocument(
-      DB,
-      COLLECTIONS.umkmProfiles,
-      str(doc.$id),
-      payload
-    );
-    return ok(mapUmkmSettingsProfile(updated as unknown as Doc));
+    const address = payload.address;
+    delete payload.address;
+
+    let updated = doc;
+    if (Object.keys(payload).length > 0) {
+      updated = await databases.updateDocument(
+        DB,
+        COLLECTIONS.umkmProfiles,
+        str(doc.$id),
+        payload
+      ) as unknown as Doc;
+    }
+
+    if (address !== undefined) {
+      const resUser = await databases.listDocuments(DB, COLLECTIONS.users, [
+        Query.equal("userId", auth.userId),
+        Query.limit(1),
+      ]);
+      const userDoc = resUser.documents[0];
+      if (userDoc) {
+        await databases.updateDocument(DB, COLLECTIONS.users, userDoc.$id, { address });
+      }
+    }
+
+    // Refresh data using the updated fetch function to ensure consistency
+    return getUmkmSettingsProfileFromAppwrite();
   } catch (err) {
     return failFromWriteError<UmkmSettingsProfile>(err, empty);
   }

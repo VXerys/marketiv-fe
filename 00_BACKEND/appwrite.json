@@ -51,6 +51,15 @@
                     "encrypt": false
                 },
                 {
+                    "key": "address",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 500,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
                     "key": "email",
                     "type": "string",
                     "required": true,
@@ -359,15 +368,6 @@
                     "required": false,
                     "array": false,
                     "size": 100,
-                    "default": null,
-                    "encrypt": false
-                },
-                {
-                    "key": "address",
-                    "type": "string",
-                    "required": false,
-                    "array": false,
-                    "size": 500,
                     "default": null,
                     "encrypt": false
                 },

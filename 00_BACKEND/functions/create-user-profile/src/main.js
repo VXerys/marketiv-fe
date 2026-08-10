@@ -108,6 +108,7 @@ async function ensureUserMirror(databases, env, user, userId, role) {
       status: "active",
       email: user.email || "",
       phone: user.phone || user.prefs?.phone || null,
+      address: user.prefs?.address || null,
       createdAt: new Date().toISOString(),
       tos_version: tos.version,
       tos_accepted_at: tos.acceptedAt
@@ -142,7 +143,6 @@ async function ensureUmkmProfile(databases, env, user, userId) {
       category: prefs.category || prefs.businessCategory || prefs.business_category || "",
       city: prefs.city || null,
       description: prefs.description || null,
-      address: prefs.address || null,
       tiktok: prefs.tiktok || null,
       logoUrl: prefs.logoUrl || prefs.logo_url || null,
       isProfileCompleted: false

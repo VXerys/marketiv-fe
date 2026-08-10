@@ -71,7 +71,8 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
 - `[x] UMKM-SET-02` WhatsApp not hydrated (added phone parsing from session)
 - `[x] UMKM-FILE-01`
   Note: Public SVG upload (removed svg from allowed extensions in storage.ts and PengaturanClient.tsx)
-- `[ ] UMKM-PRIV-01`
+- `[x] UMKM-PRIV-01`
+  Note: Moved `address` from `umkm_profiles` to `users` collection to separate private owner fields. `users` already stores private fields like `phone`, and `umkm_profiles` remains the public projection (`read("any")`). Updated `create-user-profile` function and `umkm-appwrite.service.ts` to query/update `address` in `users`.
 - `[ ] UMKM-SUP-01`
 
 ## P3
