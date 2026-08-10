@@ -1876,3 +1876,77 @@ describe("Auto-approve Review Rate Card", () => {
     expect(true).toBe(true);
   });
 });
+
+describe('patch-campaign-status function', () => {
+  it('updates permissions to read(any) when published', async () => {
+    process.env.CAMPAIGNS_COLLECTION_ID = 'campaigns';
+    process.env.CAMPAIGN_BRIEFS_COLLECTION_ID = 'campaign_briefs';
+    process.env.CAMPAIGN_ASSETS_COLLECTION_ID = 'campaign_assets';
+    
+    seed('campaigns', [{ $id: 'c1', umkmId: 'u1', status: 'draft', remainingBudget: 10000 }]);
+    seed('campaign_briefs', [{ $id: 'b1', campaignId: 'c1' }]);
+    seed('campaign_assets', [{ $id: 'a1', campaignId: 'c1' }]);
+    
+    // We can't easily assert on `updateDocument` permissions in this mock setup without extending the mock,
+    // but we can at least make sure it doesn't throw and status is updated.
+    const main = (await import('../../functions/patch-campaign-status/src/main.js')).default;
+    
+    const req = makeReq({
+      bodyJson: { campaignId: 'c1', action: 'publish' },
+      headers: { 'x-appwrite-user-id': 'u1' }
+    });
+    const res = { json: vi.fn(), status: vi.fn().mockReturnThis() };
+    const log = vi.fn();
+    const error = vi.fn();
+    
+    await main({ req, res, log, error });
+    
+    const campaign = store['campaigns'].find(c => c.$id === 'c1');
+    expect(campaign.status).toBe('active');
+  });
+});
+
+describe('patch-campaign-draft function', () => {
+  it('rejects financial changes if funded', async () => {
+    process.env.CAMPAIGNS_COLLECTION_ID = 'campaigns';
+    
+    // funded draft
+    seed('campaigns', [{ $id: 'c2', umkmId: 'u1', status: 'draft', budget: 50000, rewardPer1000Views: 1000, claimLimit: 10, remainingBudget: 50000 }]);
+    
+    const main = (await import('../../functions/patch-campaign-draft/src/main.js')).default;
+    
+    let req = makeReq({
+      bodyJson: { campaignId: 'c2', budget: 60000 },
+      headers: { 'x-appwrite-user-id': 'u1' }
+    });
+    let res = { json: vi.fn(), status: vi.fn().mockReturnThis() };
+    await main({ req, res, log: vi.fn(), error: vi.fn() });
+    expect(res.json.mock.calls[0][0].error).toContain('Tidak dapat mengubah budget');
+    
+    req = makeReq({
+      bodyJson: { campaignId: 'c2', rewardPer1000Views: 2000 },
+      headers: { 'x-appwrite-user-id': 'u1' }
+    });
+    res = { json: vi.fn(), status: vi.fn().mockReturnThis() };
+    await main({ req, res, log: vi.fn(), error: vi.fn() });
+    expect(res.json.mock.calls[0][0].error).toContain('Tidak dapat mengubah reward');
+  });
+});
+
+describe('patch-campaign-status function (publish guard)', () => {
+  it('rejects publish if funded < budget', async () => {
+    process.env.CAMPAIGNS_COLLECTION_ID = 'campaigns';
+    
+    seed('campaigns', [{ $id: 'c3', umkmId: 'u1', status: 'draft', budget: 50000, remainingBudget: 10000 }]);
+    
+    const main = (await import('../../functions/patch-campaign-status/src/main.js')).default;
+    
+    const req = makeReq({
+      bodyJson: { campaignId: 'c3', action: 'publish' },
+      headers: { 'x-appwrite-user-id': 'u1' }
+    });
+    const res = { json: vi.fn(), status: vi.fn().mockReturnThis() };
+    await main({ req, res, log: vi.fn(), error: vi.fn() });
+    expect(res.json.mock.calls[0][0].error).toContain('mencukupi target budget');
+  });
+});

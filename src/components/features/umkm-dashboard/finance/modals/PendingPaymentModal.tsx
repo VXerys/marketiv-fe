@@ -55,18 +55,33 @@ export function PendingPaymentModal({
         </ResponsiveModalHeader>
 
         {/* Payment Summary Box */}
-        <div className="rounded-xl bg-orange-50/80 border border-orange-200/90 p-4 mb-5 flex items-center justify-between gap-3">
-          <div>
-            <span className="block text-[10px] font-extrabold text-orange-950 uppercase tracking-wide">
-              Total yang Harus Dibayar
-            </span>
-            <span className="text-[11px] text-orange-800 font-medium block">
-              Termasuk biaya transaksi & layanan
+        <div className="rounded-xl bg-orange-50/80 border border-orange-200/90 p-4 mb-5">
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div>
+              <span className="block text-[10px] font-extrabold text-orange-950 uppercase tracking-wide">
+                Total yang Harus Dibayar
+              </span>
+              <span className="text-[11px] text-orange-800 font-medium block">
+                Termasuk biaya transaksi & layanan
+              </span>
+            </div>
+            <span className="text-xl font-black text-orange-600 font-display shrink-0">
+              {formatCurrency(transaction.totalAmount ?? transaction.amount)}
             </span>
           </div>
-          <span className="text-xl font-black text-orange-600 font-display shrink-0">
-            {formatCurrency(transaction.amount)}
-          </span>
+          
+          {(transaction.feeAmount ?? 0) > 0 && (
+            <div className="mt-3 pt-3 border-t border-orange-200/50 space-y-1.5">
+              <div className="flex justify-between text-[11px] font-medium text-orange-800/80">
+                <span>Budget Target</span>
+                <span>{formatCurrency(transaction.baseAmount ?? transaction.amount)}</span>
+              </div>
+              <div className="flex justify-between text-[11px] font-medium text-orange-800/80">
+                <span>Platform Fee (2%)</span>
+                <span>{formatCurrency(transaction.feeAmount ?? 0)}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Actions */}

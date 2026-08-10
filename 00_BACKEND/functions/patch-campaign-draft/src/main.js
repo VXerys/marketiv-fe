@@ -55,6 +55,8 @@ export default async ({ req, res, log, error }) => {
     if (res2.total === 0) {
       return json(res, { error: "Campaign draft tidak ditemukan atau bukan milik Anda." }, 404);
     }
+    const campaign = res2.documents[0];
+    const isFunded = (Number(campaign.remainingBudget) || 0) > 0;
 
     // Bangun payload hanya dari field yang diizinkan
     const patch = {};
@@ -75,6 +77,9 @@ export default async ({ req, res, log, error }) => {
     }
     if (body.budget !== undefined) {
       const budget = Number(body.budget);
+      if (isFunded && budget !== campaign.budget) {
+        return json(res, { error: "Tidak dapat mengubah budget setelah pendanaan masuk." }, 400);
+      }
       if (!Number.isInteger(budget) || budget < MIN_BUDGET || budget > MAX_BUDGET) {
         return json(res, { error: `Budget tidak valid. Minimal Rp${MIN_BUDGET.toLocaleString("id-ID")}.` }, 400);
       }
@@ -82,11 +87,17 @@ export default async ({ req, res, log, error }) => {
     }
     if (body.rewardPer1000Views !== undefined) {
       const rpv = Number(body.rewardPer1000Views);
+      if (isFunded && rpv !== campaign.rewardPer1000Views) {
+        return json(res, { error: "Tidak dapat mengubah reward setelah pendanaan masuk." }, 400);
+      }
       if (!Number.isInteger(rpv) || rpv < 0) return json(res, { error: "rewardPer1000Views tidak valid." }, 400);
       patch.rewardPer1000Views = rpv;
     }
     if (body.claimLimit !== undefined) {
       const cl = Number(body.claimLimit);
+      if (isFunded && cl !== campaign.claimLimit) {
+        return json(res, { error: "Tidak dapat mengubah kuota kreator setelah pendanaan masuk." }, 400);
+      }
       if (!Number.isInteger(cl) || cl < 1) return json(res, { error: "claimLimit harus minimal 1." }, 400);
       patch.claimLimit = cl;
     }

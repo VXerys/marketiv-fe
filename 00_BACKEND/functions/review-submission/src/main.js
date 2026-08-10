@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { Client, Databases, Permission, Query, Role } from "node-appwrite";
+import { decrementColumn } from "./atomic.js";
 
 /**
  * UMKM menyetujui atau menolak bukti kerja kreator (Alur A).
@@ -106,6 +107,13 @@ export default async ({ req, res, log, error }) => {
     }
 
     if (status === "rejected") {
+      try {
+        await decrementColumn(env, env.campaignsCollectionId, str(submission.campaignId), "totalClaims", 1, 0);
+        log(`Quota restored (totalClaims decremented) for campaign ${submission.campaignId}`);
+      } catch (decErr) {
+        log(`Decrement totalClaims gagal untuk campaign ${submission.campaignId}: ${decErr?.message}`);
+      }
+
       await notify(databases, env, {
         sourceId: submissionId,
         kind: "submission_rejected",

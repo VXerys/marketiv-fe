@@ -273,6 +273,10 @@ export interface Transaction {
   referenceId: string;
   referenceType: "campaign" | "rate_card";
   amount: number;
+  baseAmount?: number;
+  feeAmount?: number;
+  totalAmount?: number;
+  purpose?: string;
   type: TransactionType;
   status: TransactionStatus;
   description: string;

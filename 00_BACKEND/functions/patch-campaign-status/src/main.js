@@ -1,4 +1,4 @@
-import { Client, Databases, Query } from "node-appwrite";
+import { Client, Databases, Query, Permission, Role } from "node-appwrite";
 
 /**
  * Ubah status campaign (jeda / aktifkan kembali / terbitkan). UMKM-ONLY.
@@ -78,17 +78,48 @@ export default async ({ req, res, log, error }) => {
         return json(res, { error: "Hanya campaign draft yang bisa diterbitkan." }, 409);
       }
       const remaining = Number(campaign.remainingBudget) || 0;
-      if (remaining <= 0) {
+      const budgetTarget = Number(campaign.budget) || 0;
+      if (remaining < budgetTarget) {
         return json(
           res,
-          { error: "Dana campaign belum masuk. Tunggu beberapa saat setelah pembayaran, lalu coba lagi." },
+          { error: "Dana campaign belum mencukupi target budget. Lakukan pembayaran/top-up terlebih dahulu." },
           409
         );
       }
+      const newPermissions = [
+        Permission.read(Role.any()),
+        Permission.delete(Role.user(userId)),
+      ];
+
       await databases.updateDocument(env.databaseId, env.campaignsCollectionId, campaignId, {
         status: "active",
         publishedAt: new Date().toISOString(),
-      });
+      }, newPermissions);
+
+      try {
+        const briefRes = await databases.listDocuments(env.databaseId, env.campaignBriefsCollectionId, [
+          Query.equal("campaignId", campaignId),
+          Query.limit(1)
+        ]);
+        if (briefRes.documents.length > 0) {
+          await databases.updateDocument(env.databaseId, env.campaignBriefsCollectionId, briefRes.documents[0].$id, {}, newPermissions);
+        }
+      } catch (e) {
+        log(`Gagal update permission brief: ${e.message}`);
+      }
+
+      try {
+        const assetRes = await databases.listDocuments(env.databaseId, env.campaignAssetsCollectionId, [
+          Query.equal("campaignId", campaignId),
+          Query.limit(1)
+        ]);
+        if (assetRes.documents.length > 0) {
+          await databases.updateDocument(env.databaseId, env.campaignAssetsCollectionId, assetRes.documents[0].$id, {}, newPermissions);
+        }
+      } catch (e) {
+        log(`Gagal update permission asset: ${e.message}`);
+      }
+
       log(`Campaign ${campaignId} diterbitkan oleh ${userId}`);
       return json(res, { campaignId, status: "active" });
     }
@@ -119,6 +150,14 @@ function getEnv(req) {
       process.env.CAMPAIGNS_COLLECTION_ID ||
       process.env.NEXT_PUBLIC_CAMPAIGN_COLLECTION ||
       "campaigns",
+    campaignBriefsCollectionId:
+      process.env.CAMPAIGN_BRIEFS_COLLECTION_ID ||
+      process.env.NEXT_PUBLIC_CAMPAIGN_BRIEF_COLLECTION ||
+      "campaign_briefs",
+    campaignAssetsCollectionId:
+      process.env.CAMPAIGN_ASSETS_COLLECTION_ID ||
+      process.env.NEXT_PUBLIC_CAMPAIGN_ASSET_COLLECTION ||
+      "campaign_assets",
   };
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length > 0) throw new Error(`Missing env vars: ${missing.join(", ")}`);

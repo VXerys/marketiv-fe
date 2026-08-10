@@ -40,7 +40,7 @@ interface ChapterGroup {
 
 const POPULAR_KEYWORDS = [
   "escrow",
-  "5%",
+  "2%",
   "withdraw",
   "collab",
   "auto-approve",
@@ -118,7 +118,7 @@ const RULES_DATA = [
 const FAQ_DATA = [
   {
     question: "Berapa biaya platform resmi Marketiv?",
-    answer: "Biaya platform resmi Marketiv adalah 5% per transaksi (Pasal 9.1 S&K v3.1). Di Campaign Mode, 5% dibebankan ke UMKM di awal saat deposit budget. Di Rate Card Mode, UMKM membayar pas sesuai harga kesepakatan, dan 5% dipotong dari pendapatan Kreator saat pelepasan escrow.",
+    answer: "Biaya platform resmi Marketiv adalah 2% per transaksi (Pasal 9.1 S&K v3.1). Biaya 2% dibebankan ke UMKM di awal saat pembayaran. Kreator menerima pendapatan flat netto penuh (0% potongan).",
   },
   {
     question: "Apa bedanya Campaign Mode dan Rate Card Mode?",
@@ -233,7 +233,7 @@ const CHAPTERS_DATA: ChapterGroup[] = [
         pasalNumber: "Pasal 7",
         title: "Deskripsi Layanan & Jenis Transaksi",
         items: [
-          "Campaign Mode (Pay-Per-View): Budget minimal Rp 50.000 + 5% biaya platform dibayar di muka ke escrow. First come first served. Strictly ZERO-CHAT (dilarang meminta/mencantumkan nomor WA atau kontak luar). Kreator submit URL publik HTTPS dalam 24 jam. Tanpa revisi & tanpa download video.",
+          "Campaign Mode (Pay-Per-View): Budget minimal Rp 50.000 + 2% biaya platform dibayar di muka ke escrow. First come first served. Strictly ZERO-CHAT (dilarang meminta/mencantumkan nomor WA atau kontak luar). Kreator submit URL publik HTTPS dalam 24 jam. Tanpa revisi & tanpa download video.",
           "Rate Card Mode (Harga Tetap): Maksimal 3 paket aktif per Kreator. Pesanan via Direct Order atau Chat Nego. Kesepakatan diikat Custom Offer. Auto-Approve 3 hari kalender jika UMKM tidak memberikan tanggapan review. Wajib diposting sebagai Collab Post.",
           "Custom Offer: Mengikat lingkup kerja & harga final secara mengunci setelah diterima Kreator.",
         ],
@@ -258,11 +258,11 @@ const CHAPTERS_DATA: ChapterGroup[] = [
     pasalList: [
       {
         pasalNumber: "Pasal 9",
-        title: "Biaya Platform Resmi (5%)",
+        title: "Biaya Platform Resmi (2%)",
         items: [
-          "Tarif resmi biaya platform Marketiv adalah 5% (lima persen) per transaksi bersifat tetap per snapshot transaksi:",
-          "a. Campaign Mode: Biaya 5% dibebankan ke UMKM di awal dan ditambahkan saat pembayaran deposit budget. Kreator menerima reward 100% penuh tanpa potongan.",
-          "b. Rate Card Mode: UMKM membayar tepat sesuai harga paket/Custom Offer disepakati. Biaya 5% dipotong dari pendapatan Kreator saat pelepasan escrow.",
+          "Tarif resmi biaya platform Marketiv adalah 2% (dua persen) per transaksi bersifat tetap per snapshot transaksi:",
+          "a. Campaign Mode: Biaya 2% dibebankan ke UMKM di awal dan ditambahkan saat pembayaran deposit budget. Kreator menerima reward 100% penuh tanpa potongan.",
+          "b. Rate Card Mode: Biaya 2% dibebankan ke UMKM di awal saat pembayaran. Kreator menerima pendapatan flat netto penuh (0% potongan) saat pelepasan escrow.",
           "Rincian biaya dicatat secara transparan pada riwayat transaksi.",
         ],
       },
@@ -520,7 +520,7 @@ export default function FAQRulesDashboardPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari kata kunci (misal: 'escrow', '5%', 'withdraw', 'collab', 'pasal 9')..."
+              placeholder="Cari kata kunci (misal: 'escrow', '2%', 'withdraw', 'collab', 'pasal 9')..."
               className="w-full pl-11 pr-10 py-3.5 rounded-2xl bg-neutral-50 border border-neutral-200/80 text-sm font-semibold text-ink-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white transition-all shadow-2xs"
             />
             {searchQuery && (
@@ -581,7 +581,7 @@ export default function FAQRulesDashboardPage() {
                   Kata kunci &quot;{searchQuery}&quot; tidak ditemukan.
                 </p>
                 <p className="text-xs text-ink-500 font-medium">
-                  Coba kata kunci lain seperti <button onClick={() => setSearchQuery("escrow")} className="text-orange-600 font-bold underline cursor-pointer">escrow</button>, <button onClick={() => setSearchQuery("5%")} className="text-orange-600 font-bold underline cursor-pointer">5%</button>, atau <button onClick={() => setSearchQuery("withdraw")} className="text-orange-600 font-bold underline cursor-pointer">withdraw</button>.
+                  Coba kata kunci lain seperti <button onClick={() => setSearchQuery("escrow")} className="text-orange-600 font-bold underline cursor-pointer">escrow</button>, <button onClick={() => setSearchQuery("2%")} className="text-orange-600 font-bold underline cursor-pointer">2%</button>, atau <button onClick={() => setSearchQuery("withdraw")} className="text-orange-600 font-bold underline cursor-pointer">withdraw</button>.
                 </p>
               </div>
             ) : (
@@ -777,7 +777,7 @@ export default function FAQRulesDashboardPage() {
 
                 <div className="space-y-4">
                   <span className="block text-[0.66rem] font-[800] text-ink-400 uppercase tracking-widest mb-2.5">
-                    Operasional & Keuangan (Biaya 5%, Escrow, Withdrawal)
+                    Operasional & Keuangan (Biaya 2%, Escrow, Withdrawal)
                   </span>
 
                   <div className="grid gap-3.5">
@@ -823,7 +823,7 @@ export default function FAQRulesDashboardPage() {
                   <span className="block font-bold mb-1 text-orange-800 uppercase tracking-wider text-[0.72rem]">
                     Ketentuan Resmi Biaya Platform & Escrow (Versi 3.1)
                   </span>
-                  (a) Biaya platform resmi Marketiv adalah 5% per transaksi (Pasal 9.1). Di Campaign Mode dibayar UMKM di awal; di Rate Card Mode dipotong dari pendapatan Kreator saat escrow cair. <br />
+                  (a) Biaya platform resmi Marketiv adalah 2% per transaksi (Pasal 9.1). Dibebankan ke UMKM di awal (baik Campaign maupun Rate Card Mode); Kreator menerima pendapatan flat netto penuh (0%). <br />
                   (b) Seluruh transaksi wajib melalui sistem Escrow Marketiv & Payment Gateway Midtrans. Dilarang bertransaksi atau mengalihkan pembayaran ke luar platform.
                 </div>
 

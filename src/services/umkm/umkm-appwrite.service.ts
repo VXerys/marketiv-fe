@@ -193,6 +193,10 @@ const mapTransaction = (d: Doc): Transaction => {
     referenceId: campaignId || str(d.order_id),
     referenceType: campaignId ? "campaign" : "rate_card",
     amount: num(d.amount),
+    baseAmount: num(d.amount),
+    feeAmount: num(d.fee_amount),
+    totalAmount: num(d.amount) + num(d.fee_amount),
+    purpose: purpose,
     type: PAYMENT_PURPOSE_TYPE[purpose] ?? "payment",
     status: str(d.status) as TransactionStatus,
     description: (PAYMENT_PURPOSE_LABEL[purpose] ?? purpose) + gatewaySuffix,
@@ -699,7 +703,7 @@ export async function createCampaignDraftInAppwrite(
   // Permission.update TIDAK diberikan ke klien — semua update campaign disalurkan
   // lewat patch-campaign-draft / patch-campaign-status (fix SEC-H1 2026-08-08).
   const perms = [
-    Permission.read(Role.any()),
+    Permission.read(Role.user(uid)),
     Permission.delete(Role.user(uid)),
   ];
 
@@ -1203,34 +1207,8 @@ export async function reviewSubmissionInAppwrite(
     );
     const campaignId = str(reviewed?.campaignId);
 
-    // Submission ditolak = slot kuota kembali tersedia untuk kreator lain.
-    //
-    // `expire-stale-claims` sudah melakukan ini saat klaim kedaluwarsa, tapi
-    // jalur penolakan tidak pernah ikut — padahal kreator yang ditolak juga
-    // tidak bisa mengambil campaign ini lagi (cek duplikat di claimCampaign
-    // mengabaikan status). Tanpa pengembalian ini, slot yang sudah dibayar UMKM
-    // hilang permanen: tidak terpakai kreator itu, tidak bisa diambil siapa pun.
-    //
-    // SENGAJA tetap di klien, bukan ikut pindah ke Function: UMKM adalah pemilik
-    // baris `campaigns` jadi update-nya sah dari sini, dan `decrementDocument-
-    // Attribute` bersifat atomik. node-appwrite 14 yang dipakai Function belum
-    // punya operasi itu, jadi memindahkannya ke sana berarti kembali ke
-    // baca-ubah-tulis — race yang baru saja ditutup commit 016811d.
-    if (input.status === "rejected" && campaignId) {
-      try {
-        await databases.decrementDocumentAttribute({
-          databaseId: DB,
-          collectionId: COLLECTIONS.campaigns,
-          documentId: campaignId,
-          attribute: "totalClaims",
-          value: 1,
-          min: 0,
-        });
-      } catch {
-        // Keputusan review adalah hasil utama; kuota yang telat kembali bisa
-        // direkonsiliasi dan tidak boleh membatalkan penolakan.
-      }
-    }
+    // Penghapusan kuota (totalClaims) dipindah ke backend (review-submission)
+    // agar atomic dan idempotent.
 
     return ok(null);
   } catch (err) {

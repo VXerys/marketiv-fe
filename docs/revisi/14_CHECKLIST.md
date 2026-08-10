@@ -28,11 +28,16 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
 
 ## P1
 
-- `[ ] UMKM-SEC-02`
-- `[ ] UMKM-FIN-02`
-- `[ ] UMKM-CAM-01`
-- `[ ] UMKM-FIN-03`
-- `[ ] UMKM-LEGAL-01`
+- `[x] UMKM-SEC-02` draft permissions
+  Note: Menambahkan kondisi di `harden-permissions.mjs` dan `patch-campaign-status` agar campaign draft tidak dapat dibaca publik.
+- `[x] UMKM-FIN-02` campaign funding mismatch
+  Note: Mengunci `budget` di `patch-campaign-draft` jika `remainingBudget > 0`. Menambahkan validasi `remainingBudget >= budgetTarget` di `patch-campaign-status` sebelum publish.
+- `[x] UMKM-CAM-01` rejected submission quota restore
+  Note: Restorasi kuota `totalClaims` dipindah ke server (atomic `decrementColumn`) lewat `review-submission` untuk menghindari race condition dari client.
+- `[x] UMKM-FIN-03` pending campaign payment total DTO
+  Note: Update antarmuka DTO `Transaction` (baseAmount, feeAmount, totalAmount) via `mapTransaction`. UI modal payment sekarang menampilkan breakdown platform fee (2%).
+- `[x] UMKM-LEGAL-01` UMKM guide wrong domain/fee
+  Note: Memperbarui Buku Panduan UMKM lintas FAQ dan Syarat & Ketentuan dari "komisi 10%/5%" menjadi "Platform Fee 2% di awal" serta mempertegas "Kreator mendapat flat netto 0% potongan".
 
 ## P2
 
@@ -86,6 +91,21 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
   `patch-campaign-status` resume → `6a79e0f7c77aad0df667` (`deploymentId=6a772b8a61980c3bbe29`)
   Final state:
   `rtk node 00_BACKEND/appwrite/ops/inspect-campaign.mjs --campaign ops01smoke20260810`
+- `UMKM-SEC-02`
+  Verification:
+  `rtk npx vitest run tests/integration/functions.test.ts -t "patch-campaign-status"`
+- `UMKM-FIN-02`
+  Verification:
+  `rtk npx vitest run tests/integration/functions.test.ts -t "patch-campaign-draft|patch-campaign-status"`
+- `UMKM-CAM-01`
+  Verification:
+  `rtk npx vitest run tests/integration/functions.test.ts -t "review-submission function"`
+- `UMKM-FIN-03`
+  Verification:
+  `src/components/features/umkm-dashboard/finance/modals/PendingPaymentModal.tsx` now uses `totalAmount` and shows `feeAmount` breakdown. `mapTransaction` updated.
+- `UMKM-LEGAL-01`
+  Verification:
+  `src/app/dashboard/umkm/panduan/page.tsx` updated 5% to 2% and creator flat netto 0%.
 
 ## Update rule
 

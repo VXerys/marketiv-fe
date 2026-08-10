@@ -129,12 +129,12 @@ const TARGETS = [
   },
   {
     id: "campaigns",
-    permissions: ['read("any")', 'create("users")'],
+    permissions: ['create("users")'],
     rowSecurity: true,
     why:
       'update("users") = siapa pun bisa menulis status:"active" + remainingBudget ke campaign siapa pun, ' +
       "melewati Midtrans, create-escrow, dan guard remainingBudget>0 di publishCampaign sekaligus. " +
-      "Row perm read(any)/update+delete(owner) dipasang umkm-appwrite.service.ts:createCampaignDraft",
+      "Row perm read(owner)/update+delete(owner) dipasang umkm-appwrite.service.ts:createCampaignDraft",
   },
   {
     id: "campaign_claims",
@@ -146,13 +146,13 @@ const TARGETS = [
   },
   {
     id: "campaign_briefs",
-    permissions: ['read("any")', 'create("users")'],
+    permissions: ['create("users")'],
     rowSecurity: true,
     why: 'update("users") = siapa pun bisa mengubah brief campaign orang lain setelah kreator mengklaimnya; row perm sama dengan campaigns',
   },
   {
     id: "campaign_assets",
-    permissions: ['read("any")', 'create("users")'],
+    permissions: ['create("users")'],
     rowSecurity: true,
     why: 'update("users") = siapa pun bisa mengganti tautan materi campaign orang lain; row perm sama dengan campaigns',
   },
