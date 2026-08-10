@@ -146,6 +146,12 @@ export interface CreatorProfile {
   isVerified: boolean;
 }
 
+export interface PaginatedCreators {
+  items: CreatorProfile[];
+  total: number;
+  nextCursor: string | null;
+}
+
 export interface RateCardPackage {
   id: string;
   creatorId: string;

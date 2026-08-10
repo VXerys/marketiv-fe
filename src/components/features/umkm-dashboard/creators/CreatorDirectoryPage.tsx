@@ -19,6 +19,7 @@ export function CreatorDirectoryPage() {
   const [sortBy, setSortBy] = useState("rating");
 
   const [creators, setCreators] = useState<CreatorProfile[]>([]);
+  const [totalCreatorsCount, setTotalCreatorsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
@@ -28,9 +29,10 @@ export function CreatorDirectoryPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await getCreators();
+      const res = await getCreators(100, undefined);
       if (res.success && res.data) {
-        setCreators(res.data);
+        setCreators(res.data.items);
+        setTotalCreatorsCount(res.data.total);
       } else {
         setError(res.error || "Gagal memuat data kreator.");
       }
@@ -74,7 +76,7 @@ export function CreatorDirectoryPage() {
       <CreatorDirectoryHeader />
 
       {/* Stats Cards */}
-      <CreatorSummaryCards totalCreators={creators.length} />
+      <CreatorSummaryCards totalCreators={totalCreatorsCount} />
 
       {/* Sticky toolbar — direct grid child so sticky has full grid-container height to work with */}
       <CreatorToolbar

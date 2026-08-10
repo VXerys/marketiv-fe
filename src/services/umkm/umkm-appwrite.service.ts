@@ -35,6 +35,7 @@ import {
   Campaign,
   CampaignSubmission,
   CreatorProfile,
+  PaginatedCreators,
   CreatorNiche,
   RateCardPackage,
   NegotiationOrder,
@@ -510,12 +511,15 @@ export async function getPendingSubmissionsFromAppwrite(): Promise<ServiceResult
  * `id` yang dikembalikan adalah `userId`, BUKAN `$id` dokumen profil — itu kunci
  * yang dipakai orders.creatorId, rate_cards.creatorId dan wallets.userId.
  */
-export async function getCreatorsFromAppwrite(): Promise<ServiceResult<CreatorProfile[]>> {
+export async function getCreatorsFromAppwrite(
+  limit: number = 100,
+  cursor?: string
+): Promise<ServiceResult<PaginatedCreators>> {
   try {
-    const data = await executeFunction<CreatorProfile[]>(FUNCTION_IDS.creatorDirectory);
+    const data = await executeFunction<PaginatedCreators>(FUNCTION_IDS.creatorDirectory, { limit, cursor });
     return { success: true, data };
   } catch (err) {
-    return failFromError<CreatorProfile[]>(err, []);
+    return failFromError<PaginatedCreators>(err, { items: [], total: 0, nextCursor: null });
   }
 }
 

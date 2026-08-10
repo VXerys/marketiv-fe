@@ -8,6 +8,7 @@ import {
   Campaign,
   CampaignSubmission,
   CreatorProfile,
+  PaginatedCreators,
   RateCardPackage,
   NegotiationOrder,
   ChatMessage,
@@ -177,12 +178,12 @@ export async function getPendingSubmissions(): Promise<ServiceResult<CampaignSub
   return getPendingSubmissionsFromAppwrite();
 }
 
-export async function getCreators(): Promise<ServiceResult<CreatorProfile[]>> {
+export async function getCreators(limit: number = 100, cursor?: string): Promise<ServiceResult<PaginatedCreators>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(300);
-    return { success: true, data: mockCreators };
+    return { success: true, data: { items: mockCreators, total: mockCreators.length, nextCursor: null } };
   }
-  return getCreatorsFromAppwrite();
+  return getCreatorsFromAppwrite(limit, cursor);
 }
 
 export async function getCreatorById(id: string): Promise<ServiceResult<CreatorProfile>> {

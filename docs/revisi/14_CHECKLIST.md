@@ -52,7 +52,10 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
   Note: Di `CreateCampaignWizard.tsx`, ubah aksi `handleNext` pada langkah terakhir dari memanggil
   `handleConfirmPayment()` secara langsung menjadi `setIsPaymentOpen(true)` agar PaymentSimulationModal
   terbuka terlebih dahulu, sesuai desain.
-- `[ ] UMKM-DATA-01`
+- `[x] UMKM-DATA-01` creator directory max 100
+  Note: Memperbaiki fungsi `get-creator-directory` agar mengembalikan `{ items, total, nextCursor }` menggunakan `listPaged`.
+  Di frontend, `PaginatedCreators` type ditambahkan, lalu service serta `CreatorDirectoryPage.tsx`
+  diperbarui untuk memakai paginasi dan melempar `total` yang akurat ke `CreatorSummaryCards`.
 - `[ ] UMKM-DATA-02`
 - `[ ] UMKM-DATA-03`
 - `[ ] UMKM-NOTIF-01`
@@ -131,6 +134,11 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
   Verification:
   `src/components/features/umkm-dashboard/create-campaign/CreateCampaignWizard.tsx` (handleNext).
   Klik tombol "Lanjut Pembayaran" di Step 5 akan memanggil `setIsPaymentOpen(true)` dan memunculkan `PaymentSimulationModal`.
+- `UMKM-DATA-01`
+  Verification:
+  Cek fungsi appwrite `get-creator-directory` mengembalikan `{ items, total, nextCursor }`.
+  Di frontend, `CreatorDirectoryPage.tsx` diubah menggunakan `res.data.items` dan `res.data.total` dilempar ke `CreatorSummaryCards`.
+  Test dengan `npm run lint` & `tsc` menghasilkan 0 error TypeScript.
 
 ## Update rule
 
