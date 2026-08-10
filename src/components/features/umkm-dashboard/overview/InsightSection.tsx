@@ -1,6 +1,6 @@
 "use client";
 
-import { Lightbulb, AlertTriangle, TrendingUp, X, ArrowRight } from "lucide-react";
+import { Lightbulb, AlertTriangle, TrendingUp, X, ArrowRight, BarChart2 } from "lucide-react";
 import { useState } from "react";
 
 type InsightType = "insight" | "warning" | "recommendation";
@@ -10,19 +10,6 @@ interface Insight {
   type: string;
   text: string;
 }
-
-const FALLBACK_INSIGHTS: Insight[] = [
-  {
-    id: "fb-1",
-    type: "recommendation",
-    text: "Optimalisasi Jam Posting: Upload video di jam 18.00 - 21.00 untuk potensi views maksimal.",
-  },
-  {
-    id: "fb-2",
-    type: "insight",
-    text: "Tingkatkan Retensi: Sertakan promo unik di 3 detik pertama video campaign.",
-  },
-];
 
 const INSIGHT_CONFIG: Record<InsightType, {
   icon: React.ComponentType<{ size?: number; color?: string }>;
@@ -72,16 +59,7 @@ export function InsightSection({
   onViewAnalyticsClick,
 }: InsightSectionProps) {
   const [dismissed, setDismissed] = useState<string[]>([]);
-  const userVisible = insights.filter((i) => !dismissed.includes(i.id));
-  
-  // Combine user insights with fallbacks so 4 grid slots are always filled
-  const combined = [...userVisible];
-  for (const fb of FALLBACK_INSIGHTS) {
-    if (combined.length < 4 && !dismissed.includes(fb.id)) {
-      combined.push(fb);
-    }
-  }
-  const displayInsights = combined.slice(0, 4);
+  const displayInsights = insights.filter((i) => !dismissed.includes(i.id));
 
   return (
     <div
@@ -92,16 +70,18 @@ export function InsightSection({
         <div className="flex items-center justify-between gap-3 mb-3 shrink-0">
           <div>
             <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 block mb-0.5">
-              REKOMENDASI CERDAS
+              INSIGHT & SARAN
             </span>
             <h3 className="text-base font-black text-slate-900 tracking-tight font-display">
-              Saran & Rekomendasi
+              Insight Performa
             </h3>
           </div>
 
-          <span className="px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200/60 text-[10px] font-extrabold shrink-0">
-            {displayInsights.length} saran
-          </span>
+          {displayInsights.length > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 border border-orange-200/60 text-[10px] font-extrabold shrink-0">
+              {displayInsights.length} insight
+            </span>
+          )}
         </div>
 
         {isLoading ? (
@@ -113,8 +93,23 @@ export function InsightSection({
               </div>
             ))}
           </div>
+        ) : displayInsights.length === 0 ? (
+          /* Empty state — no fabricated fallbacks */
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 py-6 px-4 text-center">
+            <div className="w-11 h-11 rounded-2xl bg-slate-100 border border-slate-200/80 grid place-items-center">
+              <BarChart2 size={20} className="text-slate-400" />
+            </div>
+            <div>
+              <p className="text-[0.84rem] font-bold text-slate-700 mb-1">
+                Belum ada insight
+              </p>
+              <p className="text-[0.74rem] text-slate-400 leading-relaxed max-w-[220px]">
+                Insight berbasis performa akan tersedia setelah campaign memiliki data yang cukup untuk dianalisis.
+              </p>
+            </div>
+          </div>
         ) : (
-          /* Grid 2×2 matching QuickActions */
+          /* Grid 2×2 */
           <div className="grid grid-cols-2 gap-2.5 flex-1">
             {displayInsights.map((insight) => {
               let mappedType: InsightType = "insight";
@@ -204,5 +199,3 @@ export function InsightSection({
     </div>
   );
 }
-
-

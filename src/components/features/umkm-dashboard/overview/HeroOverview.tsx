@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendingUp, Users, Eye, Wallet, ArrowUpRight, ArrowDownRight, Sparkles } from "lucide-react";
+import { TrendingUp, Users, Eye, Wallet, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface HeroOverviewProps {
@@ -39,45 +39,33 @@ export function HeroOverview({
       icon: TrendingUp,
       label: "CAMPAIGN AKTIF",
       value: campaignAktif === undefined ? "—" : String(campaignAktif),
-      trend: "+1 minggu ini",
-      isPositive: true,
       cardBg: "bg-gradient-to-br from-orange-50/70 via-orange-50/30 to-white",
       borderColor: "border-orange-200/80 hover:border-orange-300",
       iconBg: "bg-orange-500/10 text-orange-600 border-orange-200/60",
-      pillBg: "bg-orange-100/90 text-orange-700 border-orange-200/80",
     },
     {
       icon: Eye,
       label: "TOTAL VIEWS",
       value: totalViews,
-      trend: "+18% minggu ini",
-      isPositive: true,
       cardBg: "bg-gradient-to-br from-blue-50/70 via-blue-50/30 to-white",
       borderColor: "border-blue-200/80 hover:border-blue-300",
       iconBg: "bg-blue-500/10 text-blue-600 border-blue-200/60",
-      pillBg: "bg-blue-100/90 text-blue-700 border-blue-200/80",
     },
     {
       icon: Users,
-      label: "TOTAL KREATOR",
+      label: "PARTISIPASI KREATOR",
       value: totalKreator === undefined ? "—" : String(totalKreator),
-      trend: "+2 kreator",
-      isPositive: true,
       cardBg: "bg-gradient-to-br from-emerald-50/70 via-emerald-50/30 to-white",
       borderColor: "border-emerald-200/80 hover:border-emerald-300",
       iconBg: "bg-emerald-500/10 text-emerald-600 border-emerald-200/60",
-      pillBg: "bg-emerald-100/90 text-emerald-700 border-emerald-200/80",
     },
     {
       icon: Wallet,
       label: "DANA BERJALAN",
       value: danaBerjalan,
-      trend: "-5% minggu ini",
-      isPositive: false,
       cardBg: "bg-gradient-to-br from-amber-50/70 via-amber-50/30 to-white",
       borderColor: "border-amber-200/80 hover:border-amber-300",
       iconBg: "bg-amber-500/10 text-amber-600 border-amber-200/60",
-      pillBg: "bg-amber-100/90 text-amber-700 border-amber-200/80",
     },
   ];
 
@@ -143,8 +131,8 @@ export function HeroOverview({
                 </div>
               ) : (
                 <>
-                  {/* Top row: Icon + Trend Pill */}
-                  <div className="flex items-center justify-between gap-2 mb-3">
+                  {/* Top row: Icon */}
+                  <div className="flex items-center gap-2 mb-3">
                     <div
                       className={cn(
                         "w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 transition-transform duration-300 group-hover:scale-105",
@@ -152,20 +140,6 @@ export function HeroOverview({
                       )}
                     >
                       <stat.icon size={16} strokeWidth={2.5} />
-                    </div>
-
-                    <div
-                      className={cn(
-                        "inline-flex items-center gap-0.5 text-[10px] font-black px-2 py-0.5 rounded-full border shadow-2xs",
-                        stat.pillBg
-                      )}
-                    >
-                      {stat.isPositive ? (
-                        <ArrowUpRight className="w-3 h-3 stroke-[3]" />
-                      ) : (
-                        <ArrowDownRight className="w-3 h-3 stroke-[3]" />
-                      )}
-                      <span>{stat.trend}</span>
                     </div>
                   </div>
 

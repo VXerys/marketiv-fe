@@ -212,7 +212,7 @@ export function CampaignWorkspaceCard({ campaign, submissions }: CampaignWorkspa
                   Total Tayangan Video
                 </span>
                 <span className="text-lg font-black text-emerald-700 font-display">
-                  {formatCompactNumber(campaign.totalViews)} Penonton
+                  {campaign.totalViews === undefined ? "—" : `${formatCompactNumber(campaign.totalViews)} Penonton`}
                 </span>
               </div>
               <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-200/60">

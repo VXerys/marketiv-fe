@@ -65,9 +65,7 @@ export function CampaignsPage() {
   const [activeDuplicateCampaign, setActiveDuplicateCampaign] = useState<Campaign | null>(null);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
-
-
-  // Toast / notification feedback simulator via Sonner
+  // Toast / notification feedback via Sonner
   const showToast = (msg: string) => {
     toast.success(msg);
   };
@@ -93,7 +91,8 @@ export function CampaignsPage() {
       if (campaignsRes.success && campaignsRes.data) {
         setCampaigns(campaignsRes.data);
 
-        // Fetch submissions for all campaigns to calculate counts
+        // TODO(P1-backend): N+1 query — move submission aggregation to a backend DTO
+        // (getCampaignsWithSubmissionCounts) so 1 campaign list = 1 request.
         const subCounts: Record<string, { pending: number; valid: number; dispute: number }> = {};
         await Promise.all(
           campaignsRes.data.map(async (c) => {
@@ -226,9 +225,8 @@ export function CampaignsPage() {
     <UmkmDashboardChrome businessName={profile?.businessName}>
       {/* UmkmPageWrapper: responsive padding, 26px gap, 1440px max-width for campaign list */}
       <UmkmPageWrapper maxWidth={1440}>
-        {/* Header */}
+        {/* Header — P1-6: onCreateCampaignClick removed; Link inside CampaignsHeader already navigates */}
         <CampaignsHeader
-          onCreateCampaignClick={() => {}}
           onExportReportClick={() => setIsExportModalOpen(true)}
         />
 
@@ -361,7 +359,7 @@ export function CampaignsPage() {
               "Klaim Terpakai": c.usedQuota,
               "Budget (Rp)": c.totalBudgetEscrow,
               "Budget Tersisa (Rp)": c.remainingBudget,
-              "Total Views": c.totalViews,
+              "Total Views": c.totalViews ?? "Belum tersedia",
               "Dibuat": c.createdAt,
             }))}
           />

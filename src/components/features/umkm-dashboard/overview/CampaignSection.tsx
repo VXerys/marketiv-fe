@@ -54,14 +54,7 @@ function formatBudget(num: number): string {
   return `Rp ${num}`;
 }
 
-const NICHE_COLOR_CONFIG: Record<string, { bg: string; text: string; border: string }> = {
-  kuliner:    { bg: "rgba(249,115,22,.05)",  text: "#ea580c", border: "rgba(249,115,22,.10)" },
-  fashion:     { bg: "rgba(22,163,74,.05)",   text: "#16a34a", border: "rgba(22,163,74,.10)" },
-  pariwisata: { bg: "rgba(37,99,235,.05)",   text: "#2563eb", border: "rgba(37,99,235,.10)" },
-  edukasi:    { bg: "rgba(124,58,237,.05)",  text: "#7c3aed", border: "rgba(124,58,237,.10)" },
-  kecantikan: { bg: "rgba(244,114,182,.05)", text: "#db2777", border: "rgba(244,114,182,.10)" },
-  lainnya:    { bg: "rgba(107,114,128,.05)", text: "#4b5563", border: "rgba(107,114,128,.10)" },
-};
+
 
 function CampaignCard({ campaign }: { campaign: Campaign }) {
   const statusCfg = STATUS_CONFIG[campaign.status] || STATUS_CONFIG.active;
@@ -78,7 +71,6 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
   };
 
   const coverGradient = coverGradients[campaign.niche] || coverGradients.kuliner;
-  const nicheCfg = NICHE_COLOR_CONFIG[campaign.niche] || NICHE_COLOR_CONFIG.lainnya;
 
   return (
     <Link
@@ -141,7 +133,7 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
           </div>
           <div className="flex items-center gap-1.5">
             <Eye size={14} className="text-slate-500 shrink-0" />
-            <span>{formatViews(campaign.totalViews)} tayangan</span>
+            <span>{campaign.totalViews === undefined ? "—" : formatViews(campaign.totalViews)} tayangan</span>
           </div>
           <div className="flex items-center gap-1.5">
             <Calendar size={14} className="text-slate-500 shrink-0" />

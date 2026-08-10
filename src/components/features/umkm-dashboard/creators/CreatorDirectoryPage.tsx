@@ -74,7 +74,7 @@ export function CreatorDirectoryPage() {
       <CreatorDirectoryHeader />
 
       {/* Stats Cards */}
-      <CreatorSummaryCards />
+      <CreatorSummaryCards totalCreators={creators.length} />
 
       {/* Sticky toolbar — direct grid child so sticky has full grid-container height to work with */}
       <CreatorToolbar

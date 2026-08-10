@@ -127,7 +127,7 @@ const mapCampaign = (d: Doc): Campaign => ({
   totalBudgetEscrow: num(d.budget),
   usedBudget: num(d.spentAmount),
   remainingBudget: num(d.remainingBudget),
-  totalViews: 0, // tak ada kolom — perlu agregasi campaign_submissions
+  totalViews: undefined, // tak ada kolom — perlu agregasi campaign_submissions
   createdAt: str(d.$createdAt),
   updatedAt: str(d.$updatedAt),
 });

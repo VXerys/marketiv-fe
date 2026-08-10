@@ -1,4 +1,4 @@
-import { ID, AppwriteException, OAuthProvider } from "appwrite";
+import { ID, OAuthProvider } from "appwrite";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
 import { AUTH_CONFIG } from "@/config/auth.config";
 import { mockDelay } from "@/lib/mock-delay";
@@ -68,31 +68,96 @@ export interface PasswordOtpRequestOutcome {
   userId: string | null;
 }
 
+interface AppwriteErrorLike {
+  code?: number;
+  type?: string;
+  message?: string;
+}
+
+function getAppwriteError(err: unknown): AppwriteErrorLike {
+  if (typeof err !== "object" || err === null) {
+    return typeof err === "string" ? { message: err } : {};
+  }
+
+  const e = err as Record<string, unknown>;
+  const res = (e.response && typeof e.response === "object" ? e.response : {}) as Record<string, unknown>;
+
+  const code =
+    typeof e.code === "number"
+      ? e.code
+      : typeof e.status === "number"
+      ? e.status
+      : typeof res.code === "number"
+      ? res.code
+      : typeof res.status === "number"
+      ? res.status
+      : undefined;
+
+  const type =
+    typeof e.type === "string" && e.type !== ""
+      ? e.type
+      : typeof res.type === "string" && res.type !== ""
+      ? res.type
+      : typeof e.name === "string" && e.name !== ""
+      ? e.name
+      : undefined;
+
+  const message =
+    typeof e.message === "string" && e.message !== ""
+      ? e.message
+      : typeof res.message === "string" && res.message !== ""
+      ? res.message
+      : undefined;
+
+  return { code, type, message };
+}
+
 /**
  * Pesan yang bisa dibaca manusia untuk kegagalan Appwrite Auth.
  *
  * Yang dispesialisasi HANYA teks. `code` selalu datang dari mapWriteErrorCode —
  * kontrak repo: UI bercabang di `code`, tidak pernah mem-parse `error`.
  */
-function authMessage(err: unknown, fallback: string): string {
-  const type = err instanceof AppwriteException ? err.type : "";
+function authMessage(err: unknown, fallback: string, scope?: string): string {
+  const { type, code, message } = getAppwriteError(err);
+
+  if (process.env.NODE_ENV !== "production") {
+    const logDetails: Record<string, unknown> = {};
+    if (code !== undefined) logDetails.code = code;
+    if (type !== undefined) logDetails.type = type;
+    if (message !== undefined) logDetails.message = message;
+    if (Object.keys(logDetails).length === 0 && err) {
+      logDetails.raw = String(err);
+    }
+
+    console.warn(`[auth${scope ? `.${scope}` : ""}]`, logDetails);
+  }
+
+  if (code === 0 || (message && message.toLowerCase().includes("network"))) {
+    return "Tidak dapat terhubung ke server. Periksa koneksi internet lalu coba lagi.";
+  }
+
   switch (type) {
     case "user_already_exists":
     case "user_email_already_exists":
-      return "Email ini sudah terdaftar. Coba masuk atau pakai email lain.";
+      return "Email ini sudah terdaftar. Silakan masuk atau gunakan email lain.";
     case "user_invalid_credentials":
-      return "Email atau password salah.";
+      return "Email atau password yang kamu masukkan tidak cocok.";
     case "user_blocked":
-      return "Akun kamu ditangguhkan. Hubungi admin Marketiv.";
+      return "Akun kamu sedang ditangguhkan. Hubungi admin Marketiv.";
     case "user_password_mismatch":
       return "Konfirmasi password tidak sama.";
     case "password_recently_used":
     case "user_password_recently_used":
       return "Password ini pernah kamu pakai. Gunakan password lain.";
     case "user_invalid_token":
-      return "Kode salah atau sudah kedaluwarsa. Minta kode baru.";
+      return "Kode OTP salah atau kedaluwarsa. Minta kode baru.";
     case "general_rate_limit_exceeded":
-      return "Terlalu banyak percobaan. Tunggu beberapa menit dulu.";
+      return "Terlalu banyak percobaan. Tunggu sebentar lalu coba lagi.";
+    case "user_password_reset_required":
+      return "Password akun perlu diperbarui. Silakan reset password terlebih dahulu.";
+    case "general_unknown_origin":
+      return "Aplikasi belum diizinkan terhubung ke server. Hubungi admin Marketiv.";
     default:
       return fallback;
   }
@@ -188,7 +253,7 @@ async function registerWithPrefs(
     await account.updatePrefs({ prefs });
   } catch (err) {
     return fail(
-      authMessage(err, "Gagal membuat akun. Coba lagi."),
+      authMessage(err, "Gagal membuat akun. Coba lagi.", "register"),
       mapWriteErrorCode(err),
       noData<RegisterOutcome>()
     );
@@ -310,7 +375,7 @@ export async function login(
     await account.createEmailPasswordSession({ email, password });
   } catch (err) {
     return fail(
-      authMessage(err, "Gagal masuk. Coba lagi."),
+      authMessage(err, "Gagal masuk. Coba lagi.", "login"),
       mapWriteErrorCode(err),
       noData<SessionUser>()
     );
@@ -396,7 +461,8 @@ export async function requestPasswordRecovery(
     return fail(
       authMessage(
         err,
-        "Email pemulihan belum bisa dikirim. Tunggu beberapa menit lalu coba lagi."
+        "Email pemulihan belum bisa dikirim. Tunggu beberapa menit lalu coba lagi.",
+        "requestPasswordReset"
       ),
       mapWriteErrorCode(err),
       noData<null>()
@@ -440,7 +506,7 @@ export async function completePasswordRecovery(
     return ok(null);
   } catch (err) {
     return fail(
-      authMessage(err, "Gagal mengatur ulang password. Coba lagi."),
+      authMessage(err, "Gagal mengatur ulang password. Coba lagi.", "resetPassword"),
       mapWriteErrorCode(err),
       noData<null>()
     );
@@ -488,7 +554,7 @@ export async function completePasswordRecoveryWithOtp(
       return fail(err.message, err.code, noData<null>());
     }
     return fail(
-      authMessage(err, "Kode OTP salah atau kedaluwarsa. Minta kode baru."),
+      authMessage(err, "Kode OTP salah atau kedaluwarsa. Minta kode baru.", "resetPasswordOtp"),
       mapWriteErrorCode(err),
       noData<null>()
     );
@@ -527,7 +593,7 @@ export async function requestEmailOtp(args: {
     return ok(null);
   } catch (err) {
     return fail(
-      authMessage(err, "Gagal mengirim kode verifikasi. Coba lagi."),
+      authMessage(err, "Gagal mengirim kode verifikasi. Coba lagi.", "requestEmailOtp"),
       mapWriteErrorCode(err),
       noData<null>()
     );
@@ -573,7 +639,7 @@ export async function confirmEmailOtp(args: {
       // Sesi lama mungkin belum terhapus; abaikan — user tetap punya sesi.
     }
     return fail(
-      authMessage(err, "Kode OTP salah atau kedaluwarsa. Minta kode baru."),
+      authMessage(err, "Kode OTP salah atau kedaluwarsa. Minta kode baru.", "confirmEmailOtp"),
       mapWriteErrorCode(err),
       noData<null>()
     );

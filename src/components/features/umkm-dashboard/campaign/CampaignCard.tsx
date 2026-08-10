@@ -164,7 +164,7 @@ export function CampaignCard({
         {/* Stats row — descriptive terminology */}
         <div className="campaign-card-meta">
           <span className="flex items-center gap-1 font-extrabold text-[0.72rem]"><Users size={13} className="text-text-muted" />{campaign.usedQuota}/{campaign.creatorQuota} Kreator</span>
-          <span className="flex items-center gap-1 font-extrabold text-[0.72rem]"><Eye size={13} className="text-text-muted" />{formatCompactViews(campaign.totalViews)} Views</span>
+          <span className="flex items-center gap-1 font-extrabold text-[0.72rem]"><Eye size={13} className="text-text-muted" />{campaign.totalViews === undefined ? "—" : formatCompactViews(campaign.totalViews)} Views</span>
           <span className="flex items-center gap-1 font-extrabold text-[0.72rem]">
             <Calendar size={13} className="text-text-muted" />
             {new Date(campaign.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}

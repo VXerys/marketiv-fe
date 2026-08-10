@@ -8,7 +8,7 @@ export function getCalculatedDashboardSummary(): UmkmDashboardSummary {
   const completedCampaigns = mockCampaigns.filter((c) => c.status === "completed").length;
   
   // Sum views across campaigns
-  const totalViews = mockCampaigns.reduce((sum, c) => sum + c.totalViews, 0);
+  const totalViews = mockCampaigns.reduce((sum, c) => sum + (c.totalViews ?? 0), 0);
 
   // Spent budget from campaigns
   const campaignSpent = mockCampaigns.reduce((sum, c) => sum + c.usedBudget, 0);

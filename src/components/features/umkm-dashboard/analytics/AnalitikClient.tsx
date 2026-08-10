@@ -213,7 +213,7 @@ export function AnalitikClient() {
             icon={<Wallet />}
             currency="compact"
             tone="primary"
-            helper="semua campaign"
+            helper="campaign & kolaborasi Rate Card"
           />
           <MetricCard
             label="Saldo Escrow"
@@ -221,7 +221,7 @@ export function AnalitikClient() {
             icon={<TrendingUp />}
             currency="compact"
             tone="warning"
-            helper="terkunci di campaign aktif"
+            helper="tertahan di campaign & order aktif"
           />
         </div>
 

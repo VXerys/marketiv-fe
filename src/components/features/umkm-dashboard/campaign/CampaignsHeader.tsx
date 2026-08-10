@@ -2,12 +2,10 @@ import Link from "next/link";
 import { Plus, Download } from "lucide-react";
 
 interface CampaignsHeaderProps {
-  onCreateCampaignClick: () => void;
   onExportReportClick: () => void;
 }
 
 export function CampaignsHeader({
-  onCreateCampaignClick,
   onExportReportClick,
 }: CampaignsHeaderProps) {
   return (
@@ -39,7 +37,6 @@ export function CampaignsHeader({
         <Link
           href="/dashboard/umkm/campaign/buat"
           className="inline-flex items-center gap-2 min-h-[46px] px-[22px] rounded-xl border border-orange-900/20 bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white font-[800] text-[.9rem] tracking-[-0.012em] shadow-[0_14px_34px_rgba(234,88,12,.22),inset_0_1px_0_rgba(255,255,255,.22)] cursor-pointer whitespace-nowrap no-underline hover:shadow-[0_18px_40px_rgba(234,88,12,.30)] hover:-translate-y-px transition-all duration-200"
-          onClick={onCreateCampaignClick}
         >
           <Plus size={17} />
           Buat Kampanye Baru

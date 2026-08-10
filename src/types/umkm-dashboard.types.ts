@@ -95,7 +95,8 @@ export interface Campaign {
   usedBudget: number;
   /** Sisa dana di escrow campaign. 0 berarti belum dibayar atau semua reward sudah dicairkan. */
   remainingBudget: number;
-  totalViews: number;
+  /** Agregasi dari campaign_submissions. `undefined` = belum tersedia, bukan nol tayangan. */
+  totalViews?: number;
   createdAt: string;
   updatedAt: string;
   // Optional wizard fields — aligned with Appwrite Campaigns collection schema

@@ -2,7 +2,6 @@
 
 import { MessageSquare, CreditCard, Lock, CheckCircle, AlertTriangle } from "lucide-react";
 import { NegotiationOrder } from "@/types/umkm-dashboard.types";
-import { formatCompactCurrency } from "@/lib/formatters";
 
 interface SummaryCardProps {
   icon: React.ComponentType<{ size?: number; className?: string }>;
@@ -50,12 +49,10 @@ export function NegotiationSummaryCards({ negotiations }: NegotiationSummaryCard
 
   const activeCount = negotiations.filter((n) => negotiatingStages.includes(n.stage)).length;
   const waitingPaymentCount = negotiations.filter((n) => n.stage === "pending_payment").length;
+  // TODO(P1): escrow locked value should come from backend payment state, not UI inference from order stage
   const escrowCount = negotiations.filter((n) => escrowStatuses.includes(n.stage)).length;
   const completedCount = negotiations.filter((n) => n.stage === "completed").length;
   const cancelledCount = negotiations.filter((n) => n.stage === "cancelled").length;
-  const escrowLockedValue = negotiations
-    .filter((n) => escrowStatuses.includes(n.stage))
-    .reduce((sum, n) => sum + n.finalPrice, 0);
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
@@ -79,9 +76,9 @@ export function NegotiationSummaryCards({ negotiations }: NegotiationSummaryCard
       />
       <SummaryCard
         icon={Lock}
-        label="Dana Tersimpan Aman"
-        value={formatCompactCurrency(escrowLockedValue)}
-        note={`${escrowCount} Proyek Aktif`}
+        label="Dalam Escrow"
+        value={String(escrowCount)}
+        note="Proyek berjalan aman"
         iconBg="#f1fbf5"
         iconColor="#16a34a"
         iconBorder="rgba(22,163,74,.18)"

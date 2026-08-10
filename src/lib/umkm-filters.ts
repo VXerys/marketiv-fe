@@ -32,7 +32,7 @@ export function filterCampaigns(
         result.sort((a, b) => b.totalBudgetEscrow - a.totalBudgetEscrow);
         break;
       case "views_desc":
-        result.sort((a, b) => b.totalViews - a.totalViews);
+        result.sort((a, b) => (b.totalViews ?? 0) - (a.totalViews ?? 0));
         break;
       case "price_desc":
         result.sort((a, b) => b.pricePerThousandViews - a.pricePerThousandViews);

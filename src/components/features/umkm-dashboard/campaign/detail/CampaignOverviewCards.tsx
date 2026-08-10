@@ -15,7 +15,7 @@ export function CampaignOverviewCards({
   const cardData = [
     {
       label: "Total Tayangan Video",
-      value: campaign.totalViews,
+      value: campaign.totalViews === undefined ? "—" : campaign.totalViews,
       helper: "Jumlah penonton tayangan",
       tone: "info" as const,
       icon: (

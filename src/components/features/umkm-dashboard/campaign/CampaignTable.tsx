@@ -115,7 +115,7 @@ export function CampaignTable({
           const counts = submissionCounts[campaign.id] || { pending: 0, valid: 0, dispute: 0 };
           const detailUrl = `/dashboard/umkm/campaign/${campaign.id}`;
           const cells: ResponsiveDataCell[] = [
-            { label: "Tayangan", value: formatCompactNumber(campaign.totalViews), align: "right" },
+            { label: "Tayangan", value: campaign.totalViews === undefined ? "—" : formatCompactNumber(campaign.totalViews), align: "right" },
             {
               label: "Anggaran",
               value: (
@@ -218,7 +218,7 @@ export function CampaignTable({
                     <DashboardBadge type="category" value={campaign.niche} size="sm" />
                   </td>
                   <td className="px-4 py-4 text-right font-extrabold text-text-secondary">
-                    {formatCompactNumber(campaign.totalViews)}
+                    {campaign.totalViews === undefined ? "—" : formatCompactNumber(campaign.totalViews)}
                   </td>
                   <td className="px-4 py-4 text-right">
                     <span className="block break-words font-bold text-text-primary">{formatCurrency(campaign.usedBudget)}</span>
