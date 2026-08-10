@@ -67,8 +67,8 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
   menampilkan banner warning bahwa "Sebagian data adalah estimasi" ketika flag tersebut bernilai `true`.
 - `[x] UMKM-NOTIF-01`
   Note: Memperbaiki batas 100 notifikasi dengan menerapkan metode cursor pagination (loop cursor sampai data habis) di `getNotificationsFromAppwrite`. Selain itu, merombak `markAllNotificationsRead` menjadi Function baru `mark-notifications-read` yang menerima `ids: string[]` untuk melakukan iterasi baca + update di server, sehingga menghindari multiple API calls yang gagal dari frontend.
-- `[ ] UMKM-SET-01`
-- `[ ] UMKM-SET-02`
+- `[x] UMKM-SET-01` Hardcoded verified badge (isVerified state injected into chrome and sidebar)
+- `[x] UMKM-SET-02` WhatsApp not hydrated (added phone parsing from session)
 - `[ ] UMKM-FILE-01`
 - `[ ] UMKM-PRIV-01`
 - `[ ] UMKM-SUP-01`

@@ -95,6 +95,7 @@ export function PengaturanClient() {
     address: "",
     tiktok: "",
     logoUrl: "",
+    isVerified: false,
   });
 
   /** Dikelola collection `users` (read-only dari klien) — prefil dari sesi. */
@@ -123,12 +124,13 @@ export function PengaturanClient() {
         address: res.data.address,
         tiktok: res.data.tiktok,
         logoUrl: res.data.logoUrl,
+        isVerified: res.data.isProfileCompleted,
       });
     } else {
       setLoadError(res.error ?? "Gagal memuat profil.");
     }
     if (sessionRes.success && sessionRes.data) {
-      setAccount({ email: sessionRes.data.email, phone: "" });
+      setAccount({ email: sessionRes.data.email, phone: sessionRes.data.phone || "" });
     }
     setLoading(false);
   }, []);
@@ -187,7 +189,7 @@ export function PengaturanClient() {
   const errCls = "text-[0.7rem] font-bold text-red-600";
 
   return (
-    <UmkmDashboardChrome businessName={profile.businessName}>
+    <UmkmDashboardChrome businessName={profile.businessName} isVerified={profile.isVerified}>
       <UmkmPageWrapper maxWidth={900} className="gap-6">
         {/* Header Section */}
         <div className="flex flex-col gap-1">
@@ -220,9 +222,11 @@ export function PengaturanClient() {
                 {profile.businessName || "—"}
               </h3>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1 min-h-[24px] px-2.5 rounded-full bg-emerald-50 border border-emerald-200/50 text-emerald-700 text-[0.7rem] font-extrabold">
-                  <Check size={10} strokeWidth={3} /> Akun Terverifikasi
-                </span>
+                {profile.isVerified && (
+                  <span className="inline-flex items-center gap-1 min-h-[24px] px-2.5 rounded-full bg-emerald-50 border border-emerald-200/50 text-emerald-700 text-[0.7rem] font-extrabold">
+                    <Check size={10} strokeWidth={3} /> Akun Terverifikasi
+                  </span>
+                )}
                 <span className="inline-flex items-center min-h-[24px] px-2.5 rounded-full bg-orange-50 border border-orange-200/50 text-orange-600 text-[0.7rem] font-extrabold">
                   UMKM Plan
                 </span>

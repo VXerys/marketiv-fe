@@ -18,13 +18,15 @@ interface UmkmDashboardChromeProps {
    * Sekarang sumbernya satu, dan kalau gagal namanya kosong.
    */
   businessName?: string;
+  isVerified?: boolean;
   children: ReactNode;
 }
 
-export function UmkmDashboardChrome({ businessName, children }: UmkmDashboardChromeProps) {
+export function UmkmDashboardChrome({ businessName, isVerified, children }: UmkmDashboardChromeProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [fetchedName, setFetchedName] = useState("");
   const [fetchedAvatar, setFetchedAvatar] = useState("");
+  const [fetchedIsVerified, setFetchedIsVerified] = useState(false);
 
   // Hanya menjemput sendiri kalau pemanggil tidak menyediakannya (halaman yang
   // memang sudah memuat profil untuk keperluan lain tetap mengoper propnya).
@@ -37,6 +39,7 @@ export function UmkmDashboardChrome({ businessName, children }: UmkmDashboardChr
       if (active && res.success && res.data) {
         setFetchedName(res.data.businessName);
         setFetchedAvatar(res.data.avatarUrl ?? "");
+        setFetchedIsVerified(res.data.isVerified);
       }
     });
     return () => {
@@ -51,6 +54,7 @@ export function UmkmDashboardChrome({ businessName, children }: UmkmDashboardChr
       sidebar={
         <DashboardSidebar
           businessName={businessName ?? fetchedName}
+          isVerified={isVerified ?? fetchedIsVerified}
           isSidebarOpen={isSidebarOpen}
           onCloseSidebar={() => setIsSidebarOpen(false)}
         />

@@ -69,10 +69,12 @@ interface DashboardSidebarProps {
   businessName: string;
   isSidebarOpen?: boolean;
   onCloseSidebar?: () => void;
+  isVerified?: boolean;
 }
 
 export function DashboardSidebar({
   businessName,
+  isVerified,
   onCloseSidebar,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
@@ -391,12 +393,14 @@ export function DashboardSidebar({
             >
               {businessName}
             </strong>
-            <span className="flex items-center gap-1 mt-[2px]">
-              <BadgeCheck size={10.5} className="text-emerald-400 shrink-0" />
-              <span className="text-[.66rem] font-[650] text-emerald-400/80">
-                UMKM Terverifikasi
+            {isVerified && (
+              <span className="flex items-center gap-1 mt-[2px]">
+                <BadgeCheck size={10.5} className="text-emerald-400 shrink-0" />
+                <span className="text-[.66rem] font-[650] text-emerald-400/80">
+                  UMKM Terverifikasi
+                </span>
               </span>
-            </span>
+            )}
           </div>
         </div>
       </SidebarFooter>
