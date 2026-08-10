@@ -1391,24 +1391,7 @@ export async function cancelOrderInAppwrite(orderId: string): Promise<ServiceRes
   const auth = await requireUserId<null>(null);
   if (!auth.ok) return auth.result;
   try {
-    const res = await databases.listDocuments(DB, COLLECTIONS.orders, [
-      Query.equal("$id", orderId),
-      Query.equal("umkmId", auth.userId),
-      Query.limit(1),
-    ]);
-    const doc = res.documents[0] as unknown as Doc | undefined;
-    if (!doc) return fail("Pesanan tidak ditemukan.", "not_found", null);
-
-    if (str(doc.status) !== "pending_payment") {
-      return failValidation(
-        "Hanya pesanan yang belum dibayar yang bisa dibatalkan. Dana yang sudah masuk escrow harus lewat pengembalian dana.",
-        null
-      );
-    }
-
-    await databases.updateDocument(DB, COLLECTIONS.orders, orderId, {
-      status: "cancelled",
-    });
+    await executeFunction(FUNCTION_IDS.cancelOrder, { orderId });
     return ok(null);
   } catch (err) {
     return failFromWriteError<null>(err, null);

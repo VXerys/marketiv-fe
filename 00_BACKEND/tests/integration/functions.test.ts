@@ -188,6 +188,48 @@ describe('create-order function', () => {
   });
 });
 
+describe('cancel-order function', () => {
+  it('rejects a non-UMKM actor without changing the order', async () => {
+    seed('users', [{ $id: 'creator-profile', userId: 'creator-1', role: 'creator', status: 'active' }]);
+    seed('orders', [{ $id: 'order-1', umkmId: 'umkm-1', creatorId: 'creator-1', status: 'pending_payment' }]);
+    const main = (await import('../../functions/cancel-order/src/main.js')).default;
+    const res = makeRes();
+
+    await main({ req: makeReq({ headers: { 'x-appwrite-user-id': 'creator-1' }, bodyJson: { orderId: 'order-1' } }), res, log: () => {}, error: () => {} });
+
+    expect(res.calls.at(-1)).toMatchObject({ status: 403 });
+    expect(store.orders[0].status).toBe('pending_payment');
+  });
+
+  it('cancels only an owned pending order and makes retry idempotent', async () => {
+    seed('users', [{ $id: 'umkm-profile', userId: 'umkm-1', role: 'umkm', status: 'active' }]);
+    seed('orders', [{ $id: 'order-1', umkmId: 'umkm-1', creatorId: 'creator-1', status: 'pending_payment' }]);
+    const main = (await import('../../functions/cancel-order/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'umkm-1' }, bodyJson: { orderId: 'order-1' } });
+
+    const first = makeRes();
+    await main({ req, res: first, log: () => {}, error: () => {} });
+    expect(first.calls.at(-1)).toMatchObject({ status: 200, body: { ok: true, status: 'cancelled' } });
+    expect(store.orders[0].status).toBe('cancelled');
+
+    const retry = makeRes();
+    await main({ req, res: retry, log: () => {}, error: () => {} });
+    expect(retry.calls.at(-1)).toMatchObject({ status: 200, body: { ok: true, status: 'already_cancelled' } });
+  });
+
+  it('rejects cancellation after payment', async () => {
+    seed('users', [{ $id: 'umkm-profile', userId: 'umkm-1', role: 'umkm', status: 'active' }]);
+    seed('orders', [{ $id: 'order-1', umkmId: 'umkm-1', status: 'in_progress' }]);
+    const main = (await import('../../functions/cancel-order/src/main.js')).default;
+    const res = makeRes();
+
+    await main({ req: makeReq({ headers: { 'x-appwrite-user-id': 'umkm-1' }, bodyJson: { orderId: 'order-1' } }), res, log: () => {}, error: () => {} });
+
+    expect(res.calls.at(-1)).toMatchObject({ status: 409 });
+    expect(store.orders[0].status).toBe('in_progress');
+  });
+});
+
 describe('create-user-wallet function', () => {
   it('creates wallet with zero balances', async () => {
     process.env.APPWRITE_DATABASE_ID = 'db';

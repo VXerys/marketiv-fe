@@ -108,8 +108,6 @@ export default async ({ req, res, log, error }) => {
         [
           Permission.read(Role.user(offer.umkmId)),
           Permission.read(Role.user(offer.creatorId)),
-          Permission.update(Role.user(offer.umkmId)),
-          Permission.update(Role.user(offer.creatorId)),
         ]
       );
     } catch (err) {

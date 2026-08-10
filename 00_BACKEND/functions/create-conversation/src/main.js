@@ -48,6 +48,23 @@ export default async ({ req, res, log, error }) => {
 
     const databases = createDatabasesClient(env);
 
+    const usersRes = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
+      Query.equal("userId", umkmId),
+      Query.limit(1),
+    ]);
+    const userDoc = usersRes.documents[0] || null;
+    if (!userDoc) {
+      return json(res, { error: "Profil Pengguna tidak ditemukan." }, 404);
+    }
+    if (userDoc.status && userDoc.status !== "active") {
+      log(`Create conversation ditolak untuk ${umkmId}: status akun ${userDoc.status}`);
+      return json(res, { error: "Akun Anda sedang tidak aktif." }, 403);
+    }
+    if (userDoc.role !== "umkm") {
+      log(`Create conversation ditolak untuk ${umkmId}: role ${userDoc.role}`);
+      return json(res, { error: "Hanya UMKM yang dapat memulai percakapan." }, 403);
+    }
+
     const existing = await findByPair(databases, env, umkmId, creatorId);
     if (existing) {
       log(`Percakapan ${umkmId}→${creatorId} sudah ada: ${existing}`);
@@ -121,6 +138,7 @@ function getEnv(req) {
     appwriteProjectId: process.env.APPWRITE_FUNCTION_PROJECT_ID || process.env.APPWRITE_PROJECT_ID,
     appwriteApiKey: req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY,
     databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
+    usersCollectionId: process.env.USERS_COLLECTION_ID || "users",
     conversationsCollectionId:
       process.env.CONVERSATIONS_COLLECTION_ID ||
       process.env.NEXT_PUBLIC_CONVERSATION_COLLECTION ||

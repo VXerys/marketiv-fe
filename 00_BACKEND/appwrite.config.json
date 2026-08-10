@@ -4646,6 +4646,26 @@
       ]
     },
     {
+      "$id": "cancel-order",
+      "name": "Cancel Order",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/cancel-order",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
       "$id": "fee-rate-flip",
       "name": "Fee Rate Flip Monitor",
       "runtime": "node-22",

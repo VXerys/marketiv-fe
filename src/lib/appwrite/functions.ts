@@ -58,6 +58,7 @@ export const FUNCTION_IDS = {
   aiBrief: "ai-brief",
   createPayment: "create-payment",
   cancelPayment: "cancel-payment",
+  cancelOrder: "cancel-order",
   requestWithdrawal: "request-withdrawal",
   validateAndUpload: "validate-and-upload",
   // ── Auth (Sprint 6) ──────────────────────────────────────────────────────

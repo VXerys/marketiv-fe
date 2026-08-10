@@ -53,9 +53,16 @@ export default async ({ req, res, log, error }) => {
       Query.limit(1)
     ]);
     const userDoc = usersRes.documents[0] || null;
-    if (userDoc?.status && userDoc.status !== "active") {
+    if (!userDoc) {
+      return json(res, { error: "Profil Pengguna tidak ditemukan." }, 404);
+    }
+    if (userDoc.status && userDoc.status !== "active") {
       log(`Create offer ditolak untuk ${userId}: status akun ${userDoc.status}`);
       return json(res, { error: "Akun Anda sedang tidak aktif." }, 403);
+    }
+    if (userDoc.role !== "umkm") {
+      log(`Create offer ditolak untuk ${userId}: role ${userDoc.role}`);
+      return json(res, { error: "Hanya UMKM yang dapat mengirim penawaran." }, 403);
     }
 
 
