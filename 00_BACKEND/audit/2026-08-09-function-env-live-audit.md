@@ -9,19 +9,33 @@
   - Fabrik dump `/functions/{id}/variables` via API untuk 49 fungsi
   - Inspeksi `process.env.*` di `src/main.js` tiap fungsi
 
+> **STATUS TERAKHIR (2026-08-10)**: Semua perbaikan selesai —
+> 1. `sync-function-vars.mjs` → 53 variabel baru, NO-VARS 11 → 0.
+> 2. `activate-latest-deployment.mjs` → `create-order` & `create-escrow`
+>    diaktifkan ke deployment `ready` 2026-08-10, STALE-DEP 2 → 0.
+> 3. `fix-function-vars.mjs` → `validate-and-upload.DEFAULT_STORAGE_BUCKET_ID`
+>    kini `user-files`.
+> `audit-live.mjs` final: **0 blocker, 2 warning** (tabel `appeals` belum
+> diketatkan; `reset-password-with-otp` tanpa DB ID — aman, Auth-only).
+
 ## Ringkasan
 
 | Status                       | Jumlah | Keterangan                                                          |
 | ---------------------------- | ------ | ------------------------------------------------------------------- |
-| 🔴 KRITIS (NO-VARS)          | 11     | Env vars kosong total di live — `getEnv()` throw di setiap eksekusi |
-| 🟠 WARNING (kurang DB ID)    | 2      | Hanya aman bila `NEXT_PUBLIC_DB_ID` di-set (tidak di community)     |
-| 🟠 STALE-DEPLOYMENT          | 2      | Deployment aktif ≠ kode terbaru (kode lama yang jalan)              |
-| 🟡 NILAI SALAH / PLACEHOLDER | 3      | `campaign-assets`, `your-midtrans-iris-server-key`, dsb             |
-| 🟢 LENGKAP                   | 31+    | Vars live sesuai `.env` lokal                                       |
+| 🔴 KRITIS (NO-VARS)          | 0      | ✅ Sudah diisi via sync 2026-08-10                                  |
+| 🟠 WARNING (kurang DB ID)    | 1      | `reset-password-with-otp` aman (Auth-only); `accept-tos` sudah dilengkapi |
+| 🟠 STALE-DEPLOYMENT          | 0      | ✅ Keduanya diaktifkan ke deployment 2026-08-10                          |
+| 🟡 NILAI SALAH / PLACEHOLDER | 1      | `your-midtrans-iris-server-key` (skip, placeholder aman)                 |
+| 🟢 LENGKAP                   | 49     | Vars live sesuai `.env` lokal                                             |
 
 ---
 
 ## 1. 🔴 KRITIS — Fungsi live TANPA env vars sama sekali (11)
+
+> **✅ SELESAI 2026-08-10**: `.env` dibuat untuk ke-11 fungsi ini (nilai dari
+> `appwrite.config.json` + template fungsi sejenis), lalu di-sync via
+> `node appwrite/ops/sync-function-vars.mjs`. `audit-live.mjs` kini melaporkan
+> **0 NO-VARS**. Env baru berlaku pada eksekusi berikutnya — tidak perlu redeploy.
 
 Semua fungsi ini punya **0 variabel** di live console. Pola seragam: ke-11 juga
 **tidak punya file `.env` di `00_BACKEND/functions/<id>/`**, sehingga waktu push
@@ -85,6 +99,10 @@ NOTIFICATIONS_COLLECTION_ID=notifications
 
 ## 3. 🟠 STALE-DEPLOYMENT — Deployment aktif ≠ kode terbaru
 
+> **✅ SELESAI 2026-08-10**: `activate-latest-deployment.mjs` mengaktifkan
+> deployment `ready` 2026-08-10 untuk keduanya (sebelumnya pointer tertinggal di
+> luar 25 terbaru). STALE-DEP kini 0.
+
 Bukan masalah env, tapi bercak: yang jalan di live belum tentu kode di repo.
 Perbaiki: `node appwrite/ops/activate-latest-deployment.mjs`
 
@@ -93,21 +111,24 @@ Perbaiki: `node appwrite/ops/activate-latest-deployment.mjs`
 | `create-order`  | `6a71b0b22a33aa9a822f` (2026-08-04) | 2026-08-09T12:05:54 |
 | `create-escrow` | `6a6b047a2813ef26d01d` (2026-07-30) | 2026-08-09T12:05:51 |
 
+Keduanya sudah **diaktifkan** (2026-08-10) — baris di atas adalah kondisi saat
+audit sebelum perbaikan.
+
 ---
 
 ## 4. 🟡 NILAI SALAH / PLACEHOLDER
 
 | Fungsi                | Key                         | Nilai live                      | Seharusnya   |
 | --------------------- | --------------------------- | ------------------------------- | ------------ |
-| `validate-and-upload` | `DEFAULT_STORAGE_BUCKET_ID` | `campaign-assets`               | `user-files` |
+| `validate-and-upload` | `DEFAULT_STORAGE_BUCKET_ID` | ~~`campaign-assets`~~ → `user-files` ✅ | `user-files` |
 | `request-withdrawal`  | `MIDTRANS_IRIS_SERVER_KEY`  | `your-midtrans-iris-server-key` | kunci asli   |
 
-- **`validate-and-upload.DEFAULT_STORAGE_BUCKET_ID=campaign-assets`** — Sejak insiden
-  2026-07-29 harus `user-files` (campaign-assets read("any") + fileSecurity=false,
-  sehingga berkas terbuka publik). Perbaikan sudah disiapkan di
-  `appwrite/ops/fix-function-vars.mjs` (SET). Jalankan setelah konfirm.
+- **`validate-and-upload.DEFAULT_STORAGE_BUCKET_ID`** — ✅ **DIPERBAIKI 2026-08-10**
+  via `appwrite/ops/fix-function-vars.mjs` (SET). Kini `user-files`
+  (fileSecurity=true). Sebelumnya `campaign-assets` read("any") + fileSecurity=false,
+  sehingga berkas terbuka publik — karena itu kuota per-pengguna tidak pernah ditegakkan.
 - **`request-withdrawal.MIDTRANS_IRIS_SERVER_KEY`** — placeholder belum diganti kunci
-  asli Midtrans (Iris = payout API terpisah dari Snap).
+  asli Midtrans (Iris = payout API terpisah dari Snap). **Skip** — belum dipakai produksi.
 - `sync --dry` juga menunjuk **`APPWRITE_API_KEY` kosong di live** untuk
   `request-password-otp` & `reset-password-with-otp` (uncensored saat run-lokal:
   bila dipanggil tanpa header `x-appwrite-key` akan gagal).
@@ -116,10 +137,12 @@ Perbaiki: `node appwrite/ops/activate-latest-deployment.mjs`
 
 ## 5. 🟢 Lengkap
 
-26 fungsi dengan `.env` lokal sudah sinkron ke live (hasil `sync-function-vars --dry`
-hanya men-shows `UPD APPWRITE_API_KEY` dsb yang merupakan secret — nilainya tidak
-terbaca dari API, bukan berarti hilang). Daftar lengkap (list fungsi dengan `.env`
-yang TIDAK tercantum di bagian 1-4):
+Total **49 fungsi** kini punya env vars tersinkron ke live. Rincian:
+
+- **36 fungsi** sudah sinkron sejak sebelum audit (hasil `sync-function-vars --dry`
+  hanya men-shows `UPD APPWRITE_API_KEY` dsb yang merupakan secret — nilainya tidak
+  terbaca dari API, bukan berarti hilang). Daftar fungsi yang TIDAK tercantum di
+  bagian 1-4:
 
 `ai-brief, ai-fraud-precheck, calculate-campaign-reward, campaign-claimed,
 campaign-published, cancel-payment, create-conversation, create-escrow, create-offer,
@@ -131,18 +154,33 @@ midtrans-webhook, notify-order-activity, release-escrow, request-password-otp,
 request-withdrawal, review-submission, send-chat-notification, send-message,
 validate-and-upload, verify-kyc, withdrawal-callback`
 
+- **11 fungsi NO-VARS** (bagian 1) diisi 2026-08-10 → sudah punya vars.
+- **`accept-tos`** dilengkapi DB ID + collection IDs (bagian 2) → sudah punya vars.
+
+Dua fungsi tersisa masih punya catatan (bukan env kosong):
+`reset-password-with-otp` tanpa `APPWRITE_DATABASE_ID` (aman, Auth-only — bagian 2)
+dan `request-withdrawal` placeholder Midtrans (bagian 4).
+
 ---
 
 ## Rekomendasi Urutan Aksi
 
-1. **Utamakan** untuk 11 fungsi NO-VARS: buat `.env` + `node appwrite/ops/sync-function-vars.mjs`
-2. **accept-tos**: tambah `APPWRITE_DATABASE_ID` (dan validasi `CURRENT_TOS_VERSION`)
-3. `node appwrite/ops/fix-function-vars.mjs` untuk `DEFAULT_STORAGE_BUCKET_ID=user-files`
-4. `node appwrite/ops/activate-latest-deployment.mjs` untuk `create-order` & `create-escrow`
-5. Ganti placeholder `MIDTRANS_IRIS_SERVER_KEY` di `request-withdrawal`
-6. Cabut/rotasi API key bila ada yang pernah terlanjur terekspos
+Semua aksi utama sudah dijalankan 2026-08-10. Sisa terbuka:
+
+1. **`request-withdrawal.MIDTRANS_IRIS_SERVER_KEY`** — ganti placeholder dengan kunci
+   asli saat payout Midtrans Iris aktif (skip — belum dipakai produksi).
+2. **Tabel `appeals`** — `audit-live` warning: live `rowSec=true` tanpa
+   `create("users")` di permissions; config minta `["create(\"users\")"]`.
+   Ketatkan permissions konsisten dengan config.
+3. **Rotasi API key** — `ai-brief.APPWRITE_FUNCTION_API_KEY` pernah terekspos
+   (secret=false, dihapus 2026-07-29). Cabut/rotasi di konsol bila belum.
+4. Env baru & deployment aktif sudah berlaku — tidak perlu tindakan lagi.
 
 ## Lampiran — Snapshot vars live (49 fungsi, 2026-08-09)
+
+> Snapshot di bawah adalah kondisi **sebelum** perbaikan 2026-08-10. Setelah
+> sync, semua `(KOSONG)` sudah terisi. Snapshot pasca-fix bisa diambil via
+> `node appwrite/ops/audit-live.mjs` atau `node /tmp/opencode/dump-fn-vars.mjs`.
 
 ```
 accept-tos                live  CURRENT_TOS_VERSION
