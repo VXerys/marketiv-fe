@@ -214,5 +214,13 @@
   "auto-approve-orders": [
     "documents.read",
     "documents.write"
+  ],
+  "mark-notifications-read": [
+    "documents.read",
+    "documents.write"
+  ],
+  "submit-campaign-proof": [
+    "documents.read",
+    "documents.write"
   ]
 }

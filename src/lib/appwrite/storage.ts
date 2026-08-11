@@ -19,7 +19,7 @@ import { appwriteConfig } from "./config";
 export const storage = new Storage(client);
 
 /** Bucket yang boleh ditulis langsung dari browser — mirror appwrite.config.json. */
-export type PublicBucket = "avatars" | "logos" | "portfolios" | "campaignAssets";
+export type PublicBucket = "avatars" | "creatorBanners" | "logos" | "portfolios" | "campaignAssets";
 
 /** `extensions: []` berarti semua ekstensi diperbolehkan (campaign-assets). */
 export const BUCKET_RULES: Record<
@@ -27,6 +27,7 @@ export const BUCKET_RULES: Record<
   { maxBytes: number; extensions: string[] }
 > = {
   avatars: { maxBytes: 5_000_000, extensions: ["jpg", "jpeg", "png", "webp"] },
+  creatorBanners: { maxBytes: 5_000_000, extensions: ["jpg", "jpeg", "png", "webp"] },
   logos: { maxBytes: 5_000_000, extensions: ["jpg", "jpeg", "png", "webp"] },
   portfolios: { maxBytes: 50_000_000, extensions: ["jpg", "jpeg", "png", "webp", "pdf", "mp4"] },
   campaignAssets: { maxBytes: 100_000_000, extensions: [] },

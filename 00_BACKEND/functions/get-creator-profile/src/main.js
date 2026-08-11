@@ -91,6 +91,7 @@ export default async ({ req, res, log, error }) => {
       name: str(authUser?.name) || displayName,
       username: str(primarySocial?.username),
       avatarUrl: str(creatorProfile.avatarUrl),
+      bannerUrl: str(creatorProfile.bannerUrl),
       niche: normalizeNiche(creatorProfile.niche),
       bio: str(creatorProfile.bio),
       location: str(creatorProfile.city),

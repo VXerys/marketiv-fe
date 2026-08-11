@@ -907,6 +907,7 @@ const CREATOR_PROFILE_WRITABLE = [
   "bio",
   "city",
   "avatarUrl",
+  "bannerUrl",
   "niche",
   "isProfileCompleted",
 ] as const;
@@ -961,6 +962,19 @@ export async function uploadCreatorAvatarInAppwrite(file: File): Promise<Service
   if (!auth.ok) return auth.result;
   try {
     const uploaded = await uploadPublicFile("avatars", file, auth.userId);
+    return ok(uploaded.url);
+  } catch (err) {
+    if (err instanceof FileRuleError) return failValidation(err.message, "");
+    return failFromWriteError<string>(err, "");
+  }
+}
+
+/** Unggah banner ke bucket `creatorBanners` (client-writable) dan kembalikan URL-nya. */
+export async function uploadCreatorBannerInAppwrite(file: File): Promise<ServiceResult<string>> {
+  const auth = await requireUserId<string>("");
+  if (!auth.ok) return auth.result;
+  try {
+    const uploaded = await uploadPublicFile("creatorBanners", file, auth.userId);
     return ok(uploaded.url);
   } catch (err) {
     if (err instanceof FileRuleError) return failValidation(err.message, "");

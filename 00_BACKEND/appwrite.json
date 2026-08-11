@@ -501,6 +501,15 @@
                     "encrypt": false
                 },
                 {
+                    "key": "bannerUrl",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 2048,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
                     "key": "niche",
                     "type": "string",
                     "required": false,
@@ -3347,6 +3356,28 @@
         {
             "$id": "avatars",
             "name": "Avatars",
+            "$permissions": [
+                "read(\"any\")",
+                "create(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")"
+            ],
+            "fileSecurity": false,
+            "enabled": true,
+            "maximumFileSize": 5000000,
+            "allowedFileExtensions": [
+                "jpg",
+                "jpeg",
+                "png",
+                "webp"
+            ],
+            "compression": "gzip",
+            "encryption": false,
+            "antivirus": true
+        },
+        {
+            "$id": "creator-banners",
+            "name": "Creator Banners",
             "$permissions": [
                 "read(\"any\")",
                 "create(\"users\")",

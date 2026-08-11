@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import {
   User,
   ImageIcon,
+  Camera,
   Bell,
   ShieldCheck,
   MapPin,
@@ -45,6 +47,7 @@ import {
   getCreatorProfile,
   updateCreatorProfile,
   uploadCreatorAvatar,
+  uploadCreatorBanner,
   upsertCreatorSocialAccount,
   createCreatorPortfolio,
   updateCreatorPortfolio,
@@ -329,6 +332,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
   const [isProfileSuccessOpen, setIsProfileSuccessOpen] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [accountEmail, setAccountEmail] = useState("");
 
   // ── Portfolio state ──
@@ -438,6 +442,28 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
       await refreshIdentity();
     } else {
       toast.error(saved.error ?? "Foto terunggah tapi gagal disimpan.");
+    }
+  };
+
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setIsUploadingBanner(true);
+    const uploaded = await uploadCreatorBanner(file);
+    if (!uploaded.success || !uploaded.data) {
+      setIsUploadingBanner(false);
+      toast.error(uploaded.error ?? "Gagal mengunggah banner profil.");
+      return;
+    }
+    const saved = await updateCreatorProfile({ bannerUrl: uploaded.data });
+    setIsUploadingBanner(false);
+    if (saved.success && saved.data) {
+      setProfile(saved.data);
+      showToast("Banner profil berhasil diperbarui.");
+      await refreshIdentity();
+    } else {
+      toast.error(saved.error ?? "Banner terunggah tapi gagal disimpan.");
     }
   };
 
@@ -568,12 +594,47 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
 
       {/* ── Identity showcase card ── */}
       <SettingsCard>
-        {/* Banner — tidak ada kolom `creator_profiles.bannerUrl` maupun bucket
-            banner, jadi tanpa upload. Kolomnya diminta di handoff Sprint 3. */}
-        <div className="relative w-full h-48 sm:h-52">
-          <div className="w-full h-full" style={{ background: CREATOR_GRADIENT }} />
+        {/* Banner — real persisted profile cover image with responsive fixed container & object-cover */}
+        <div className="relative w-full h-[180px] sm:h-[220px] lg:h-[260px] overflow-hidden group/banner">
+          {profile.bannerUrl ? (
+            <Image
+              src={profile.bannerUrl}
+              alt={`Banner ${profile.name}`}
+              fill
+              className="object-cover object-center"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 80vw, 1200px"
+              priority
+            />
+          ) : (
+            <div className="absolute inset-0" style={{ background: CREATOR_GRADIENT }} />
+          )}
           {/* Gradient fade at bottom for avatar overlap */}
-          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/30 to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/30 to-transparent pointer-events-none z-[5]" />
+
+          {/* Banner upload overlay */}
+          <label
+            className={cn(
+              "absolute inset-0 bg-neutral-950/45 transition-opacity flex flex-col items-center justify-center gap-1.5 text-white cursor-pointer z-10",
+              isUploadingBanner
+                ? "opacity-100 cursor-wait"
+                : "opacity-0 group-hover/banner:opacity-100"
+            )}
+          >
+            <Camera className="w-5 h-5" />
+            <span className="text-xs font-bold uppercase tracking-wider">
+              {isUploadingBanner ? "Mengunggah…" : "Ganti Banner"}
+            </span>
+            <span className="text-[0.68rem] text-white/80 font-normal">
+              Gunakan gambar landscape. Rekomendasi 1600 × 500 px.
+            </span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              disabled={isUploadingBanner}
+              onChange={handleBannerChange}
+            />
+          </label>
         </div>
 
         {/* Avatar row — overlaps banner only, never the name */}

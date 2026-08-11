@@ -12,6 +12,7 @@ export const appwriteConfig = {
   /** Project punya 7 bucket terpisah — lihat 00_BACKEND/appwrite.config.json */
   buckets: {
     avatars: process.env.NEXT_PUBLIC_APPWRITE_BUCKET_AVATARS ?? "avatars",
+    creatorBanners: process.env.NEXT_PUBLIC_APPWRITE_BUCKET_CREATOR_BANNERS ?? "creator-banners",
     logos: process.env.NEXT_PUBLIC_APPWRITE_BUCKET_LOGOS ?? "logos",
     portfolios: process.env.NEXT_PUBLIC_APPWRITE_BUCKET_PORTFOLIOS ?? "portfolios",
     campaignAssets: process.env.NEXT_PUBLIC_APPWRITE_BUCKET_CAMPAIGN_ASSETS ?? "campaign-assets",

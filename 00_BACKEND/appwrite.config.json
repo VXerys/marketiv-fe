@@ -607,6 +607,15 @@
           "encrypt": false
         },
         {
+          "key": "bannerUrl",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 2048,
+          "default": null,
+          "encrypt": false
+        },
+        {
           "key": "niche",
           "type": "string",
           "required": false,
@@ -3589,6 +3598,28 @@
       "antivirus": true
     },
     {
+      "$id": "creator-banners",
+      "name": "Creator Banners",
+      "$permissions": [
+        "read(\"any\")",
+        "create(\"users\")",
+        "update(\"users\")",
+        "delete(\"users\")"
+      ],
+      "fileSecurity": false,
+      "enabled": true,
+      "maximumFileSize": 5000000,
+      "allowedFileExtensions": [
+        "jpg",
+        "jpeg",
+        "png",
+        "webp"
+      ],
+      "compression": "gzip",
+      "encryption": false,
+      "antivirus": true
+    },
+    {
       "$id": "logos",
       "name": "Logos",
       "$permissions": [
@@ -4272,6 +4303,24 @@
       ]
     },
     {
+      "$id": "reconcile-release-escrow",
+      "name": "Reconcile Release Escrow",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [],
+      "schedule": "*/15 * * * *",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/reconcile-release-escrow",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
       "$id": "send-chat-notification",
       "name": "Send Chat Notification",
       "runtime": "node-22",
@@ -4327,6 +4376,66 @@
       "entrypoint": "src/main.js",
       "commands": "npm install",
       "path": "functions/send-message",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "mark-conversation-read",
+      "name": "Mark Conversation Read",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/mark-conversation-read",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "mark-notifications-read",
+      "name": "Mark Notifications Read",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/mark-notifications-read",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "patch-conversation-archive",
+      "name": "Patch Conversation Archive",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/patch-conversation-archive",
       "scopes": [
         "documents.read",
         "documents.write"
@@ -4448,46 +4557,6 @@
       "path": "functions/get-umkm-finance-summary",
       "scopes": [
         "documents.read"
-      ]
-    },
-    {
-      "$id": "mark-conversation-read",
-      "name": "Mark Conversation Read",
-      "runtime": "node-22",
-      "execute": [
-        "users"
-      ],
-      "events": [],
-      "schedule": "",
-      "timeout": 15,
-      "enabled": true,
-      "logging": true,
-      "entrypoint": "src/main.js",
-      "commands": "npm install",
-      "path": "functions/mark-conversation-read",
-      "scopes": [
-        "documents.read",
-        "documents.write"
-      ]
-    },
-    {
-      "$id": "mark-notifications-read",
-      "name": "Mark Notifications Read",
-      "runtime": "node-22",
-      "execute": [
-        "users"
-      ],
-      "events": [],
-      "schedule": "",
-      "timeout": 15,
-      "enabled": true,
-      "logging": true,
-      "entrypoint": "src/main.js",
-      "commands": "npm install",
-      "path": "functions/mark-notifications-read",
-      "scopes": [
-        "documents.read",
-        "documents.write"
       ]
     },
     {
@@ -4729,7 +4798,7 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.collections.deliverables.documents.*.create"
+        "databases.6a4c8598001da3b0d7f0.tables.deliverables.rows.*.create"
       ],
       "schedule": "",
       "timeout": 15,
@@ -4738,6 +4807,26 @@
       "entrypoint": "src/main.js",
       "commands": "npm install",
       "path": "functions/track-order-review",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "sync-order-revision",
+      "name": "Sync Order Revision",
+      "runtime": "node-22",
+      "execute": [],
+      "events": [
+        "databases.6a4c8598001da3b0d7f0.tables.revisions.rows.*.create"
+      ],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/sync-order-revision",
       "scopes": [
         "documents.read",
         "documents.write"

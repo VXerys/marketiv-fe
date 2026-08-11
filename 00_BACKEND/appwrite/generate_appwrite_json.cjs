@@ -175,6 +175,7 @@ const collections = [
             createStringAttr("bio", false, 2000),
             createStringAttr("city", false, 100),
             createStringAttr("avatarUrl", false, 2048),
+            createStringAttr("bannerUrl", false, 2048),
             // Tidak ada kolom lain yang bisa menurunkan niche kreator — campaigns.category
             // milik UMKM. Dipakai get-creator-directory; kosong → "lainnya".
             createEnumAttr("niche", false, ["kuliner", "fashion", "pariwisata", "edukasi", "kecantikan", "lainnya"]),
@@ -791,6 +792,18 @@ const buckets = [
     {
         $id: "avatars",
         name: "Avatars",
+        $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")", "delete(\"users\")"],
+        fileSecurity: false,
+        enabled: true,
+        maximumFileSize: 5000000,
+        allowedFileExtensions: ["jpg", "jpeg", "png", "webp"],
+        compression: "gzip",
+        encryption: false,
+        antivirus: true
+    },
+    {
+        $id: "creator-banners",
+        name: "Creator Banners",
         $permissions: ["read(\"any\")", "create(\"users\")", "update(\"users\")", "delete(\"users\")"],
         fileSecurity: false,
         enabled: true,

@@ -50,6 +50,7 @@ import {
   deleteCreatorRateCardPackageInAppwrite,
   updateCreatorProfileInAppwrite,
   uploadCreatorAvatarInAppwrite,
+  uploadCreatorBannerInAppwrite,
   upsertCreatorSocialAccountInAppwrite,
   createCreatorPortfolioInAppwrite,
   updateCreatorPortfolioInAppwrite,
@@ -316,6 +317,10 @@ export async function updateCreatorProfile(
 
 export async function uploadCreatorAvatar(file: File): Promise<ServiceResult<string>> {
   return uploadCreatorAvatarInAppwrite(file);
+}
+
+export async function uploadCreatorBanner(file: File): Promise<ServiceResult<string>> {
+  return uploadCreatorBannerInAppwrite(file);
 }
 
 export async function upsertCreatorSocialAccount(input: {
