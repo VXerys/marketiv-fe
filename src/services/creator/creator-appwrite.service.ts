@@ -1159,9 +1159,8 @@ export async function requestWithdrawalInAppwrite(
 
 // ── Alur A: klaim campaign & kirim bukti (Sprint 4) ──────────────────────────
 //
-// Keduanya lewat SDK tulis dokumen, BUKAN executeFunction. `campaign-claimed`
-// dan `ai-fraud-precheck` dipicu event database (lihat `events` di
-// 00_BACKEND/appwrite.config.json) dan menyala sendiri setelah tulisan masuk.
+// `claimCampaign` masih membuat baris claim langsung dari klien; event
+// `campaign-claimed` menangani counter/notifikasi setelahnya.
 //
 // `campaign-claimed` SEKARANG menambah `totalClaims` secara atomik. Klien hanya
 // membuat baris claim — counter adalah tanggung jawab Function. Sweep basi
@@ -1311,27 +1310,10 @@ export type SubmitProofInput = {
 /**
  * Kirim bukti konten untuk claim yang sedang dikerjakan.
  *
- * `views` sengaja ditulis 0: tidak ada Function backend yang mengaudit views,
- * dan angka yang diisi sendiri oleh kreator akan langsung jadi dasar reward.
- * UMKM yang mengisinya saat menyetujui submission (lihat B-1 di handoff).
- *
- * `ai-fraud-precheck` menyala pada create dan menulis balik `fraudScore` /
- * `fraudStatus` beberapa saat kemudian — UI harus menampilkan "sedang
- * diperiksa", bukan menganggap aman.
- *
- * ⚠️ INI JALUR UANG, dan permission barisnya mencerminkan itu — sama persis
- * dengan alasan di header deliverable-appwrite.service.ts:
- *
- * - `update` diberikan HANYA ke UMKM. Menulis `status: "approved"` di baris ini
- *   memicu `calculate-campaign-reward`, yang langsung menambah
- *   `wallets.pendingBalance` kreator. Memberi kreator `update` sama dengan
- *   mengizinkannya menyetujui pekerjaannya sendiri lalu mencairkan dananya.
- *   Guard peran di service TIDAK cukup — penyerang cukup memanggil
- *   `updateDocument` langsung dari konsol browser.
- * - `read` diberikan ke KEDUANYA. Sebelumnya UMKM tidak diberi read sama sekali,
- *   dan layar review hidup semata karena `read("any")` di level koleksi. Begitu
- *   koleksi diketatkan (gelombang 5), layar itu akan kosong tanpa baris ini.
- * - `ai-fraud-precheck` memakai API key, jadi tetap bisa menulis fraudScore.
+ * Jalur ini sekarang lewat Function `submit-campaign-proof`, bukan direct
+ * `createDocument`, agar browser tidak lagi tergantung shape schema Appwrite
+ * live (`creatorId` vs `creator_id`, dst.) dan backend menjadi satu-satunya
+ * titik translasi kontrak.
  */
 export async function submitProofInAppwrite(
   input: SubmitProofInput
@@ -1354,41 +1336,11 @@ export async function submitProofInAppwrite(
       );
     }
 
-    await databases.createDocument(
-      DB,
-      COLLECTIONS.submissions,
-      ID.unique(),
-      {
-        claimId: input.claimId,
-        campaignId: input.campaignId,
-        creatorId: auth.userId,
-        // Dulu selalu "tiktok". Sekarang diteruskan dari UI supaya ai-fraud-precheck
-        // tidak menambah +20 skor fraud "Platform tidak cocok" ke submission Instagram.
-        platform: input.platform,
-        postUrl: input.postUrl,
-        caption: input.caption ?? "",
-        views: 0,
-        status: "pending",
-      },
-      // Hanya read untuk kreator sendiri.
-      //
-      // Permission.update TIDAK diberikan ke kreator — meskipun itu "dirinya
-      // sendiri" — karena calculate-campaign-reward memicu reward dari
-      // status="approved" tanpa cek siapa yang melakukan update. Kalau kreator
-      // bisa update baris ini dari browser, ia bisa self-approve + set views
-      // tinggi → drain campaign budget. Fix: SEC-C1 2026-08-08.
-      //
-      // UMKM membaca via read("any") di level koleksi.
-      // `review-submission` Cloud Function (execute=[users], ownership-checked)
-      // adalah satu-satunya jalur update yang sah.
-      [
-        Permission.read(Role.user(auth.userId)),
-      ]
-    );
+    if (str(claim.campaignId) !== input.campaignId) {
+      return failValidation("Claim tidak cocok dengan campaign yang dipilih.", null);
+    }
 
-    await databases.updateDocument(DB, COLLECTIONS.claims, input.claimId, {
-      status: "submitted",
-    });
+    await executeFunction(FUNCTION_IDS.submitCampaignProof, input);
 
     return ok(null);
   } catch (err) {
