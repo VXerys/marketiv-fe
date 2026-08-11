@@ -78,7 +78,8 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
 
 ## P3
 
-- `[ ] UMKM-PROC-01`
+- `[x] UMKM-PROC-01`
+  Note: Created `SECURITY.md` documenting auth, payment, and storage invariants, as well as required security tests.
 
 ## Evidence tracked
 
