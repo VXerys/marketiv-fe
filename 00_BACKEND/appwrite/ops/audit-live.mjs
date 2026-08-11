@@ -22,6 +22,12 @@ const config = loadConfig();
 const problems = [];
 const note = (severity, area, message) => problems.push({ severity, area, message });
 
+// Sebagian kecil Function memang auth-only dan tidak pernah menyentuh database.
+// Memaksa APPWRITE_DATABASE_ID pada mereka hanya membuat audit "hijau" palsu.
+const DB_ID_OPTIONAL_FUNCTIONS = new Set([
+  "reset-password-with-otp",
+]);
+
 const listAll = async (pathname, key) => {
   const out = [];
   let offset = 0;
@@ -250,7 +256,7 @@ for (const f of configFns) {
     if (keys.length === 0) {
       console.log(`  NO-VARS     ${f.$id}`);
       note("blocker", "function", `Function "${f.$id}" tidak punya variabel sama sekali — getEnv() akan melempar "Missing required environment variables: databaseId".`);
-    } else if (!keys.includes("APPWRITE_DATABASE_ID")) {
+    } else if (!keys.includes("APPWRITE_DATABASE_ID") && !DB_ID_OPTIONAL_FUNCTIONS.has(f.$id)) {
       console.log(`  NO-DB-ID    ${f.$id}`);
       note("warn", "function", `Function "${f.$id}" tidak punya APPWRITE_DATABASE_ID — hanya aman bila NEXT_PUBLIC_DB_ID diset.`);
     }

@@ -42,8 +42,9 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
 ## P2
 
 - `[x] UMKM-PERF-01` campaign N+1
-  Note: Tambah `getSubmissionCountsFromAppwrite(campaignIds[])` di `umkm-appwrite.service.ts` — satu
-  `listDocuments` dengan `Query.equal("campaignId", campaignIds)` lalu aggregate in-memory.
+  Note: Tambah `getSubmissionCountsFromAppwrite(campaignIds[])` di `umkm-appwrite.service.ts` — batch
+  `listDocuments` dengan `Query.equal("campaignId", ids)` lalu aggregate in-memory berdasarkan
+  `campaign_submissions.status` + `fraudStatus` (bukan field fiktif).
   `CampaignsPage.tsx` diganti dari N+1 `Promise.all(campaigns.map(c => getCampaignSubmissions(c.id)))`
   menjadi satu panggilan `getSubmissionCounts(campaignIds)`. Wrapper `getSubmissionCounts` ditambah di
   `umkm-dashboard.service.ts` (mock path + appwrite path). `MockClient.setLocale()` ditambah ke test mock.
@@ -53,7 +54,8 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
   `handleConfirmPayment()` secara langsung menjadi `setIsPaymentOpen(true)` agar PaymentSimulationModal
   terbuka terlebih dahulu, sesuai desain.
 - `[x] UMKM-DATA-01` creator directory max 100
-  Note: Memperbaiki fungsi `get-creator-directory` agar mengembalikan `{ items, total, nextCursor }` menggunakan `listPaged`.
+  Note: Memperbaiki fungsi `get-creator-directory` agar mengembalikan `{ items, total, nextCursor }`
+  untuk mode daftar, sambil mempertahankan mode detail (`creatorId`) yang mengembalikan satu objek.
   Di frontend, `PaginatedCreators` type ditambahkan, lalu service serta `CreatorDirectoryPage.tsx`
   diperbarui untuk memakai paginasi dan melempar `total` yang akurat ke `CreatorSummaryCards`.
 - `[x] UMKM-DATA-02` partial failure shown empty
@@ -74,7 +76,8 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
 - `[x] UMKM-PRIV-01`
   Note: Moved `address` from `umkm_profiles` to `users` collection to separate private owner fields. `users` already stores private fields like `phone`, and `umkm_profiles` remains the public projection (`read("any")`). Updated `create-user-profile` function and `umkm-appwrite.service.ts` to query/update `address` in `users`.
 - `[x] UMKM-SUP-01`
-  Note: Replaced `href="#"` with `mailto:marketiv.official@gmail.com` on "Hubungi Admin" link in DashboardSidebar.tsx.
+  Note: Replaced `href="#"` with external WhatsApp admin link `https://wa.me/628212244157`
+  on "Hubungi Admin" link in `DashboardSidebar.tsx`.
 
 ## P3
 
@@ -96,13 +99,28 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
   Verification:
   `rtk npx vitest run tests/integration/services.test.ts -t "chat.service — integration"`
   `rtk npx vitest run tests/integration/functions.test.ts -t "create-conversation function|send-message function|mark-conversation-read function|patch-conversation-archive function"`
+  Live remediation:
+  `mark-conversation-read` dibuat di live, deployment aktif `6a7a779fdb3800317082`,
+  vars runtime terpasang, smoke live pass (`updated: 1`).
+- `UMKM-NOTIF-01`
+  Verification:
+  `cd 00_BACKEND && rtk npx vitest run tests/integration/functions.test.ts -t "mark-notifications-read function"`
+  Live evidence:
+  `00_BACKEND/audit/2026-08-11-notification-finance-audit.md`
 - `UMKM-FIN-01`
   Verification:
   `rtk npx vitest run tests/integration/functions.test.ts -t "release-escrow function|reconcile-release-escrow function"`
+- `UMKM-FIN-04`
+  Verification:
+  `cd 00_BACKEND && rtk npx vitest run tests/integration/functions.test.ts -t "get-umkm-finance-summary function"`
+  Live evidence:
+  `00_BACKEND/audit/2026-08-11-notification-finance-audit.md`
 - `UMKM-OPS-01`
   Verification:
   Evidence repo:
   `00_BACKEND/audit/2026-08-09-function-env-live-audit.md`
+  `00_BACKEND/audit/2026-08-11-live-remediation.md`
+  `00_BACKEND/audit/2026-08-11-order-flow-smoke.md`
   Live audit command:
   `rtk node appwrite/ops/audit-live.mjs`
   Smoke setup:
@@ -115,9 +133,41 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
   `patch-campaign-status` resume → `6a79e0f7c77aad0df667` (`deploymentId=6a772b8a61980c3bbe29`)
   Final state:
   `rtk node 00_BACKEND/appwrite/ops/inspect-campaign.mjs --campaign ops01smoke20260810`
+  Re-audit live (`2026-08-11`):
+  - temuan awal: `create-order` stale deployment, `create-escrow` stale deployment,
+    `cancel-order` belum ada di live, false-positive schema drift `umkm_profiles.address`
+    karena `appwrite.config.json` lokal tertinggal setelah `address` dipindah ke `users`
+  - tindakan:
+    - aktifkan latest ready deployment untuk `create-order`
+    - aktifkan latest ready deployment untuk `create-escrow`
+    - buat + deploy + activate function `cancel-order`
+    - set variable live `APPWRITE_DATABASE_ID` untuk `cancel-order`
+    - sinkronkan schema source repo: `address` di `users`, bukan `umkm_profiles`
+    - tandai `reset-password-with-otp` sebagai function auth-only di
+      `00_BACKEND/appwrite/ops/audit-live.mjs` agar audit tidak lagi mengeluarkan
+      false-positive `APPWRITE_DATABASE_ID`
+  - hasil akhir:
+    `rtk node 00_BACKEND/appwrite/ops/audit-live.mjs`
+    → `Tidak ada selisih. Live sama dengan config.`
+  Smoke test order flow (`2026-08-11`):
+  - note: `cancel-order` diverifikasi di order terpisah karena `create-escrow`
+    mengubah status order menjadi `in_progress`, sedangkan `cancel-order`
+    hanya menerima `pending_payment`
+  - actor:
+    creator `test-user-001`
+    umkm `6a699a5a002a13ca4d76`
+  - paid path:
+    `create-order` exec `6a7a752dd5e0c8e89334` → order `6a7a752d003b75d71ca6`
+    `create-escrow` exec `6a7a752e4b96df9ee4b9` → escrow `6a7a75340015a22f1d8a`
+    final `orders.status = in_progress`
+  - cancel path:
+    order `6a7a7535001e695571ea`
+    final `orders.status = cancelled`
 - `UMKM-SEC-02`
   Verification:
-  `rtk npx vitest run tests/integration/functions.test.ts -t "patch-campaign-status"`
+  `rtk npx vitest run tests/integration/functions.test.ts -t "patch-campaign-status function"`
+  Result: publish path mengubah permission `campaigns`, `campaign_briefs`, dan `campaign_assets`
+  menjadi `[read(any), delete(owner)]` dan status campaign menjadi `active`.
 - `UMKM-FIN-02`
   Verification:
   `rtk npx vitest run tests/integration/functions.test.ts -t "patch-campaign-draft|patch-campaign-status"`
@@ -133,7 +183,8 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
 - `UMKM-PERF-01`
   Verification:
   `cd 00_BACKEND && npx vitest run tests/unit/perf-01-submission-counts.test.ts`
-  Result: 3/3 tests pass — empty-map short-circuit, batch aggregation correct counts, missing campaignId absent.
+  Result: 3/3 tests pass — empty-map short-circuit, batch aggregation correct counts from schema-real
+  field `status`, missing campaignId absent.
   Key assertion: `expect(mockListDocuments).toHaveBeenCalledTimes(1)` confirms no N+1.
   Files changed:
   - `src/services/umkm/umkm-appwrite.service.ts` (+`getSubmissionCountsFromAppwrite`)
@@ -148,9 +199,63 @@ Audit baseline: `fd833d387324a6d279a7b2f88cc4c1c45b86a5bf`
   Klik tombol "Lanjut Pembayaran" di Step 5 akan memanggil `setIsPaymentOpen(true)` dan memunculkan `PaymentSimulationModal`.
 - `UMKM-DATA-01`
   Verification:
-  Cek fungsi appwrite `get-creator-directory` mengembalikan `{ items, total, nextCursor }`.
-  Di frontend, `CreatorDirectoryPage.tsx` diubah menggunakan `res.data.items` dan `res.data.total` dilempar ke `CreatorSummaryCards`.
-  Test dengan `npm run lint` & `tsc` menghasilkan 0 error TypeScript.
+  `rtk npx vitest run tests/integration/functions.test.ts -t "get-creator-directory function"`
+  Result: Function daftar mengembalikan `{ items, total, nextCursor }`, dan mode detail tetap
+  mengembalikan satu objek kreator.
+  Di frontend, `CreatorDirectoryPage.tsx` menggunakan `res.data.items` dan `res.data.total`
+  untuk `CreatorSummaryCards`.
+
+## Audit hasil 2026-08-11
+
+- `UMKM-PERF-01`
+  Temuan audit:
+  implementasi lama membaca field fiktif `validationStatus`, bukan field schema nyata
+  `campaign_submissions.status`. Sudah diperbaiki ke field schema nyata, tetap batch,
+  dan ditutup test unit 3/3 pass.
+- `UMKM-DATA-01`
+  Temuan audit:
+  function `get-creator-directory` sempat drift dari kontrak frontend; list mode masih
+  mengembalikan array mentah, sementara frontend sudah expect `{ items, total, nextCursor }`.
+  Sudah diperbaiki. Test integration hijau.
+- `UMKM-SEC-02`
+  Temuan audit:
+  evidence lama terlalu lemah karena hanya membuktikan `status` berubah. Sudah diperkuat:
+  test sekarang assert permission publish benar-benar berubah di `campaigns`,
+  `campaign_briefs`, dan `campaign_assets`.
+- `UMKM-SUP-01`
+  Temuan audit:
+  note checklist lama salah tulis `mailto:`. Kode terbaru memakai WhatsApp admin
+  `https://wa.me/628212244157`. Checklist ini sudah disinkronkan.
+- `UMKM-NOTIF-01`
+  Temuan audit:
+  tidak ada temuan baru. `mark-notifications-read` sudah sesuai schema `notifications`,
+  ownership guard live terverifikasi: row milik caller berubah `isRead=true`,
+  row user lain tetap `false`.
+  Catatan remediation live: function ini sebelumnya belum ter-push ke Appwrite live;
+  per Selasa, 11 Agustus 2026 sudah dibuat, dideploy, dan vars runtime terpasang.
+- `UMKM-OPS-01`
+  Temuan audit:
+  live state tanggal `2026-08-11` sempat tertinggal dari repo. Sudah diremediasi
+  penuh sampai audit live final mengembalikan `Tidak ada selisih. Live sama dengan config.`
+  Smoke behavior live juga sudah ditutup untuk cabang paid path dan cancel path.
+- `UMKM-SEC-04`
+  Temuan audit tambahan:
+  `mark-conversation-read` sempat belum ada di live walau source lokal dan
+  `appwrite.json` sudah punya. Sudah diremediasi pada Selasa, 11 Agustus 2026:
+  function dibuat di live, deployment aktif `6a7a779fdb3800317082`, vars runtime
+  dipasang, dan smoke live membuktikan unread message lawan bicara berubah
+  `read_at`, sementara message milik caller sendiri tetap `null`.
+- `UMKM-FIN-04`
+  Temuan audit:
+  tidak ada temuan baru. `get-umkm-finance-summary` sudah sesuai schema terbaru
+  (`payments.total_amount`, `payments.fee_amount`, `transactions.refund`,
+  ownership bridge `orders -> escrows`) dan DTO live terbentuk normal.
+
+## Sisa pekerjaan agar audit benar-benar tuntas
+
+- Tidak ada sisa audit terbuka dari scope checklist ini per `2026-08-11`.
+- Jika ada perubahan schema/function baru setelah `2026-08-11`, jalankan ulang pola audit:
+  code/schema check → targeted test → smoke/live → evidence file → update checklist.
 
 ## Update rule
 

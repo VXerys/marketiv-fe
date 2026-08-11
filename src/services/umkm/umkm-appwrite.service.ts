@@ -449,24 +449,34 @@ export async function getSubmissionCountsFromAppwrite(
   if (!auth.ok) return auth.result;
 
   try {
-    // Single query — Appwrite `equal` with array uses OR semantics (same as getPendingSubmissionsFromAppwrite).
-    const res = await databases.listDocuments(DB, COLLECTIONS.submissions, [
-      Query.equal("campaignId", campaignIds.slice(0, 100)),
-      Query.limit(500),
-    ]);
-
     const counts: Record<string, { pending: number; valid: number; dispute: number }> = {};
-    for (const doc of res.documents as unknown as Doc[]) {
-      const cid = str(doc.campaignId);
-      if (!counts[cid]) counts[cid] = { pending: 0, valid: 0, dispute: 0 };
-      if (str(doc.validationStatus) === "pending") counts[cid].pending++;
-      if (str(doc.validationStatus) === "approved") counts[cid].valid++;
-      if (str(doc.fraudStatus) !== "safe" && str(doc.fraudStatus) !== "") counts[cid].dispute++;
+
+    // Appwrite `equal(field, [...])` dibatasi 100 nilai. <=100 campaign tetap
+    // satu query; >100 dipecah per batch tanpa kembali ke pola N+1.
+    for (const ids of chunk(campaignIds, 100)) {
+      const res = await databases.listDocuments(DB, COLLECTIONS.submissions, [
+        Query.equal("campaignId", ids),
+        Query.limit(5000),
+      ]);
+
+      for (const doc of res.documents as unknown as Doc[]) {
+        const cid = str(doc.campaignId);
+        if (!counts[cid]) counts[cid] = { pending: 0, valid: 0, dispute: 0 };
+        if (str(doc.status) === "pending") counts[cid].pending++;
+        if (str(doc.status) === "approved") counts[cid].valid++;
+        if (str(doc.fraudStatus) !== "safe" && str(doc.fraudStatus) !== "") counts[cid].dispute++;
+      }
     }
     return { success: true, data: counts };
   } catch (err) {
     return failFromError<typeof empty>(err, empty);
   }
+}
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
 }
 
 export async function getPendingSubmissionsFromAppwrite(): Promise<ServiceResult<CampaignSubmission[]>> {

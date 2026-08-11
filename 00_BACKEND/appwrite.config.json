@@ -51,6 +51,15 @@
           "encrypt": false
         },
         {
+          "key": "address",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 500,
+          "default": null,
+          "encrypt": false
+        },
+        {
           "key": "email",
           "type": "string",
           "required": true,
@@ -465,15 +474,6 @@
           "required": false,
           "array": false,
           "size": 100,
-          "default": null,
-          "encrypt": false
-        },
-        {
-          "key": "address",
-          "type": "string",
-          "required": false,
-          "array": false,
-          "size": 500,
           "default": null,
           "encrypt": false
         },
@@ -4448,6 +4448,46 @@
       "path": "functions/get-umkm-finance-summary",
       "scopes": [
         "documents.read"
+      ]
+    },
+    {
+      "$id": "mark-conversation-read",
+      "name": "Mark Conversation Read",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/mark-conversation-read",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "mark-notifications-read",
+      "name": "Mark Notifications Read",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/mark-notifications-read",
+      "scopes": [
+        "documents.read",
+        "documents.write"
       ]
     },
     {

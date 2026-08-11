@@ -4,11 +4,12 @@ import { Client, Databases, Query } from "node-appwrite";
  * get-creator-directory
  *
  * DTO direktori kreator untuk UMKM (08-frontend-data-contract.md §15).
- * Response = `CreatorProfile[]` (src/types/umkm-dashboard.types.ts), atau satu
- * objek bila body berisi `creatorId`.
+ * Response:
+ * - `CreatorProfile` tunggal bila body berisi `creatorId`
+ * - `{ items, total, nextCursor }` untuk daftar ter-paginasi
  *
  * Body (opsional, JSON):
- *   { creatorId?: string, limit?: number }
+ *   { creatorId?: string, limit?: number, cursor?: string }
  *
  * KEPUTUSAN SKEMA — 4 field view-model tidak ada di `creator_profiles`:
  *
@@ -50,6 +51,7 @@ export default async ({ req, res, log, error }) => {
     const body = parseBody(req);
     const creatorId = typeof body.creatorId === "string" ? body.creatorId : null;
     const limit = clampLimit(body.limit);
+    const cursor = typeof body.cursor === "string" && body.cursor.trim() ? body.cursor.trim() : null;
 
     const databases = createDatabasesClient(env);
 
@@ -58,12 +60,13 @@ export default async ({ req, res, log, error }) => {
           Query.equal("userId", creatorId),
           Query.limit(1),
         ])
-      : await listAll(
+      : await listPage(
           databases,
           env.databaseId,
           env.creatorProfilesCollectionId,
           [Query.equal("isProfileCompleted", true), Query.orderDesc("rating")],
-          limit
+          limit,
+          cursor
         );
 
     if (creatorId && profiles.length === 0) {
@@ -97,8 +100,26 @@ export default async ({ req, res, log, error }) => {
       };
     });
 
-    log(`Creator directory resolved: ${directory.length} profile(s)`);
-    return json(res, creatorId ? directory[0] : directory);
+    if (creatorId) {
+      log(`Creator directory resolved: single creator ${creatorId}`);
+      return json(res, directory[0]);
+    }
+
+    const totalProfiles = await listAll(
+      databases,
+      env.databaseId,
+      env.creatorProfilesCollectionId,
+      [Query.equal("isProfileCompleted", true), Query.orderDesc("rating")]
+    );
+    const nextCursor =
+      profiles.length === limit ? str(profiles[profiles.length - 1]?.$id) || null : null;
+
+    log(`Creator directory resolved: ${directory.length}/${totalProfiles.length} profile(s)`);
+    return json(res, {
+      items: directory,
+      total: totalProfiles.length,
+      nextCursor,
+    });
   } catch (err) {
     error(err?.stack || err?.message || String(err));
     return json(res, { error: "Internal server error" }, 500);
@@ -234,6 +255,13 @@ async function listAll(databases, databaseId, collectionId, queries = [], cap = 
   }
 
   return documents;
+}
+
+async function listPage(databases, databaseId, collectionId, queries = [], limit = DEFAULT_LIMIT, cursor = null) {
+  const paged = [...queries, Query.limit(Math.min(PAGE_SIZE, limit))];
+  if (cursor) paged.push(Query.cursorAfter(cursor));
+  const page = await databases.listDocuments(databaseId, collectionId, paged);
+  return page.documents;
 }
 
 /** Query.equal dengan array dibatasi 100 nilai — pecah jadi beberapa panggilan. */

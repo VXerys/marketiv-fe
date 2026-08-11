@@ -78,6 +78,7 @@ const collections = [
             createStringAttr("userId", true),
             createStringAttr("role", true, 50),
             createEnumAttr("status", true, ["active", "suspended", "terminated"]),
+            createStringAttr("address", false, 500),
             createStringAttr("email", true),
             createStringAttr("phone", false, 50),
             createDatetimeAttr("createdAt", false),
@@ -151,7 +152,6 @@ const collections = [
             createStringAttr("category", true, 100),
             createStringAttr("description", false, 2000),
             createStringAttr("city", false, 100),
-            createStringAttr("address", false, 500),
             createStringAttr("tiktok", false, 255),
             createStringAttr("logoUrl", false, 2048),
             createBoolAttr("isProfileCompleted", false, false)
@@ -1353,6 +1353,20 @@ const functions = [
         entrypoint: "src/main.js",
         commands: "npm install",
         path: "../functions/mark-conversation-read"
+    },
+    {
+        $id: "mark-notifications-read",
+        name: "Mark Notifications Read",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/mark-notifications-read"
     },
     {
         $id: "patch-conversation-archive",

@@ -44,12 +44,12 @@ describe('getSubmissionCountsFromAppwrite — UMKM-PERF-01', () => {
   it('aggregates pending/valid/dispute counts correctly via ONE batch query', async () => {
     // s4 has fraudStatus=flagged → counts as valid AND dispute
     const submissions = [
-      { $id: 's1', campaignId: 'camp-A', validationStatus: 'pending',  fraudStatus: 'safe' },
-      { $id: 's2', campaignId: 'camp-A', validationStatus: 'pending',  fraudStatus: 'safe' },
-      { $id: 's3', campaignId: 'camp-A', validationStatus: 'approved', fraudStatus: 'safe' },
-      { $id: 's4', campaignId: 'camp-A', validationStatus: 'approved', fraudStatus: 'flagged' },
-      { $id: 's5', campaignId: 'camp-B', validationStatus: 'pending',  fraudStatus: 'safe' },
-      { $id: 's6', campaignId: 'camp-B', validationStatus: 'rejected', fraudStatus: 'safe' },
+      { $id: 's1', campaignId: 'camp-A', status: 'pending',  fraudStatus: 'safe' },
+      { $id: 's2', campaignId: 'camp-A', status: 'pending',  fraudStatus: 'safe' },
+      { $id: 's3', campaignId: 'camp-A', status: 'approved', fraudStatus: 'safe' },
+      { $id: 's4', campaignId: 'camp-A', status: 'approved', fraudStatus: 'flagged' },
+      { $id: 's5', campaignId: 'camp-B', status: 'pending',  fraudStatus: 'safe' },
+      { $id: 's6', campaignId: 'camp-B', status: 'rejected', fraudStatus: 'safe' },
     ];
     mockListDocuments.mockResolvedValueOnce({ documents: submissions, total: submissions.length });
 
@@ -69,7 +69,7 @@ describe('getSubmissionCountsFromAppwrite — UMKM-PERF-01', () => {
   it('campaign with no submissions is absent from result map', async () => {
     mockListDocuments.mockResolvedValueOnce({
       documents: [
-        { $id: 's1', campaignId: 'camp-A', validationStatus: 'pending', fraudStatus: 'safe' },
+        { $id: 's1', campaignId: 'camp-A', status: 'pending', fraudStatus: 'safe' },
       ],
       total: 1,
     });

@@ -17,6 +17,7 @@ export const Query = {
   lessThanEqual: (attr: string, value: any) => ({ method: 'lessThanEqual', attr, value }),
   orderAsc: (attr: string) => ({ method: 'orderAsc', attr }),
   orderDesc: (attr: string) => ({ method: 'orderDesc', attr }),
+  cursorAfter: (id: string) => ({ method: 'cursorAfter', value: id }),
   limit: (n: number) => ({ method: 'limit', value: n }),
   offset: (n: number) => ({ method: 'offset', value: n }),
 };
@@ -71,6 +72,9 @@ const applyQueries = (docs: any[], queries: any[] = []): any[] => {
       result = [...result].sort((a, b) => Number(a[q.attr]) - Number(b[q.attr]));
     } else if (q?.method === 'orderDesc') {
       result = [...result].sort((a, b) => Number(b[q.attr]) - Number(a[q.attr]));
+    } else if (q?.method === 'cursorAfter') {
+      const idx = result.findIndex((d) => d.$id === q.value);
+      result = idx >= 0 ? result.slice(idx + 1) : result;
     } else if (q?.method === 'limit') {
       result = result.slice(0, q.value);
     } else if (q?.method === 'offset') {

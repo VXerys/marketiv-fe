@@ -13,6 +13,7 @@ const emailTokens: any[] = [];
 const sessions: any[] = [];
 const seed = (collection: string, docs: any[]) => { store[collection] = docs; };
 const createCalls: Array<{ collection: string; docId: string; data: any; permissions?: any[] }> = [];
+const updateCalls: Array<{ collection: string; docId: string; data: any; permissions?: any[] }> = [];
 const seedAuthUser = (user: any) => { authUsers[user.$id] = user; };
 const reset = () => {
   for (const k of Object.keys(store)) delete store[k];
@@ -20,6 +21,7 @@ const reset = () => {
   emailTokens.length = 0;
   sessions.length = 0;
   createCalls.length = 0;
+  updateCalls.length = 0;
 };
 
 const ID = {
@@ -33,6 +35,7 @@ const Query = {
   limit: (n: number) => ({ method: 'limit', value: n }),
   offset: (n: number) => ({ method: 'offset', value: n }),
   orderDesc: (a: string) => ({ method: 'orderDesc', attr: a }),
+  cursorAfter: (id: string) => ({ method: 'cursorAfter', value: id }),
 };
 const Role = { user: (id: string) => ({ type: 'user', id }), any: () => ({ type: 'any' }) };
 const Permission = {
@@ -57,9 +60,15 @@ class Databases {
         docs = docs.filter((doc) => doc[query.attr] == null);
       }
     }
+    const total = docs.length;
+    const cursor = q.find((query) => query?.method === 'cursorAfter')?.value;
+    if (cursor) {
+      const idx = docs.findIndex((doc) => doc.$id === cursor);
+      docs = idx >= 0 ? docs.slice(idx + 1) : docs;
+    }
     const limit = q.find((query) => query?.method === 'limit')?.value;
     if (typeof limit === 'number') docs = docs.slice(0, limit);
-    return { documents: docs, total: docs.length };
+    return { documents: docs, total };
   }
   async createDocument(_db: string, collection: string, docId: string, data: any, permissions?: any[]) {
     const existing = (store[collection] || []).find((d) => d.$id === docId);
@@ -80,11 +89,12 @@ class Databases {
     if (!doc) { const e: any = new Error('not found'); e.code = 404; throw e; }
     return doc;
   }
-  async updateDocument(_db: string, collection: string, docId: string, data: any) {
+  async updateDocument(_db: string, collection: string, docId: string, data: any, permissions?: any[]) {
     const docs = store[collection] || [];
     const idx = docs.findIndex((d) => d.$id === docId);
     if (idx === -1) { const e: any = new Error('not found'); e.code = 404; throw e; }
     docs[idx] = { ...docs[idx], ...data, $updatedAt: new Date().toISOString() };
+    updateCalls.push({ collection, docId, data, permissions });
     return docs[idx];
   }
   async deleteDocument(_db: string, collection: string, docId: string) {
@@ -690,6 +700,74 @@ describe('reconcile-release-escrow function', () => {
   });
 });
 
+describe('get-creator-directory function', () => {
+  it('returns paginated DTO with items, total, and nextCursor', async () => {
+    process.env.CREATOR_PROFILES_COLLECTION_ID = 'creator_profiles';
+    process.env.CREATOR_SOCIAL_ACCOUNTS_COLLECTION_ID = 'creator_social_accounts';
+    process.env.RATE_CARDS_COLLECTION_ID = 'rate_cards';
+    process.env.RATE_CARD_PACKAGES_COLLECTION_ID = 'rate_card_packages';
+
+    seed('creator_profiles', [
+      { $id: 'cp1', userId: 'creator-1', displayName: 'Creator 1', avatarUrl: 'a1', niche: 'fashion', bio: 'bio 1', city: 'Bandung', rating: 4.9, totalOrders: 12, isProfileCompleted: true },
+      { $id: 'cp2', userId: 'creator-2', displayName: 'Creator 2', avatarUrl: 'a2', niche: 'kuliner', bio: 'bio 2', city: 'Bogor', rating: 4.8, totalOrders: 9, isProfileCompleted: true },
+    ]);
+    seed('creator_social_accounts', [
+      { $id: 'sa1', creatorId: 'creator-1', platform: 'tiktok', username: 'creator1', engagementRate: 3.2, followers: 1000 },
+      { $id: 'sa2', creatorId: 'creator-2', platform: 'instagram', username: 'creator2', engagementRate: 2.4, followers: 900 },
+    ]);
+    seed('rate_cards', [
+      { $id: 'rc1', creatorId: 'creator-1', status: 'published' },
+      { $id: 'rc2', creatorId: 'creator-2', status: 'published' },
+    ]);
+    seed('rate_card_packages', [
+      { $id: 'pkg1', rateCardId: 'rc1', price: 150000 },
+      { $id: 'pkg2', rateCardId: 'rc2', price: 90000 },
+    ]);
+
+    const main = (await import('../../functions/get-creator-directory/src/main.js')).default;
+    const res = makeRes();
+    await main({
+      req: makeReq({ bodyJson: { limit: 1 }, headers: { 'x-appwrite-user-id': 'u1' } }),
+      res,
+      log: () => {},
+      error: () => {},
+    });
+
+    expect(res.calls[0].body.items).toHaveLength(1);
+    expect(res.calls[0].body.total).toBe(2);
+    expect(res.calls[0].body.nextCursor).toBe('cp1');
+    expect(res.calls[0].body.items[0].id).toBe('creator-1');
+  });
+});
+
+describe('mark-notifications-read function', () => {
+  it('marks only caller-owned unread notifications and ignores others', async () => {
+    process.env.NOTIFICATIONS_COLLECTION_ID = 'notifications';
+    seed('notifications', [
+      { $id: 'n1', userId: 'u1', isRead: false, title: 'A' },
+      { $id: 'n2', userId: 'u1', isRead: true, title: 'B' },
+      { $id: 'n3', userId: 'u2', isRead: false, title: 'C' },
+    ]);
+
+    const main = (await import('../../functions/mark-notifications-read/src/main.js')).default;
+    const res = makeRes();
+    await main({
+      req: makeReq({
+        headers: { 'x-appwrite-user-id': 'u1' },
+        bodyJson: { ids: ['n1', 'n2', 'n3', 'missing'] },
+      }),
+      res,
+      log: () => {},
+      error: () => {},
+    });
+
+    expect(res.calls[0].body).toEqual({ ok: true, updated: 1 });
+    expect(store.notifications.find((n) => n.$id === 'n1')?.isRead).toBe(true);
+    expect(store.notifications.find((n) => n.$id === 'n2')?.isRead).toBe(true);
+    expect(store.notifications.find((n) => n.$id === 'n3')?.isRead).toBe(false);
+  });
+});
+
 describe('calculate-campaign-reward function', () => {
   it('credits creator pending balance and updates campaign budget', async () => {
     process.env.APPWRITE_DATABASE_ID = 'db';
@@ -727,6 +805,67 @@ describe('calculate-campaign-reward function', () => {
     const campaign = (store['campaigns'] || []).find((c) => c.$id === 'c1');
     expect(campaign.spentAmount).toBe(10000);
     expect(campaign.remainingBudget).toBe(40000);
+  });
+});
+
+describe('get-umkm-finance-summary function', () => {
+  it('uses payment total_amount and fee_amount, plus held escrow and refund ledger', async () => {
+    process.env.PAYMENTS_COLLECTION_ID = 'payments';
+    process.env.TRANSACTIONS_COLLECTION_ID = 'transactions';
+    process.env.CAMPAIGNS_COLLECTION_ID = 'campaigns';
+    process.env.ORDERS_COLLECTION_ID = 'orders';
+    process.env.ESCROWS_COLLECTION_ID = 'escrows';
+
+    seed('payments', [
+      { $id: 'p1', user_id: 'u1', status: 'paid', amount: 100000, fee_amount: 2000, total_amount: 102000 },
+      { $id: 'p2', user_id: 'u1', status: 'pending', amount: 50000, fee_amount: 1000, total_amount: 51000 },
+      { $id: 'p3', user_id: 'u2', status: 'paid', amount: 999, fee_amount: 1, total_amount: 1000 },
+    ]);
+    seed('transactions', [
+      { $id: 't1', userId: 'u1', type: 'refund', amount: 30000 },
+      { $id: 't2', userId: 'u1', type: 'release', amount: 5000 },
+    ]);
+    seed('campaigns', [
+      { $id: 'c1', umkmId: 'u1', status: 'active', remainingBudget: 40000 },
+      { $id: 'c2', umkmId: 'u1', status: 'completed', remainingBudget: 5000 },
+      { $id: 'c3', umkmId: 'u2', status: 'active', remainingBudget: 99999 },
+    ]);
+    seed('orders', [
+      { $id: 'o1', umkmId: 'u1', status: 'approved' },
+      { $id: 'o2', umkmId: 'u1', status: 'in_progress' },
+    ]);
+    seed('escrows', [
+      { $id: 'e1', orderId: 'o1', status: 'held', amount: 7000 },
+      { $id: 'e2', orderId: 'o2', status: 'held', amount: 3000 },
+      { $id: 'e3', orderId: 'o9', status: 'held', amount: 9999 },
+    ]);
+
+    const main = (await import('../../functions/get-umkm-finance-summary/src/main.js')).default;
+    const res = makeRes();
+    await main({
+      req: makeReq({ method: 'GET', headers: { 'x-appwrite-user-id': 'u1' } }),
+      res,
+      log: () => {},
+      error: () => {},
+    });
+
+    expect(res.calls[0].body.finance).toEqual({
+      totalExpenses: 102000,
+      escrowBalance: 50000,
+      pendingPayments: 51000,
+      refundsReceived: 30000,
+      platformFees: 2000,
+      successfulTransactionsCount: 1,
+      isTruncated: false,
+    });
+    expect(res.calls[0].body.escrow).toEqual({
+      activeEscrow: 50000,
+      pendingRelease: 7000,
+      refundEligible: 5000,
+      campaignEscrow: 40000,
+      rateCardEscrow: 10000,
+      isTruncated: false,
+    });
   });
 });
 
@@ -1887,8 +2026,6 @@ describe('patch-campaign-status function', () => {
     seed('campaign_briefs', [{ $id: 'b1', campaignId: 'c1' }]);
     seed('campaign_assets', [{ $id: 'a1', campaignId: 'c1' }]);
     
-    // We can't easily assert on `updateDocument` permissions in this mock setup without extending the mock,
-    // but we can at least make sure it doesn't throw and status is updated.
     const main = (await import('../../functions/patch-campaign-status/src/main.js')).default;
     
     const req = makeReq({
@@ -1903,6 +2040,17 @@ describe('patch-campaign-status function', () => {
     
     const campaign = store['campaigns'].find(c => c.$id === 'c1');
     expect(campaign.status).toBe('active');
+
+    const campaignUpdate = updateCalls.find((c) => c.collection === 'campaigns' && c.docId === 'c1');
+    const briefUpdate = updateCalls.find((c) => c.collection === 'campaign_briefs' && c.docId === 'b1');
+    const assetUpdate = updateCalls.find((c) => c.collection === 'campaign_assets' && c.docId === 'a1');
+
+    expect(campaignUpdate?.permissions).toEqual([
+      { action: 'read', role: { type: 'any' } },
+      { action: 'delete', role: { type: 'user', id: 'u1' } },
+    ]);
+    expect(briefUpdate?.permissions).toEqual(campaignUpdate?.permissions);
+    expect(assetUpdate?.permissions).toEqual(campaignUpdate?.permissions);
   });
 });
 
