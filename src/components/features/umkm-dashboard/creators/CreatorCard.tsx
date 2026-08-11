@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Star, MapPin, Users, Package, MessageCircle, CheckCircle2 } from "lucide-react";
@@ -62,8 +63,18 @@ export function CreatorCard({ creator }: CreatorCardProps) {
           flexShrink: 0,
         }}
       >
-        {/* Gloss overlay */}
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 60% 20%, rgba(255,255,255,.18), transparent 70%)" }} />
+        {creator.bannerUrl ? (
+          <Image
+            src={creator.bannerUrl}
+            alt={`Banner ${creator.name}`}
+            fill
+            className="object-cover object-center"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          />
+        ) : (
+          /* Gloss overlay */
+          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 60% 20%, rgba(255,255,255,.18), transparent 70%)" }} />
+        )}
 
         {/* Category badge — TOP LEFT (above avatar overlap zone) */}
         <div

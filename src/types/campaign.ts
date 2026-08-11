@@ -15,6 +15,7 @@ export interface Creator {
   description: string;     // Peta ke profiles.bio
   category: string;        // Peta ke profiles.niche
   imageUrl: string;        // Peta ke profiles.foto_profil_url
+  bannerUrl?: string;      // Peta ke profiles.banner_url
   estimatedSalary: string; // Peta ke profiles.harga_mulai
   followers: string;
   rating: number;

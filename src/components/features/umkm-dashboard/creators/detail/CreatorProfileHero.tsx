@@ -11,12 +11,25 @@ export function CreatorProfileHero({ creator }: CreatorProfileHeroProps) {
   return (
     <div className="relative rounded-3xl bg-white border border-border-soft overflow-hidden shadow-xs mb-6 select-none">
       
-      {/* Glowy Orange gradient banner backdrop */}
-      <div className="h-32 sm:h-44 w-full bg-gradient-to-br from-primary-400 via-primary-500 to-primary-600 relative">
-        <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px]" />
-        {/* Glow halo */}
-        <div className="absolute -top-10 -right-10 h-36 w-36 rounded-full bg-white/20 blur-xl" />
-        <div className="absolute bottom-3 right-4">
+      {/* Banner backdrop */}
+      <div className="h-32 sm:h-44 w-full bg-gradient-to-br from-primary-400 via-primary-500 to-primary-600 relative overflow-hidden">
+        {creator.bannerUrl ? (
+          <Image
+            src={creator.bannerUrl}
+            alt={`Banner ${creator.name}`}
+            fill
+            className="object-cover object-center"
+            sizes="(max-width: 640px) 100vw, 80vw"
+            priority
+          />
+        ) : (
+          <>
+            <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px]" />
+            {/* Glow halo */}
+            <div className="absolute -top-10 -right-10 h-36 w-36 rounded-full bg-white/20 blur-xl" />
+          </>
+        )}
+        <div className="absolute bottom-3 right-4 z-10">
           <span className="px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-[9px] font-extrabold uppercase tracking-widest text-white border border-white/10">
             Kreator Terverifikasi
           </span>

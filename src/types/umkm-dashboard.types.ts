@@ -134,6 +134,7 @@ export interface CreatorProfile {
   name: string;
   username: string;
   avatarUrl: string;
+  bannerUrl?: string;
   niche: CreatorNiche;
   bio: string;
   location: string;

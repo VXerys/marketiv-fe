@@ -58,6 +58,7 @@ export function toCreatorView(profile: CreatorProfile): Creator {
     description: profile.bio,
     category: NICHE_LABEL[profile.niche] ?? "Lainnya",
     imageUrl: profile.avatarUrl,
+    bannerUrl: profile.bannerUrl,
     estimatedSalary: formatCurrency(profile.startingPrice),
     followers: "—",
     rating: profile.rating,
