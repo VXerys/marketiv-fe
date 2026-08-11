@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { UmkmPageWrapper } from "../shared/UmkmPageWrapper";
 import { HeroOverview } from "./HeroOverview";
@@ -14,6 +15,7 @@ import { formatCompactViews, formatCompactCurrency } from "@/lib/formatters";
 import { getOverview } from "@/services/umkm/umkm-dashboard.service";
 import type { UmkmOverviewData } from "@/types/umkm-dashboard.types";
 import { UmkmPageSkeleton } from "../shared/UmkmPageSkeleton";
+import { UmkmDashboardTour } from "./UmkmDashboardTour";
 
 /**
  * Overview UMKM.
@@ -25,6 +27,7 @@ import { UmkmPageSkeleton } from "../shared/UmkmPageSkeleton";
  */
 export function UmkmOverviewClient() {
   const router = useRouter();
+  const { user } = useAuth();
 
   const [data, setData] = useState<UmkmOverviewData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -85,6 +88,7 @@ export function UmkmOverviewClient() {
   return (
     <UmkmDashboardChrome businessName={data.businessName}>
       <UmkmPageWrapper>
+        {user?.role === "umkm" ? <UmkmDashboardTour userId={user.userId} /> : null}
         {data.kpis?.isTruncated && (
           <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
             <p className="text-sm font-semibold text-amber-700">
@@ -92,7 +96,6 @@ export function UmkmOverviewClient() {
             </p>
           </div>
         )}
-
         {/* 1. Hero banner with 4 integrated KPI cards */}
         <HeroOverview
           businessName={data.businessName}

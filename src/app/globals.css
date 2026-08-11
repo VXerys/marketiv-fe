@@ -1,6 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+@import "driver.js/dist/driver.css";
 @import "tailwindcss";
 @import "tw-animate-css";
+
+.driver-popover.marketiv-onboarding-popover {
+  border-radius: 16px;
+  font-family: var(--font-plus-jakarta-sans), sans-serif;
+}
 
 :root {
   --bg-main: #F7F3EE;

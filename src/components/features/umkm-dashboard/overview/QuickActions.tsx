@@ -81,6 +81,7 @@ export function QuickActions() {
             <Link
               key={action.label}
               href={action.href}
+              data-onboarding={action.primary ? "create-campaign" : undefined}
               className="hover-card-animate relative overflow-hidden p-3 rounded-2xl flex flex-col justify-between transition-all"
               style={{
                 border: `1px solid ${action.border}`,

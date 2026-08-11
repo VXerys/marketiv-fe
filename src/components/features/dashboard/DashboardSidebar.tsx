@@ -216,6 +216,7 @@ export function DashboardSidebar({
                   <Link
                     href={item.href}
                     onClick={onCloseSidebar}
+                    data-onboarding={item.href === "/dashboard/umkm/campaign" ? "campaign-nav" : undefined}
                     className={cn(
                       "flex items-center gap-3 w-full",
                       "group-data-[collapsible=icon]:justify-center"

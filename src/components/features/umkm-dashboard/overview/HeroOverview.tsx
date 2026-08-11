@@ -70,7 +70,10 @@ export function HeroOverview({
   ];
 
   return (
-    <div className="relative rounded-3xl bg-white border border-slate-200/90 p-5 sm:p-7 shadow-[0_4px_24px_rgba(15,23,42,0.04)] overflow-hidden">
+    <div
+      data-onboarding="dashboard-overview"
+      className="relative rounded-3xl bg-white border border-slate-200/90 p-5 sm:p-7 shadow-[0_4px_24px_rgba(15,23,42,0.04)] overflow-hidden"
+    >
       {/* Background subtle mesh glow */}
       <div
         aria-hidden="true"
