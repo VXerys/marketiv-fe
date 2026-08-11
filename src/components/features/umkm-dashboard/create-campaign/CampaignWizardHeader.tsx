@@ -19,7 +19,7 @@ export function CampaignWizardHeader({ onSaveDraft, onCancel }: CampaignWizardHe
         </div>
 
         {/* Title */}
-        <h2 className="font-display text-[clamp(1.4rem,2.4vw,1.9rem)] font-bold tracking-[-0.065em] text-ink-950 m-0 mb-1.5 leading-none">
+        <h2 data-onboarding="campaign-create-heading" className="font-display text-[clamp(1.4rem,2.4vw,1.9rem)] font-bold tracking-[-0.065em] text-ink-950 m-0 mb-1.5 leading-none">
           Buat Campaign Baru
         </h2>
         <p className="text-ink-500 text-[.85rem] m-0 max-w-xl leading-relaxed">

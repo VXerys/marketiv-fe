@@ -59,7 +59,11 @@ const QUICK_ACTIONS: QuickAction[] = [
   },
 ];
 
-export function QuickActions() {
+interface QuickActionsProps {
+  onCreateCampaign?: () => void;
+}
+
+export function QuickActions({ onCreateCampaign }: QuickActionsProps) {
   return (
     <div
       className="relative rounded-3xl bg-white border border-slate-200/80 p-5 sm:p-6 shadow-[0_4px_20px_rgba(15,23,42,0.04)] h-full flex flex-col justify-between"
@@ -81,6 +85,7 @@ export function QuickActions() {
             <Link
               key={action.label}
               href={action.href}
+              onClick={action.primary ? onCreateCampaign : undefined}
               data-onboarding={action.primary ? "create-campaign" : undefined}
               className="hover-card-animate relative overflow-hidden p-3 rounded-2xl flex flex-col justify-between transition-all"
               style={{

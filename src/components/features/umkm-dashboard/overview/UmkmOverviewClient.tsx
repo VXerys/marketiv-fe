@@ -16,6 +16,7 @@ import { getOverview } from "@/services/umkm/umkm-dashboard.service";
 import type { UmkmOverviewData } from "@/types/umkm-dashboard.types";
 import { UmkmPageSkeleton } from "../shared/UmkmPageSkeleton";
 import { UmkmDashboardTour } from "./UmkmDashboardTour";
+import { navigateUmkmCampaignForOnboarding } from "@/lib/onboarding/umkm-dashboard-tour-flow";
 
 /**
  * Overview UMKM.
@@ -52,7 +53,12 @@ export function UmkmOverviewClient() {
     void load();
   }, [load]);
 
-  const handleCreateCampaign = () => router.push("/dashboard/umkm/campaign/buat");
+  const handleCreateCampaign = () => {
+    navigateUmkmCampaignForOnboarding(
+      user?.role === "umkm" ? user.userId : undefined,
+      (href) => router.push(href)
+    );
+  };
   const handleSearchCreator  = () => router.push("/dashboard/umkm/kreator");
   const handleViewCampaigns  = () => router.push("/dashboard/umkm/campaign");
   const handleViewFinance    = () => router.push("/dashboard/umkm/keuangan");
@@ -132,7 +138,7 @@ export function UmkmOverviewClient() {
 
         {/* 3. Bottom Row: Quick Actions (Col 1) + Financial Overview (Col 2) + Insights (Col 3) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-          <QuickActions />
+          <QuickActions onCreateCampaign={handleCreateCampaign} />
           <FinancialOverview
             escrowBalance={data.kpis?.escrowBalance}
             totalSpend={data.kpis?.totalSpend}

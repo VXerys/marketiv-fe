@@ -6,7 +6,8 @@ import { driver, type DriveStep, type Driver, type Popover } from "driver.js";
 export type UmkmOnboardingAnchor =
   | "dashboard-overview"
   | "campaign-nav"
-  | "create-campaign";
+  | "create-campaign"
+  | "campaign-create-heading";
 
 export interface UmkmOnboardingStep {
   id: string;

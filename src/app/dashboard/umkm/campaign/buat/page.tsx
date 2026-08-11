@@ -6,8 +6,11 @@ import { CreateCampaignWizard, CampaignWizardSkeleton } from "@/components/featu
 import { getUmkmProfile } from "@/services/umkm/umkm-dashboard.service";
 import { UmkmProfile } from "@/types/umkm-dashboard.types";
 import { UmkmPageWrapper } from "@/components/features/umkm-dashboard/shared/UmkmPageWrapper";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { UmkmCampaignTour } from "@/components/features/umkm-dashboard/create-campaign/UmkmCampaignTour";
 
 export default function CampaignCreatePage() {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<UmkmProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,7 +35,10 @@ export default function CampaignCreatePage() {
   return (
     <UmkmDashboardChrome businessName={businessName}>
       <UmkmPageWrapper maxWidth={1440}>
-        {loading ? <CampaignWizardSkeleton /> : <CreateCampaignWizard />}
+        {loading ? <CampaignWizardSkeleton /> : <>
+          {user?.role === "umkm" ? <UmkmCampaignTour userId={user.userId} /> : null}
+          <CreateCampaignWizard />
+        </>}
       </UmkmPageWrapper>
     </UmkmDashboardChrome>
   );
