@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   ChevronDown,
   FileText,
@@ -24,6 +25,8 @@ import { cn } from "@/lib/utils";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { UmkmPageWrapper } from "@/components/features/umkm-dashboard/shared/UmkmPageWrapper";
 import { getUmkmProfile } from "@/services/umkm/umkm-dashboard.service";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { replayUmkmDashboardOnboarding } from "@/lib/onboarding/umkm-dashboard-tour-flow";
 
 type TabType = "rules" | "faq" | "terms";
 
@@ -402,11 +405,14 @@ const CHAPTERS_DATA: ChapterGroup[] = [
 ];
 
 export default function FAQRulesDashboardPage() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("rules");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeChapterId, setActiveChapterId] = useState<string>("bab-1");
   const [openFAQIndex, setOpenFAQIndex] = useState<number | null>(null);
   const [businessName, setBusinessName] = useState("");
+  const [isReplaying, setIsReplaying] = useState(false);
 
   useEffect(() => {
     getUmkmProfile()
@@ -420,6 +426,18 @@ export default function FAQRulesDashboardPage() {
 
   const toggleFAQ = (index: number) => {
     setOpenFAQIndex(openFAQIndex === index ? null : index);
+  };
+
+  const handleReplayOnboarding = () => {
+    if (isReplaying) return;
+
+    setIsReplaying(true);
+    if (!replayUmkmDashboardOnboarding(
+      user?.role === "umkm" ? user.userId : undefined,
+      (href) => router.push(href)
+    )) {
+      setIsReplaying(false);
+    }
   };
 
   // Global Keyword Search Calculations across all 3 domains
@@ -506,9 +524,20 @@ export default function FAQRulesDashboardPage() {
             </p>
           </div>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-50 border border-orange-200/80 text-orange-800 text-xs font-bold shrink-0 self-start md:self-auto">
-            <CheckCircle2 size={14} className="text-orange-600" />
-            <span>Versi Resmi 3.1 (Agustus 2026)</span>
+          <div className="flex items-center gap-2 shrink-0 self-start md:self-auto">
+            <button
+              type="button"
+              onClick={handleReplayOnboarding}
+              disabled={isReplaying || user?.role !== "umkm"}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-orange-300 bg-white text-orange-700 text-xs font-bold shadow-sm transition-colors hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <BookOpen size={14} />
+              <span>{isReplaying ? "Memulai Panduan..." : "Ulangi Panduan"}</span>
+            </button>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-50 border border-orange-200/80 text-orange-800 text-xs font-bold">
+              <CheckCircle2 size={14} className="text-orange-600" />
+              <span>Versi Resmi 3.1 (Agustus 2026)</span>
+            </div>
           </div>
         </div>
 

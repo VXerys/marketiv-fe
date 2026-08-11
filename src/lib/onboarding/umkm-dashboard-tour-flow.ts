@@ -5,8 +5,12 @@ import {
   beginUmkmDashboardTourSession,
   beginUmkmCampaignHandoff,
   claimUmkmCampaignTour,
+  markUmkmCampaignTourCompleted,
   markUmkmCampaignTourHandled,
+  markUmkmCampaignTourSkipped,
   markUmkmDashboardTourHandled,
+  markUmkmDashboardTourSkipped,
+  prepareUmkmDashboardTourReplay,
   restoreUmkmCampaignHandoff,
 } from "./umkm-dashboard-tour-session";
 import { umkmCampaignTourSteps } from "./umkm-campaign-tour";
@@ -18,6 +22,7 @@ export function startUmkmDashboardTourForSession(userId: string): boolean {
 
   const tour = startUmkmOnboardingTour(umkmDashboardTourSteps, {
     onDestroyed: () => markUmkmDashboardTourHandled(userId),
+    onSkipped: () => markUmkmDashboardTourSkipped(userId),
   });
   if (!tour) abandonUmkmDashboardTourSession(userId);
   return tour !== null;
@@ -37,12 +42,27 @@ export function navigateUmkmCampaignForOnboarding(
   navigate(routes.umkmCreateCampaign);
 }
 
+/**
+ * T05 orchestration boundary: prepare replay before requesting Dashboard
+ * navigation. The replay phase also makes rapid repeat requests idempotent.
+ */
+export function replayUmkmDashboardOnboarding(
+  userId: string | undefined,
+  navigate: (href: string) => void
+): boolean {
+  if (!userId || !prepareUmkmDashboardTourReplay(userId)) return false;
+  navigate(routes.dashboardUmkm);
+  return true;
+}
+
 /** Campaign-side continuation. It never performs navigation. */
 export function startUmkmCampaignTourForSession(userId: string): boolean {
   if (!claimUmkmCampaignTour(userId)) return false;
 
   const tour = startUmkmOnboardingTour(umkmCampaignTourSteps, {
     onDestroyed: () => markUmkmCampaignTourHandled(userId),
+    onSkipped: () => markUmkmCampaignTourSkipped(userId),
+    onCompleted: () => markUmkmCampaignTourCompleted(userId),
   });
 
   if (!tour) restoreUmkmCampaignHandoff(userId);

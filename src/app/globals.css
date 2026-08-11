@@ -6,6 +6,15 @@
 .driver-popover.marketiv-onboarding-popover {
   border-radius: 16px;
   font-family: var(--font-plus-jakarta-sans), sans-serif;
+  max-width: min(360px, calc(100vw - 2rem));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .driver-popover.marketiv-onboarding-popover,
+  .driver-popover.marketiv-onboarding-popover * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }
 
 :root {
