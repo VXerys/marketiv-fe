@@ -299,7 +299,7 @@ export function DashboardSidebar({
           </span>
           <div className="flex flex-col gap-1">
             <Link
-              href="mailto:marketiv.official@gmail.com"
+              href="https://wa.me/628212244157"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2.5 py-2 px-1 rounded-lg text-white/45 hover:text-white/80 transition-all duration-150 text-[0.88rem] font-[650] no-underline group"
