@@ -1,4 +1,5 @@
 export * from "./CreatorDashboardChrome";
+export * from "./CreatorIdentityContext";
 export * from "./CreatorDashboardSidebar";
 export * from "./CreatorDashboardTopbar";
 export * from "./CreatorDashboardView";

@@ -12,21 +12,33 @@ interface UmkmCampaignTourProps {
 /** T04 mount point. Observer retries only while the handoff target is pending. */
 export function UmkmCampaignTour({ userId }: UmkmCampaignTourProps) {
   const mountedRef = useRef(false);
-  const startedRef = useRef(false);
+  const startedForUserRef = useRef<string | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
     const start = () => {
-      if (startedRef.current) return true;
-      startedRef.current = startUmkmCampaignTourForSession(userId);
-      return startedRef.current;
+      if (startedForUserRef.current === userId) return true;
+
+      // Auth can change without this route unmounting. Do not let User A's
+      // active Driver instance or mount guard suppress User B's session.
+      if (startedForUserRef.current) {
+        destroyUmkmOnboardingTour();
+        startedForUserRef.current = null;
+      }
+
+      const started = startUmkmCampaignTourForSession(userId);
+      if (started) startedForUserRef.current = userId;
+      return started;
     };
 
     if (start() || !hasPendingUmkmCampaignHandoff(userId)) {
       return () => {
         mountedRef.current = false;
-        if (startedRef.current) queueMicrotask(() => {
-          if (!mountedRef.current) destroyUmkmOnboardingTour();
+        if (startedForUserRef.current === userId) queueMicrotask(() => {
+          if (!mountedRef.current && startedForUserRef.current === userId) {
+            destroyUmkmOnboardingTour();
+            startedForUserRef.current = null;
+          }
         });
       };
     }
@@ -39,8 +51,11 @@ export function UmkmCampaignTour({ userId }: UmkmCampaignTourProps) {
     return () => {
       mountedRef.current = false;
       observer.disconnect();
-      if (startedRef.current) queueMicrotask(() => {
-        if (!mountedRef.current) destroyUmkmOnboardingTour();
+      if (startedForUserRef.current === userId) queueMicrotask(() => {
+        if (!mountedRef.current && startedForUserRef.current === userId) {
+          destroyUmkmOnboardingTour();
+          startedForUserRef.current = null;
+        }
       });
     };
   }, [userId]);

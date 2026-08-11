@@ -45,7 +45,7 @@ User submit form pendaftaran dari halaman Landing Page:
 
 5. **Users** — Function `create-user-profile` membaca data user dari event.
 6. **Users** — Buat profil sesuai role:
-    - `umkm_profiles`: `{ userId, businessName, category, phone, isProfileCompleted: false }`.
+    - `umkm_profiles`: `{ userId, businessName: "", category: "", isProfileCompleted: false }`; identitas usaha diisi onboarding.
     - `creator_profiles`: `{ userId, displayName, isProfileCompleted: false }`.
 7. **Users** — Inisialisasi `user_storage_usage`: `{ userId, usedBytes: 0, quotaBytes: 104857600, fileCount: 0 }`.
 8. **Payments** — Function `create-user-wallet` membuat dokumen `wallets`: `{ userId, balance: 0, pendingBalance: 0 }`.

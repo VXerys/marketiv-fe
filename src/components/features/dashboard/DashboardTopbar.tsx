@@ -11,8 +11,11 @@ import { getNotifications } from "@/services/shared/notification.service";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
 import { realtimeClient, tableChannels } from "@/lib/appwrite/realtime";
 
+import { useUmkmIdentity } from "./UmkmIdentityContext";
+import { DashboardProfileAvatar } from "@/components/features/dashboard/shared/DashboardProfileAvatar";
+
 // Dihapus: PROFILE_AVATAR_IMAGE_URL hardcoded (fix P0-B 2026-08-08).
-// Avatar sekarang dibaca dari profil UMKM yang nyata via prop `avatarUrl`.
+// Avatar sekarang dibaca dari profil UMKM yang nyata via prop `avatarUrl` atau context.
 
 const BASE = "/dashboard/umkm";
 
@@ -106,11 +109,15 @@ interface DashboardTopbarProps {
   avatarUrl?: string;
 }
 
-export function DashboardTopbar({ avatarUrl }: DashboardTopbarProps) {
+export function DashboardTopbar({ avatarUrl: propAvatarUrl }: DashboardTopbarProps) {
   const pathname = usePathname();
   const { title } = getPageMeta(pathname);
   const { toggleSidebar } = useSidebar();
+  const { identity } = useUmkmIdentity();
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const avatarUrl = identity?.avatarUrl ?? propAvatarUrl;
+  const businessName = identity?.businessName;
 
   const loadUnreadCount = useCallback(() => {
     void getNotifications("umkm").then((result) => {
@@ -225,27 +232,19 @@ export function DashboardTopbar({ avatarUrl }: DashboardTopbarProps) {
           )}
         </Link>
 
-        {/* Avatar — menampilkan logo/foto profil UMKM yang sebenarnya */}
+        {/* Avatar — menggunakan DashboardProfileAvatar dari context */}
         <Link
           href="/dashboard/umkm/pengaturan"
           className="w-11 h-11 rounded-xl border border-neutral-200/70 shadow-3xs overflow-hidden hover:scale-105 hover:shadow-[0_4px_12px_rgba(249,115,22,.18)] active:scale-95 transition-all duration-200 relative block shrink-0 cursor-pointer"
           aria-label="Profil akun"
         >
-          {avatarUrl ? (
-            <Image
-              alt="Profil"
-              src={avatarUrl}
-              width={44}
-              height={44}
-              sizes="44px"
-              quality={85}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-base select-none">
-              U
-            </div>
-          )}
+          <DashboardProfileAvatar
+            avatarUrl={avatarUrl}
+            name={businessName}
+            size="sm"
+            variant="umkm"
+            className="h-full w-full rounded-none"
+          />
         </Link>
       </div>
     </header>

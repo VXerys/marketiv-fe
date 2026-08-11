@@ -38,6 +38,9 @@ import { getNegotiations } from "@/services/umkm/umkm-dashboard.service";
 import type { NegotiationStage } from "@/types/domain";
 
 
+import { useUmkmIdentity } from "./UmkmIdentityContext";
+import { DashboardProfileAvatar } from "@/components/features/dashboard/shared/DashboardProfileAvatar";
+
 /**
  * Tahap yang berarti kreator memang sedang mengerjakan sesuatu — plus labelnya.
  * Tahap negosiasi (chatting/offer_*) dan tahap selesai/batal sengaja absen:
@@ -66,20 +69,25 @@ const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
 ];
 
 interface DashboardSidebarProps {
-  businessName: string;
+  businessName?: string;
   isSidebarOpen?: boolean;
   onCloseSidebar?: () => void;
   isVerified?: boolean;
 }
 
 export function DashboardSidebar({
-  businessName,
-  isVerified,
+  businessName: propBusinessName,
+  isVerified: propIsVerified,
   onCloseSidebar,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
   const { state, toggleSidebar } = useSidebar();
+  const { identity } = useUmkmIdentity();
   const isCollapsed = state === "collapsed";
+
+  const businessName = identity?.businessName || propBusinessName || "";
+  const isVerified = identity ? identity.isVerified : (propIsVerified ?? false);
+  const avatarUrl = identity?.avatarUrl;
   
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -375,19 +383,13 @@ export function DashboardSidebar({
             border: "1px solid rgba(255,255,255,.07)",
           }}
         >
-          {/* Avatar circle with initials */}
-          <div
-            className="w-9 h-9 shrink-0 rounded-[10px] flex items-center justify-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:rounded-[13px] transition-all duration-300"
-            style={{
-              background:
-                "radial-gradient(circle at 36% 28%, rgba(255,255,255,.82) 0 12%, transparent 13%), linear-gradient(135deg, #fed7aa, #f97316)",
-              boxShadow: "0 4px 12px rgba(249,115,22,.20)",
-            }}
-          >
-            <span className="font-extrabold text-[.82rem] text-white/90 font-display leading-none group-data-[collapsible=icon]:text-[.88rem]">
-              {businessName.slice(0, 1).toUpperCase()}
-            </span>
-          </div>
+          <DashboardProfileAvatar
+            avatarUrl={avatarUrl}
+            name={businessName}
+            size="md"
+            variant="umkm"
+            className="w-9 h-9 shrink-0 rounded-[10px] group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:rounded-[13px]"
+          />
 
           <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
             <strong

@@ -8,7 +8,6 @@ import { AuthSplit } from "@/components/auth/AuthSplit";
 import { AuthRoleTabs, AuthRole } from "@/components/auth/AuthRoleTabs";
 import {
   AuthField,
-  AuthSelectField,
   PasswordField,
   AuthErrorBanner,
 } from "@/components/auth/AuthField";
@@ -17,16 +16,7 @@ import { registerUmkm, requestEmailOtp } from "@/services/auth/auth.service";
 import { registerUmkmSchema, PASSWORD_MIN } from "@/lib/validations/auth.schema";
 import { parseOrErrors } from "@/lib/validations/to-field-errors";
 import { routes } from "@/lib/constants/routes";
-import { NICHE_OPTIONS } from "@/components/features/umkm-dashboard/create-campaign/create-campaign.constants";
-
-const CATEGORY_OPTIONS = NICHE_OPTIONS.map((o) => ({
-  value: o.id,
-  label: `${o.label} — ${o.desc}`,
-}));
-
 const EMPTY = {
-  businessName: "",
-  category: "",
   email: "",
   phone: "",
   password: "",
@@ -125,36 +115,6 @@ export function RegisterUmkmForm() {
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {banner && <AuthErrorBanner message={banner} />}
-
-          {/* Section: Info Usaha */}
-          <div className="space-y-3.5">
-            <p className="text-[0.68rem] font-extrabold uppercase tracking-widest text-text-muted">
-              Info Usaha
-            </p>
-            <AuthField
-              label="Nama Usaha"
-              name="businessName"
-              autoComplete="organization"
-              placeholder="Dapur Sehat Sukabumi"
-              value={form.businessName}
-              onChange={set("businessName")}
-              error={errors.businessName}
-              disabled={pending}
-            />
-            <AuthSelectField
-              label="Kategori Usaha"
-              name="category"
-              placeholder="Pilih kategori…"
-              options={CATEGORY_OPTIONS}
-              value={form.category}
-              onChange={set("category")}
-              error={errors.category}
-              disabled={pending}
-            />
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-neutral-200/60" />
 
           {/* Section: Akun */}
           <div className="space-y-3.5">

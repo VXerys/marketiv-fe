@@ -20,6 +20,7 @@ import {
   Phone,
   Mail,
 } from "lucide-react";
+import { useUmkmIdentity } from "@/components/features/dashboard/UmkmIdentityContext";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { UmkmPageWrapper } from "@/components/features/umkm-dashboard/shared/UmkmPageWrapper";
 
@@ -75,6 +76,8 @@ function Toggle({
 }
 
 export function PengaturanClient() {
+  const { refreshIdentity } = useUmkmIdentity();
+
   // Preferensi notifikasi belum punya target tulis (tak ada collection
   // notification_preferences) — toggle dinonaktifkan, lihat handoff Sprint 3.
   const notifications: NotificationSetting[] = INITIAL_NOTIFICATIONS;
@@ -158,6 +161,7 @@ export function PengaturanClient() {
     setIsSaving(false);
     if (res.success) {
       toast.success("Pengaturan berhasil disimpan!");
+      await refreshIdentity();
     } else {
       toast.error(
         res.code === "auth"
@@ -215,7 +219,9 @@ export function PengaturanClient() {
                 className="w-16 h-16 rounded-2xl object-cover flex-shrink-0 shadow-sm border border-neutral-200"
               />
             ) : (
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-300 to-orange-500 flex-shrink-0 shadow-sm border border-orange-400/10" />
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-300 to-orange-500 flex-shrink-0 shadow-sm border border-orange-400/10 flex items-center justify-center text-white text-xl font-bold font-display select-none">
+                {profile.businessName?.trim().charAt(0)?.toUpperCase() || "?"}
+              </div>
             )}
             <div className="space-y-1.5 min-w-0 flex-1">
               <h3 className="text-[1.1rem] font-bold text-ink-900 truncate leading-none">

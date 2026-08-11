@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Store } from "lucide-react";
@@ -19,6 +19,7 @@ import {
 import {
   updateUmkmProfile,
   uploadUmkmLogo,
+  getUmkmSettingsProfile,
 } from "@/services/umkm/umkm-dashboard.service";
 import {
   setOAuthAccountPrefs,
@@ -62,6 +63,26 @@ export function UmkmOnboarding({
   const [banner, setBanner] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [pending, setPending] = useState(false);
+
+  // Data UMKM legacy milik umkm_profiles. Kegagalan baca tidak menghalangi
+  // akun baru, yang valid memiliki identitas bisnis kosong sebelum onboarding.
+  useEffect(() => {
+    let cancelled = false;
+    void getUmkmSettingsProfile().then((res) => {
+      if (cancelled || !res.success || !res.data) return;
+      const profile = res.data;
+      setBusinessName((current) => current || profile.businessName);
+      setCategory((current) => current || profile.category);
+      setCity((current) => current || profile.city);
+      setDescription((current) => current || profile.description);
+      setLogoUrl((current) => current || profile.logoUrl);
+      setAddress((current) => current || profile.address);
+      setTiktok((current) => current || profile.tiktok);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const formValues = () => ({
     businessName: businessName.trim(),
@@ -170,7 +191,7 @@ export function UmkmOnboarding({
   return (
     <OnboardingShell
       title="Lengkapi Profil Usaha"
-      description="Informasi ini yang dilihat kreator saat mempertimbangkan campaign dari Anda."
+      description="Lengkapi informasi dasar usaha Anda agar profil dan campaign dapat ditampilkan dengan informasi yang tepat."
       steps={STEPS}
       currentStep={step}
       footer={

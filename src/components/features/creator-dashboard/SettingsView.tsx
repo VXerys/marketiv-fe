@@ -303,12 +303,15 @@ function GhostBtn({
 // Main component
 // ══════════════════════════════════════════════════════════════════════════════
 
+import { useCreatorIdentity } from "./CreatorIdentityContext";
+
 interface SettingsViewProps {
   initialProfile: CreatorProfile;
   initialPortfolio: CreatorPortfolioItem[];
 }
 
 export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewProps) {
+  const { refreshIdentity } = useCreatorIdentity();
   const [activeTab, setActiveTab] = useState<SettingsTab>("profil");
 
   // ── Profile state ──
@@ -413,6 +416,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
     setProfile(fresh.success && fresh.data ? fresh.data : res.data);
     setIsEditing(false);
     setIsProfileSuccessOpen(true);
+    await refreshIdentity();
   };
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -431,6 +435,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
     if (saved.success && saved.data) {
       setProfile(saved.data);
       showToast("Foto profil berhasil diperbarui.");
+      await refreshIdentity();
     } else {
       toast.error(saved.error ?? "Foto terunggah tapi gagal disimpan.");
     }
@@ -582,7 +587,7 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-violet-600 to-indigo-700 flex items-center justify-center text-white text-2xl sm:text-3xl font-black">
-                {profile.name?.charAt(0)?.toUpperCase() || "K"}
+                {profile.name?.trim().charAt(0)?.toUpperCase() || "?"}
               </div>
             )}
             <label

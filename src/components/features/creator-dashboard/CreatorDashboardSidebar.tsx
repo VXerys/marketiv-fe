@@ -34,6 +34,9 @@ import {
 } from "@/components/ui/sidebar";
 import { getCreatorActiveWorks } from "@/services/creator/creator-dashboard.service";
 
+import { useCreatorIdentity } from "./CreatorIdentityContext";
+import { DashboardProfileAvatar } from "@/components/features/dashboard/shared/DashboardProfileAvatar";
+
 interface CreatorSidebarItem {
   label: string;
   href: string;
@@ -60,16 +63,21 @@ export interface CreatorDashboardSidebarProps {
 }
 
 export function CreatorDashboardSidebar({
-  displayName = "Kreator",
-  verificationStatus = "terverifikasi",
+  displayName,
+  avatarUrl: propAvatarUrl,
+  verificationStatus,
   creatorName,
   onCloseSidebar,
 }: CreatorDashboardSidebarProps) {
   const pathname = usePathname();
   const { toggleSidebar, state } = useSidebar();
+  const { identity } = useCreatorIdentity();
   const isCollapsed = state === "collapsed";
 
-  const nameToDisplay = creatorName || displayName;
+  const nameToDisplay = identity?.name || creatorName || displayName || "Kreator";
+  const avatarUrl = identity?.avatarUrl ?? propAvatarUrl;
+  const isVerified = identity ? identity.isVerified : verificationStatus === "terverifikasi";
+
   const [activeJobsCount, setActiveJobsCount] = useState<number>(0);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -292,18 +300,13 @@ export function CreatorDashboardSidebar({
             border: "1px solid rgba(255,255,255,.07)",
           }}
         >
-          <div
-            className="w-9 h-9 shrink-0 rounded-[10px] flex items-center justify-center group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:rounded-[13px] transition-all duration-300"
-            style={{
-              background:
-                "radial-gradient(circle at 36% 28%, rgba(255,255,255,.82) 0 12%, transparent 13%), linear-gradient(135deg, #c084fc, #7c3aed)",
-              boxShadow: "0 4px 12px rgba(124,58,237,.20)",
-            }}
-          >
-            <span className="font-extrabold text-[.82rem] text-white/90 font-display leading-none group-data-[collapsible=icon]:text-[.88rem]">
-              {nameToDisplay.slice(0, 1).toUpperCase()}
-            </span>
-          </div>
+          <DashboardProfileAvatar
+            avatarUrl={avatarUrl}
+            name={nameToDisplay}
+            size="md"
+            variant="kreator"
+            className="w-9 h-9 shrink-0 rounded-[10px] group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:rounded-[13px]"
+          />
 
           <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
             <strong
@@ -313,9 +316,9 @@ export function CreatorDashboardSidebar({
               {nameToDisplay}
             </strong>
             <span className="flex items-center gap-1 mt-[2px]">
-              <BadgeCheck size={10.5} className="text-violet-400 shrink-0" />
+              {isVerified && <BadgeCheck size={10.5} className="text-violet-400 shrink-0" />}
               <span className="text-[.66rem] font-[650] text-violet-300/80 capitalize">
-                Kreator {verificationStatus}
+                Kreator {isVerified ? "Terverifikasi" : "Akun"}
               </span>
             </span>
           </div>

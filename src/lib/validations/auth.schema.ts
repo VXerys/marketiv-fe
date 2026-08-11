@@ -55,14 +55,9 @@ export type LoginInput = z.infer<typeof loginSchema>;
 /**
  * Register UMKM.
  *
- * `category` mengikuti umkmProfileUpdateSchema.category (string ber-batas 100),
- * bukan enum. Nilainya dipilih dari NICHE_OPTIONS di UI — daftar yang sama yang
- * dipakai halaman pengaturan dan wizard campaign — tapi skemanya tidak mengunci
- * daftar itu supaya register dan settings tidak bisa saling bertentangan.
+ * Identitas bisnis dikumpulkan onboarding UMKM, bukan registrasi akun.
  */
 export const registerUmkmSchema = z.object({
-  businessName: requiredStringMax("Nama usaha", 255),
-  category: requiredStringMax("Kategori usaha", 100),
   email: emailAddress(),
   phone: indonesianPhone,
   password: newPassword,

@@ -26,8 +26,6 @@ describe('auth.service — integration (success paths)', () => {
 
     const { registerUMKM } = await import('../../src/services/auth.service');
     const result = await registerUMKM({
-      businessName: 'Toko A',
-      category: 'Food',
       email: 'a@x.com',
       phone: '08123',
       password: 'secret',

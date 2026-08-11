@@ -13,6 +13,9 @@ import { getNotifications } from "@/services/shared/notification.service";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
 import { realtimeClient, tableChannels } from "@/lib/appwrite/realtime";
 
+import { useCreatorIdentity } from "./CreatorIdentityContext";
+import { DashboardProfileAvatar } from "@/components/features/dashboard/shared/DashboardProfileAvatar";
+
 interface BreadcrumbItem {
   label: string;
   href?: string;
@@ -41,13 +44,17 @@ interface CreatorDashboardTopbarProps {
   onOpenSidebar?: () => void;
 }
 
-export function CreatorDashboardTopbar({ creatorAvatar }: CreatorDashboardTopbarProps = {}) {
+export function CreatorDashboardTopbar({ creatorAvatar: propAvatar }: CreatorDashboardTopbarProps = {}) {
   const pathname = usePathname();
   const { toggleSidebar } = useSidebar();
+  const { identity } = useCreatorIdentity();
   const breadcrumbs = getBreadcrumbs(pathname);
 
   const activeTitle =
     breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length - 1].label : "Overview";
+
+  const avatarUrl = identity?.avatarUrl ?? propAvatar;
+  const creatorName = identity?.name;
 
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -171,27 +178,19 @@ export function CreatorDashboardTopbar({ creatorAvatar }: CreatorDashboardTopbar
           )}
         </Link>
 
-        {/* Avatar — menampilkan foto profil Kreator yang sebenarnya (fix P0-C 2026-08-08) */}
+        {/* Avatar — menggunakan DashboardProfileAvatar dari context */}
         <Link
           href={routes.kreatorSettings}
           className="w-10 h-10 rounded-xl border border-neutral-200/70 shadow-3xs overflow-hidden hover:scale-105 hover:shadow-[0_4px_12px_rgba(124,58,237,.18)] active:scale-95 transition-all duration-200 relative block shrink-0 cursor-pointer"
           aria-label="Profil akun"
         >
-          {creatorAvatar ? (
-            <Image
-              alt="Profil"
-              src={creatorAvatar}
-              width={40}
-              height={40}
-              sizes="40px"
-              quality={85}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-sm select-none">
-              K
-            </div>
-          )}
+          <DashboardProfileAvatar
+            avatarUrl={avatarUrl}
+            name={creatorName}
+            size="sm"
+            variant="kreator"
+            className="h-full w-full rounded-none"
+          />
         </Link>
       </div>
     </header>

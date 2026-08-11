@@ -6,8 +6,6 @@ import { getWallet } from './wallet.service';
 export type UserRole = 'umkm' | 'creator' | 'admin';
 
 export type RegisterUMKMInput = {
-  businessName: string;
-  category: string;
   email: string;
   phone: string;
   password: string;
@@ -112,16 +110,14 @@ const ensureUserRole = async (userId: string, role: UserRole): Promise<void> => 
 };
 
 export const registerUMKM = async (data: RegisterUMKMInput): Promise<AuthResult> => {
-  const businessName = requireText(data.businessName, 'Nama bisnis wajib diisi.');
-  const category = requireText(data.category, 'Kategori bisnis wajib diisi.');
   const phone = requireText(data.phone, 'Nomor HP wajib diisi.');
   const email = requireText(data.email, 'Email wajib diisi.');
   const password = requireText(data.password, 'Password wajib diisi.');
 
   try {
-    await account.create(ID.unique(), email, password, businessName);
+    await account.create(ID.unique(), email, password);
     await account.createEmailPasswordSession(email, password);
-    await account.updatePrefs({ role: 'umkm', businessName, category, phone });
+    await account.updatePrefs({ role: 'umkm', phone });
     await provisionUserProfile();
 
     return buildAuthResult('umkm');

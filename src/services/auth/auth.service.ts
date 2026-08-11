@@ -46,8 +46,6 @@ import type { ServiceResult, ServiceErrorCode, UserRole } from "@/types/domain";
 /** Prefs yang dibaca `create-user-profile` untuk membentuk baris users + profil. */
 interface ProfilePrefs {
   role: UserRole;
-  businessName?: string;
-  category?: string;
   phone?: string;
   displayName?: string;
 }
@@ -242,12 +240,12 @@ export async function provisionUserProfile(): Promise<ServiceResult<null>> {
 async function registerWithPrefs(
   email: string,
   password: string,
-  name: string,
+  name: string | undefined,
   prefs: ProfilePrefs
 ): Promise<ServiceResult<RegisterOutcome>> {
   let authId: string;
   try {
-    const created = await account.create({ userId: ID.unique(), email, password, name });
+    const created = await account.create({ userId: ID.unique(), email, password, ...(name ? { name } : {}) });
     authId = created.$id;
     await account.createEmailPasswordSession({ email, password });
     await account.updatePrefs({ prefs });
@@ -273,7 +271,7 @@ async function registerWithPrefs(
         email,
         role: prefs.role,
         status: "active",
-        name,
+        ...(name ? { name } : {}),
         emailVerified: false,
         // Akun yang baru dibuat belum pernah melewati onboarding, dan di cabang
         // ini baris profilnya bahkan belum terbentuk.
@@ -297,7 +295,7 @@ export async function registerUmkm(
       noData<RegisterOutcome>()
     );
   }
-  const { businessName, category, email, phone, password } = parsed.data;
+  const { email, phone, password } = parsed.data;
 
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(500);
@@ -305,10 +303,8 @@ export async function registerUmkm(
     return ok({ user: getMockSessionUser("umkm"), profileProvisioned: true });
   }
 
-  return registerWithPrefs(email, password, businessName, {
+  return registerWithPrefs(email, password, undefined, {
     role: "umkm",
-    businessName,
-    category,
     phone,
   });
 }
@@ -692,7 +688,7 @@ export function startGoogleOAuth(role?: string, next?: string): void {
  */
 export async function setOAuthAccountPrefs(
   role: "umkm" | "creator",
-  extra?: { businessName?: string; category?: string; phone?: string; displayName?: string }
+  extra?: { phone?: string; displayName?: string }
 ): Promise<ServiceResult<null>> {
   if (DATA_SOURCE_CONFIG.useMockData) {
     await mockDelay(200);

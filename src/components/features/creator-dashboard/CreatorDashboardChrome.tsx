@@ -4,8 +4,7 @@ import { type ReactNode, useState, useEffect } from "react";
 import { DashboardShell } from "@/components/features/dashboard/DashboardShell";
 import { CreatorDashboardSidebar } from "./CreatorDashboardSidebar";
 import { CreatorDashboardTopbar } from "./CreatorDashboardTopbar";
-import { getCreatorProfile } from "@/services/creator/creator-dashboard.service";
-import { CreatorProfile } from "@/types/creator-dashboard";
+import { CreatorIdentityProvider } from "./CreatorIdentityContext";
 
 interface CreatorDashboardChromeProps {
   children: ReactNode;
@@ -13,17 +12,6 @@ interface CreatorDashboardChromeProps {
 
 export function CreatorDashboardChrome({ children }: CreatorDashboardChromeProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [profile, setProfile] = useState<CreatorProfile | null>(null);
-
-  useEffect(() => {
-    async function loadProfile() {
-      const res = await getCreatorProfile();
-      if (res.success && res.data) {
-        setProfile(res.data);
-      }
-    }
-    loadProfile();
-  }, []);
 
   useEffect(() => {
     document.body.classList.add("theme-kreator");
@@ -32,32 +20,27 @@ export function CreatorDashboardChrome({ children }: CreatorDashboardChromeProps
     };
   }, []);
 
-  const creatorName = profile?.name ?? "";
-  const creatorHandle = profile?.username ?? "";
-  const creatorAvatar = profile?.avatarUrl;
-
   return (
-    <DashboardShell
-      isSidebarOpen={isSidebarOpen}
-      onCloseSidebar={() => setIsSidebarOpen(false)}
-      variant="kreator"
-      sidebar={
-        <CreatorDashboardSidebar
-          creatorName={creatorName}
-          creatorHandle={creatorHandle}
-          isSidebarOpen={isSidebarOpen}
-          onCloseSidebar={() => setIsSidebarOpen(false)}
-        />
-      }
-      topbar={
-        <CreatorDashboardTopbar
-          creatorName={creatorName}
-          creatorAvatar={creatorAvatar}
-          onOpenSidebar={() => setIsSidebarOpen(true)}
-        />
-      }
-    >
-      {children}
-    </DashboardShell>
+    <CreatorIdentityProvider>
+      <DashboardShell
+        isSidebarOpen={isSidebarOpen}
+        onCloseSidebar={() => setIsSidebarOpen(false)}
+        variant="kreator"
+        sidebar={
+          <CreatorDashboardSidebar
+            isSidebarOpen={isSidebarOpen}
+            onCloseSidebar={() => setIsSidebarOpen(false)}
+          />
+        }
+        topbar={
+          <CreatorDashboardTopbar
+            onOpenSidebar={() => setIsSidebarOpen(true)}
+          />
+        }
+      >
+        {children}
+      </DashboardShell>
+    </CreatorIdentityProvider>
   );
 }
+

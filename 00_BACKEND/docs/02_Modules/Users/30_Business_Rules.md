@@ -13,9 +13,11 @@
 - Tambah portfolio Creator bersifat opsional saat onboarding.
 - Kedua data tersebut dapat dilengkapi nanti dari halaman profil.
 
-## Data Pre-filled dari Registrasi
+## Data Registrasi dan Onboarding
 
-- **UMKM**: `businessName`, `category`, dan `phone` diisi saat Register dan ditampilkan pre-filled di onboarding.
+- **UMKM Register**: hanya menyimpan `email`, `phone`, dan kredensial. `businessName` dan `category` tidak disimpan di Auth prefs.
+- **UMKM Onboarding**: menyimpan `businessName`, `category`, dan `city` ke `umkm_profiles`.
+- **Kompatibilitas**: data UMKM lama di `umkm_profiles` dipakai sebagai prefill onboarding dan tetap dapat diedit.
 
 ## Social Media UMKM
 

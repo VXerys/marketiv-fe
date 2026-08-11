@@ -55,8 +55,8 @@ Relasi: `users` 1 ── 1 `umkm_profiles`.
 
 ```text
 userId
-businessName        # diisi saat Register
-category            # diisi saat Register
+businessName        # diisi saat onboarding UMKM
+category            # diisi saat onboarding UMKM
 description
 city
 address
