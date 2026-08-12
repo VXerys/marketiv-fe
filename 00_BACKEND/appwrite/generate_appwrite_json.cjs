@@ -1454,6 +1454,20 @@ const functions = [
         commands: "npm install",
         path: "../functions/review-submission"
     },
+    {
+        $id: "submit-campaign-proof",
+        name: "Submit Campaign Proof",
+        runtime: "node-22",
+        execute: ["users"],
+        events: [],
+        schedule: "",
+        timeout: 15,
+        enabled: true,
+        logging: true,
+        entrypoint: "src/main.js",
+        commands: "npm install",
+        path: "../functions/submit-campaign-proof"
+    },
     // ── Function DTO baca (Sprint 1 / s1-appwrite-read) ────────────────────────
     // Agregasi & join yang tidak bisa dipetakan setia dari satu collection.
     // Kontrak: docs/marketiv-md/database/08-frontend-data-contract.md §6, §15, §28.

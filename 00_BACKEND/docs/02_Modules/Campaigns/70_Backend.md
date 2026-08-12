@@ -19,6 +19,12 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 - **Trigger**: `campaign_submissions.create`.
 - **Aksi**: panggil AI Fraud Detection, tulis hasil ke `fraud_checks` & update submission.
 
+### submit-campaign-proof
+
+- **Trigger**: dipanggil frontend (`executeFunction`), bukan event.
+- **Execute**: authenticated users. Identitas dari header `x-appwrite-user-id`.
+- **Aksi**: validasi `claimId`, `campaignId`, platform, dan URL bukti tayang; buat `campaign_submissions` status `pending`; ubah `campaign_claims.status` menjadi `submitted`; kirim notifikasi ke UMKM pemilik campaign.
+
 ### calculate-campaign-reward
 
 - **Trigger**: `campaign_submissions.status` `pending → approved`.

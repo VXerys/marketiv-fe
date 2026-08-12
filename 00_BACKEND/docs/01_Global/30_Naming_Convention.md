@@ -37,4 +37,4 @@ Konvensi penamaan tunggal untuk seluruh Marketiv. Struktur folder di [`40_Folder
 ## Appwrite Function
 
 - `kebab-case`.
-- Contoh: `create-user-profile`, `create-user-wallet`, `validate-and-upload`, `delete-file`, `campaign-published`, `ai-brief`, `ai-fraud-precheck`, `create-order`, `calculate-campaign-reward`, `campaign-claimed`, `expire-stale-claims`, `create-payment`, `cancel-payment`, `midtrans-webhook`, `create-escrow`, `release-escrow`, `request-withdrawal`, `send-chat-notification`.
+- Contoh: `create-user-profile`, `create-user-wallet`, `validate-and-upload`, `delete-file`, `campaign-published`, `ai-brief`, `ai-fraud-precheck`, `create-order`, `calculate-campaign-reward`, `campaign-claimed`, `expire-stale-claims`, `submit-campaign-proof`, `create-payment`, `cancel-payment`, `midtrans-webhook`, `create-escrow`, `release-escrow`, `request-withdrawal`, `send-chat-notification`.
