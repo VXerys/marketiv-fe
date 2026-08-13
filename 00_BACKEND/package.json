@@ -10,6 +10,7 @@
     "test:integration": "vitest run tests/integration",
     "test:e2e": "playwright test",
     "fn:drift": "node appwrite/ops/drift.mjs",
+    "fn:inventory": "node appwrite/ops/audit-function-inventory.mjs",
     "fn:sync:dry": "node appwrite/ops/sync-functions.mjs --dry",
     "fn:sync": "node appwrite/ops/sync-functions.mjs",
     "oauth:google:audit": "node appwrite/ops/audit-google-oauth.mjs",

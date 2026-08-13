@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-FUNCTIONS_DIR="$(cd "$(dirname "$0")/../functions" && pwd)"
-TOTAL=25
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BACKEND_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+CONFIG_PATH="$BACKEND_DIR/appwrite.config.json"
 CURRENT=0
 FAILED=()
+
+mapfile -t FUNCTION_IDS < <(
+  node -e 'const fs=require("fs"); const cfg=JSON.parse(fs.readFileSync(process.argv[1], "utf8")); for (const fn of cfg.functions || []) console.log(fn.$id);' \
+    "$CONFIG_PATH"
+)
+TOTAL="${#FUNCTION_IDS[@]}"
 
 echo "============================================"
 echo "  Deploy All Appwrite Functions ($TOTAL)"
@@ -13,7 +20,7 @@ echo ""
 
 deploy_one() {
   local id="$1"
-  local code_dir="$FUNCTIONS_DIR/$id"
+  local code_dir="$BACKEND_DIR/functions/$id"
 
   if [ ! -d "$code_dir" ]; then
     echo "  [SKIP] $id — directory not found: $code_dir"
@@ -38,31 +45,9 @@ deploy_one() {
   echo ""
 }
 
-deploy_one "create-user-profile"
-deploy_one "create-user-wallet"
-deploy_one "validate-and-upload"
-deploy_one "delete-file"
-deploy_one "campaign-published"
-deploy_one "campaign-claimed"
-deploy_one "expire-stale-claims"
-deploy_one "ai-brief"
-deploy_one "ai-fraud-precheck"
-deploy_one "calculate-campaign-reward"
-deploy_one "create-order"
-deploy_one "create-payment"
-deploy_one "midtrans-webhook"
-deploy_one "create-escrow"
-deploy_one "release-escrow"
-deploy_one "request-withdrawal"
-deploy_one "send-chat-notification"
-deploy_one "get-umkm-dashboard-summary"
-deploy_one "get-umkm-finance-summary"
-deploy_one "get-umkm-profile"
-deploy_one "get-creator-directory"
-deploy_one "get-creator-profile"
-deploy_one "get-creator-dashboard-summary"
-deploy_one "get-creator-negotiations"
-deploy_one "cancel-payment"
+for id in "${FUNCTION_IDS[@]}"; do
+  deploy_one "$id"
+done
 
 echo "============================================"
 echo "  Summary: $((TOTAL - ${#FAILED[@]}))/$TOTAL OK"
