@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
+import fs from "node:fs";
 
 const backendDir = path.resolve(import.meta.dirname, "../..");
 
@@ -17,5 +18,21 @@ describe("function inventory audit", () => {
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("STATUS: PASS");
+  });
+
+  it("keeps reset-password-with-otp scopes aligned across source and generated config", () => {
+    const functionScopes = JSON.parse(
+      fs.readFileSync(path.join(backendDir, "appwrite/function-scopes.json"), "utf8"),
+    );
+    const appwriteConfig = JSON.parse(
+      fs.readFileSync(path.join(backendDir, "appwrite.config.json"), "utf8"),
+    );
+    const expectedScopes = ["users.read", "users.write", "sessions.write"];
+    const configFunction = appwriteConfig.functions.find(
+      (fn: { $id: string; scopes: string[] }) => fn.$id === "reset-password-with-otp",
+    );
+
+    expect(functionScopes["reset-password-with-otp"]).toEqual(expectedScopes);
+    expect(configFunction?.scopes).toEqual(expectedScopes);
   });
 });

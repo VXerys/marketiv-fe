@@ -11,6 +11,7 @@ const store: Record<string, any[]> = {};
 const authUsers: Record<string, any> = {};
 const emailTokens: any[] = [];
 const sessions: any[] = [];
+const setKeyCalls: string[] = [];
 const seed = (collection: string, docs: any[]) => { store[collection] = docs; };
 const createCalls: Array<{ collection: string; docId: string; data: any; permissions?: any[] }> = [];
 const updateCalls: Array<{ collection: string; docId: string; data: any; permissions?: any[] }> = [];
@@ -20,6 +21,7 @@ const reset = () => {
   for (const k of Object.keys(authUsers)) delete authUsers[k];
   emailTokens.length = 0;
   sessions.length = 0;
+  setKeyCalls.length = 0;
   createCalls.length = 0;
   updateCalls.length = 0;
 };
@@ -102,7 +104,11 @@ class Databases {
     return true;
   }
 }
-class Client { setEndpoint() { return this; } setProject() { return this; } setKey() { return this; } }
+class Client {
+  setEndpoint() { return this; }
+  setProject() { return this; }
+  setKey(value: string) { setKeyCalls.push(value); return this; }
+}
 class Account {
   async createEmailToken(userId: string, email: string) {
     emailTokens.push({ userId, email });
@@ -142,6 +148,9 @@ class Users {
     authUsers[userId].password = password;
     return authUsers[userId];
   }
+  async deleteSession() {
+    return true;
+  }
 }
 class Storage { async createFile() { return { $id: 'file-1' }; } async deleteFile() { return true; } }
 class Functions { async createExecution() { return { $id: 'e1', status: 'success', responseBody: '{}' }; } }
@@ -149,6 +158,42 @@ class Messaging { async createPush() { return { $id: 'm1' }; } }
 
 vi.mock('node-appwrite', () => ({
   Client, Databases, Account, Users, ID, Query, Role, Permission, Storage, Functions, Messaging,
+}));
+
+vi.mock('@google-cloud/vertexai', () => ({
+  VertexAI: class {
+    getGenerativeModel() {
+      return {
+        startChat() {
+          return {
+            async sendMessage() {
+              return {
+                response: {
+                  candidates: [
+                    {
+                      content: {
+                        parts: [
+                          {
+                            text: JSON.stringify({
+                              objective: 'Obj',
+                              contentAngle: 'Angle',
+                              cta: 'CTA',
+                              briefDetail: 'Detail',
+                              doAndDont: { do: [], dont: [] },
+                            }),
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                },
+              };
+            },
+          };
+        },
+      };
+    }
+  },
 }));
 
 // helper to build a fake req/res
@@ -499,7 +544,7 @@ describe('reset-password-with-otp function', () => {
     const main = (await import('../../functions/reset-password-with-otp/src/main.js')).default;
     const req = makeReq({
       bodyJson: {
-        userId: 'auth-1',
+        email: 'user@example.com',
         otpCode: '123456',
         password: 'new-secure-password',
       },
@@ -514,12 +559,36 @@ describe('reset-password-with-otp function', () => {
     expect(authUsers['auth-1'].password).toBe('new-secure-password');
   });
 
+  it('prefers x-appwrite-key over APPWRITE_API_KEY for admin SDK calls', async () => {
+    process.env.APPWRITE_API_KEY = 'fallback-key';
+    seedAuthUser({ $id: 'auth-1', email: 'user@example.com', password: 'old-password' });
+    const main = (await import('../../functions/reset-password-with-otp/src/main.js')).default;
+    const req = makeReq({
+      headers: {
+        'x-appwrite-user-id': 'user-1',
+        'x-appwrite-key': 'dynamic-key',
+      },
+      bodyJson: {
+        email: 'user@example.com',
+        otpCode: '123456',
+        password: 'new-secure-password',
+      },
+    });
+    const res = makeRes();
+
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(200);
+    expect(setKeyCalls).toContain('dynamic-key');
+    expect(setKeyCalls).not.toContain('fallback-key');
+  });
+
   it('does not update password when OTP verification fails', async () => {
     seedAuthUser({ $id: 'auth-1', email: 'user@example.com', password: 'old-password' });
     const main = (await import('../../functions/reset-password-with-otp/src/main.js')).default;
     const req = makeReq({
       bodyJson: {
-        userId: 'auth-1',
+        email: 'user@example.com',
         otpCode: '000000',
         password: 'new-secure-password',
       },
@@ -531,6 +600,36 @@ describe('reset-password-with-otp function', () => {
     expect(res.calls[0].status).toBe(401);
     expect(res.calls[0].body.error).toContain('Kode OTP');
     expect(authUsers['auth-1'].password).toBe('old-password');
+  });
+});
+
+describe('ai-brief function', () => {
+  it('uses x-appwrite-key for runtime Appwrite client and never APPWRITE_FUNCTION_API_KEY', async () => {
+    process.env.APPWRITE_API_KEY = 'fallback-key';
+    process.env.APPWRITE_FUNCTION_API_KEY = 'reserved-build-key';
+    process.env.APPWRITE_ENDPOINT = 'https://legacy-endpoint.example/v1';
+    process.env.APPWRITE_FUNCTION_ENDPOINT = 'https://function-endpoint.example/v1';
+    process.env.VERTEX_AI_PROJECT_ID = 'vertex-project';
+    process.env.VERTEX_AI_CLIENT_EMAIL = 'svc@example.com';
+    process.env.VERTEX_AI_PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----';
+    const main = (await import('../../functions/ai-brief/src/main.js')).default;
+    const req = makeReq({
+      headers: {
+        'x-appwrite-user-id': 'user-1',
+        'x-appwrite-key': 'dynamic-key',
+      },
+      body: {
+        description: 'Deskripsi produk',
+        type: 'ugc',
+      },
+    });
+    const res = makeRes();
+
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(200);
+    expect(setKeyCalls).toContain('dynamic-key');
+    expect(setKeyCalls).not.toContain('reserved-build-key');
   });
 });
 

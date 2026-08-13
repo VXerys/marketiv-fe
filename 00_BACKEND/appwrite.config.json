@@ -152,6 +152,7 @@
             "commands": "npm install",
             "path": "functions/reset-password-with-otp",
             "scopes": [
+                "users.read",
                 "users.write",
                 "sessions.write"
             ]

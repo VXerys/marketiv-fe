@@ -73,8 +73,8 @@ export default async ({ req, res, error }) => {
 };
 
 function getEnv(req) {
-  const apiKey = process.env.APPWRITE_API_KEY || req.headers["x-appwrite-key"];
-  console.log("Using API Key length:", apiKey ? apiKey.length : 0);
+  const apiKey =
+    req.headers?.["x-appwrite-key"] || process.env.APPWRITE_API_KEY;
 
   const env = {
     appwriteEndpoint:

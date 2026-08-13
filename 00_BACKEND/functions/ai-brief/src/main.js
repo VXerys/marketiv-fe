@@ -185,10 +185,19 @@ Return a JSON object with this exact structure (no markdown, no code fences, raw
     }
 
     try {
+      const appwriteApiKey =
+        req.headers?.["x-appwrite-key"] ||
+        process.env.APPWRITE_API_KEY;
       const client = new Client()
-        .setEndpoint(env.APPWRITE_ENDPOINT || env.APPWRITE_FUNCTION_ENDPOINT)
-        .setProject(env.APPWRITE_FUNCTION_PROJECT_ID)
-        .setKey(env.APPWRITE_FUNCTION_API_KEY);
+        .setEndpoint(
+          env.APPWRITE_FUNCTION_API_ENDPOINT ||
+            env.APPWRITE_ENDPOINT ||
+            env.APPWRITE_FUNCTION_ENDPOINT,
+        )
+        .setProject(
+          env.APPWRITE_FUNCTION_PROJECT_ID || env.APPWRITE_PROJECT_ID,
+        )
+        .setKey(appwriteApiKey);
 
       const databases = new Databases(client);
 
