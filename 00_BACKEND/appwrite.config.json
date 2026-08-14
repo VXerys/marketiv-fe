@@ -1,5 +1,5 @@
 {
-    "projectId": "6a7c4a5d00027d86524c",
+    "projectId": "69f9d45b00315cb0ec2f",
     "projectName": "Marketiv",
     "endpoint": "https://sgp.cloud.appwrite.io/v1",
     "functions": [
@@ -606,9 +606,9 @@
             "timeout": 15,
             "enabled": true,
             "logging": true,
-            "entrypoint": "src/main.js",
-            "commands": "npm install",
-            "path": "functions/create-conversation",
+            "entrypoint": "create-conversation/src/main.js",
+            "commands": "cd create-conversation && npm install",
+            "path": "functions",
             "scopes": [
                 "documents.read",
                 "documents.write"
@@ -706,9 +706,9 @@
             "timeout": 15,
             "enabled": true,
             "logging": true,
-            "entrypoint": "src/main.js",
-            "commands": "npm install",
-            "path": "functions/create-offer",
+            "entrypoint": "create-offer/src/main.js",
+            "commands": "cd create-offer && npm install",
+            "path": "functions",
             "scopes": [
                 "documents.read",
                 "documents.write"

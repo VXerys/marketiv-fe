@@ -1434,9 +1434,9 @@ const functions = [
     timeout: 15,
     enabled: true,
     logging: true,
-    entrypoint: "src/main.js",
-    commands: "npm install",
-    path: "../functions/create-conversation",
+    entrypoint: "create-conversation/src/main.js",
+    commands: "cd create-conversation && npm install",
+    path: "../functions",
   },
   {
     $id: "send-message",
@@ -1504,9 +1504,9 @@ const functions = [
     timeout: 15,
     enabled: true,
     logging: true,
-    entrypoint: "src/main.js",
-    commands: "npm install",
-    path: "../functions/create-offer",
+    entrypoint: "create-offer/src/main.js",
+    commands: "cd create-offer && npm install",
+    path: "../functions",
   },
   // ── Fix SEC-H1: guard campaign money fields (2026-08-08) ──────────────────
   // Campaign row tidak lagi punya Permission.update dari browser.
@@ -1888,12 +1888,20 @@ const scopeEntriesWithoutDir = scopeIds.filter(
 failInventory("Duplicate function ID di generator", generatorDuplicates);
 failInventory("Duplicate function ID di function-scopes.json", scopeDuplicates);
 failInventory("Function folder belum masuk generator", missingInGenerator);
-failInventory("Generator punya function tanpa source dir", missingSourceForGenerator);
+failInventory(
+  "Generator punya function tanpa source dir",
+  missingSourceForGenerator,
+);
 failInventory("Function belum punya scope", missingScopes);
-failInventory("function-scopes.json punya function tanpa source dir", scopeEntriesWithoutDir);
+failInventory(
+  "function-scopes.json punya function tanpa source dir",
+  scopeEntriesWithoutDir,
+);
 
 const existingConfig =
-  readJsonIfExists(appwriteConfigPath) || readJsonIfExists(appwriteCliConfigPath) || {};
+  readJsonIfExists(appwriteConfigPath) ||
+  readJsonIfExists(appwriteCliConfigPath) ||
+  {};
 
 const config = {
   projectId: existingConfig.projectId,
