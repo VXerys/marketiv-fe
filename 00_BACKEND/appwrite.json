@@ -3790,9 +3790,7 @@
             "name": "AI Fraud Precheck",
             "runtime": "node-22",
             "execute": [],
-            "events": [
-                "databases.6a4c8598001da3b0d7f0.tables.campaign_submissions.rows.*.create"
-            ],
+            "events": [],
             "schedule": "",
             "timeout": 60,
             "enabled": true,

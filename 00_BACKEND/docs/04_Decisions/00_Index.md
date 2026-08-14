@@ -13,3 +13,4 @@ Folder ini berisi Architecture Decision Records (ADR) yang menjelaskan **WHY** d
 - [ADR-007.md](ADR-007.md) — Minimum withdraw dipasang sebagai konstanta sistem `Rp50.000` (hardcode di Function; tanpa UI admin).
 - [ADR-008.md](ADR-008.md) — Platform fee 2% dari buyer side (UMKM) untuk Rate Card Order dan Campaign Top-Up.
 - [ADR-009.md](ADR-009.md) — Minimum budget campaign Rp50.000 agar reward creator layak.
+- [ADR-010.md](ADR-010.md) — Campaign submission validation authority dipindahkan dari UMKM ke Admin Marketiv; UMKM read-only, fraud precheck advisory, mutation melalui trusted Function.

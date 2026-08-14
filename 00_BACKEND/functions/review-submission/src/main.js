@@ -62,25 +62,27 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Submission ini sudah pernah direview." }, 409);
     }
 
-    // Kepemilikan lewat campaign induk. Query, bukan get-lalu-bandingkan, supaya
-    // campaign milik UMKM lain tidak pernah terbaca sekalipun id-nya ditebak.
-    const parent = await databases.listDocuments(env.databaseId, env.campaignsCollectionId, [
-      Query.equal("$id", str(submission.campaignId)),
-      Query.equal("umkmId", userId),
-      Query.limit(1),
-    ]);
-    // 404, bukan 403 — membedakan keduanya membocorkan submission milik UMKM lain.
-    if (!parent.documents[0]) return json(res, { error: "Submission tidak ditemukan." }, 404);
-
     const userRes = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
       Query.equal("userId", userId),
       Query.limit(1)
     ]);
     const userDoc = userRes.documents[0] || null;
+
+    if (!userDoc || userDoc.role !== "admin") {
+      log(`Review ditolak untuk ${userId}: role '${userDoc?.role}' bukan admin`);
+      return json(res, { error: "Akses ditolak: Hanya Admin Marketiv yang dapat memvalidasi submission." }, 403);
+    }
+
     if (userDoc?.status && userDoc.status !== "active") {
       log(`Review ditolak untuk ${userId}: status akun ${userDoc.status}`);
       return json(res, { error: "Akun Anda sedang tidak aktif." }, 403);
     }
+
+    const parent = await databases.listDocuments(env.databaseId, env.campaignsCollectionId, [
+      Query.equal("$id", str(submission.campaignId)),
+      Query.limit(1),
+    ]);
+    if (!parent.documents[0]) return json(res, { error: "Submission tidak ditemukan." }, 404);
 
     await databases.updateDocument(env.databaseId, env.submissionsCollectionId, submissionId, {
       status,
