@@ -24,6 +24,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { LogoutConfirmDialog } from "@/components/features/dashboard/shared/LogoutConfirmDialog";
+import { HelpAdminModal } from "@/components/features/dashboard/shared/HelpAdminModal";
 import {
   Sidebar,
   SidebarContent,
@@ -90,6 +91,7 @@ export function DashboardSidebar({
   const avatarUrl = identity?.avatarUrl;
   
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   /**
    * Panel "Kreator Sedang Bekerja".
@@ -307,24 +309,23 @@ export function DashboardSidebar({
             Butuh Bantuan?
           </span>
           <div className="flex flex-col gap-1">
-            <Link
-              href="https://wa.me/628212244157"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2.5 py-2 px-1 rounded-lg text-white/45 hover:text-white/80 transition-all duration-150 text-[0.88rem] font-[650] no-underline group"
+            <button
+              onClick={() => setShowHelpModal(true)}
+              className="flex items-center gap-2.5 py-2 px-1 rounded-lg text-white/45 hover:text-white/80 transition-all duration-150 text-[0.88rem] font-[650] bg-transparent border-none outline-none cursor-pointer text-left w-full group"
             >
-              <MessageCircle size={19} className="text-white/30 group-hover:text-white/60 transition-colors" />
+              <MessageCircle size={19} className="text-white/30 group-hover:text-white/60 transition-colors shrink-0" />
               <span>Hubungi Admin</span>
-            </Link>
+            </button>
             <Link
               href="/dashboard/umkm/panduan"
               className="flex items-center gap-2.5 py-2 px-1 rounded-lg text-white/45 hover:text-white/80 transition-all duration-150 text-[0.88rem] font-[650] no-underline group"
             >
-              <HelpCircle size={19} className="text-white/30 group-hover:text-white/60 transition-colors" />
+              <HelpCircle size={19} className="text-white/30 group-hover:text-white/60 transition-colors shrink-0" />
               <span>FAQ & Peraturan</span>
             </Link>
           </div>
         </div>
+
       </SidebarContent>
 
       {/* ── Footer — utility + user strip ─────────────────────── */}
@@ -414,6 +415,11 @@ export function DashboardSidebar({
         open={showLogoutModal}
         onOpenChange={setShowLogoutModal}
         accent="orange"
+      />
+      <HelpAdminModal
+        open={showHelpModal}
+        onOpenChange={setShowHelpModal}
+        role="umkm"
       />
     </Sidebar>
   );

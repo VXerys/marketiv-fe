@@ -31,3 +31,5 @@ export { ResponsiveDataRow } from "./ResponsiveDataRow";
 export type { ResponsiveDataCell } from "./ResponsiveDataRow";
 export { SearchToolbar } from "./SearchToolbar";
 export type { SearchToolbarFilter, SearchToolbarOption } from "./SearchToolbar";
+export { HelpAdminModal } from "./HelpAdminModal";
+export type { HelpAdminModalProps } from "./HelpAdminModal";

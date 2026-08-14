@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -27,4 +28,20 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: "nusa-putra-university",
+  project: "marketiv-web",
+
+  // Only print logs when building in development
+  silent: !process.env.CI,
+
+  // Upload source maps for precise unminified stack traces
+  widenClientFileUpload: true,
+
+  // Route browser requests to Sentry through a Next.js rewrite (commented out for local testing direct envelope ingest)
+  // tunnelRoute: "/monitoring",
+
+  // Automatically tree-shake Sentry logger statements to reduce bundle size
+  disableLogger: false,
+});
+

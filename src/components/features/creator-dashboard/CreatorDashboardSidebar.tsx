@@ -13,6 +13,7 @@ import {
   Tag,
   Wallet,
   Settings,
+  HelpCircle,
   LogOut,
   BadgeCheck,
   ArrowRight,
@@ -22,6 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { routes } from "@/lib/constants/routes";
 import { LogoutConfirmDialog } from "@/components/features/dashboard/shared/LogoutConfirmDialog";
+import { HelpAdminModal } from "@/components/features/dashboard/shared/HelpAdminModal";
 import {
   Sidebar,
   SidebarContent,
@@ -80,6 +82,7 @@ export function CreatorDashboardSidebar({
 
   const [activeJobsCount, setActiveJobsCount] = useState<number>(0);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   useEffect(() => {
     async function loadActiveJobsCount() {
@@ -244,6 +247,30 @@ export function CreatorDashboardSidebar({
             );
           })}
         </SidebarMenu>
+
+        {/* Section: Support / Bantuan */}
+        <div className="mt-6 px-3.5 group-data-[collapsible=icon]:hidden">
+          <span className="block text-[0.66rem] font-[800] text-white/20 uppercase tracking-widest mb-2.5 select-none">
+            Butuh Bantuan?
+          </span>
+          <div className="flex flex-col gap-1">
+            <button
+              onClick={() => setShowHelpModal(true)}
+              className="flex items-center gap-2.5 py-2 px-1 rounded-lg text-white/45 hover:text-white/80 transition-all duration-150 text-[0.88rem] font-[650] bg-transparent border-none outline-none cursor-pointer text-left w-full group"
+            >
+              <MessageCircle size={19} className="text-white/30 group-hover:text-white/60 transition-colors shrink-0" />
+              <span>Hubungi Admin</span>
+            </button>
+            <Link
+              href="/dashboard/kreator/panduan"
+              onClick={onCloseSidebar}
+              className="flex items-center gap-2.5 py-2 px-1 rounded-lg text-white/45 hover:text-white/80 transition-all duration-150 text-[0.88rem] font-[650] no-underline group"
+            >
+              <HelpCircle size={19} className="text-white/30 group-hover:text-white/60 transition-colors shrink-0" />
+              <span>FAQ & Peraturan</span>
+            </Link>
+          </div>
+        </div>
       </SidebarContent>
 
       {/* Footer */}
@@ -329,6 +356,11 @@ export function CreatorDashboardSidebar({
         open={showLogoutModal}
         onOpenChange={setShowLogoutModal}
         accent="purple"
+      />
+      <HelpAdminModal
+        open={showHelpModal}
+        onOpenChange={setShowHelpModal}
+        role="kreator"
       />
     </Sidebar>
   );

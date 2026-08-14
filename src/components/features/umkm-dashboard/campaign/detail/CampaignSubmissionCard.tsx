@@ -97,18 +97,8 @@ export function CampaignSubmissionCard({
           onClick={onViewDetails}
           className="h-8 text-[10px] bg-white border border-border-soft hover:bg-neutral-50 text-text-secondary"
         >
-          Detail
+          Detail Validasi
         </DashboardButton>
-        {isPending && (
-          <DashboardButton
-            variant="primary"
-            size="sm"
-            onClick={onReviewClick}
-            className="h-8 text-[10px]"
-          >
-            Review
-          </DashboardButton>
-        )}
       </div>
 
     </ResponsiveDataRow>

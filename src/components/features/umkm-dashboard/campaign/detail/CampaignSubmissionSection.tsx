@@ -47,10 +47,10 @@ export function CampaignSubmissionSection({
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
             <h3 className="text-xs sm:text-sm font-extrabold text-text-primary uppercase tracking-wide">
-              Periksa Bukti Konten Kreator
+              Bukti Konten Kreator
             </h3>
             <p className="text-xs text-text-muted">
-              Periksa link video TikTok atau Instagram dari kreator dan setujui jika sesuai.
+              Daftar postingan video dari kreator dan status validasi resmi oleh Admin Marketiv.
             </p>
           </div>
           <span className="text-[11px] font-extrabold text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200/80 uppercase tracking-wide shrink-0">
