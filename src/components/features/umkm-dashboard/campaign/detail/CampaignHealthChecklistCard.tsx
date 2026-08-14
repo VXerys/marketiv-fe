@@ -41,11 +41,11 @@ export function CampaignHealthChecklistCard({
         : "Seluruh kuota kreator sudah terisi penuh.",
     },
     {
-      label: "Pemeriksaan Bukti Konten",
+      label: "Status Validasi Bukti Konten",
       status: pendingCount > 0 ? "warning" : "success",
       desc: pendingCount > 0
-        ? `Ada ${pendingCount} bukti video baru yang perlu Anda periksa.`
-        : "Semua bukti video telah selesai diperiksa.",
+        ? `Ada ${pendingCount} bukti video sedang menunggu validasi Marketiv.`
+        : "Semua bukti video telah selesai divalidasi Marketiv.",
     },
   ];
 

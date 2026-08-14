@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { CampaignSubmission } from "@/types/umkm-dashboard.types";
-import { formatCurrency, formatDate, formatRelativeTime } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@/lib/formatters";
 import { DashboardBadge } from "../../shared";
 import {
   ResponsiveModal,
@@ -23,6 +23,8 @@ export function SubmissionDetailModal({
   onClose,
   submission,
 }: SubmissionDetailModalProps) {
+  const isPending = submission.validationStatus === "pending";
+
   return (
     <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <ResponsiveModalContent className="max-w-lg w-full p-6 rounded-2xl border border-neutral-200/80 bg-white shadow-xl">
@@ -31,7 +33,7 @@ export function SubmissionDetailModal({
             Detail Bukti Konten Kreator
           </ResponsiveModalTitle>
           <ResponsiveModalDescription className="text-xs text-text-muted mt-0.5">
-            Rincian postingan video dan riwayat pemeriksaan.
+            Rincian postingan video dan riwayat validasi resmi Admin Marketiv.
           </ResponsiveModalDescription>
         </ResponsiveModalHeader>
 
@@ -65,15 +67,19 @@ export function SubmissionDetailModal({
         <div className="grid grid-cols-2 gap-3.5 mb-5">
           <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60">
             <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-              Tayangan Terkumpul
+              Tayangan Views
             </span>
             <span className="text-sm font-black text-text-primary font-display">
-              {submission.actualViews.toLocaleString("id-ID")}
+              {isPending
+                ? "Belum diverifikasi"
+                : submission.actualViews > 0
+                ? submission.actualViews.toLocaleString("id-ID")
+                : "0"}
             </span>
           </div>
           <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60">
             <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-              Status Pemeriksaan
+              Indikator Risiko
             </span>
             <span className="text-xs font-extrabold text-text-primary capitalize">
               {submission.fraudStatus || "Normal"}
@@ -81,10 +87,10 @@ export function SubmissionDetailModal({
           </div>
           <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60">
             <span className="block text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">
-              Dana Dibayarkan
+              Reward Terhitung
             </span>
             <span className="text-sm font-black text-emerald-700 font-display">
-              {formatCurrency(submission.releasedFund)}
+              {isPending ? "Belum dihitung" : formatCurrency(submission.releasedFund)}
             </span>
           </div>
           <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60">
@@ -117,11 +123,11 @@ export function SubmissionDetailModal({
           </div>
         </div>
 
-        {/* Catatan Validator */}
+        {/* Catatan Validasi Admin */}
         {submission.rejectedReason && (
           <div className="mb-5 p-3.5 bg-amber-50 border border-amber-200/80 rounded-xl">
             <span className="block text-[10px] font-extrabold text-amber-900 uppercase tracking-wide mb-1">
-              Catatan Alasan Penolakan
+              Catatan Validasi Admin Marketiv
             </span>
             <p className="text-xs text-amber-950 font-medium leading-relaxed">{submission.rejectedReason}</p>
           </div>

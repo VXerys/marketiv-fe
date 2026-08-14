@@ -120,7 +120,7 @@ export interface CampaignSubmission {
   actualViews: number;
   targetViews: number;
   releasedFund: number;
-  /** campaign_submissions.status — keputusan UMKM */
+  /** campaign_submissions.status — hasil validasi submission resmi (Admin Marketiv authority, ADR-010) */
   validationStatus: SubmissionStatus;
   /** campaign_submissions.fraudStatus — hasil ai-fraud-precheck, terpisah dari status */
   fraudStatus: FraudStatus;

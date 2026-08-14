@@ -6,13 +6,11 @@ import { CampaignSubmissionCard } from "./CampaignSubmissionCard";
 
 interface CampaignSubmissionSectionProps {
   submissions: CampaignSubmission[];
-  onReviewClick: (sub: CampaignSubmission) => void;
   onViewDetailsClick: (sub: CampaignSubmission) => void;
 }
 
 export function CampaignSubmissionSection({
   submissions,
-  onReviewClick,
   onViewDetailsClick,
 }: CampaignSubmissionSectionProps) {
   const [filterTab, setFilterTab] = useState<"all" | SubmissionStatus>("all");
@@ -25,7 +23,7 @@ export function CampaignSubmissionSection({
   const tabs: { label: string; value: "all" | SubmissionStatus; count: number }[] = [
     { label: "Semua", value: "all", count: submissions.length },
     {
-      label: "Menunggu Diperiksa",
+      label: "Menunggu Validasi",
       value: "pending",
       count: submissions.filter((s) => s.validationStatus === "pending").length,
     },
@@ -106,30 +104,29 @@ export function CampaignSubmissionSection({
               <CampaignSubmissionCard
                 key={sub.id}
                 submission={sub}
-                onReviewClick={() => onReviewClick(sub)}
                 onViewDetails={() => onViewDetailsClick(sub)}
               />
             ))}
           </div>
         )}
 
-        {/* Audit guide notes */}
+        {/* Marketiv 3-Step Validation Process */}
         <div className="mt-6 pt-5 border-t border-neutral-200/50">
           <span className="block text-[11px] font-extrabold text-text-muted uppercase tracking-wider mb-3">
-            Petunjuk Cara Memeriksa Konten
+            Proses Validasi Konten Marketiv
           </span>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60 text-xs">
-              <strong className="text-text-primary block font-bold mb-0.5">✓ Tautan Dapat Dibuka</strong>
-              <span className="text-text-muted text-[11px]">Pastikan tautan video TikTok atau Instagram bisa dilihat.</span>
+            <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60 text-xs space-y-0.5">
+              <strong className="text-text-primary block font-extrabold">1. Kreator Mengirim Bukti</strong>
+              <span className="text-text-muted text-[11px]">Kreator menyertakan tautan postingan video publik.</span>
             </div>
-            <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60 text-xs">
-              <strong className="text-text-primary block font-bold mb-0.5">✓ Kesesuaian Produk</strong>
-              <span className="text-text-muted text-[11px]">Periksa apakah produk Anda tampil dalam video kreator.</span>
+            <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60 text-xs space-y-0.5">
+              <strong className="text-text-primary block font-extrabold">2. Verifikasi Admin Marketiv</strong>
+              <span className="text-text-muted text-[11px]">Admin memeriksa keabsahan link dan mengunci total views.</span>
             </div>
-            <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60 text-xs">
-              <strong className="text-text-primary block font-bold mb-0.5">✓ Pemeriksaan Keamanan</strong>
-              <span className="text-text-muted text-[11px]">Sistem otomatis memeriksa jumlah penonton secara berkala.</span>
+            <div className="bg-neutral-50 p-3 rounded-xl border border-neutral-200/60 text-xs space-y-0.5">
+              <strong className="text-text-primary block font-extrabold">3. Pelepasan Reward</strong>
+              <span className="text-text-muted text-[11px]">Reward dihitung otomatis setelah validasi disetujui.</span>
             </div>
           </div>
         </div>

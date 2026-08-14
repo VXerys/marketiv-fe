@@ -157,7 +157,7 @@ export function CampaignWorkspaceCard({ campaign, submissions }: CampaignWorkspa
                   variant="outline"
                   size="sm"
                   onClick={handleCopy}
-                  className="h-[42px] px-4 shrink-0 text-xs font-extrabold"
+                  className="h-[42px] px-4 shrink-0 text-xs font-extrabold cursor-pointer"
                   leftIcon={<Copy className="w-3.5 h-3.5" />}
                 >
                   {copied ? "Tersalin!" : "Salin Tautan"}
@@ -171,7 +171,7 @@ export function CampaignWorkspaceCard({ campaign, submissions }: CampaignWorkspa
                 href={campaign.externalAssetUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="w-full h-11 flex items-center justify-center gap-2 text-xs sm:text-sm font-extrabold"
+                className="w-full h-11 flex items-center justify-center gap-2 text-xs sm:text-sm font-extrabold cursor-pointer"
                 leftIcon={<ExternalLink className="w-4 h-4 text-white shrink-0" />}
               >
                 <span>Buka Folder Google Drive / OneDrive</span>
@@ -202,7 +202,7 @@ export function CampaignWorkspaceCard({ campaign, submissions }: CampaignWorkspa
                 </span>
               </div>
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-extrabold uppercase tracking-wide shrink-0">
-                Data Otomatis
+                Data Kampanye
               </span>
             </div>
 

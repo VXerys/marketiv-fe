@@ -7,7 +7,7 @@ interface CampaignQuickActionsCardProps {
   onCopyAsset: () => void;
   onExportReport: () => void;
   onViewEscrow: () => void;
-  onReviewPending: () => void;
+  onViewSubmissions: () => void;
   hasPendingSubmissions: boolean;
 }
 
@@ -15,7 +15,7 @@ export function CampaignQuickActionsCard({
   onCopyAsset,
   onExportReport,
   onViewEscrow,
-  onReviewPending,
+  onViewSubmissions,
   hasPendingSubmissions,
 }: CampaignQuickActionsCardProps) {
   return (
@@ -27,15 +27,15 @@ export function CampaignQuickActionsCard({
       </div>
       
       <div className="flex flex-col gap-3">
-        {/* Button 1: Review Pending Submissions (Primary Action) */}
+        {/* Button 1: View Submissions (Primary Action) */}
         <DashboardButton
           variant="primary"
           size="md"
-          onClick={onReviewPending}
-          className="w-full h-11 justify-center gap-2 text-xs font-extrabold rounded-full"
+          onClick={onViewSubmissions}
+          className="w-full h-11 justify-center gap-2 text-xs font-extrabold rounded-full cursor-pointer"
           leftIcon={<CheckSquare className="w-4 h-4 text-white shrink-0" />}
         >
-          {hasPendingSubmissions ? "Periksa Bukti Konten Baru" : "Lihat Semua Bukti Konten"}
+          {hasPendingSubmissions ? "Lihat Status Validasi Bukti Konten" : "Lihat Semua Bukti Konten"}
         </DashboardButton>
 
         {/* Button 2: Copy Assets Tautan */}
@@ -43,7 +43,7 @@ export function CampaignQuickActionsCard({
           variant="secondary"
           size="md"
           onClick={onCopyAsset}
-          className="w-full h-11 justify-center gap-2 text-xs font-bold rounded-full"
+          className="w-full h-11 justify-center gap-2 text-xs font-bold rounded-full cursor-pointer"
           leftIcon={<Copy className="w-4 h-4 shrink-0" />}
         >
           Salin Tautan Folder Foto & Video
@@ -54,7 +54,7 @@ export function CampaignQuickActionsCard({
           variant="secondary"
           size="md"
           onClick={onExportReport}
-          className="w-full h-11 justify-center gap-2 text-xs font-bold rounded-full"
+          className="w-full h-11 justify-center gap-2 text-xs font-bold rounded-full cursor-pointer"
           leftIcon={<Download className="w-4 h-4 shrink-0" />}
         >
           Unduh Laporan Hasil Kampanye
@@ -65,7 +65,7 @@ export function CampaignQuickActionsCard({
           variant="secondary"
           size="md"
           onClick={onViewEscrow}
-          className="w-full h-11 justify-center gap-2 text-xs font-bold rounded-full"
+          className="w-full h-11 justify-center gap-2 text-xs font-bold rounded-full cursor-pointer"
           leftIcon={<ShieldCheck className="w-4 h-4 shrink-0" />}
         >
           Lihat Riwayat Transaksi

@@ -5,18 +5,16 @@ import {
   ResponsiveDataRow,
   ResponsiveDataCell,
   DashboardBadge,
-  DashboardButton
+  DashboardButton,
 } from "../../shared";
 
 interface CampaignSubmissionCardProps {
   submission: CampaignSubmission;
-  onReviewClick: () => void;
   onViewDetails: () => void;
 }
 
 export function CampaignSubmissionCard({
   submission,
-  onReviewClick,
   onViewDetails,
 }: CampaignSubmissionCardProps) {
   const isPending = submission.validationStatus === "pending";
@@ -24,9 +22,8 @@ export function CampaignSubmissionCard({
   return (
     <ResponsiveDataRow
       className="md:grid md:items-center gap-4 py-3.5 px-5"
-      style={{ gridTemplateColumns: 'minmax(220px, 1.4fr) 90px 130px 150px 170px' }}
+      style={{ gridTemplateColumns: "minmax(220px, 1.4fr) 90px 130px 150px 170px" }}
     >
-      
       {/* Creator Info */}
       <div className="flex items-center gap-3.5 min-w-0 w-full md:w-auto">
         <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-border-soft bg-neutral-200">
@@ -67,20 +64,20 @@ export function CampaignSubmissionCard({
         </div>
       </div>
 
-      {/* Cells */}
+      {/* Views */}
       <ResponsiveDataCell label="Views" className="w-full md:w-auto">
         <span className="font-extrabold text-text-primary text-xs sm:text-sm">
           {submission.actualViews > 0 ? formatCompactNumber(submission.actualViews) : "—"}
         </span>
-        {submission.actualViews === 0 && submission.validationStatus !== "rejected" && (
+        {isPending && (
           <span className="block text-[10px] text-text-muted font-semibold leading-tight mt-0.5">Belum diverifikasi</span>
         )}
       </ResponsiveDataCell>
 
-      {/* Dana Cair */}
-      <ResponsiveDataCell label="Dana Cair" className="w-full md:w-auto">
+      {/* Reward Terhitung */}
+      <ResponsiveDataCell label="Reward" className="w-full md:w-auto">
         <span className="font-extrabold text-success text-xs sm:text-sm">
-          {formatCurrency(submission.releasedFund)}
+          {isPending ? "—" : formatCurrency(submission.releasedFund)}
         </span>
       </ResponsiveDataCell>
 
@@ -95,12 +92,11 @@ export function CampaignSubmissionCard({
           variant="secondary"
           size="sm"
           onClick={onViewDetails}
-          className="h-8 text-[10px] bg-white border border-border-soft hover:bg-neutral-50 text-text-secondary"
+          className="h-8 text-[10px] bg-white border border-border-soft hover:bg-neutral-50 text-text-secondary cursor-pointer"
         >
-          Detail Validasi
+          Lihat Detail
         </DashboardButton>
       </div>
-
     </ResponsiveDataRow>
   );
 }

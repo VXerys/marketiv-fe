@@ -136,8 +136,17 @@ const mapCampaign = (d: Doc): Campaign => ({
 
 /** Terima profil opsional dan rate campaign untuk menghitung releasedFund tampilan. */
 const mapSubmission = (d: Doc, creator?: Doc, ratePerThousandViews = 0): CampaignSubmission => {
-  const views = num(d.views);
+  const viewsFinal = Boolean(d.views_final || d.viewsFinal);
+  const lockedViews = num(d.views_count) || num(d.viewsCount);
+  const views = viewsFinal && lockedViews > 0 ? lockedViews : num(d.views);
   const status = str(d.status) as SubmissionStatus;
+
+  // ADR-008: Campaign fee is buyer-side. Creator receives full calculated reward.
+  const calculatedReward =
+    status === "approved" && ratePerThousandViews > 0
+      ? Math.floor(views / 1000) * ratePerThousandViews
+      : 0;
+
   return {
     id: str(d.$id),
     campaignId: str(d.campaignId),
@@ -148,11 +157,9 @@ const mapSubmission = (d: Doc, creator?: Doc, ratePerThousandViews = 0): Campaig
     contentUrl: str(d.postUrl),
     actualViews: views,
     targetViews: 0,
-    releasedFund: status === "approved" && ratePerThousandViews > 0
-      ? Math.floor(views / 1000 * ratePerThousandViews * (1 - PLATFORM_FEE_RATE))
-      : 0,
+    releasedFund: calculatedReward,
     validationStatus: status,
-    fraudStatus: str(d.fraudStatus) as FraudStatus,
+    fraudStatus: (str(d.fraudStatus) as FraudStatus) || "safe",
     rejectedReason: str(d.reviewNotes) || undefined,
     submittedAt: str(d.$createdAt),
   };

@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Campaign } from "@/types/umkm-dashboard.types";
 import { formatCurrency } from "@/lib/formatters";
 
-
 interface CampaignActivityTimelineProps {
   campaign: Campaign;
 }
@@ -78,8 +77,8 @@ export function CampaignActivityTimeline({ campaign }: CampaignActivityTimelineP
       return [
         ...activeEvents,
         {
-          title: "Ulasan Selesai Divalidasi",
-          desc: "Semua bukti konten telah divalidasi.",
+          title: "Validasi Bukti Selesai",
+          desc: "Semua bukti konten telah divalidasi oleh Admin Marketiv.",
           date: campaign.updatedAt,
           type: "validate",
         },

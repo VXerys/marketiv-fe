@@ -39,10 +39,10 @@ export function CampaignOverviewCards({
       ),
     },
     {
-      label: "Dana Dibayarkan",
+      label: "Dana Terpakai",
       value: campaign.usedBudget,
       currency: "full" as const,
-      helper: "Telah diterima kreator",
+      helper: "Total reward teralokasi",
       tone: "danger" as const,
       icon: (
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
@@ -75,9 +75,9 @@ export function CampaignOverviewCards({
       ),
     },
     {
-      label: "Perlu Diperiksa",
+      label: "Menunggu Validasi",
       value: pendingSubmissionsCount,
-      helper: "Bukti postingan baru",
+      helper: "Bukti diproses Marketiv",
       tone: "warning" as const,
       icon: (
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">

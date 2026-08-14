@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { UmkmPageWrapper } from "../../shared/UmkmPageWrapper";
@@ -19,19 +19,16 @@ import {
   getCampaignSubmissions,
   getUmkmProfile,
   updateCampaignStatus,
-  reviewSubmission,
 } from "@/services/umkm/umkm-dashboard.service";
 import {
   Campaign,
   UmkmProfile,
   CampaignSubmission,
-  SubmissionStatus,
 } from "@/types/umkm-dashboard.types";
 
 // Modals
 import { CancelCampaignModal } from "../modals/CancelCampaignModal";
 import { ExportReportModal } from "../modals/ExportReportModal";
-import { ReviewSubmissionModal } from "../modals/ReviewSubmissionModal";
 import { SubmissionDetailModal } from "../modals/SubmissionDetailModal";
 
 import { toast } from "sonner";
@@ -52,21 +49,11 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
 
   const [isResuming, setIsResuming] = useState(false);
 
-  // Timer ref untuk cleanup saat unmount (fix LOW-1 2026-08-08)
-  const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    return () => {
-      if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
-    };
-  }, []);
-
   // Modals visibility states
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [activeReviewSubmission, setActiveReviewSubmission] = useState<CampaignSubmission | null>(null);
   const [activeDetailSubmission, setActiveDetailSubmission] = useState<CampaignSubmission | null>(null);
 
-  // Local feedback notification simulation via Sonner
   const showToast = (msg: string) => {
     toast.success(msg);
   };
@@ -106,58 +93,6 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
     loadData();
   }, [loadData]);
 
-  /**
-   * Setujui / tolak submission.
-   *
-   * Reward TIDAK dihitung di sini. Sebelumnya nilainya dikarang di klien —
-   * termasuk fallback `|| 15000` views yang membuat angka rupiah muncul dari
-   * ketiadaan. Yang menghitung adalah `calculate-campaign-reward`, yang menyala
-   * pada update `campaign_submissions` dan menulis `spentAmount` /
-   * `remainingBudget` campaign sendiri.
-   *
-   * Karena Function itu berjalan asinkron, angka campaign dibaca ulang dari
-   * server alih-alih ditebak lokal — dengan jeda singkat supaya Function sempat
-   * selesai. Kalau belum sempat, angkanya menyusul di refresh berikutnya.
-   */
-  const handleReviewConfirm = async (status: SubmissionStatus, views: number, notes?: string) => {
-    if (!activeReviewSubmission || !campaign) return;
-    if (status === "pending") return;
-
-    const target = activeReviewSubmission;
-    const res = await reviewSubmission({
-      submissionId: target.id,
-      status,
-      views,
-      notes,
-    });
-
-    if (!res.success) {
-      toast.error(res.error ?? "Gagal menyimpan hasil review.");
-      throw new Error(res.error ?? "Gagal menyimpan hasil review.");
-    }
-
-    setSubmissions((prev) =>
-      prev.map((sub) =>
-        sub.id === target.id
-          ? {
-              ...sub,
-              validationStatus: status,
-              actualViews: status === "approved" ? views : sub.actualViews,
-            }
-          : sub
-      )
-    );
-
-    const statusLabel = status === "approved" ? "disetujui" : "ditolak";
-    showToast(`Submission dari "${target.creatorName}" berhasil ${statusLabel}.`);
-
-    // Beri ruang untuk calculate-campaign-reward sebelum membaca angka baru.
-    // Timer disimpan di ref agar bisa di-cancel saat komponen unmount.
-    reloadTimerRef.current = setTimeout(() => {
-      void loadData();
-    }, 2500);
-  };
-
   const handleCancelConfirm = async () => {
     if (!campaign) return;
     const target = campaign;
@@ -170,10 +105,6 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
     }
   };
 
-  /**
-   * CTA utama campaign paused → aktifkan kembali (bukan edit).
-   * Guard status ada di backend — kalau sudah aktif, server menolak.
-   */
   const handleResumeFromPause = async () => {
     if (!campaign || isResuming) return;
     setIsResuming(true);
@@ -235,11 +166,10 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
           {/* Workspace Card (Full Width) */}
           <CampaignWorkspaceCard campaign={campaign} submissions={submissions} />
           
-          {/* Submissions Section (Full Width) */}
+          {/* Submissions Section (Full Width) - Read-Only Observer */}
           <div id="review-submissions-section">
             <CampaignSubmissionSection
               submissions={submissions}
-              onReviewClick={setActiveReviewSubmission}
               onViewDetailsClick={setActiveDetailSubmission}
             />
           </div>
@@ -256,7 +186,7 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
                 }}
                 onExportReport={() => setIsExportModalOpen(true)}
                 onViewEscrow={() => showToast("Membuka rekam transaksi escrow...")}
-                onReviewPending={() => {
+                onViewSubmissions={() => {
                   const element = document.getElementById("review-submissions-section");
                   if (element) {
                     element.scrollIntoView({ behavior: "smooth" });
@@ -305,16 +235,6 @@ export function CampaignDetailPage({ campaignId }: CampaignDetailPageProps) {
               "Dikirim": s.submittedAt,
               "Divalidasi": s.validatedAt ?? "-",
             }))}
-          />
-        )}
-
-        {activeReviewSubmission && (
-          <ReviewSubmissionModal
-            isOpen={!!activeReviewSubmission}
-            onClose={() => setActiveReviewSubmission(null)}
-            submission={activeReviewSubmission}
-            ratePerThousandViews={campaign?.pricePerThousandViews ?? 0}
-            onConfirm={handleReviewConfirm}
           />
         )}
 

@@ -13,6 +13,7 @@ import { realtimeClient, tableChannels } from "@/lib/appwrite/realtime";
 
 import { useUmkmIdentity } from "./UmkmIdentityContext";
 import { DashboardProfileAvatar } from "@/components/features/dashboard/shared/DashboardProfileAvatar";
+import { NotificationHeaderDropdown } from "@/components/features/shared/NotificationHeaderDropdown";
 
 // Dihapus: PROFILE_AVATAR_IMAGE_URL hardcoded (fix P0-B 2026-08-08).
 // Avatar sekarang dibaca dari profil UMKM yang nyata via prop `avatarUrl` atau context.
@@ -216,21 +217,8 @@ export function DashboardTopbar({ avatarUrl: propAvatarUrl }: DashboardTopbarPro
 
       {/* ── Right: actions ────────────────────────────────────── */}
       <div className="flex items-center gap-3 shrink-0">
-        {/* Notification bell */}
-        <Link
-          href="/dashboard/umkm/notifikasi"
-          className="relative w-11 h-11 flex items-center justify-center rounded-xl text-ink-500 hover:bg-neutral-100 hover:text-ink-800 active:scale-95 transition-all duration-150 cursor-pointer border border-neutral-200/60 bg-white/70 shadow-3xs hover:shadow-2xs"
-          aria-label={unreadCount > 0 ? `Notifikasi, ${unreadCount} belum dibaca` : "Notifikasi"}
-        >
-          <Bell size={20} strokeWidth={2} />
-          {/* Unread dot */}
-          {unreadCount > 0 && (
-            <span
-              className="absolute top-[12px] right-[12px] w-[8px] h-[8px] rounded-full border-[1.5px] border-white bg-primary shadow-[0_0_0_1px_rgba(249,115,22,.25)]"
-              aria-hidden="true"
-            />
-          )}
-        </Link>
+        {/* Notification bell dropdown */}
+        <NotificationHeaderDropdown theme="umkm" />
 
         {/* Avatar — menggunakan DashboardProfileAvatar dari context */}
         <Link
