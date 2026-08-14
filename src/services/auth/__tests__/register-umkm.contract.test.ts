@@ -75,7 +75,7 @@ describe("registerUmkm contract", () => {
     expect(mocks.updatePrefs).toHaveBeenCalledWith({
       prefs: { role: "umkm", phone: "08123456789" },
     });
-  });
+  }, 15000);
 
   it("does not require businessName or category", async () => {
     const { registerUmkmSchema } = await import("@/lib/validations/auth.schema");

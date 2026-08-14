@@ -41,6 +41,7 @@ export function AuthField({
       <input
         {...props}
         id={id}
+        suppressHydrationWarning
         aria-invalid={!!error}
         aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
         className={cn(inputCls, error && "border-red-400 focus:border-red-500", className)}
@@ -78,6 +79,7 @@ export function PasswordField({
         <input
           {...props}
           id={id}
+          suppressHydrationWarning
           type={visible ? "text" : "password"}
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
@@ -209,6 +211,7 @@ export function AuthTextareaField({
       <textarea
         {...props}
         id={id}
+        suppressHydrationWarning
         rows={rows}
         aria-invalid={!!error}
         aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}

@@ -45,14 +45,14 @@ export function ResponsiveModalTrigger({ children, ...props }: React.ComponentPr
   return <Trigger {...props}>{children}</Trigger>;
 }
 
-export function ResponsiveModalContent({ children, className, ...props }: React.ComponentProps<typeof DialogContent>) {
+export function ResponsiveModalContent({ children, className, showCloseButton = true, ...props }: React.ComponentProps<typeof DialogContent> & { showCloseButton?: boolean }) {
   const isMobile = useIsMobile();
 
   if (isMobile) {
     return <DrawerContent className={className} {...props}>{children}</DrawerContent>;
   }
 
-  return <DialogContent className={className} {...props}>{children}</DialogContent>;
+  return <DialogContent className={className} showCloseButton={showCloseButton} {...props}>{children}</DialogContent>;
 }
 
 export function ResponsiveModalHeader({ children, className, ...props }: React.ComponentProps<"div">) {
