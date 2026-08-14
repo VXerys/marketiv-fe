@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -22,8 +22,10 @@ import {
 import { CreatorJob } from "@/types/creator-dashboard";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/formatters";
-import { claimCampaign } from "@/services/creator/creator-dashboard.service";
+import { claimCampaign, getCreatorActiveWorks } from "@/services/creator/creator-dashboard.service";
 import { toast } from "sonner";
+import { ClaimCampaignModal } from "./modals/ClaimCampaignModal";
+import { ClaimSuccessModal } from "./modals/ClaimSuccessModal";
 import {
   DashboardButton,
   DashboardStateCard,
@@ -113,6 +115,7 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
 
   const [isClaimOpen, setIsClaimOpen] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [hasClaimed, setHasClaimed] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [isRulesChecked, setIsRulesChecked] = useState({
     brief: false,
@@ -120,6 +123,20 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
     retention: false,
     views: false,
   });
+
+  useEffect(() => {
+    async function checkClaimStatus() {
+      if (!initialJob?.id) return;
+      const res = await getCreatorActiveWorks();
+      if (res.success && res.data) {
+        const isAlreadyClaimed = res.data.some((w) => w.campaignId === initialJob.id);
+        if (isAlreadyClaimed) {
+          setHasClaimed(true);
+        }
+      }
+    }
+    checkClaimStatus();
+  }, [initialJob?.id]);
 
   const openBrief = () => {
     setIsBriefOpen(true);
@@ -146,6 +163,7 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
     }
 
     setJob((prev) => (prev ? { ...prev, usedQuota: prev.usedQuota + 1 } : null));
+    setHasClaimed(true);
     setIsClaimOpen(false);
     setIsSuccessOpen(true);
   };
@@ -256,13 +274,13 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
 
               <div className="flex flex-wrap items-center gap-3 pt-1">
                 <button
-                  disabled={isFull}
+                  disabled={isFull || hasClaimed}
                   onClick={() => { setIsRulesChecked({ brief: false, privacy: false, retention: false, views: false }); setIsClaimOpen(true); }}
                   className={cn("min-h-[44px] px-7 font-black text-sm rounded-xl transition-all duration-200",
-                    isFull ? "bg-white/10 text-white/30 cursor-not-allowed" : "text-white hover:-translate-y-0.5 active:translate-y-0 cursor-pointer shadow-lg")}
-                  style={!isFull ? { background: CREATOR_ACTION_GRADIENT, boxShadow: "var(--shadow-kreator-cta)" } : undefined}
+                    isFull || hasClaimed ? "bg-white/10 text-white/40 cursor-not-allowed border border-white/10 shadow-none" : "text-white hover:-translate-y-0.5 active:translate-y-0 cursor-pointer shadow-lg")}
+                  style={!isFull && !hasClaimed ? { background: CREATOR_ACTION_GRADIENT, boxShadow: "var(--shadow-kreator-cta)" } : undefined}
                 >
-                  {isFull ? "Kuota Penuh" : "Join Campaign"}
+                  {hasClaimed ? "Sudah Diklaim ✓" : isFull ? "Kuota Penuh" : "Join Campaign"}
                 </button>
                 <button onClick={() => setActiveTab("video")} className="min-h-[44px] px-5 inline-flex items-center gap-2 font-bold text-sm rounded-xl border border-white/25 bg-white/10 hover:bg-white/18 text-white transition-all duration-200 cursor-pointer backdrop-blur-sm">
                   <Play className="w-3.5 h-3.5" />
@@ -619,64 +637,20 @@ export function JobDetailView({ job: initialJob }: JobDetailViewProps) {
       </div>
 
       {/* ═══ CLAIM MODAL ═══ */}
-      <ModalFrame
+      <ClaimCampaignModal
         isOpen={isClaimOpen && !!job}
-        title="Klaim Campaign Ini?"
-        description={job.title}
         onClose={() => setIsClaimOpen(false)}
-        footer={
-          <div className="flex gap-3 w-full">
-            <DashboardButton type="button" variant="outline" onClick={() => setIsClaimOpen(false)} disabled={isClaiming} fullWidthOnMobile>Batal</DashboardButton>
-            <button type="button" onClick={handleClaimSubmit} disabled={!allChecked || isClaiming}
-              className={cn("flex-1 sm:flex-none py-2.5 px-5 font-bold text-xs rounded-full border transition-all cursor-pointer",
-                !allChecked || isClaiming ? "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed" : "text-white border-transparent hover:-translate-y-0.5 active:translate-y-0")}
-              style={allChecked && !isClaiming ? { background: CREATOR_ACTION_GRADIENT, boxShadow: "var(--shadow-kreator)" } : undefined}>
-              {isClaiming ? "Memproses…" : "Klaim Sekarang"}
-            </button>
-          </div>
-        }
-      >
-        <div className="space-y-4 text-xs font-semibold text-neutral-700">
-          <p className="text-neutral-500 leading-relaxed font-medium">Harap centang persetujuan di bawah sebelum mengambil kontrak pekerjaan:</p>
-          <div className="space-y-3 pt-2">
-            {([
-              { key: "brief", text: "Saya mengerti video review produk harus mematuhi do's & don'ts yang tertera pada brief." },
-              { key: "privacy", text: "Saya akan menayangkan video di akun sosial media pribadi saya dan melampirkan link URL postingan tayang tersebut." },
-              { key: "retention", text: "Saya setuju tidak menghapus postingan video selama minimal 30 hari sejak bukti tayang diajukan." },
-              { key: "views", text: "Saya mengerti pembayaran reward dihitung secara proporsional berdasarkan views tayangan valid." },
-            ] as const).map(({ key, text }) => (
-              <label key={key} className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" checked={isRulesChecked[key]}
-                  onChange={(e) => setIsRulesChecked({ ...isRulesChecked, [key]: e.target.checked })}
-                  className="mt-0.5 rounded border-neutral-300 text-violet-600 focus:ring-violet-500/20 w-4 h-4 cursor-pointer" />
-                <span className="leading-relaxed">{text}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-      </ModalFrame>
+        job={job}
+        onConfirm={handleClaimSubmit}
+        isClaiming={isClaiming}
+      />
 
       {/* ═══ SUCCESS MODAL ═══ */}
-      <ModalFrame
+      <ClaimSuccessModal
         isOpen={isSuccessOpen}
-        title="Campaign Berhasil Diklaim"
-        description="Pekerjaan ini telah ditambahkan ke dashboard pengerjaan Anda. Silakan persiapkan video Anda sesuai brief."
         onClose={() => setIsSuccessOpen(false)}
-        footer={
-          <div className="flex gap-3 w-full">
-            <DashboardButton type="button" variant="outline" onClick={() => setIsSuccessOpen(false)} fullWidthOnMobile>Tutup</DashboardButton>
-            <DashboardButton type="button" variant="primary" onClick={() => { window.location.href = "/dashboard/kreator/pekerjaan-aktif"; }} fullWidthOnMobile>Lihat Pekerjaan Aktif</DashboardButton>
-          </div>
-        }
-      >
-        <div className="flex flex-col items-center text-center pt-2">
-          <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500 mx-auto mb-2 shadow-sm">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-        </div>
-      </ModalFrame>
+        campaignTitle={job?.title}
+      />
     </div>
   );
 }

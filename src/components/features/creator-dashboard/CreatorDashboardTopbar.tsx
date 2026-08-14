@@ -15,6 +15,7 @@ import { realtimeClient, tableChannels } from "@/lib/appwrite/realtime";
 
 import { useCreatorIdentity } from "./CreatorIdentityContext";
 import { DashboardProfileAvatar } from "@/components/features/dashboard/shared/DashboardProfileAvatar";
+import { NotificationHeaderDropdown } from "@/components/features/shared/NotificationHeaderDropdown";
 
 interface BreadcrumbItem {
   label: string;
@@ -163,20 +164,8 @@ export function CreatorDashboardTopbar({ creatorAvatar: propAvatar }: CreatorDas
           Cari Pekerjaan Baru
         </Link>
 
-        {/* Notifications Icon */}
-        <Link
-          href="/dashboard/kreator/notifikasi"
-          className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-neutral-100/70 hover:bg-neutral-200/60 active:scale-95 transition-all text-neutral-600 hover:text-neutral-900"
-          aria-label="Notifikasi"
-        >
-          <Bell size={18} />
-          {unreadCount > 0 && (
-            <span className="absolute top-2 right-2 flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-600" />
-            </span>
-          )}
-        </Link>
+        {/* Notifications Icon Dropdown */}
+        <NotificationHeaderDropdown theme="kreator" />
 
         {/* Avatar — menggunakan DashboardProfileAvatar dari context */}
         <Link

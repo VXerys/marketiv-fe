@@ -503,6 +503,16 @@ async function buildActiveWorks(claims: Doc[]): Promise<CreatorActiveWork[]> {
     const submission = submissionByClaimId.get(str(claim.$id));
     const claimedAt = str(claim.claimedAt) || str(claim.$createdAt);
 
+    const campaignPlatforms = strList(campaign?.platforms);
+    const campaignPlatform = campaignPlatforms.length > 0 ? asPlatform(campaignPlatforms[0]) : "tiktok";
+    const resolvedPlatform = submission?.platform ? asPlatform(submission.platform) : campaignPlatform;
+
+    const viewsFinal = Boolean(submission?.views_final || submission?.viewsFinal);
+    const lockedViewsNum = submission ? (num(submission.views_count) || num(submission.viewsCount)) : undefined;
+    const actualViews = submission
+      ? (viewsFinal && lockedViewsNum !== undefined && lockedViewsNum > 0 ? lockedViewsNum : num(submission.views))
+      : undefined;
+
     return {
       id: str(claim.$id),
       campaignId: str(claim.campaignId),
@@ -519,14 +529,18 @@ async function buildActiveWorks(claims: Doc[]): Promise<CreatorActiveWork[]> {
       // Hasil ai-fraud-precheck — terpisah dari submissionStatus.
       fraudStatus: submission ? (orUndefined(str(submission.fraudStatus)) as FraudStatus | undefined) : undefined,
       contentUrl: submission ? orUndefined(str(submission.postUrl)) : undefined,
-      actualViews: submission ? num(submission.views) : undefined,
-      platform: submission ? asPlatform(submission.platform) : undefined,
+      actualViews,
+      platform: resolvedPlatform,
       notes: submission ? orUndefined(str(submission.caption)) : undefined,
       submittedAt: submission ? str(submission.$createdAt) : undefined,
       validatedAt:
         submission && str(submission.status) !== "pending" ? str(submission.$updatedAt) : undefined,
       rejectedReason: submission ? orUndefined(str(submission.reviewNotes)) : undefined,
       assetUrl: orUndefined(assetUrlByCampaignId.get(str(claim.campaignId)) ?? ""),
+      viewsCount: lockedViewsNum,
+      viewsCapturedAt: submission ? orUndefined(str(submission.views_captured_at || submission.viewsCapturedAt)) : undefined,
+      viewsSource: submission ? orUndefined(str(submission.views_source || submission.viewsSource)) : undefined,
+      viewsFinal,
     };
   });
 }

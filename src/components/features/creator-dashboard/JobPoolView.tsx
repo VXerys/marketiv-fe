@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { SearchToolbar, type SearchToolbarFilter } from "@/components/features/dashboard/shared";
@@ -19,7 +19,9 @@ import { toast } from "sonner";
 import { CreatorJob } from "@/types/creator-dashboard";
 import { CreatorPageHeader } from "./CreatorPageHeader";
 import { CreatorEmptyState } from "./CreatorEmptyState";
-import { claimCampaign } from "@/services/creator/creator-dashboard.service";
+import { ClaimCampaignModal } from "./modals/ClaimCampaignModal";
+import { ClaimSuccessModal } from "./modals/ClaimSuccessModal";
+import { claimCampaign, getCreatorActiveWorks } from "@/services/creator/creator-dashboard.service";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
@@ -277,6 +279,17 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
     views: false,
   });
 
+  useEffect(() => {
+    async function loadActiveClaims() {
+      const res = await getCreatorActiveWorks();
+      if (res.success && res.data) {
+        const ids = new Set(res.data.map((w) => w.campaignId));
+        setClaimedJobIds(ids);
+      }
+    }
+    loadActiveClaims();
+  }, []);
+
 
   const handleClearFilters = () => {
     setSearch("");
@@ -478,119 +491,19 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
         </div>
 
       {/* ── Claim Checklist Modal ──────────────────────────────────────────── */}
-      {claimingJob && (
-        <ResponsiveModal open={!!claimingJob} onOpenChange={(open) => !open && setClaimingJob(null)}>
-          <ResponsiveModalContent className="max-w-md w-full rounded-3xl border border-neutral-200/50 p-6 sm:p-8">
-            <div className="flex justify-between items-start gap-4 mb-6">
-              <div>
-                <h3 className="text-lg font-black text-neutral-900 leading-none">
-                  Klaim Campaign
-                </h3>
-                <p className="text-xs text-neutral-400 font-bold mt-1.5 uppercase tracking-wide">
-                  {claimingJob.title}
-                </p>
-              </div>
-              <button
-                onClick={() => setClaimingJob(null)}
-                className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="space-y-4 text-xs font-semibold text-neutral-700">
-              <p className="text-neutral-500 leading-relaxed font-medium">
-                Sebelum klaim campaign ini, kamu perlu setujui semua ketentuan pengerjaan Campaign Mode berikut:
-              </p>
-
-              <div className="space-y-3 pt-2">
-                {[
-                  { key: "brief" as const, text: "Saya menyetujui pengerjaan video sesuai panduan dan larangan pada brief produk." },
-                  { key: "privacy" as const, text: "Saya akan memposting video di akun sosial media pribadi saya dan menyertakan link tayangnya sebagai bukti posting." },
-                  { key: "retention" as const, text: "Saya tidak akan menghapus postingan video setidaknya selama 30 hari setelah masa tayang." },
-                  { key: "views" as const, text: "Saya menyetujui bahwa pembayaran dihitung berdasarkan views tervalidasi yang di-audit sistem admin." },
-                ].map(({ key, text }) => (
-                  <label key={key} className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isRulesChecked[key]}
-                      onChange={(e) => setIsRulesChecked({ ...isRulesChecked, [key]: e.target.checked })}
-                      className="mt-0.5 rounded border-neutral-300 text-primary focus:ring-primary/20 w-4 h-4 cursor-pointer shrink-0"
-                    />
-                    <span className="leading-relaxed">{text}</span>
-                  </label>
-                ))}
-              </div>
-
-              <div className="pt-5 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setClaimingJob(null)}
-                  disabled={isClaiming}
-                  className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-full transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-60"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={executeClaim}
-                  disabled={!allRulesChecked || isClaiming}
-                  className={cn(
-                    "flex-1 py-3 font-bold text-xs rounded-full border transition-all cursor-pointer",
-                    !allRulesChecked || isClaiming
-                      ? "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed shadow-none"
-                      : "text-white border-transparent hover:-translate-y-0.5 active:translate-y-0 shadow-md"
-                  )}
-                  style={allRulesChecked && !isClaiming ? {
-                    background: CREATOR_ACTION_GRADIENT,
-                    boxShadow: "var(--shadow-kreator)",
-                  } : undefined}
-                >
-                  {isClaiming ? "Mengambil…" : "Klaim Sekarang"}
-                </button>
-              </div>
-            </div>
-          </ResponsiveModalContent>
-        </ResponsiveModal>
-      )}
+      <ClaimCampaignModal
+        isOpen={!!claimingJob}
+        onClose={() => setClaimingJob(null)}
+        job={claimingJob}
+        onConfirm={executeClaim}
+        isClaiming={isClaiming}
+      />
 
       {/* ── Success Modal ─────────────────────────────────────────────────── */}
-      {isSuccessOpen && (
-        <ResponsiveModal open={isSuccessOpen} onOpenChange={(open) => !open && setIsSuccessOpen(false)}>
-          <ResponsiveModalContent className="max-w-md w-full rounded-3xl border border-neutral-200/50 p-6 text-center sm:p-8">
-            <div className="w-16 h-16 rounded-full bg-green-50 border border-green-100 flex items-center justify-center text-green-500 mx-auto mb-5 shadow-sm">
-              <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-black text-neutral-900 mb-2 leading-none">Job Berhasil Diklaim!</h3>
-            <p className="text-xs text-neutral-500 font-medium leading-relaxed max-w-xs mx-auto mb-6">
-              Job kamu udah masuk ke Pekerjaan Aktif. Yuk selesaikan sebelum deadline!
-            </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setIsSuccessOpen(false)}
-                className="flex-1 py-3 border border-neutral-200 text-neutral-700 hover:bg-neutral-50 font-bold text-xs rounded-full transition-all cursor-pointer"
-              >
-                Cari Job Lain
-              </button>
-              <Link
-                href="/dashboard/kreator/pekerjaan-aktif"
-                className="flex-1 py-3 text-center text-white font-bold text-xs rounded-full border border-transparent transition-all hover:-translate-y-0.5 active:translate-y-0"
-                style={{
-                  background: CREATOR_ACTION_GRADIENT,
-                  boxShadow: "var(--shadow-kreator)",
-                }}
-              >
-                Lihat Pekerjaan Aktif
-              </Link>
-            </div>
-          </ResponsiveModalContent>
-        </ResponsiveModal>
-      )}
+      <ClaimSuccessModal
+        isOpen={isSuccessOpen}
+        onClose={() => setIsSuccessOpen(false)}
+      />
     </div>
   );
 }
