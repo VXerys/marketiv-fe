@@ -1,5 +1,3 @@
-import { Query as AppwriteQuery } from "node-appwrite";
-
 export async function requireActiveRole({
   databases,
   databaseId,
@@ -11,8 +9,12 @@ export async function requireActiveRole({
   notFoundMessage,
   inactiveMessage,
   wrongRoleMessage,
-  Query = AppwriteQuery,
+  Query,
 }) {
+  if (!Query) {
+    throw new Error("requireActiveRole membutuhkan dependency Query dari caller.");
+  }
+
   const usersRes = await databases.listDocuments(databaseId, usersCollectionId, [
     Query.equal("userId", userId),
     Query.limit(1),

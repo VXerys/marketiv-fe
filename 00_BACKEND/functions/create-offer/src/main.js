@@ -55,6 +55,7 @@ export default async ({ req, res, log, error }) => {
 	        usersCollectionId: env.usersCollectionId,
 	        userId,
 	        role: "umkm",
+	        Query,
 	        log,
 	        actionLabel: "Create offer",
 	        notFoundMessage: "Profil Pengguna tidak ditemukan.",

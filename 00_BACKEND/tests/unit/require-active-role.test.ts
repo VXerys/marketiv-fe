@@ -100,4 +100,19 @@ describe('requireActiveRole helper', () => {
       wrongRoleMessage: 'Hanya UMKM yang dapat melakukan aksi ini.',
     })).rejects.toMatchObject({ statusCode: 403, message: 'Hanya UMKM yang dapat melakukan aksi ini.' });
   });
+
+  it('throws clear error if Query dependency missing', async () => {
+    const { requireActiveRole } = await import('../../functions/_shared/require-active-role.js');
+
+    await expect(requireActiveRole({
+      databases: new DatabasesMock(),
+      databaseId: 'db1',
+      usersCollectionId: 'users',
+      userId: 'umkm-1',
+      role: 'umkm',
+      notFoundMessage: 'Profil Pengguna tidak ditemukan.',
+      inactiveMessage: 'Akun Anda sedang tidak aktif.',
+      wrongRoleMessage: 'Hanya UMKM yang dapat melakukan aksi ini.',
+    })).rejects.toThrow('requireActiveRole membutuhkan dependency Query dari caller.');
+  });
 });
