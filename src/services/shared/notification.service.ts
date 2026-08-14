@@ -10,18 +10,11 @@ import {
   getNotificationsFromAppwrite,
   markNotificationReadInAppwrite,
   markAllNotificationsReadInAppwrite,
+  deleteNotificationInAppwrite,
 } from "./notification-appwrite.service";
 
 /**
  * Facade notifikasi — satu untuk UMKM dan Kreator.
- *
- * Sebelum s5-notifikasi-wire, halaman /notifikasi kedua role memakai array
- * hardcode di dalam komponen tanpa cabang mock sama sekali, jadi data karangan
- * tetap tampil meski mock dimatikan. Sekarang jalurnya sama dengan modul lain.
- *
- * Hapus notifikasi tidak disediakan: baris `notifications` ditulis Function
- * dengan `read` + `update` untuk pemiliknya, tanpa `delete`. Menyediakan tombol
- * yang pasti 401 lebih buruk daripada tidak menyediakannya.
  */
 
 export async function getNotifications(
@@ -56,4 +49,14 @@ export async function markAllNotificationsRead(
     return { success: true, data: null };
   }
   return markAllNotificationsReadInAppwrite(ids);
+}
+
+export async function deleteNotification(
+  id: string
+): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(200);
+    return { success: true, data: null };
+  }
+  return deleteNotificationInAppwrite(id);
 }

@@ -169,3 +169,14 @@ export async function markAllNotificationsReadInAppwrite(
     return failFromWriteError<null>(err, noData<null>());
   }
 }
+
+export async function deleteNotificationInAppwrite(
+  id: string
+): Promise<ServiceResult<null>> {
+  try {
+    await databases.deleteDocument(DB, COLLECTION, id);
+    return ok(null);
+  } catch (err) {
+    return failFromWriteError<null>(err, noData<null>());
+  }
+}

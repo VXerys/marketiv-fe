@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   BellOff,
   CheckCheck,
@@ -11,6 +11,7 @@ import {
   Settings2,
   Tag,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AppNotification, NotifType } from "@/types/notification.types";
@@ -19,9 +20,11 @@ import {
   getNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  deleteNotification,
 } from "@/services/shared/notification.service";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
 import { realtimeClient, tableChannels } from "@/lib/appwrite/realtime";
+import { AppNotificationDetailDialog } from "./AppNotificationDetailDialog";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -154,6 +157,7 @@ const PAGE_SIZE = 7;
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function NotificationView({ theme }: NotificationViewProps) {
+  const router = useRouter();
   const t = THEME[theme];
   const role: UserRole = theme === "kreator" ? "creator" : "umkm";
 
@@ -162,7 +166,17 @@ export function NotificationView({ theme }: NotificationViewProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [selectedNotif, setSelectedNotif] = useState<AppNotification | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const handleOpenDetail = (notif: AppNotification) => {
+    setSelectedNotif(notif);
+    setIsDetailOpen(true);
+    if (!notif.isRead) {
+      void markAsRead(notif.id);
+    }
+  };
 
   /**
    * State hanya disentuh SETELAH promise selesai — tidak ada setState sinkron di
@@ -255,6 +269,12 @@ export function NotificationView({ theme }: NotificationViewProps) {
     if (!unreadIds.length) return;
     setNotifs(prev => prev.map(n => ({ ...n, isRead: true })));
     const res = await markAllNotificationsRead(unreadIds);
+    if (!res.success) void load();
+  };
+
+  const handleDeleteNotif = async (id: string) => {
+    setNotifs(prev => prev.filter(n => n.id !== id));
+    const res = await deleteNotification(id);
     if (!res.success) void load();
   };
 
@@ -398,8 +418,9 @@ export function NotificationView({ theme }: NotificationViewProps) {
               return (
                 <div
                   key={notif.id}
+                  onClick={() => handleOpenDetail(notif)}
                   className={cn(
-                    "relative flex gap-3 p-4 sm:p-5 transition-all duration-[280ms] group",
+                    "relative flex gap-3 p-4 sm:p-5 transition-all duration-[280ms] group cursor-pointer",
                     !notif.isRead ? "bg-neutral-50/70" : "bg-white hover:bg-neutral-50/40"
                   )}
                 >
@@ -465,10 +486,13 @@ export function NotificationView({ theme }: NotificationViewProps) {
                     {/* Inline action links */}
                     {(notif.actionLabel || !notif.isRead) && (
                       <div className="flex items-center gap-3 mt-2.5 flex-wrap">
-                        {notif.actionLabel && notif.actionHref && (
-                          <Link
-                            href={notif.actionHref}
-                            onClick={() => markAsRead(notif.id)}
+                        {notif.actionLabel && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenDetail(notif);
+                            }}
                             className={cn(
                               "inline-flex items-center gap-1 text-[.78rem] font-bold hover:underline underline-offset-2 transition-colors cursor-pointer",
                               t.actionCls
@@ -476,11 +500,15 @@ export function NotificationView({ theme }: NotificationViewProps) {
                           >
                             {notif.actionLabel}
                             <ChevronRight size={12} />
-                          </Link>
+                          </button>
                         )}
                         {!notif.isRead && (
                           <button
-                            onClick={() => markAsRead(notif.id)}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void markAsRead(notif.id);
+                            }}
                             className="text-[.78rem] font-bold text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer"
                           >
                             Tandai Dibaca
@@ -488,6 +516,18 @@ export function NotificationView({ theme }: NotificationViewProps) {
                         )}
                       </div>
                     )}
+                    {/* Quick Delete Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleDeleteNotif(notif.id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-neutral-400 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer shrink-0 absolute right-3 top-3"
+                      title="Hapus Notifikasi"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
 
                 </div>
@@ -509,6 +549,16 @@ export function NotificationView({ theme }: NotificationViewProps) {
         )}
 
       </div>
+
+      {/* Notification Detail Screen Modal */}
+      <AppNotificationDetailDialog
+        notification={selectedNotif}
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        onActionClick={(href) => router.push(href)}
+        onDelete={handleDeleteNotif}
+        theme={theme}
+      />
     </div>
   );
 }
