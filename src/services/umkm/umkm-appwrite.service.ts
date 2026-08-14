@@ -873,7 +873,7 @@ export async function updateCampaignStatusInAppwrite(
     if (!doc) return fail("Campaign tidak ditemukan setelah update.", "not_found", empty);
     return ok(mapCampaign(doc));
   } catch (err) {
-    return failFromError<Campaign>(err, empty);
+    return failFromWriteError<Campaign>(err, empty, undefined, "updateCampaignStatusInAppwrite");
   }
 }
 

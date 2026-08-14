@@ -35,7 +35,7 @@ export function CampaignDetailHeader({
   };
 
   const primaryAction = getPrimaryAction();
-  const isCancelable = campaign.status !== "completed";
+  const isCancelable = campaign.status === "active";
 
   return (
     <div className="flex flex-col gap-4 shrink-0">
