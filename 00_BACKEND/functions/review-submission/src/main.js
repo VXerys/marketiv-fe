@@ -3,7 +3,7 @@ import { Client, Databases, Permission, Query, Role } from "node-appwrite";
 import { decrementColumn } from "./atomic.js";
 
 /**
- * UMKM menyetujui atau menolak bukti kerja kreator (Alur A).
+ * Admin Marketiv menyetujui atau menolak bukti kerja kreator (Alur A).
  *
  * ADA DI SISI SERVER KARENA TERPAKSA. Sprint 8 mencabut `update("users")` dari
  * `campaign_submissions` dan `campaign_claims` — benar, karena permission itu
@@ -73,7 +73,7 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Akses ditolak: Hanya Admin Marketiv yang dapat memvalidasi submission." }, 403);
     }
 
-    if (userDoc?.status && userDoc.status !== "active") {
+    if (userDoc.status !== "active") {
       log(`Review ditolak untuk ${userId}: status akun ${userDoc.status}`);
       return json(res, { error: "Akun Anda sedang tidak aktif." }, 403);
     }
@@ -123,7 +123,7 @@ export default async ({ req, res, log, error }) => {
         title: "Bukti Kerja Ditolak",
         message: notes
           ? `Bukti kerja Anda ditolak: ${notes}`
-          : "Bukti kerja Anda ditolak oleh UMKM. Periksa catatan review.",
+          : "Bukti kerja Anda ditolak oleh Marketiv. Periksa catatan review.",
         type: "campaign",
       }, log);
     }

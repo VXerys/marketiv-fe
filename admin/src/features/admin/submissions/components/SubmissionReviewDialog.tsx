@@ -45,7 +45,7 @@ interface SubmissionReviewDialogProps {
   submission: CampaignSubmissionDomain | null;
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (updated: CampaignSubmissionDomain) => void;
+  onSuccess: (submissions: CampaignSubmissionDomain[]) => void;
 }
 
 export function SubmissionReviewDialog({
@@ -62,6 +62,7 @@ export function SubmissionReviewDialog({
 
   useEffect(() => {
     if (submission) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset local review form for selected submission.
       setViewsInputText(
         submission.verifiedViews !== undefined && submission.verifiedViews > 0
           ? formatViews(submission.verifiedViews)
@@ -105,38 +106,46 @@ export function SubmissionReviewDialog({
   };
 
   const handleConfirmApprove = async () => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       const res = await approveCampaignSubmission({
         submissionId: submission.id,
         verifiedViews: numericViews,
-        adminId: "Admin Ops 1",
       });
       toast.success(res.message);
-      onSuccess(res.data);
+      if (res.refresh.status === "refreshed") {
+        onSuccess(res.refresh.submissions);
+      } else {
+        toast.warning("Review tersimpan, tetapi antrean terbaru gagal dimuat. Gunakan Segarkan Data.");
+      }
       setIsApproveConfirmOpen(false);
       onClose();
-    } catch (err: any) {
-      toast.error(err.message || "Gagal menyetujui submission.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal menyetujui submission.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleConfirmReject = async (reason: string) => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       const res = await rejectCampaignSubmission({
         submissionId: submission.id,
         rejectionReason: reason,
-        adminId: "Admin Ops 1",
       });
-      toast.error(res.message);
-      onSuccess(res.data);
+      toast.success(res.message);
+      if (res.refresh.status === "refreshed") {
+        onSuccess(res.refresh.submissions);
+      } else {
+        toast.warning("Review tersimpan, tetapi antrean terbaru gagal dimuat. Gunakan Segarkan Data.");
+      }
       setIsRejectDialogOpen(false);
       onClose();
-    } catch (err: any) {
-      toast.error(err.message || "Gagal menolak submission.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal menolak submission.");
     } finally {
       setIsSubmitting(false);
     }
@@ -144,7 +153,7 @@ export function SubmissionReviewDialog({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && !isSubmitting && onClose()}>
         <DialogContent className="max-w-2xl max-h-[92vh] flex flex-col p-4 sm:p-6 bg-[#fffdf8] border-stone-200/90 rounded-2xl shadow-2xl">
           {/* Dialog Header with pr-10 to prevent X close button overlap */}
           <DialogHeader className="pr-10 border-b border-stone-200/70 pb-3 shrink-0">

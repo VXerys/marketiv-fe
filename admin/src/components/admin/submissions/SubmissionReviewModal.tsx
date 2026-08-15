@@ -36,7 +36,7 @@ interface SubmissionReviewModalProps {
   submission: CampaignSubmission | null;
   isOpen: boolean;
   onClose: () => void;
-  onReviewSuccess: (updated: CampaignSubmission) => void;
+  onReviewSuccess: (submissions: CampaignSubmission[]) => void;
 }
 
 export function SubmissionReviewModal({
@@ -52,6 +52,7 @@ export function SubmissionReviewModal({
 
   useEffect(() => {
     if (submission) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset local review form for selected submission.
       setViewsInput(
         submission.verifiedViews !== undefined ? String(submission.verifiedViews) : ""
       );
@@ -69,6 +70,7 @@ export function SubmissionReviewModal({
   );
 
   const handleApprove = async () => {
+    if (isSubmitting) return;
     if (parsedViews <= 0) {
       toast.error("Wajib menginputkan Jumlah Views Saat Ini (> 0).");
       return;
@@ -85,14 +87,17 @@ export function SubmissionReviewModal({
       const res = await approveCampaignSubmission({
         submissionId: submission.id,
         verifiedViews: parsedViews,
-        adminId: "Admin-Ops-01",
       });
 
       toast.success(res.message);
-      onReviewSuccess(res.data);
+      if (res.refresh.status === "refreshed") {
+        onReviewSuccess(res.refresh.submissions);
+      } else {
+        toast.warning("Review tersimpan, tetapi antrean terbaru gagal dimuat. Segarkan data.");
+      }
       onClose();
-    } catch (err: any) {
-      toast.error(err.message || "Gagal menyetujui submission.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal menyetujui submission.");
     } finally {
       setIsSubmitting(false);
       setIsConfirmingApprove(false);
@@ -100,6 +105,7 @@ export function SubmissionReviewModal({
   };
 
   const handleReject = async () => {
+    if (isSubmitting) return;
     if (!rejectionNotes.trim()) {
       toast.error("Alasan penolakan wajib diisi sebelum menolak submission.");
       return;
@@ -111,14 +117,17 @@ export function SubmissionReviewModal({
       const res = await rejectCampaignSubmission({
         submissionId: submission.id,
         rejectionReason: rejectionNotes.trim(),
-        adminId: "Admin-Ops-01",
       });
 
-      toast.error(res.message);
-      onReviewSuccess(res.data);
+      toast.success(res.message);
+      if (res.refresh.status === "refreshed") {
+        onReviewSuccess(res.refresh.submissions);
+      } else {
+        toast.warning("Review tersimpan, tetapi antrean terbaru gagal dimuat. Segarkan data.");
+      }
       onClose();
-    } catch (err: any) {
-      toast.error(err.message || "Gagal menolak submission.");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal menolak submission.");
     } finally {
       setIsSubmitting(false);
     }
@@ -127,7 +136,7 @@ export function SubmissionReviewModal({
   const isPending = submission.status === "pending";
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !isSubmitting && onClose()}>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto p-6 bg-[#fffdf8]">
         <DialogHeader>
           <div className="flex items-center justify-between">

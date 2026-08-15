@@ -1,134 +1,69 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import {
-  getCampaignSubmissions,
-  approveCampaignSubmission,
-  rejectCampaignSubmission,
-  addSubmissionToStore,
-  resetSubmissionsStore,
-} from "@/features/admin/submissions/services/submission.service";
-import { CampaignSubmissionDomain } from "@/features/admin/submissions/types";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-describe("Admin Submissions Service: Approval & Rejection Flow", () => {
-  beforeEach(() => {
-    resetSubmissionsStore([]);
+const createExecution = vi.fn();
+vi.mock("@/lib/admin/appwrite", () => ({
+  functions: { createExecution },
+  FUNCTION_IDS: { reviewSubmission: "review-submission", getAdminSubmissionQueue: "get-admin-submission-queue" },
+}));
+
+const { approveCampaignSubmission, rejectCampaignSubmission } = await import("../services/submission.service");
+const queueItem = {
+  id: "submission-1", campaignId: "campaign-1", status: "approved", submittedAt: "2026-08-15T00:00:00.000Z",
+  creator: { id: "creator-1", name: "Creator", username: "@creator" },
+  campaign: { id: "campaign-1", title: "Campaign", rewardPer1000Views: 10000, platform: "tiktok" },
+  umkm: { id: "umkm-1", name: "UMKM" }, platform: "tiktok", postUrl: "https://example.test/post",
+};
+const reviewSuccess = (status: "approved" | "rejected") => ({ status: "completed", responseStatusCode: 200, responseBody: JSON.stringify({ success: true, campaignId: "campaign-1", status }) });
+const queueSuccess = () => ({ status: "completed", responseStatusCode: 200, responseBody: JSON.stringify({ items: [queueItem], total: 1 }) });
+
+describe("P4 authoritative Admin submission review", () => {
+  beforeEach(() => createExecution.mockReset());
+
+  it("approves only after Function success and refreshes authoritative queue", async () => {
+    createExecution.mockResolvedValueOnce(reviewSuccess("approved")).mockResolvedValueOnce(queueSuccess());
+    const result = await approveCampaignSubmission({ submissionId: "submission-1", verifiedViews: 20000 });
+    expect(result.refresh).toMatchObject({ status: "refreshed", submissions: [queueItem] });
+    expect(createExecution).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(createExecution.mock.calls[0][1])).toEqual({ submissionId: "submission-1", status: "approved", views: 20000 });
   });
 
-  it("completes full happy-path lifecycle: Claim & Submit -> Admin Audit & Approve -> Verify State", async () => {
-    const submissionId = "sub-e2e-303";
-    const creatorPostUrl = "https://www.tiktok.com/@budi_mukbang/video/73987654321";
+  it("rejects through Function and refreshes authoritative queue", async () => {
+    createExecution.mockResolvedValueOnce(reviewSuccess("rejected")).mockResolvedValueOnce(queueSuccess());
+    await expect(rejectCampaignSubmission({ submissionId: "submission-1", rejectionReason: "Konten tidak sesuai brief" })).resolves.toMatchObject({ success: true, refresh: { status: "refreshed" } });
+    expect(JSON.parse(createExecution.mock.calls[0][1])).toEqual({ submissionId: "submission-1", status: "rejected", notes: "Konten tidak sesuai brief" });
+  });
 
-    const newSubmissionDomain: CampaignSubmissionDomain = {
-      id: submissionId,
-      campaignId: "camp-e2e-101",
-      creator: {
-        id: "creator-budi-1",
-        name: "Budi Mukbang",
-        username: "@budi_mukbang",
-        avatarUrl: "https://avatar.url/budi.png",
-        tiktokHandle: "@budi_mukbang",
-      },
-      campaign: {
-        id: "camp-e2e-101",
-        title: "Promosi Sambal Pedas Mampus",
-        rewardPer1000Views: 15000,
-        platform: "tiktok",
-      },
-      umkm: {
-        id: "umkm-sambal-99",
-        name: "Sambal Pedas Mampus",
-        ownerName: "Hj. Ratna",
-      },
-      platform: "tiktok",
-      postUrl: creatorPostUrl,
-      note: "Video mukbang pedas sudah tayang di TikTok, silakan divalidasi!",
-      status: "pending",
-      submittedAt: new Date().toISOString(),
-      verifiedViews: 0,
-      estimatedReward: 0,
-      finalReward: 0,
-    };
+  it("rejects invalid views without Function call", async () => {
+    await expect(approveCampaignSubmission({ submissionId: "submission-1", verifiedViews: 1.5 })).rejects.toThrow("bilangan bulat");
+    expect(createExecution).not.toHaveBeenCalled();
+  });
 
-    // Seed submission into Admin Queue
-    addSubmissionToStore(newSubmissionDomain);
+  it("rejects empty rejection reason without Function call", async () => {
+    await expect(rejectCampaignSubmission({ submissionId: "submission-1", rejectionReason: "  " })).rejects.toThrow("wajib");
+    expect(createExecution).not.toHaveBeenCalled();
+  });
 
-    // Verify Submission appears in Admin "pending" queue
-    const pendingQueue = await getCampaignSubmissions("pending");
-    const foundPending = pendingQueue.find((item) => item.id === submissionId);
-    expect(foundPending).toBeDefined();
-    expect(foundPending?.status).toBe("pending");
-    expect(foundPending?.postUrl).toBe(creatorPostUrl);
+  it.each([401, 403, 409, 500])("propagates Function HTTP %i without false success", async (statusCode) => {
+    createExecution.mockResolvedValueOnce({ status: "completed", responseStatusCode: statusCode, responseBody: JSON.stringify({ error: "backend denied" }) });
+    await expect(approveCampaignSubmission({ submissionId: "submission-1", verifiedViews: 0 })).rejects.toMatchObject({ statusCode, message: "backend denied" });
+    expect(createExecution).toHaveBeenCalledTimes(1);
+  });
 
-    // Admin reviews proof link, inspects live views on TikTok, inputs 20,000 views, and approves
-    const adminApprovalResult = await approveCampaignSubmission({
-      submissionId,
-      verifiedViews: 20000,
-      adminId: "admin-marketiv-01",
-    });
+  it("propagates failed execution", async () => {
+    createExecution.mockResolvedValueOnce({ status: "failed", responseStatusCode: 200, responseBody: JSON.stringify({ error: "execution failed" }) });
+    await expect(rejectCampaignSubmission({ submissionId: "submission-1", rejectionReason: "invalid" })).rejects.toMatchObject({ statusCode: 200 });
+  });
 
-    expect(adminApprovalResult.success).toBe(true);
-    expect(adminApprovalResult.data.status).toBe("approved");
-    expect(adminApprovalResult.data.verifiedViews).toBe(20000);
+  it("fails closed on malformed Function response", async () => {
+    createExecution.mockResolvedValueOnce({ status: "completed", responseStatusCode: 200, responseBody: "not-json" });
+    await expect(approveCampaignSubmission({ submissionId: "submission-1", verifiedViews: 0 })).rejects.toMatchObject({ statusCode: 200 });
+  });
 
-    // Calculate expected reward: floor(20000 / 1000) * 15000 = 300,000
-    const expectedReward = Math.floor(20000 / 1000) * 15000;
-    expect(expectedReward).toBe(300000);
-    expect(adminApprovalResult.data.estimatedReward).toBe(300000);
-
-    // Verify Approved Queue
-    const approvedQueue = await getCampaignSubmissions("approved");
-    const foundApproved = approvedQueue.find((item) => item.id === submissionId);
-    expect(foundApproved).toBeDefined();
-    expect(foundApproved?.status).toBe("approved");
-    expect(foundApproved?.verifiedViews).toBe(20000);
-    expect(foundApproved?.finalReward).toBe(300000);
-  }, 15000);
-
-  it("handles rejection flow: Creator submits -> Admin rejects with reason -> Status & notes updated", async () => {
-    const submissionId = "sub-reject-999";
-    const rejectSubmission: CampaignSubmissionDomain = {
-      id: submissionId,
-      campaignId: "camp-reject-1",
-      creator: {
-        id: "creator-doni-2",
-        name: "Doni Content",
-        username: "@doni_vlog",
-      },
-      campaign: {
-        id: "camp-reject-1",
-        title: "Campaign Baju Muslim",
-        rewardPer1000Views: 12000,
-        platform: "tiktok",
-      },
-      umkm: {
-        id: "umkm-fashion-1",
-        name: "Hijab Stylist",
-      },
-      platform: "tiktok",
-      postUrl: "https://www.tiktok.com/@doni_vlog/video/invalid",
-      status: "pending",
-      submittedAt: new Date().toISOString(),
-      verifiedViews: 0,
-      estimatedReward: 0,
-      finalReward: 0,
-    };
-
-    addSubmissionToStore(rejectSubmission);
-
-    const rejectResult = await rejectCampaignSubmission({
-      submissionId,
-      rejectionReason: "Tautan video tidak dapat diakses (video disetting private oleh kreator)",
-      adminId: "admin-marketiv-02",
-    });
-
-    expect(rejectResult.success).toBe(true);
-    expect(rejectResult.data.status).toBe("rejected");
-    expect(rejectResult.data.rejectionReason).toContain("private");
-    expect(rejectResult.data.finalReward).toBe(0);
-
-    const rejectedQueue = await getCampaignSubmissions("rejected");
-    const foundRejected = rejectedQueue.find((item) => item.id === submissionId);
-    expect(foundRejected).toBeDefined();
-    expect(foundRejected?.status).toBe("rejected");
-    expect(foundRejected?.rejectionReason).toContain("private");
-  }, 15000);
+  it("keeps successful mutation successful when read refresh fails and does not retry it", async () => {
+    createExecution.mockResolvedValueOnce(reviewSuccess("approved")).mockResolvedValueOnce({ status: "failed", responseStatusCode: 500, responseBody: JSON.stringify({ error: "read failed" }) });
+    const result = await approveCampaignSubmission({ submissionId: "submission-1", verifiedViews: 0 });
+    expect(result).toMatchObject({ success: true, refresh: { status: "failed" } });
+    expect(createExecution).toHaveBeenCalledTimes(2);
+    expect(createExecution.mock.calls.filter(([id]) => id === "review-submission")).toHaveLength(1);
+  });
 });
