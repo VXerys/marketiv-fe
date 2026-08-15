@@ -12,6 +12,7 @@ import { getClaimStatusLabel, getFraudStatusLabel, getSubmissionStatusLabel } fr
 import { cn } from "@/lib/utils";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { unclaimCampaign } from "@/services/creator/creator-dashboard.service";
+import { canUnclaimCreatorActiveWork } from "@/lib/creator-active-work";
 import { toast } from "sonner";
 import {
   CheckCircle2,
@@ -72,8 +73,7 @@ function ActiveJobCard({
   const isFraud   = work.submissionStatus === "rejected" || work.status === "rejected" || work.fraudStatus === "rejected";
   const isValid   = work.submissionStatus === "approved" || work.status === "approved";
   const isPending = work.submissionStatus === "pending";
-  // Sejalan dengan guard service: hanya claim `claimed` yang belum kirim bukti.
-  const canUnclaim = work.status === "claimed" && !hasSubmitted;
+  const canUnclaim = canUnclaimCreatorActiveWork(work);
 
   // Earnings data
   // Views hasil audit backend; 0 sebelum tervalidasi. Estimasi hanya ditampilkan

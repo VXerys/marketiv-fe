@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   FolderOpen,
@@ -20,7 +21,8 @@ import {
 } from "lucide-react";
 import { CreatorActiveWork } from "@/types/creator-dashboard";
 import { getClaimStatusLabel, getFraudStatusLabel, getSubmissionStatusLabel } from "@/lib/creator-status";
-import { submitProof } from "@/services/creator/creator-dashboard.service";
+import { submitProof, unclaimCampaign } from "@/services/creator/creator-dashboard.service";
+import { canUnclaimCreatorActiveWork } from "@/lib/creator-active-work";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -33,6 +35,7 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from "@/components/ui/responsive-modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface ActiveWorkDetailViewProps {
   work: CreatorActiveWork | null;
@@ -107,6 +110,7 @@ function StatPill({ icon, label }: { icon: React.ReactNode; label: string }) {
 }
 
 export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailViewProps) {
+  const router = useRouter();
   const [work, setWork] = useState<CreatorActiveWork | null>(initialWork);
   const [renderedAt] = useState(() => Date.now());
 
@@ -119,6 +123,8 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
+  const [isUnclaimConfirmOpen, setIsUnclaimConfirmOpen] = useState(false);
+  const [unclaimSucceeded, setUnclaimSucceeded] = useState(false);
   const [activeTab, setActiveTab] = useState<"detail" | "video">("detail");
 
   const getSubStatusLabel = (w: CreatorActiveWork): string => {
@@ -190,6 +196,25 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
     setIsSuccessOpen(true);
   };
 
+  const handleUnclaimConfirm = async () => {
+    if (!work || !canUnclaimCreatorActiveWork(work)) return;
+
+    const res = await unclaimCampaign(work.id);
+    if (!res.success) {
+      toast.error(res.error ?? "Gagal membatalkan pekerjaan.");
+      throw new Error(res.error ?? "Gagal membatalkan pekerjaan.");
+    }
+
+    setUnclaimSucceeded(true);
+    toast.success(`Pekerjaan "${work.title}" dibatalkan. Slot campaign kembali terbuka.`);
+    try {
+      router.replace("/dashboard/kreator/pekerjaan-aktif");
+    } catch {
+      // Mutasi sudah sukses. Tampilkan jalur kembali manual tanpa mengulangnya.
+      toast.success("Pekerjaan sudah dibatalkan. Kembali ke daftar untuk memuat ulang status terbaru.");
+    }
+  };
+
   if (!work) {
     return (
       <div className="flex-1 p-4 sm:p-6 lg:p-8 flex flex-col justify-center items-center min-h-[70vh]">
@@ -204,8 +229,23 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
     );
   }
 
+  if (unclaimSucceeded) {
+    return (
+      <div className="flex min-h-[70vh] flex-1 flex-col items-center justify-center p-4 sm:p-6 lg:p-8">
+        <DashboardStateCard
+          kind="empty"
+          title="Pekerjaan dibatalkan"
+          description="Klaim sudah dilepas. Kembali ke Pekerjaan Aktif untuk melihat status terbaru."
+          actionLabel="Kembali ke Pekerjaan Aktif"
+          onAction={() => router.replace("/dashboard/kreator/pekerjaan-aktif")}
+        />
+      </div>
+    );
+  }
+
   const statusLabel = getSubStatusLabel(work);
   const isSubmitted = !!work.contentUrl;
+  const canUnclaim = canUnclaimCreatorActiveWork(work);
   const isFraud = work.fraudStatus === "rejected" || work.submissionStatus === "rejected" || work.status === "rejected";
   const isValid = work.submissionStatus === "approved" || work.status === "approved";
   const isPending = isSubmitted && !isValid && !isFraud;
@@ -350,6 +390,17 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                     Bukti Tayang Sudah Dikirim
                   </div>
                 )}
+
+                {canUnclaim ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsUnclaimConfirmOpen(true)}
+                    className="min-h-[44px] px-4 text-xs font-extrabold text-red-100 underline decoration-red-300/60 underline-offset-4 transition-colors hover:text-white"
+                    aria-label="Batalkan pekerjaan ini"
+                  >
+                    Batalkan pekerjaan
+                  </button>
+                ) : null}
 
                 {work.assetUrl && (
                   <a
@@ -897,6 +948,22 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
           {contentUrl}
         </div>
       </ModalFrame>
+
+      <ConfirmDialog
+        open={isUnclaimConfirmOpen}
+        onClose={() => setIsUnclaimConfirmOpen(false)}
+        title="Batalkan pekerjaan ini?"
+        description={
+          <>
+            Klaim kamu atas <span className="font-semibold text-text-primary">&quot;{work.title}&quot;</span> akan
+            dilepas dan slotnya kembali terbuka untuk kreator lain.
+          </>
+        }
+        note="Kamu masih bisa mengambil campaign ini lagi selama slotnya belum penuh."
+        confirmLabel="Batalkan Pekerjaan"
+        tone="warning"
+        onConfirm={handleUnclaimConfirm}
+      />
 
       {/* Success Modal */}
       <ModalFrame
