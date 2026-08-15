@@ -1206,10 +1206,9 @@ export async function requestWithdrawalInAppwrite(
  *    hanya punya kolom userId/role/status/email/phone/createdAt — `users` tidak
  *    pernah punya `isProfileCompleted`. Kolomnya ada di `creator_profiles`.
  *    Sudah dilaporkan ke backend.
- * 2. **Baris claim dibuat dengan `Permission.delete`.** `campaign_claims` tidak
- *    punya `delete("users")` di level collection, dan jalur create backend baru
- *    memasang read+update — tanpa ini `unclaimCampaignInAppwrite` selalu
- *    401/403 (temuan V-1).
+ * 2. **Permission.delete tetap dipasang untuk kompatibilitas baris lama/UI.**
+ *    Unclaim runtime sekarang lewat Function trusted; browser tidak lagi
+ *    menghapus claim atau memutasi totalClaims.
  */
 export async function claimCampaignInAppwrite(
   campaignId: string
@@ -1248,24 +1247,16 @@ export async function claimCampaignInAppwrite(
       return failValidation("Kuota kreator untuk campaign ini sudah penuh.", "");
     }
 
-    // ⚠️ Cek duplikat sengaja TIDAK memfilter status — cermin persis
-    // claim.service.ts:126. Konsekuensinya: kreator yang claim-nya sempat
-    // `expired` tidak bisa mengambil campaign ini lagi, padahal slotnya sudah
-    // dikembalikan untuk kreator lain. Tidak dilonggarkan sepihak karena aturan
-    // bisnis harus sama di kedua sisi; sudah ditanyakan ke backend.
+    // Claim expired adalah riwayat, bukan claim aktif. Selaras dengan backend
+    // claim.service.ts: klaim non-expired tetap menghalangi duplikasi.
     const existing = await databases.listDocuments(DB, COLLECTIONS.claims, [
       Query.equal("campaignId", campaignId),
       Query.equal("creatorId", auth.userId),
+      Query.notEqual("status", "expired"),
       Query.limit(1),
     ]);
     if (existing.documents.length > 0) {
-      const previous = existing.documents[0] as unknown as Doc;
-      return failValidation(
-        str(previous.status) === "expired"
-          ? "Batas waktu pengerjaan campaign ini sudah lewat dan tidak bisa diambil lagi."
-          : "Kamu sudah pernah mengambil campaign ini.",
-        ""
-      );
+      return failValidation("Kamu sudah pernah mengambil campaign ini.", "");
     }
 
     const claim = await databases.createDocument(
@@ -1293,31 +1284,9 @@ export async function claimCampaignInAppwrite(
       ]
     );
 
-    // Counter denormalisasi — lihat catatan di atas, Function tidak melakukannya.
-    //
-    // Increment ATOMIK, bukan `totalClaims + 1` hasil bacaan di awal fungsi:
-    // dua kreator yang mengklaim bersamaan sama-sama membaca angka lama lalu
-    // menuliskan hasil yang sama, sehingga kuota bisa terlampaui. `max`
-    // membuat SERVER yang menolak klaim ke-(claimLimit+1) — bukan pembacaan
-    // klien yang sudah basi saat dipakai.
-    try {
-      await databases.incrementDocumentAttribute({
-        databaseId: DB,
-        collectionId: COLLECTIONS.campaigns,
-        documentId: campaignId,
-        attribute: "totalClaims",
-        value: 1,
-        max: num(campaign.claimLimit),
-      });
-    } catch {
-      // Claim sudah sah; counter yang tertinggal bisa direkonsiliasi, dan
-      // `campaign-claimed` akan mengoreksi bila sampai melewati batas.
-    }
-
-    // Counter tidak lagi diincrement di sini — sekarang dilakukan oleh Function
-    // `campaign-claimed` secara atomik dengan max=claimLimit. Menghapus increment
-    // sisi klien menutup race condition di mana dua kreator membaca totalClaims=0
-    // bersamaan dan sama-sama berhasil melewati guard di atas.
+    // `campaign-claimed` event Function adalah satu-satunya authority +1.
+    // createDocument sukses belum berarti claim permanen: event asinkron dapat
+    // mengubahnya menjadi expired bila kuota ternyata sudah penuh.
 
     return ok(claim.$id);
   } catch (err) {
@@ -1387,69 +1356,21 @@ export async function submitProofInAppwrite(
  * mengambil campaign yang sama lagi, karena cek duplikat di `claimCampaign`
  * menolak berdasarkan keberadaan baris tanpa memfilter status.
  *
- * ⚠️ Butuh `Permission.delete(Role.user(creatorId))` pada baris claim.
- * `campaign_claims` TIDAK punya `delete("users")` di level collection, dan
- * jalur create backend (claim.service.ts:147) baru memasang read+update.
- * Jalur create milik frontend (Sprint 4 `s4-ppv-claim`) WAJIB memasang
- * Permission.delete — kalau tidak, fungsi ini selalu balas 401/403.
- * Sudah dilaporkan ke backend untuk baris lama & jalur create mereka.
- *
- * `totalClaims` dikurangi setelah baris terhapus, dan kegagalannya tidak
- * membatalkan operasi: slot yang telat kembali bisa direkonsiliasi,
- * sedangkan claim yang menggantung tidak.
+ * Runtime unclaim dikerjakan `unclaim-campaign` Function. Function memverifikasi
+ * caller/owner/status, menghapus baris, lalu menurunkan counter atomik. Bila
+ * counter gagal, Function berusaha memulihkan claim dan tidak membalas sukses.
  */
 export async function unclaimCampaignInAppwrite(claimId: string): Promise<ServiceResult<null>> {
   const auth = await requireUserId<null>(null);
   if (!auth.ok) return auth.result;
   try {
-    const res = await databases.listDocuments(DB, COLLECTIONS.claims, [
-      Query.equal("$id", claimId),
-      Query.equal("creatorId", auth.userId),
-      Query.limit(1),
-    ]);
-    const claim = res.documents[0] as unknown as Doc | undefined;
-    if (!claim) return fail("Pekerjaan tidak ditemukan.", "not_found", null);
-
-    if (str(claim.status) !== "claimed") {
-      return failValidation(
-        "Hanya pekerjaan yang belum dikirim yang bisa dibatalkan.",
-        null
-      );
+    const result = await executeFunction<{ success?: unknown; claimId?: unknown }>(
+      FUNCTION_IDS.unclaimCampaign,
+      { claimId },
+    );
+    if (result?.success !== true || typeof result.claimId !== "string") {
+      return fail("Respons pembatalan claim tidak valid.", "server", null);
     }
-
-    const campaignId = str(claim.campaignId);
-
-    try {
-      await databases.deleteDocument(DB, COLLECTIONS.claims, claimId);
-    } catch (err) {
-      const code = (err as { code?: number })?.code;
-      if (code === 401 || code === 403) {
-        return fail(
-          "Pekerjaan ini tidak bisa dibatalkan dari aplikasi karena diklaim sebelum fitur pembatalan aktif; hubungi support.",
-          "forbidden",
-          null
-        );
-      }
-      throw err;
-    }
-
-    // Decrement ATOMIK dengan `min: 0`. Versi lama membaca `totalClaims` lalu
-    // menulis `total - 1`; dua pembatalan bersamaan sama-sama membaca angka yang
-    // sama sehingga hanya satu slot yang benar-benar kembali. `min` juga
-    // menggantikan guard `total > 0` yang ikut basi karena berdasar bacaan.
-    try {
-      await databases.decrementDocumentAttribute({
-        databaseId: DB,
-        collectionId: COLLECTIONS.campaigns,
-        documentId: campaignId,
-        attribute: "totalClaims",
-        value: 1,
-        min: 0,
-      });
-    } catch {
-      // Slot yang telat kembali bisa direkonsiliasi; claim menggantung tidak.
-    }
-
     return ok(null);
   } catch (err) {
     return failFromWriteError<null>(err, null);

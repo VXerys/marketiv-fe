@@ -976,15 +976,15 @@ describe('review-submission function', () => {
     process.env.CAMPAIGN_SUBMISSIONS_COLLECTION_ID = 'campaign_submissions';
     process.env.CAMPAIGN_CLAIMS_COLLECTION_ID = 'campaign_claims';
     process.env.NOTIFICATIONS_COLLECTION_ID = 'notifications';
-    seed('users', [{ $id: 'u1', userId: 'u1', role: 'umkm', status: 'active' }]);
-    seed('campaigns', [{ $id: 'c1', umkmId: 'u1' }]);
+    seed('users', [{ $id: 'admin-1', userId: 'admin-1', role: 'admin', status: 'active' }]);
+    seed('campaigns', [{ $id: 'c1', umkmId: 'umkm-1' }]);
     seed('campaign_submissions', [{ $id: 's1', campaignId: 'c1', creatorId: 'c1', claimId: 'cl1', status: 'pending', views: 0 }, { $id: 's2', campaignId: 'c1', creatorId: 'c1', claimId: 'cl2', status: 'pending', views: 0 }]);
     seed('campaign_claims', [{ $id: 'cl1', status: 'pending' }, { $id: 'cl2', status: 'pending' }]);
     
     const main = (await import('../../functions/review-submission/src/main.js')).default;
     
     // Test Approve
-    const req1 = makeReq({ headers: { 'x-appwrite-user-id': 'u1' }, bodyJson: { submissionId: 's1', status: 'approved', views: 5000, notes: 'Bagus' } });
+    const req1 = makeReq({ headers: { 'x-appwrite-user-id': 'admin-1' }, bodyJson: { submissionId: 's1', status: 'approved', views: 5000, notes: 'Bagus' } });
     await main({ req: req1, res: makeRes(), log: () => {}, error: () => {} });
     const sub1 = (store['campaign_submissions'] || []).find((s) => s.$id === 's1');
     expect(sub1.status).toBe('approved');
@@ -994,12 +994,14 @@ describe('review-submission function', () => {
     expect(sub1.views_captured_at).toBeDefined();
 
     // Test Reject
-    const req2 = makeReq({ headers: { 'x-appwrite-user-id': 'u1' }, bodyJson: { submissionId: 's2', status: 'rejected', views: 5000, notes: 'Jelek' } });
+    const req2 = makeReq({ headers: { 'x-appwrite-user-id': 'admin-1' }, bodyJson: { submissionId: 's2', status: 'rejected', views: 5000 } });
     await main({ req: req2, res: makeRes(), log: () => {}, error: () => {} });
     const sub2 = (store['campaign_submissions'] || []).find((s) => s.$id === 's2');
     expect(sub2.status).toBe('rejected');
     expect(sub2.views_final).toBeUndefined(); // Assuming default or undefined
     expect(sub2.views_count).toBeUndefined();
+    const rejectionNotification = (store['notifications'] || []).find((notification) => notification.userId === 'c1');
+    expect(rejectionNotification?.message).toContain('ditolak oleh Marketiv');
   });
 });
 
@@ -1157,11 +1159,26 @@ describe('user.service searchCreators price filter (rate_card_packages)', () => 
 });
 
 describe('campaign-claimed function', () => {
+  const mockAtomicCounter = (url: string, init: any) => {
+    const match = url.match(/\/tablesdb\/[^/]+\/tables\/([^/]+)\/rows\/([^/]+)\/([^/]+)\/(increment|decrement)$/);
+    if (!match) return { ok: false, status: 404, text: async () => 'not found' };
+    const [, table, rowId, column, operation] = match;
+    const document = (store[table] || []).find((item) => item.$id === rowId);
+    const body = JSON.parse(init.body);
+    const next = Number(document?.[column] || 0) + (operation === 'increment' ? Number(body.value) : -Number(body.value));
+    if (!document || (typeof body.max === 'number' && next > body.max) || (typeof body.min === 'number' && next < body.min)) {
+      return { ok: false, status: 409, text: async () => 'limit exceeded' };
+    }
+    document[column] = next;
+    return { ok: true, status: 200, text: async () => '{}' };
+  };
+
   it('notifies UMKM owner when claim verified (within limit)', async () => {
     process.env.CAMPAIGNS_COLLECTION_ID = 'campaigns';
     process.env.CLAIMS_COLLECTION_ID = 'campaign_claims';
     process.env.CREATOR_PROFILES_COLLECTION_ID = 'creator_profiles';
     process.env.NOTIFICATIONS_COLLECTION_ID = 'notifications';
+    (globalThis as any).fetch = mockAtomicCounter;
     seed('campaigns', [{ $id: 'c1', umkmId: 'u1', title: 'C1', claimLimit: 5, totalClaims: 1 }]);
     seed('creator_profiles', [{ $id: 'cp1', userId: 'c1', displayName: 'Creator' }]);
     const main = (await import('../../functions/campaign-claimed/src/main.js')).default;
@@ -1173,6 +1190,7 @@ describe('campaign-claimed function', () => {
     expect(notes).toHaveLength(1);
     expect(notes[0].userId).toBe('u1');
     expect(notes[0].message).toContain('Creator');
+    expect(store.campaigns[0].totalClaims).toBe(2);
   });
 
   it('corrects claim limit when exceeded', async () => {
@@ -1180,6 +1198,7 @@ describe('campaign-claimed function', () => {
     process.env.CLAIMS_COLLECTION_ID = 'campaign_claims';
     process.env.CREATOR_PROFILES_COLLECTION_ID = 'creator_profiles';
     process.env.NOTIFICATIONS_COLLECTION_ID = 'notifications';
+    (globalThis as any).fetch = mockAtomicCounter;
     seed('campaigns', [{ $id: 'c1', umkmId: 'u1', title: 'C1', claimLimit: 3, totalClaims: 5 }]);
     seed('creator_profiles', [{ $id: 'cp1', userId: 'c1', displayName: 'Creator' }]);
     const main = (await import('../../functions/campaign-claimed/src/main.js')).default;
@@ -1187,7 +1206,7 @@ describe('campaign-claimed function', () => {
     const res = makeRes();
     await main({ req, res, log: () => {}, error: () => {} });
     const campaign = (store['campaigns'] || []).find((c) => c.$id === 'c1');
-    expect(campaign.totalClaims).toBe(4);
+    expect(campaign.totalClaims).toBe(5);
   });
 });
 

@@ -46,6 +46,7 @@ export const FUNCTION_IDS = {
   createOffer: "create-offer",
   submitCampaignProof: "submit-campaign-proof",
   reviewSubmission: "review-submission",
+  unclaimCampaign: "unclaim-campaign",
   markNotificationsRead: "mark-notifications-read",
   // ── Fix SEC-H1: guard campaign money fields (2026-08-08) ────────────────
   /**
