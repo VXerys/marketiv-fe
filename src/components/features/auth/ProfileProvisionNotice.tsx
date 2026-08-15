@@ -40,7 +40,12 @@ export function ProfileProvisionNotice({
     const res = await provisionUserProfile();
     if (res.success) {
       await refresh();
-      router.replace(dashboardByRole[role]);
+      const target = dashboardByRole[role];
+      if (target.startsWith("http://") || target.startsWith("https://")) {
+        window.location.replace(target);
+      } else {
+        router.replace(target);
+      }
       return;
     }
 

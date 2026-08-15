@@ -38,11 +38,20 @@ export function RedirectIfAuthenticated({
     if (!user.emailVerified) return;
 
     if (next) {
-      router.replace(next);
+      if (next.startsWith("http://") || next.startsWith("https://")) {
+        window.location.replace(next);
+      } else {
+        router.replace(next);
+      }
     } else if (!user.isProfileCompleted) {
       router.replace(routes.onboarding);
     } else {
-      router.replace(dashboardByRole[user.role]);
+      const target = dashboardByRole[user.role];
+      if (target.startsWith("http://") || target.startsWith("https://")) {
+        window.location.replace(target);
+      } else {
+        router.replace(target);
+      }
     }
   }, [loading, user, next, router]);
 

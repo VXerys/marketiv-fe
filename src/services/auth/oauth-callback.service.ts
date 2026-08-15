@@ -1,4 +1,4 @@
-import type { ServiceErrorCode, UserRole } from "@/types/domain";
+import type { ServiceErrorCode } from "@/types/domain";
 import type { SessionUser } from "./session.service";
 
 export interface OAuthCallbackInput {
@@ -14,11 +14,7 @@ export type OAuthCallbackDecision =
   | { action: "provision" }
   | { action: "show_recovery" };
 
-const dashboardByRole: Record<UserRole, string> = {
-  umkm: "/dashboard/umkm",
-  creator: "/dashboard/kreator",
-  admin: "/admin",
-};
+import { dashboardByRole } from "@/lib/constants/routes";
 
 export function resolveOAuthCallbackDecision(
   input: OAuthCallbackInput

@@ -7,20 +7,27 @@ import type { UserRole } from "@/types/domain";
  * Use these constants in Link hrefs, router.push(), and redirect() calls
  * to prevent typo-driven 404s and to simplify future route refactors.
  */
+/**
+ * Canonical external Admin Application URL.
+ * Defaults to staging admin subdomain if not configured via NEXT_PUBLIC_ADMIN_APP_URL.
+ */
+export const adminAppUrl =
+  process.env.NEXT_PUBLIC_ADMIN_APP_URL ||
+  (process.env.NEXT_PUBLIC_APP_ENV === "production"
+    ? "https://admin.marketiv.id"
+    : "https://admin-staging.marketiv.id");
+
 export const routes = {
   // Public
   home: "/",
   login: "/login",
   register: "/register",
+  registerUmkm: "/register?role=umkm",
+  registerCreator: "/register?role=creator",
+  verifyEmail: "/verify-email",
   forgotPassword: "/forgot-password",
   resetPassword: "/reset-password",
-  /**
-   * Wizard lengkapi profil. Butuh sesi aktif, jadi sengaja DI LUAR route group
-   * (auth) yang justru memantulkan pengguna yang sudah punya sesi.
-   */
   onboarding: "/onboarding",
-
-  // Legal & Informational
   panduan: "/panduan",
   tentangKami: "/tentang-kami",
   kebijakanPrivasi: "/kebijakan-privasi",
@@ -28,45 +35,46 @@ export const routes = {
 
   // UMKM Dashboard
   dashboardUmkm: "/dashboard/umkm",
-  umkmCampaign: "/dashboard/umkm/campaign",
+  umkmCampaigns: "/dashboard/umkm/campaign",
   umkmCreateCampaign: "/dashboard/umkm/campaign/buat",
   umkmCampaignDetail: (campaignId: string) =>
     `/dashboard/umkm/campaign/${campaignId}`,
   umkmCreators: "/dashboard/umkm/kreator",
   umkmCreatorDetail: (creatorId: string) =>
     `/dashboard/umkm/kreator/${creatorId}`,
-  umkmNegotiation: "/dashboard/umkm/negosiasi",
+  umkmNegotiations: "/dashboard/umkm/negosiasi",
   umkmNegotiationDetail: (orderId: string) =>
     `/dashboard/umkm/negosiasi/${orderId}`,
   umkmFinance: "/dashboard/umkm/keuangan",
   umkmTransactionDetail: (transactionId: string) =>
     `/dashboard/umkm/keuangan/transaksi/${transactionId}`,
+  umkmSettings: "/dashboard/umkm/settings",
 
   // Kreator Dashboard
   dashboardKreator: "/dashboard/kreator",
   kreatorJobPool: "/dashboard/kreator/job-pool",
-  kreatorJobPoolDetail: (campaignId: string) =>
+  kreatorJobDetail: (campaignId: string) =>
     `/dashboard/kreator/job-pool/${campaignId}`,
-  kreatorActiveWorks: "/dashboard/kreator/pekerjaan-aktif",
-  kreatorActiveWorkDetail: (claimId: string) =>
+  kreatorActiveJobs: "/dashboard/kreator/pekerjaan-aktif",
+  kreatorActiveJobDetail: (claimId: string) =>
     `/dashboard/kreator/pekerjaan-aktif/${claimId}`,
   kreatorRateCard: "/dashboard/kreator/rate-card",
-  kreatorNegotiation: "/dashboard/kreator/negosiasi",
+  kreatorNegotiations: "/dashboard/kreator/negosiasi",
   kreatorNegotiationDetail: (orderId: string) =>
     `/dashboard/kreator/negosiasi/${orderId}`,
   kreatorFinance: "/dashboard/kreator/keuangan",
   kreatorWithdrawal: "/dashboard/kreator/keuangan/withdrawal",
   kreatorSettings: "/dashboard/kreator/settings",
 
-  // Admin
-  admin: "/admin",
-  adminSubmissions: "/admin/submissions",
+  // Admin App (External Standalone Application)
+  admin: adminAppUrl,
+  adminSubmissions: `${adminAppUrl}/submissions`,
   adminSubmissionDetail: (submissionId: string) =>
-    `/admin/submissions/${submissionId}`,
-  adminDisputes: "/admin/disputes",
-  adminDisputeDetail: (disputeId: string) => `/admin/disputes/${disputeId}`,
-  adminUsers: "/admin/users",
-  adminReports: "/admin/reports",
+    `${adminAppUrl}/submissions?id=${submissionId}`,
+  adminDisputes: `${adminAppUrl}/disputes`,
+  adminDisputeDetail: (disputeId: string) => `${adminAppUrl}/disputes/${disputeId}`,
+  adminUsers: `${adminAppUrl}/users`,
+  adminReports: `${adminAppUrl}/reports`,
 
   /** Register dengan role sudah dipilih dari CTA landing/navbar. */
   registerWithRole: (role: "umkm" | "creator") => `/register?role=${role}`,
@@ -81,12 +89,10 @@ export const routes = {
  * LoginForm, dan kedua form register semuanya membutuhkannya — empat salinan
  * dijamin drift.
  *
- * `admin` menunjuk /admin yang BELUM ada route-nya (celah diketahui, di luar
- * Sprint 6). Sebelumnya "/" — memantulkan admin ke landing publik secara diam-diam;
- * 404 yang jujur lebih baik daripada pantulan yang salah tanpa jejak.
+ * `admin` menunjuk ke origin eksternal standalone Admin application (`NEXT_PUBLIC_ADMIN_APP_URL`).
  */
 export const dashboardByRole: Record<UserRole, string> = {
   umkm: routes.dashboardUmkm,
   creator: routes.dashboardKreator,
-  admin: routes.admin,
+  admin: adminAppUrl,
 };

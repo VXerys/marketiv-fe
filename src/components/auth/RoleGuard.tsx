@@ -49,7 +49,12 @@ export function RoleGuard({
       return;
     }
     if (mismatchedRole && user) {
-      router.replace(dashboardByRole[user.role]);
+      const target = dashboardByRole[user.role];
+      if (target.startsWith("http://") || target.startsWith("https://")) {
+        window.location.replace(target);
+      } else {
+        router.replace(target);
+      }
       return;
     }
     if (needsOnboarding && !isOnboardingSkipped()) {

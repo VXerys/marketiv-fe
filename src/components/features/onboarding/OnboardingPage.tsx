@@ -32,7 +32,13 @@ export function OnboardingPage() {
     : null;
 
   useEffect(() => {
-    if (redirectTo) router.replace(redirectTo);
+    if (redirectTo) {
+      if (redirectTo.startsWith("http://") || redirectTo.startsWith("https://")) {
+        window.location.replace(redirectTo);
+      } else {
+        router.replace(redirectTo);
+      }
+    }
   }, [redirectTo, router]);
 
   if (loading || redirectTo || !user) {

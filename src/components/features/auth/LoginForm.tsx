@@ -79,7 +79,12 @@ export function LoginForm({ next, role: initialRole = "umkm" }: LoginFormProps) 
     }
 
     await refresh();
-    router.replace(next || dashboardByRole[res.data.role]);
+    const target = next || dashboardByRole[res.data.role];
+    if (target.startsWith("http://") || target.startsWith("https://")) {
+      window.location.replace(target);
+    } else {
+      router.replace(target);
+    }
   }
 
   if (suspended) {
