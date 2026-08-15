@@ -1,18 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ChatbotPanel } from "@/components/features/chatbot/ChatbotPanel";
 
 export function ChatbotFab() {
   const [isOpen, setIsOpen] = useState(false);
-  const pathname = usePathname();
-
-  // Hide Chatbot FAB completely in Admin section
-  if (pathname?.startsWith("/admin")) {
-    return null;
-  }
 
   return (
     <>
