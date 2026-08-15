@@ -20,6 +20,7 @@ describe("resolveOAuthCallbackDecision", () => {
           status: "active",
           isProfileCompleted: false,
         },
+        role: "creator",
         next: "/dashboard/kreator/rate-card",
       })
     ).toEqual({ action: "redirect", href: "/dashboard/kreator/rate-card" });

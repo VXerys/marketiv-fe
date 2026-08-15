@@ -1,5 +1,24 @@
 import type { UserRole } from "@/types/domain";
 
+export type UserPortalRole = Extract<UserRole, "umkm" | "creator">;
+
+export function isUserPortalRole(role: UserRole): role is UserPortalRole {
+  return role === "umkm" || role === "creator";
+}
+
+export function portalRoleMismatchMessage(
+  actualRole: UserRole,
+  selectedRole: UserPortalRole,
+): string {
+  if (actualRole === "admin") {
+    return "Akun Admin tidak dapat masuk melalui portal ini. Gunakan portal Admin.";
+  }
+  if (actualRole === selectedRole) return "";
+  return actualRole === "creator"
+    ? "Akun ini terdaftar sebagai Kreator. Silakan masuk melalui portal Kreator."
+    : "Akun ini terdaftar sebagai UMKM. Silakan masuk melalui portal UMKM.";
+}
+
 /**
  * Central Route Constants
  *
@@ -130,3 +149,43 @@ export const dashboardByRole: Record<UserRole, string> = {
   creator: routes.dashboardKreator,
   admin: adminAppUrl,
 };
+
+const portalDashboardByRole: Record<UserPortalRole, string> = {
+  umkm: routes.dashboardUmkm,
+  creator: routes.dashboardKreator,
+};
+
+/**
+ * Resolve login's navigation preference without letting it choose a different
+ * portal, origin, or URL scheme. Route guards still enforce authorization.
+ */
+export function resolveSafePostLoginDestination(
+  role: UserPortalRole,
+  requestedNext?: string,
+): string {
+  const fallback = portalDashboardByRole[role];
+  if (!requestedNext || requestedNext.trim() !== requestedNext) return fallback;
+  if (
+    !requestedNext.startsWith("/") ||
+    requestedNext.startsWith("//") ||
+    requestedNext.includes("\\") ||
+    /%2f|%5c/i.test(requestedNext)
+  ) {
+    return fallback;
+  }
+
+  let destination: URL;
+  try {
+    destination = new URL(requestedNext, "https://marketiv.invalid");
+  } catch {
+    return fallback;
+  }
+
+  const requiredPrefix = portalDashboardByRole[role];
+  const pathname = destination.pathname;
+  if (pathname !== requiredPrefix && !pathname.startsWith(`${requiredPrefix}/`)) {
+    return fallback;
+  }
+
+  return `${pathname}${destination.search}${destination.hash}`;
+}

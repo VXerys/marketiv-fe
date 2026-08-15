@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { RedirectIfAuthenticated } from "@/components/auth/RedirectIfAuthenticated";
 import { LoginForm } from "@/components/features/auth/LoginForm";
+import { portalRoleMismatchMessage } from "@/lib/constants/routes";
 import { registrableRoleSchema } from "@/lib/validations/auth.schema";
 
 const TITLES: Record<string, string> = {
@@ -29,16 +30,21 @@ export async function generateMetadata({
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string; role?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; role?: string; actualRole?: string }>;
 }) {
-  const { next, role } = await searchParams;
+  const { next, role, error, actualRole } = await searchParams;
 
   const safeNext = next?.startsWith("/") && !next.startsWith("//") ? next : undefined;
   const parsedRole = registrableRoleSchema.safeParse(role);
+  const selectedRole = parsedRole.success ? parsedRole.data : "umkm";
+  const initialBanner =
+    error === "role_mismatch" && (actualRole === "umkm" || actualRole === "creator" || actualRole === "admin")
+      ? portalRoleMismatchMessage(actualRole, selectedRole)
+      : undefined;
 
   return (
     <RedirectIfAuthenticated next={safeNext}>
-      <LoginForm next={safeNext} role={parsedRole.success ? parsedRole.data : "umkm"} />
+      <LoginForm next={safeNext} role={selectedRole} initialBanner={initialBanner} />
     </RedirectIfAuthenticated>
   );
 }

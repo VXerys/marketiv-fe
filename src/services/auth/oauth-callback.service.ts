@@ -1,5 +1,9 @@
-import type { ServiceErrorCode } from "@/types/domain";
+import type { ServiceErrorCode, UserRole } from "@/types/domain";
 import type { SessionUser } from "./session.service";
+import {
+  isUserPortalRole,
+  resolveSafePostLoginDestination,
+} from "@/lib/constants/routes";
 
 export interface OAuthCallbackInput {
   user: SessionUser | null;
@@ -12,15 +16,20 @@ export interface OAuthCallbackInput {
 export type OAuthCallbackDecision =
   | { action: "redirect"; href: string }
   | { action: "provision" }
-  | { action: "show_recovery" };
-
-import { dashboardByRole } from "@/lib/constants/routes";
+  | { action: "show_recovery" }
+  | { action: "role_mismatch"; actualRole: UserRole };
 
 export function resolveOAuthCallbackDecision(
   input: OAuthCallbackInput
 ): OAuthCallbackDecision {
   if (input.user) {
-    return { action: "redirect", href: input.next || dashboardByRole[input.user.role] };
+    if (!isUserPortalRole(input.user.role) || input.user.role !== input.role) {
+      return { action: "role_mismatch", actualRole: input.user.role };
+    }
+    return {
+      action: "redirect",
+      href: resolveSafePostLoginDestination(input.user.role, input.next),
+    };
   }
 
   if (input.errorCode !== "not_found") {

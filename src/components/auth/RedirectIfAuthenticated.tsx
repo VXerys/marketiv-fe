@@ -3,7 +3,11 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { routes, dashboardByRole } from "@/lib/constants/routes";
+import {
+  isUserPortalRole,
+  resolveSafePostLoginDestination,
+  routes,
+} from "@/lib/constants/routes";
 
 /**
  * Lempar user yang sudah punya sesi keluar dari halaman auth.
@@ -37,21 +41,14 @@ export function RedirectIfAuthenticated({
     // User belum verifikasi email → jangan redirect, biarkan layar OTP render.
     if (!user.emailVerified) return;
 
+    if (!isUserPortalRole(user.role)) return;
+
     if (next) {
-      if (next.startsWith("http://") || next.startsWith("https://")) {
-        window.location.replace(next);
-      } else {
-        router.replace(next);
-      }
+      router.replace(resolveSafePostLoginDestination(user.role, next));
     } else if (!user.isProfileCompleted) {
       router.replace(routes.onboarding);
     } else {
-      const target = dashboardByRole[user.role];
-      if (target.startsWith("http://") || target.startsWith("https://")) {
-        window.location.replace(target);
-      } else {
-        router.replace(target);
-      }
+      router.replace(resolveSafePostLoginDestination(user.role));
     }
   }, [loading, user, next, router]);
 
@@ -62,7 +59,7 @@ export function RedirectIfAuthenticated({
   //
   // User belum verifikasi email juga harus tetap bisa melihat halaman auth
   // (layar OTP di-render sebagai children dari register form).
-  if (!loading && user && user.emailVerified && errorCode !== "not_found") return null;
+  if (!loading && user && isUserPortalRole(user.role) && user.emailVerified && errorCode !== "not_found") return null;
 
   return <>{children}</>;
 }

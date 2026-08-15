@@ -77,10 +77,27 @@ export function OAuthCallback({
       return;
     }
 
+    if (decision.action === "role_mismatch") {
+      const cleanup = await logout();
+      if (cleanup.success && role) {
+        const params = new URLSearchParams({
+          role,
+          error: "role_mismatch",
+          actualRole: decision.actualRole,
+        });
+        router.replace(`${routes.login}?${params.toString()}`);
+        return;
+      }
+      setRecoveryError(
+        "Kami tidak dapat mengakhiri sesi ini. Tutup browser, lalu coba masuk kembali."
+      );
+      return;
+    }
+
     setRecoveryError(
       "Akun Google sudah terhubung, tetapi profil Marketiv belum bisa dibuat. Coba lagi atau hubungi admin."
     );
-  }, [next, role, router, refresh]);
+  }, [next, role, router, refresh, logout]);
 
   useEffect(() => {
     if (ranRef.current) return;

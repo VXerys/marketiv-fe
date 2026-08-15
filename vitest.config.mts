@@ -12,6 +12,9 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    env: {
+      NEXT_PUBLIC_ADMIN_APP_URL: "https://admin.example.test",
+    },
     include: [
       "00_BACKEND/tests/unit/oauth-callback.service.test.ts",
       "src/services/auth/__tests__/**/*.test.ts",

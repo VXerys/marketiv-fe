@@ -12,7 +12,12 @@ import { GoogleButton } from "./GoogleButton";
 import { login } from "@/services/auth/auth.service";
 import { loginSchema } from "@/lib/validations/auth.schema";
 import { parseOrErrors } from "@/lib/validations/to-field-errors";
-import { routes, dashboardByRole } from "@/lib/constants/routes";
+import {
+  isUserPortalRole,
+  portalRoleMismatchMessage,
+  resolveSafePostLoginDestination,
+  routes,
+} from "@/lib/constants/routes";
 
 const ROLE_CONFIG = {
   umkm: {
@@ -32,16 +37,17 @@ const ROLE_CONFIG = {
 interface LoginFormProps {
   next?: string;
   role?: AuthRole;
+  initialBanner?: string;
 }
 
-export function LoginForm({ next, role: initialRole = "umkm" }: LoginFormProps) {
+export function LoginForm({ next, role: initialRole = "umkm", initialBanner }: LoginFormProps) {
   const router = useRouter();
-  const { refresh } = useAuth();
+  const { refresh, logout } = useAuth();
 
   const [activeRole, setActiveRole] = useState<AuthRole>(initialRole);
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [banner, setBanner] = useState<string | null>(null);
+  const [banner, setBanner] = useState<string | null>(initialBanner ?? null);
   const [suspended, setSuspended] = useState(false);
   const [pending, setPending] = useState(false);
 
@@ -78,13 +84,21 @@ export function LoginForm({ next, role: initialRole = "umkm" }: LoginFormProps) 
       return;
     }
 
-    await refresh();
-    const target = next || dashboardByRole[res.data.role];
-    if (target.startsWith("http://") || target.startsWith("https://")) {
-      window.location.replace(target);
-    } else {
-      router.replace(target);
+    if (!isUserPortalRole(res.data.role) || res.data.role !== activeRole) {
+      const cleanup = await logout();
+      setPending(false);
+      if (!cleanup.success) {
+        setBanner(
+          "Kami tidak dapat mengakhiri sesi ini. Tutup browser, lalu coba masuk kembali."
+        );
+        return;
+      }
+      setBanner(portalRoleMismatchMessage(res.data.role, activeRole));
+      return;
     }
+
+    await refresh();
+    router.replace(resolveSafePostLoginDestination(res.data.role, next));
   }
 
   if (suspended) {
