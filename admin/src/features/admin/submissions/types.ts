@@ -50,13 +50,11 @@ export interface CampaignSubmissionDomain {
 export interface ReviewApprovePayload {
   submissionId: string;
   verifiedViews: number;
-  adminId: string;
 }
 
 export interface ReviewRejectPayload {
   submissionId: string;
   rejectionReason: string;
-  adminId: string;
 }
 
 export interface StatusUIConfig {

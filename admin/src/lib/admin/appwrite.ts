@@ -68,6 +68,8 @@ export const COLLECTIONS = {
 } as const;
 
 export const FUNCTION_IDS = {
+  getAdminSubmissionQueue: "get-admin-submission-queue",
+  getAdminDashboardSummary: "get-admin-dashboard-summary",
   reviewSubmission: "review-submission",
   submitCampaignProof: "submit-campaign-proof",
   calculateCampaignReward: "calculate-campaign-reward",

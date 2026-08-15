@@ -1554,6 +1554,20 @@ const functions = [
     path: "../functions/review-submission",
   },
   {
+    $id: "unclaim-campaign",
+    name: "Unclaim Campaign",
+    runtime: "node-22",
+    execute: ["users"],
+    events: [],
+    schedule: "",
+    timeout: 15,
+    enabled: true,
+    logging: true,
+    entrypoint: "src/main.js",
+    commands: "npm install",
+    path: "../functions/unclaim-campaign",
+  },
+  {
     $id: "submit-campaign-proof",
     name: "Submit Campaign Proof",
     runtime: "node-22",
@@ -1566,6 +1580,37 @@ const functions = [
     entrypoint: "src/main.js",
     commands: "npm install",
     path: "../functions/submit-campaign-proof",
+  },
+  // ── Admin read DTO (P3 campaign/admin bugfix) ─────────────────────────────
+  // Browser hanya mengeksekusi Function. Authorization + database join tetap
+  // di server agar collection permission tidak perlu diperlebar.
+  {
+    $id: "get-admin-submission-queue",
+    name: "Get Admin Submission Queue",
+    runtime: "node-22",
+    execute: ["users"],
+    events: [],
+    schedule: "",
+    timeout: 30,
+    enabled: true,
+    logging: true,
+    entrypoint: "src/main.js",
+    commands: "npm install",
+    path: "../functions/get-admin-submission-queue",
+  },
+  {
+    $id: "get-admin-dashboard-summary",
+    name: "Get Admin Dashboard Summary",
+    runtime: "node-22",
+    execute: ["users"],
+    events: [],
+    schedule: "",
+    timeout: 30,
+    enabled: true,
+    logging: true,
+    entrypoint: "src/main.js",
+    commands: "npm install",
+    path: "../functions/get-admin-dashboard-summary",
   },
   // ── Function DTO baca (Sprint 1 / s1-appwrite-read) ────────────────────────
   // Agregasi & join yang tidak bisa dipetakan setia dari satu collection.

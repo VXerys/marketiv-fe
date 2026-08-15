@@ -83,6 +83,12 @@
     "documents.read",
     "documents.write"
   ],
+  "get-admin-dashboard-summary": [
+    "documents.read"
+  ],
+  "get-admin-submission-queue": [
+    "documents.read"
+  ],
   "get-creator-dashboard-summary": [
     "documents.read"
   ],
@@ -150,6 +156,10 @@
     "documents.write"
   ],
   "review-submission": [
+    "documents.read",
+    "documents.write"
+  ],
+  "unclaim-campaign": [
     "documents.read",
     "documents.write"
   ],
