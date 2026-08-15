@@ -1,11 +1,52 @@
 import { Client, Account, Databases, Functions } from "appwrite";
 
-const endpoint =
-  process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || "https://api.marketiv.id/v1";
-const projectId =
-  process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || "69f9d45b00315cb0ec2f";
-export const databaseId =
-  process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || "6a4c8598001da3b0d7f0";
+export class AdminAppwriteConfigurationError extends Error {
+  constructor(message: string) {
+    super(`Admin Appwrite configuration error: ${message}`);
+    this.name = "AdminAppwriteConfigurationError";
+  }
+}
+
+function requiredValue(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new AdminAppwriteConfigurationError(
+      `${name} is required. Set it in the Admin deployment environment.`,
+    );
+  }
+  return value;
+}
+
+function requiredAppwriteEndpoint(): string {
+  const value = requiredValue("NEXT_PUBLIC_APPWRITE_ENDPOINT");
+
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      throw new Error("unsupported protocol");
+    }
+  } catch {
+    throw new AdminAppwriteConfigurationError(
+      "NEXT_PUBLIC_APPWRITE_ENDPOINT must be a valid http(s) URL.",
+    );
+  }
+
+  return value;
+}
+
+function requiredAppwriteId(name: string): string {
+  const value = requiredValue(name);
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,35}$/.test(value)) {
+    throw new AdminAppwriteConfigurationError(
+      `${name} must be a valid Appwrite identifier.`,
+    );
+  }
+  return value;
+}
+
+const endpoint = requiredAppwriteEndpoint();
+const projectId = requiredAppwriteId("NEXT_PUBLIC_APPWRITE_PROJECT_ID");
+export const databaseId = requiredAppwriteId("NEXT_PUBLIC_APPWRITE_DATABASE_ID");
 
 export const client = new Client()
   .setEndpoint(endpoint)

@@ -7,15 +7,49 @@ import type { UserRole } from "@/types/domain";
  * Use these constants in Link hrefs, router.push(), and redirect() calls
  * to prevent typo-driven 404s and to simplify future route refactors.
  */
-/**
- * Canonical external Admin Application URL.
- * Defaults to staging admin subdomain if not configured via NEXT_PUBLIC_ADMIN_APP_URL.
- */
-export const adminAppUrl =
-  process.env.NEXT_PUBLIC_ADMIN_APP_URL ||
-  (process.env.NEXT_PUBLIC_APP_ENV === "production"
-    ? "https://admin.marketiv.id"
-    : "https://admin-staging.marketiv.id");
+/** Canonical external Admin Application URL. No environment fallback is allowed. */
+export function getAdminAppUrl(rawValue = process.env.NEXT_PUBLIC_ADMIN_APP_URL): string {
+  const value = rawValue?.trim();
+  if (!value) {
+    throw new Error(
+      "Admin URL configuration error: NEXT_PUBLIC_ADMIN_APP_URL is required for cross-app navigation.",
+    );
+  }
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(
+      "Admin URL configuration error: NEXT_PUBLIC_ADMIN_APP_URL must be a valid absolute URL.",
+    );
+  }
+
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error(
+      "Admin URL configuration error: NEXT_PUBLIC_ADMIN_APP_URL must use http or https.",
+    );
+  }
+
+  if (url.username || url.password || (url.pathname !== "/" && url.pathname !== "") || url.search || url.hash) {
+    throw new Error(
+      "Admin URL configuration error: NEXT_PUBLIC_ADMIN_APP_URL must be an origin without credentials, path, query, or hash.",
+    );
+  }
+
+  if (
+    process.env.NEXT_PUBLIC_APP_ENV === "production" &&
+    /(^|[.-])staging([.-]|$)/i.test(url.hostname)
+  ) {
+    throw new Error(
+      "Admin URL configuration error: production cannot use a staging Admin origin.",
+    );
+  }
+
+  return url.origin;
+}
+
+export const adminAppUrl = getAdminAppUrl();
 
 export const routes = {
   // Public
