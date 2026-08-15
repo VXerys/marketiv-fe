@@ -41,6 +41,7 @@ import {
 } from "./NotificationDetailDialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAdminAuth } from "./AdminAuthBoundary";
 
 interface AdminHeaderProps {
   onMenuClick?: () => void;
@@ -49,7 +50,10 @@ interface AdminHeaderProps {
 export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { session, logout } = useAdminAuth();
   const envMode = process.env.NEXT_PUBLIC_APP_ENV || "staging";
+  const userAppUrl = process.env.NEXT_PUBLIC_USER_APP_URL?.trim();
+  const initials = session?.email.slice(0, 2).toUpperCase() || "AD";
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -59,98 +63,8 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   const [selectedNotification, setSelectedNotification] = useState<AdminNotification | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  // 6 Rich Operational Notifications Initial State
-  const [notifications, setNotifications] = useState<AdminNotification[]>([
-    {
-      id: "notif-1",
-      title: "Submission Baru Masuk",
-      desc: "Kreator @angkasacreates mengirimkan bukti TikTok untuk Promo Kopi Susu Aren.",
-      fullContent: "Kreator @angkasacreates baru saja mengunggah bukti postingan video TikTok untuk Campaign PPV 'Promo Kopi Susu Aren - Unboxing & Review'. Harap lakukan pemeriksaan keabsahan link dan input jumlah views live.",
-      category: "submission",
-      time: "10 menit lalu",
-      timestamp: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
-      unread: true,
-      link: "/submissions?status=pending",
-      metadata: {
-        submissionId: "sub-101",
-        creatorName: "Angkasa",
-        creatorUsername: "@angkasacreates",
-        brandName: "Kopi ABC Studio",
-      },
-    },
-    {
-      id: "notif-2",
-      title: "Reward Dikreditkan",
-      desc: "Submission sub-104 disetujui, reward Rp240.000 masuk pending balance creator.",
-      fullContent: "Submission sub-104 atas nama kreator @maya_style telah berhasil disetujui oleh Admin. Sebanyak 24.500 views terverifikasi dikunci dan reward sebesar Rp240.000 telah masuk ke status pending balance.",
-      category: "reward",
-      time: "2 jam lalu",
-      timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-      unread: true,
-      link: "/submissions?status=approved",
-      metadata: {
-        submissionId: "sub-104",
-        creatorName: "Maya Outfit",
-        amount: 240000,
-      },
-    },
-    {
-      id: "notif-3",
-      title: "Submission Butuh Peninjauan",
-      desc: "Kreator @sitikuliner mengirimkan submission bukti tayang Campaign Sambal Pedas.",
-      fullContent: "Submission sub-102 membutuhkan verifikasi views dari Admin. Durasi tayang video sudah mencapai 2 jam dan siap untuk diaudit.",
-      category: "submission",
-      time: "3 jam lalu",
-      timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-      unread: false,
-      link: "/submissions?status=pending",
-      metadata: {
-        submissionId: "sub-102",
-        creatorName: "Siti Rahma",
-        creatorUsername: "@sitikuliner",
-        brandName: "Sambal Bu Nina",
-      },
-    },
-    {
-      id: "notif-4",
-      title: "Target Campaign Tercapai",
-      desc: "Campaign 'Try-On Haul Batik Modern' telah memenuhi kuota 80% budget.",
-      fullContent: "Campaign 'Try-On Haul Batik Modern Edisi Summer' dari UMKM Batik Nusantara Crafter telah mencapai 80% alokasi anggaran PPV. Monitor sisa batas budget sebelum campaign ditutup secara otomatis.",
-      category: "campaign",
-      time: "5 jam lalu",
-      timestamp: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
-      unread: false,
-      link: "/submissions",
-      metadata: {
-        brandName: "Batik Nusantara Crafter",
-      },
-    },
-    {
-      id: "notif-5",
-      title: "Submission Ditolak",
-      desc: "Submission sub-105 ditolak karena konten video diset ke status Private.",
-      fullContent: "Submission sub-105 atas nama @dewibeautytips telah ditolak karena link postingan TikTok dalam keadaan private atau telah dihapus oleh kreator.",
-      category: "submission",
-      time: "1 hari lalu",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-      unread: false,
-      link: "/submissions?status=rejected",
-      metadata: {
-        submissionId: "sub-105",
-        creatorName: "Dewi Beauty",
-      },
-    },
-    {
-      id: "notif-6",
-      title: "Appwrite Staging Normal",
-      desc: "Sistem backend Appwrite Staging berjalan normal tanpa error log (Latency 42ms).",
-      fullContent: "Pemeriksaan otomatis kesehatan sistem backend Appwrite Staging mengonfirmasi status database dan cloud functions berjalan normal dengan latensi rata-rata 42ms.",
-      category: "system",
-      time: "1 hari lalu",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
-      unread: false,
-    },
-  ]);
+  // Tidak ada sumber notifikasi operasional tepercaya pada Admin runtime.
+  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
 
@@ -269,21 +183,17 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
             <Search className="h-4 w-4" />
           </button>
 
-          {/* Live Environment Health Popover Trigger */}
+          {/* Environment configuration popover */}
           <DropdownMenu open={isHealthOpen} onOpenChange={setIsHealthOpen}>
             <DropdownMenuTrigger asChild>
               <button
-                className="hidden sm:flex items-center gap-1.5 rounded-full border border-emerald-200/90 bg-emerald-50/90 px-2.5 sm:px-3 py-1 text-[11px] font-extrabold text-emerald-800 hover:bg-emerald-100/80 transition-all shadow-2xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                title="Status Koneksi Backend Appwrite"
+                className="hidden sm:flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 sm:px-3 py-1 text-[11px] font-extrabold text-slate-700 hover:bg-slate-100 transition-all shadow-2xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-500/20"
+                title="Environment terkonfigurasi"
               >
-                <span className="relative flex h-2 w-2 shrink-0">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                <span className="flex h-2 w-2 shrink-0">
+                  <span className="inline-flex h-2 w-2 rounded-full bg-slate-500" />
                 </span>
                 <span className="uppercase tracking-wider font-mono text-[10px] sm:text-[11px]">{envMode}</span>
-                <span className="hidden md:inline text-[9px] font-extrabold text-emerald-700 bg-white px-1.5 py-0.2 rounded border border-emerald-200">
-                  Appwrite Online
-                </span>
                 <ChevronDown className="h-3 w-3 text-emerald-600 shrink-0" />
               </button>
             </DropdownMenuTrigger>
@@ -292,10 +202,10 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
               <DropdownMenuLabel className="flex items-center justify-between pb-2">
                 <span className="font-extrabold text-xs text-[#0c172b] flex items-center gap-1.5">
                   <Server className="h-3.5 w-3.5 text-emerald-600" />
-                  Backend Appwrite Status
+                  Environment
                 </span>
                 <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                  Operational
+                  Dikonfigurasi
                 </span>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
@@ -325,12 +235,12 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
               <DropdownMenuSeparator />
               <button
                 onClick={() => {
-                  toast.info("Status Backend Appwrite Staging terhubung 100% (Latency: 42ms)");
+                  toast.info("Label environment tidak melakukan pemeriksaan kesehatan sistem.");
                   setIsHealthOpen(false);
                 }}
                 className="w-full text-center text-[11px] font-bold text-orange-600 hover:bg-orange-50 py-1.5 rounded-lg transition-colors cursor-pointer"
               >
-                Tes Koneksi Latency
+                Tutup
               </button>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -455,28 +365,28 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
           </DropdownMenu>
 
           {/* External Marketiv Portal Link */}
-          <a
-            href={process.env.NEXT_PUBLIC_USER_APP_URL || "https://staging.marketiv.id"}
+          {userAppUrl && <a
+            href={userAppUrl}
             className="hidden 2xl:flex items-center gap-1.5 rounded-xl border border-stone-200/80 bg-white px-3 py-1.5 text-xs font-bold text-stone-700 hover:bg-stone-50 hover:text-stone-900 transition-all shadow-2xs"
           >
             <span>Marketiv Web</span>
             <ExternalLink className="h-3 w-3 text-stone-400" />
-          </a>
+          </a>}
 
           {/* Admin Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 rounded-xl border border-stone-200/80 bg-white p-1 xl:pr-2.5 hover:bg-stone-50 transition-all shadow-2xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-orange-500/20 shrink-0">
                 <div className="relative flex h-7 w-7 items-center justify-center rounded-lg bg-[#0c172b] font-extrabold text-white text-xs shadow-2xs shrink-0">
-                  AD
+                  {initials}
                   <span className="absolute right-0 bottom-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" />
                 </div>
                 <div className="hidden xl:flex flex-col text-left">
                   <span className="text-xs font-extrabold text-stone-900 leading-none truncate max-w-[90px]">
-                    Admin Ops
+                    {session?.email}
                   </span>
                   <span className="text-[9px] font-extrabold text-[#f97316] leading-none mt-0.5">
-                    Super Admin
+                    Admin
                   </span>
                 </div>
                 <ChevronDown className="h-3.5 w-3.5 text-stone-400 shrink-0" />
@@ -487,13 +397,10 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
               <DropdownMenuLabel>
                 <div className="flex flex-col">
                   <span className="font-extrabold text-stone-900 text-xs">
-                    Admin Operational
+                    {session?.email}
                   </span>
                   <span className="text-[10px] text-stone-500 font-medium">
-                    ops@marketiv.id
-                  </span>
-                  <span className="mt-1 text-[9px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded w-fit">
-                    Verified Role: admin
+                    Status: {session?.status}
                   </span>
                 </div>
               </DropdownMenuLabel>
@@ -509,13 +416,13 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
 
               <DropdownMenuItem
                 onClick={() => {
-                  toast.success("System Log: All Services Healthy");
+                  toast.info("Environment hanya menunjukkan konfigurasi, bukan kesehatan sistem.");
                   setIsHealthOpen(true);
                 }}
                 className="cursor-pointer"
               >
                 <Activity className="h-3.5 w-3.5 text-stone-500" />
-                <span>System Log & Health</span>
+                <span>Environment</span>
               </DropdownMenuItem>
 
               <DropdownMenuItem
@@ -528,7 +435,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
 
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => toast.success("Sesi Admin berhasil ditutup")}
+                onClick={() => void logout()}
                 className="text-red-600 focus:bg-red-50 focus:text-red-700 cursor-pointer font-bold"
               >
                 <LogOut className="h-3.5 w-3.5" />

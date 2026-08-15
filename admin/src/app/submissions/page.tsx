@@ -6,6 +6,7 @@ import { getCampaignSubmissions } from "@/features/admin/submissions/services/su
 import { SubmissionTable } from "@/features/admin/submissions/components/SubmissionTable";
 import { SubmissionCard } from "@/features/admin/submissions/components/SubmissionCard";
 import { SubmissionReviewDialog } from "@/features/admin/submissions/components/SubmissionReviewDialog";
+import { canLoadProtectedAdminData, useAdminAuth } from "@/components/admin/AdminAuthBoundary";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,38 +22,42 @@ import {
 } from "lucide-react";
 
 export default function AdminSubmissionsPage() {
+  const { state } = useAdminAuth();
   const [allSubmissions, setAllSubmissions] = useState<CampaignSubmissionDomain[]>([]);
   const [activeTab, setActiveTab] = useState<SubmissionStatus | "all">("pending");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedSubmission, setSelectedSubmission] = useState<CampaignSubmissionDomain | null>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   const loadData = useCallback(async () => {
+    if (!canLoadProtectedAdminData(state)) return;
     setIsLoading(true);
     try {
       const data = await getCampaignSubmissions("all");
       setAllSubmissions(data);
+      setLoadError(null);
     } catch (err) {
       console.error("Gagal memuat submission:", err);
+      setLoadError(err instanceof Error ? err.message : "Gagal memuat submission.");
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [state]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (canLoadProtectedAdminData(state)) void Promise.resolve().then(loadData);
+  }, [loadData, state]);
 
   const handleOpenReview = (submission: CampaignSubmissionDomain) => {
     setSelectedSubmission(submission);
     setIsModalOpen(true);
   };
 
-  const handleReviewSuccess = (updated: CampaignSubmissionDomain) => {
-    setAllSubmissions((prev) =>
-      prev.map((item) => (item.id === updated.id ? updated : item))
-    );
+  const handleReviewSuccess = (submissions: CampaignSubmissionDomain[]) => {
+    setAllSubmissions(submissions);
+    setLoadError(null);
   };
 
   const pendingCount = allSubmissions.filter((s) => s.status === "pending").length;
@@ -129,7 +134,7 @@ export default function AdminSubmissionsPage() {
                     : "bg-orange-100 text-[#c2410c]"
                 }`}
               >
-                {pendingCount}
+                {isLoading ? "—" : pendingCount}
               </span>
             </button>
 
@@ -144,7 +149,7 @@ export default function AdminSubmissionsPage() {
               <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
               <span>Disetujui</span>
               <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-black text-emerald-800">
-                {approvedCount}
+                {isLoading ? "—" : approvedCount}
               </span>
             </button>
 
@@ -159,7 +164,7 @@ export default function AdminSubmissionsPage() {
               <XCircle className="h-3.5 w-3.5 text-red-400" />
               <span>Ditolak</span>
               <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-[10px] font-black text-red-800">
-                {rejectedCount}
+                {isLoading ? "—" : rejectedCount}
               </span>
             </button>
 
@@ -174,7 +179,7 @@ export default function AdminSubmissionsPage() {
               <Filter className="h-3.5 w-3.5 text-stone-400" />
               <span>Semua Status</span>
               <span className="rounded-full bg-stone-200 px-2 py-0.5 text-[10px] font-black text-stone-700">
-                {allSubmissions.length}
+                {isLoading ? "—" : allSubmissions.length}
               </span>
             </button>
           </div>
@@ -206,6 +211,12 @@ export default function AdminSubmissionsPage() {
         <Card className="flex h-72 flex-col items-center justify-center gap-3 text-stone-400 bg-[#fffdf8] border-stone-200/90 rounded-2xl shadow-xs">
           <Loader2 className="h-8 w-8 animate-spin text-[#f97316]" />
           <span className="text-xs font-bold text-stone-600">Memuat data submission...</span>
+        </Card>
+      ) : loadError ? (
+        <Card className="flex h-72 flex-col items-center justify-center gap-3 text-red-700 bg-red-50 border-red-200 rounded-2xl shadow-xs">
+          <XCircle className="h-10 w-10 text-red-400" />
+          <p className="text-base font-extrabold">Submission gagal dimuat</p>
+          <p className="text-xs text-red-600">{loadError}</p>
         </Card>
       ) : filteredSubmissions.length === 0 ? (
         <Card className="flex h-72 flex-col items-center justify-center gap-3 text-stone-400 bg-[#fffdf8] border-stone-200/90 rounded-2xl shadow-xs">

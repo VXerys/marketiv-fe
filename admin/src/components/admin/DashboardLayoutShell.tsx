@@ -4,22 +4,15 @@ import React, { useState } from "react";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
 
-interface DashboardLayoutShellProps {
-  pendingCount: number;
-  children: React.ReactNode;
-}
+interface DashboardLayoutShellProps { children: React.ReactNode; }
 
-export function DashboardLayoutShell({
-  pendingCount,
-  children,
-}: DashboardLayoutShellProps) {
+export function DashboardLayoutShell({ children }: DashboardLayoutShellProps) {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   return (
     <div className="flex h-screen w-full max-w-full overflow-hidden bg-[#F7F3EE]">
       {/* Fixed Admin Sidebar (Desktop & Mobile Drawer) */}
       <AdminSidebar
-        pendingCount={pendingCount}
         isOpen={isMobileSidebarOpen}
         onClose={() => setIsMobileSidebarOpen(false)}
       />

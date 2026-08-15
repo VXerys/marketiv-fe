@@ -1,7 +1,12 @@
+"use client";
+
 import Link from "next/link";
-import { fetchDashboardMetrics } from "@/features/admin/dashboard/fixtures/dashboard.fixtures";
+import { useEffect, useState } from "react";
+import { fetchDashboardMetrics, type DashboardMetrics } from "@/features/admin/dashboard/fixtures/dashboard.fixtures";
 import { getCampaignSubmissions } from "@/features/admin/submissions/services/submission.service";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import type { CampaignSubmissionDomain } from "@/features/admin/submissions/types";
+import { canLoadProtectedAdminData, useAdminAuth } from "@/components/admin/AdminAuthBoundary";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Clock,
@@ -9,21 +14,48 @@ import {
   Megaphone,
   ArrowRight,
   ShieldCheck,
-  TrendingUp,
   Sparkles,
-  Zap,
   Eye,
   AlertCircle,
   ExternalLink,
   ChevronRight,
-  Activity,
   Layers,
 } from "lucide-react";
 import { formatRupiah, formatDateTime } from "@/lib/admin/formatters";
 
-export default async function AdminDashboardOverviewPage() {
-  const metrics = await fetchDashboardMetrics();
-  const pendingSubmissions = await getCampaignSubmissions("pending");
+const emptyMetrics: DashboardMetrics = {
+  pendingSubmissionsCount: 0,
+  reviewedSubmissionsCount: 0,
+  activeCampaignsCount: 0,
+};
+
+export default function AdminDashboardOverviewPage() {
+  const { state } = useAdminAuth();
+  const [metrics, setMetrics] = useState<DashboardMetrics>(emptyMetrics);
+  const [pendingSubmissions, setPendingSubmissions] = useState<CampaignSubmissionDomain[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const metricValue = (value: number) => loading || loadError ? "—" : value;
+
+  useEffect(() => {
+    if (!canLoadProtectedAdminData(state)) return;
+    let cancelled = false;
+    void Promise.all([fetchDashboardMetrics(), getCampaignSubmissions("pending")])
+      .then(([nextMetrics, nextSubmissions]) => {
+        if (cancelled) return;
+        setMetrics(nextMetrics);
+        setPendingSubmissions(nextSubmissions);
+        setLoadError(null);
+        setLoading(false);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          setLoadError(err instanceof Error ? err.message : "Gagal memuat data Admin.");
+          setLoading(false);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [state]);
 
   return (
     <div className="space-y-8 pb-10">
@@ -40,7 +72,7 @@ export default async function AdminDashboardOverviewPage() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500" />
               </span>
-              <span>Marketiv Control Plane • Live Operational Engine</span>
+              <span>Marketiv Admin</span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white leading-tight">
@@ -55,15 +87,11 @@ export default async function AdminDashboardOverviewPage() {
             <div className="flex flex-wrap items-center gap-2 pt-1">
               <div className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur-md border border-white/10">
                 <Clock className="h-3.5 w-3.5 text-amber-400" />
-                <span>{metrics.pendingSubmissionsCount} Antrean Menunggu</span>
+                <span>{metricValue(metrics.pendingSubmissionsCount)} Antrean Menunggu</span>
               </div>
               <div className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur-md border border-white/10">
                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                <span>{metrics.verifiedTodayCount} Diverifikasi Hari Ini</span>
-              </div>
-              <div className="flex items-center gap-1.5 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur-md border border-white/10">
-                <Zap className="h-3.5 w-3.5 text-orange-400" />
-                <span>SLA Validasi &lt; 2 Jam</span>
+                <span>{metricValue(metrics.reviewedSubmissionsCount)} Submission Direview</span>
               </div>
             </div>
           </div>
@@ -73,26 +101,26 @@ export default async function AdminDashboardOverviewPage() {
             <Link href="/submissions">
               <Button className="w-full h-12 bg-gradient-to-r from-[#f97316] to-[#ea580c] text-white hover:from-[#ea580c] hover:to-[#c2410c] gap-2.5 text-xs font-extrabold px-6 rounded-2xl shadow-lg shadow-orange-500/25 transition-all duration-200 hover:scale-[1.02] cursor-pointer">
                 <Sparkles className="h-4 w-4 text-amber-200" />
-                <span>Periksa Antrean Submission ({metrics.pendingSubmissionsCount})</span>
+                <span>Periksa Antrean Submission ({metricValue(metrics.pendingSubmissionsCount)})</span>
                 <ArrowRight className="h-4 w-4 text-amber-200" />
               </Button>
             </Link>
             <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 font-medium">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Sistem Enkripsi & Permission Admin Safe</span>
+              <span>Review akhir dilakukan oleh Admin Marketiv</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
         {/* Card 1: Pending Submission */}
         <Card className="relative overflow-hidden bg-gradient-to-b from-[#fffdf8] to-[#fff7ed]/50 border-orange-200/90 shadow-sm hover:shadow-md hover:border-orange-300 transition-all group">
           <div className="absolute top-0 right-0 h-24 w-24 bg-orange-400/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-amber-900/70">
-              Pending Submissions
+              Menunggu Review
             </CardTitle>
             <div className="rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 p-2.5 text-white shadow-md shadow-orange-500/20">
               <Clock className="h-4 w-4" />
@@ -101,7 +129,7 @@ export default async function AdminDashboardOverviewPage() {
           <CardContent className="space-y-2">
             <div className="flex items-baseline justify-between">
               <div className="text-3xl font-black text-[#0c172b] font-mono tracking-tight">
-                {metrics.pendingSubmissionsCount}
+                {metricValue(metrics.pendingSubmissionsCount)}
               </div>
               <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-800 border border-orange-200">
                 <AlertCircle className="h-3 w-3 text-orange-600" />
@@ -111,19 +139,15 @@ export default async function AdminDashboardOverviewPage() {
             <p className="text-[11px] text-stone-600 font-medium leading-relaxed">
               Jumlah postingan kreator yang menunggu validasi views manual.
             </p>
-            {/* Progress indicator bar */}
-            <div className="w-full bg-stone-200/70 rounded-full h-1.5 overflow-hidden">
-              <div className="bg-gradient-to-r from-orange-500 to-amber-500 h-1.5 rounded-full w-[65%] animate-pulse" />
-            </div>
           </CardContent>
         </Card>
 
-        {/* Card 2: Diverifikasi Hari Ini */}
+        {/* Card 2: Submission Direview */}
         <Card className="relative overflow-hidden bg-gradient-to-b from-[#fffdf8] to-[#f0fdf4]/50 border-emerald-200/90 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all group">
           <div className="absolute top-0 right-0 h-24 w-24 bg-emerald-400/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-emerald-900/70">
-              Diverifikasi Hari Ini
+              Total Sudah Direview
             </CardTitle>
             <div className="rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-2.5 text-white shadow-md shadow-emerald-500/20">
               <CheckCircle2 className="h-4 w-4" />
@@ -132,19 +156,12 @@ export default async function AdminDashboardOverviewPage() {
           <CardContent className="space-y-2">
             <div className="flex items-baseline justify-between">
               <div className="text-3xl font-black text-[#0c172b] font-mono tracking-tight">
-                {metrics.verifiedTodayCount}
+                {metricValue(metrics.reviewedSubmissionsCount)}
               </div>
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
-                <TrendingUp className="h-3 w-3 text-emerald-600" />
-                +12% vs Kemarin
-              </span>
             </div>
             <p className="text-[11px] text-stone-600 font-medium leading-relaxed">
-              Total submission yang disetujui atau ditolak dalam 24 jam terakhir.
+              Total submission yang sudah disetujui atau ditolak.
             </p>
-            <div className="w-full bg-stone-200/70 rounded-full h-1.5 overflow-hidden">
-              <div className="bg-gradient-to-r from-emerald-500 to-teal-500 h-1.5 rounded-full w-[85%]" />
-            </div>
           </CardContent>
         </Card>
 
@@ -162,7 +179,7 @@ export default async function AdminDashboardOverviewPage() {
           <CardContent className="space-y-2">
             <div className="flex items-baseline justify-between">
               <div className="text-3xl font-black text-[#0c172b] font-mono tracking-tight">
-                {metrics.activeCampaignsCount}
+                {metricValue(metrics.activeCampaignsCount)}
               </div>
               <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800 border border-blue-200">
                 <Layers className="h-3 w-3 text-blue-600" />
@@ -172,40 +189,9 @@ export default async function AdminDashboardOverviewPage() {
             <p className="text-[11px] text-stone-600 font-medium leading-relaxed">
               Campaign Pay-Per-View yang sedang berjalan dan menerima submission.
             </p>
-            <div className="w-full bg-stone-200/70 rounded-full h-1.5 overflow-hidden">
-              <div className="bg-gradient-to-r from-blue-500 to-indigo-500 h-1.5 rounded-full w-[50%]" />
-            </div>
           </CardContent>
         </Card>
 
-        {/* Card 4: SLA & Operational Rate */}
-        <Card className="relative overflow-hidden bg-gradient-to-b from-[#fffdf8] to-[#faf5ff]/50 border-purple-200/90 shadow-sm hover:shadow-md hover:border-purple-300 transition-all group">
-          <div className="absolute top-0 right-0 h-24 w-24 bg-purple-400/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-extrabold uppercase tracking-wider text-purple-900/70">
-              Akurasi Validasi
-            </CardTitle>
-            <div className="rounded-2xl bg-gradient-to-br from-purple-600 to-pink-600 p-2.5 text-white shadow-md shadow-purple-500/20">
-              <Activity className="h-4 w-4" />
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex items-baseline justify-between">
-              <div className="text-3xl font-black text-[#0c172b] font-mono tracking-tight">
-                99.8%
-              </div>
-              <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-800 border border-purple-200">
-                Excellent
-              </span>
-            </div>
-            <p className="text-[11px] text-stone-600 font-medium leading-relaxed">
-              Tingkat akurasi audit manual views & keabsahan tautan TikTok.
-            </p>
-            <div className="w-full bg-stone-200/70 rounded-full h-1.5 overflow-hidden">
-              <div className="bg-gradient-to-r from-purple-500 to-pink-500 h-1.5 rounded-full w-[98%]" />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Main Grid: Live Submissions Preview + Operational Quick Actions */}
@@ -223,17 +209,29 @@ export default async function AdminDashboardOverviewPage() {
               href="/submissions"
               className="inline-flex items-center gap-1 text-xs font-extrabold text-orange-600 hover:text-orange-700 hover:underline"
             >
-              <span>Lihat Semua ({metrics.pendingSubmissionsCount})</span>
+              <span>Lihat Semua ({metricValue(metrics.pendingSubmissionsCount)})</span>
               <ChevronRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
           <div className="space-y-3">
-            {pendingSubmissions.length === 0 ? (
+            {loading ? (
+              <Card className="p-6 text-center text-stone-500 bg-[#fffdf8] border-stone-200/90 rounded-2xl shadow-xs">
+                <p className="text-xs font-bold">Memuat antrean submission…</p>
+              </Card>
+            ) : loadError ? (
+              <Card className="p-6 text-center text-red-700 bg-red-50 border-red-200 rounded-2xl shadow-xs">
+                <AlertCircle className="h-8 w-8 mx-auto text-red-500 mb-2" />
+                <p className="text-xs font-bold">Antrean submission gagal dimuat</p>
+                <p className="text-[11px] text-red-600 mt-0.5">{loadError}</p>
+                <Button onClick={() => window.location.reload()} className="mt-3 h-8 text-xs font-bold">
+                  Coba lagi
+                </Button>
+              </Card>
+            ) : pendingSubmissions.length === 0 ? (
               <Card className="p-6 text-center text-stone-500 bg-[#fffdf8] border-stone-200/90 rounded-2xl shadow-xs">
                 <CheckCircle2 className="h-8 w-8 mx-auto text-emerald-500 mb-2" />
-                <p className="text-xs font-bold text-stone-700">Semua Antrean Submission Telah Diverifikasi</p>
-                <p className="text-[11px] text-stone-500 mt-0.5">Tidak ada postingan baru yang menunggu validasi manual Admin.</p>
+                <p className="text-xs font-bold text-stone-700">Tidak ada submission yang menunggu review.</p>
               </Card>
             ) : (
               pendingSubmissions.slice(0, 3).map((item) => (
@@ -347,9 +345,8 @@ export default async function AdminDashboardOverviewPage() {
               </div>
             </div>
 
-            <div className="pt-2 border-t border-stone-200/80 flex items-center justify-between text-[11px] text-stone-500 font-medium">
-              <span>Marketiv Audit Rules v1.0</span>
-              <span className="text-emerald-700 font-extrabold">Appwrite Verified</span>
+            <div className="pt-2 border-t border-stone-200/80 text-[11px] text-stone-500 font-medium">
+              Gunakan data postingan saat melakukan review.
             </div>
           </Card>
         </div>
