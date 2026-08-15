@@ -1,0 +1,30 @@
+{
+  "name": "marketiv-admin-root-extraction-spec-v1",
+  "generatedAt": "2026-08-15",
+  "repository": "marketiv-id/marketiv-web",
+  "branch": "staging",
+  "scope": "Extract current in-app Admin dashboard into standalone root-level admin Next.js application",
+  "sources": [
+    "Marketiv_Admin_Auth_Backend_Architecture.pdf",
+    "Panduan_Implementasi_Dashboard_Admin_Marketiv.pdf",
+    "marketiv-id/marketiv-web staging current repository"
+  ],
+  "targetTopology": {
+    "userApp": "repository root",
+    "adminApp": "admin/",
+    "backend": "00_BACKEND/ shared by both apps per environment"
+  },
+  "routeMapping": {
+    "/admin": "/",
+    "/admin/dashboard": "/dashboard",
+    "/admin/submissions": "/submissions"
+  },
+  "outOfScope": [
+    "Campaign bugfix implementation",
+    "Rate Card work",
+    "backend schema duplication",
+    "new admin database",
+    "large monorepo/workspace refactor",
+    "UI redesign"
+  ]
+}
