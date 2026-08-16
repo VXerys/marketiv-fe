@@ -20,21 +20,14 @@ import {
   PlayCircle,
   Clock,
   TriangleAlert,
+  Sparkles,
+  Zap,
+  Briefcase,
 } from "lucide-react";
 
 interface PekerjaanAktifViewProps {
   initialWorks: CreatorActiveWork[];
 }
-
-/**
- * Thumbnail campaign.
- *
- * Versi lama memetakan `campaign_006/007/008` ke tiga foto Unsplash dan sisanya
- * ke foto keempat — id-id itu hanya ada di mock, jadi dengan data nyata SEMUA
- * campaign memakai foto makanan yang sama. `campaigns` tidak punya kolom
- * thumbnail (lihat mapCampaign di umkm-appwrite.service.ts), jadi sampai kolom
- * itu ada, yang jujur adalah tidak menampilkan foto sama sekali.
- */
 
 // ─── ActiveJobCard ────────────────────────────────────────────────────────────
 
@@ -52,9 +45,105 @@ const PLATFORM_ICON = {
 };
 
 const CREATOR_DARK_GRADIENT =
-  "linear-gradient(135deg, var(--color-kreator-ink) 0%, var(--color-kreator-ink-mid) 45%, var(--color-kreator-900) 100%)";
+  "linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4c1d95 100%)";
 const CREATOR_ACTION_GRADIENT =
   "linear-gradient(135deg, var(--color-kreator-600), var(--color-kreator-action-end))";
+
+// ─── Empty Placeholder Variants for Active Work ───────────────────────────────
+
+const EMPTY_WORK_VARIANTS = [
+  {
+    badge: "Slot Tersedia",
+    icon: Sparkles,
+    iconBg: "bg-violet-50 text-violet-600 border-violet-200/70",
+    title: "Klaim Campaign Baru",
+    desc: "Jelajahi Job Pool dan ambil campaign Pay-Per-View yang sesuai dengan niche kontenmu.",
+    href: "/dashboard/kreator/job-pool",
+    btnLabel: "Cari di Job Pool",
+    features: [
+      "Reward dihitung berbasis views",
+      "Pengerjaan santai tanpa revisi ribet",
+    ],
+  },
+  {
+    badge: "Tingkatkan Payout",
+    icon: Zap,
+    iconBg: "bg-blue-50 text-blue-600 border-blue-200/70",
+    title: "Tambah Pekerjaan Aktif",
+    desc: "Klaim beberapa campaign sekaligus untuk melipatgandakan potensi reward penayangan videomu.",
+    href: "/dashboard/kreator/job-pool",
+    btnLabel: "Jelajahi Campaign",
+    features: [
+      "Audit views transparan oleh admin",
+      "Pencairan langsung ke dompet saldo",
+    ],
+  },
+  {
+    badge: "Kolaborasi UMKM",
+    icon: Briefcase,
+    iconBg: "bg-indigo-50 text-indigo-600 border-indigo-200/70",
+    title: "Buka Jasa Rate Card",
+    desc: "Tawarkan paket konten fixed price langsung ke brand UMKM dengan kolaborasi endorsement.",
+    href: "/dashboard/kreator/rate-card",
+    btnLabel: "Kelola Rate Card",
+    features: [
+      "Format Collab Post resmi IG/TikTok",
+      "Dana diamankan sistem Escrow",
+    ],
+  },
+];
+
+function EmptyPlaceholderActiveWorkCard({ variantIndex = 0 }: { variantIndex?: number }) {
+  const variant = EMPTY_WORK_VARIANTS[variantIndex % EMPTY_WORK_VARIANTS.length];
+  const Icon = variant.icon;
+
+  return (
+    <div className="group relative flex flex-col justify-between bg-slate-50/70 hover:bg-violet-50/20 border border-dashed border-slate-300/90 hover:border-violet-300 rounded-[22px] p-4 sm:p-5 transition-all duration-300 shadow-2xs hover:shadow-md animate-in fade-in min-h-[380px]">
+      <div className="space-y-3.5">
+        {/* Top Icon + Badge */}
+        <div className="flex items-center justify-between">
+          <div className={cn("h-11 w-11 rounded-2xl border flex items-center justify-center transition-transform group-hover:scale-105 duration-300 shadow-3xs", variant.iconBg)}>
+            <Icon className="w-5 h-5" />
+          </div>
+          <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider text-slate-500 border border-slate-200 bg-white shadow-3xs">
+            {variant.badge}
+          </span>
+        </div>
+
+        {/* Title & Desc */}
+        <div className="space-y-1">
+          <h4 className="font-display font-black text-slate-900 text-sm sm:text-base leading-snug tracking-tight">
+            {variant.title}
+          </h4>
+          <p className="text-xs font-medium text-slate-500 leading-relaxed line-clamp-3">
+            {variant.desc}
+          </p>
+        </div>
+
+        {/* Features list */}
+        <div className="p-3 rounded-xl bg-white/80 border border-slate-200/70 space-y-1.5 shadow-3xs">
+          {variant.features.map((feature, idx) => (
+            <div key={idx} className="flex items-center gap-2 text-[11px] font-bold text-slate-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />
+              <span className="line-clamp-1">{feature}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Action CTA button */}
+      <div className="pt-4 mt-auto">
+        <Link
+          href={variant.href}
+          className="flex items-center justify-center w-full py-2.5 px-4 rounded-xl text-white font-black text-xs transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_14px_rgba(124,58,237,0.3)] hover:shadow-[0_6px_20px_rgba(124,58,237,0.4)]"
+          style={{ background: CREATOR_ACTION_GRADIENT }}
+        >
+          <span>{variant.btnLabel}</span>
+        </Link>
+      </div>
+    </div>
+  );
+}
 
 function ActiveJobCard({
   work,
@@ -285,8 +374,6 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
   const [selectedDeadline, setSelectedDeadline] = useState("all");
   const [sortBy, setSortBy] = useState("nearest-deadline");
 
-
-
   const handleClearFilters = () => {
     setSearch("");
     setSelectedStatus("all");
@@ -403,111 +490,113 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
     },
   ];
 
+  // Hitung jumlah empty placeholder yang perlu dirender (maksimal target 3 slot)
+  const emptySlotCount = hasActiveFilters ? 0 : Math.max(0, 3 - filteredWorks.length);
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 relative">
+      <div>
+        <CreatorPageHeader
+          title="Pekerjaan Aktif"
+          description="Pantau campaign yang sudah kamu klaim."
+        />
 
-        <div>
-          <CreatorPageHeader
-            title="Pekerjaan Aktif"
-            description="Pantau campaign yang sudah kamu klaim."
+        {/* Summary tiles */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-7">
+          <MetricCard
+            label="Belum Kirim"
+            value={countBelumSubmit}
+            helper="Butuh posting bukti"
+            tone="default"
+            icon={<Clock />}
           />
-
-          {/* Summary tiles */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-7">
-            <MetricCard
-              label="Belum Kirim"
-              value={countBelumSubmit}
-              helper="Butuh posting bukti"
-              tone="default"
-              icon={<Clock />}
-            />
-            <MetricCard
-              label="Menunggu Validasi"
-              value={countPending}
-              helper="Sedang diaudit"
-              tone="info"
-              icon={<PlayCircle />}
-            />
-            <MetricCard
-              label="Valid"
-              value={countValid}
-              helper="Reward siap cair"
-              tone="success"
-              icon={<CheckCircle2 />}
-            />
-            <MetricCard
-              label="Perlu Review / Fraud"
-              value={countReviewFraud}
-              helper="Ada kendala konten"
-              tone="danger"
-              icon={<AlertTriangle />}
-            />
-          </div>
-
-          {/* Toolbar — sticky when scrolling */}
-          <div className="mb-6">
-            <SearchToolbar
-              searchValue={search}
-              onSearchChange={setSearch}
-              searchPlaceholder="Cari pekerjaan / brand..."
-              filters={toolbarFilters}
-              onClearFilters={handleClearFilters}
-              hasActiveFilters={hasActiveFilters}
-            />
-          </div>
-          {/* Grid */}
-          {filteredWorks.length === 0 ? (
-            <DashboardStateCard
-              kind="empty"
-              title={hasActiveFilters ? "Tidak ada yang cocok" : "Belum ada pekerjaan aktif"}
-              description={
-                hasActiveFilters
-                  ? "Tidak ada pekerjaan aktif yang cocok dengan filter pencarianmu."
-                  : "Kamu belum klaim campaign apa pun dari Job Pool."
-              }
-              actionLabel={hasActiveFilters ? "Reset Filter" : "Cari Job di Job Pool"}
-              onAction={
-                hasActiveFilters
-                  ? handleClearFilters
-                  : () => { window.location.href = "/dashboard/kreator/job-pool"; }
-              }
-            />
-          ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
-              {filteredWorks.map((work) => (
-                <ActiveJobCard
-                  key={work.id}
-                  work={work}
-                  getSubStatusLabel={getSubStatusLabel}
-                  getDaysRemaining={getDaysRemaining}
-                  onUnclaim={() => setUnclaimTarget(work)}
-                />
-              ))}
-            </div>
-          )}
+          <MetricCard
+            label="Menunggu Validasi"
+            value={countPending}
+            helper="Sedang diaudit"
+            tone="info"
+            icon={<PlayCircle />}
+          />
+          <MetricCard
+            label="Valid"
+            value={countValid}
+            helper="Reward siap cair"
+            tone="success"
+            icon={<CheckCircle2 />}
+          />
+          <MetricCard
+            label="Perlu Review / Fraud"
+            value={countReviewFraud}
+            helper="Ada kendala konten"
+            tone="danger"
+            icon={<AlertTriangle />}
+          />
         </div>
 
-        {unclaimTarget && (
-          <ConfirmDialog
-            open={!!unclaimTarget}
-            onClose={() => setUnclaimTarget(null)}
-            title="Batalkan Pekerjaan Ini?"
-            description={
-              <>
-                Klaim kamu atas{" "}
-                <span className="font-semibold text-text-primary">
-                  &quot;{unclaimTarget.title}&quot;
-                </span>{" "}
-                akan dilepas dan slotnya kembali terbuka untuk kreator lain.
-              </>
-            }
-            note="Kamu masih bisa mengambil campaign ini lagi selama slotnya belum penuh. Progres dan catatan pada pekerjaan ini tidak disimpan."
-            confirmLabel="Batalkan Pekerjaan"
-            tone="warning"
-            onConfirm={handleUnclaimConfirm}
+        {/* Toolbar — sticky when scrolling */}
+        <div className="mb-6">
+          <SearchToolbar
+            searchValue={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Cari pekerjaan / brand..."
+            filters={toolbarFilters}
+            onClearFilters={handleClearFilters}
+            hasActiveFilters={hasActiveFilters}
           />
+        </div>
+
+        {/* Grid */}
+        {filteredWorks.length === 0 && hasActiveFilters ? (
+          <DashboardStateCard
+            kind="empty"
+            title="Tidak ada yang cocok"
+            description="Tidak ada pekerjaan aktif yang cocok dengan filter pencarianmu."
+            actionLabel="Reset Filter"
+            onAction={handleClearFilters}
+          />
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
+            {filteredWorks.map((work) => (
+              <ActiveJobCard
+                key={work.id}
+                work={work}
+                getSubStatusLabel={getSubStatusLabel}
+                getDaysRemaining={getDaysRemaining}
+                onUnclaim={() => setUnclaimTarget(work)}
+              />
+            ))}
+
+            {/* Render Empty Placeholder Cards bila jumlah card < 3 */}
+            {Array.from({ length: emptySlotCount }).map((_, idx) => (
+              <EmptyPlaceholderActiveWorkCard
+                key={`empty-active-work-${idx}`}
+                variantIndex={filteredWorks.length + idx}
+              />
+            ))}
+          </div>
         )}
+      </div>
+
+      {unclaimTarget && (
+        <ConfirmDialog
+          open={!!unclaimTarget}
+          onClose={() => setUnclaimTarget(null)}
+          title="Batalkan Pekerjaan Ini?"
+          description={
+            <>
+              Klaim kamu atas{" "}
+              <span className="font-semibold text-text-primary">
+                &quot;{unclaimTarget.title}&quot;
+              </span>{" "}
+              akan dilepas dan slotnya kembali terbuka untuk kreator lain.
+            </>
+          }
+          note="Kamu masih bisa mengambil campaign ini lagi selama slotnya belum penuh. Progres dan catatan pada pekerjaan ini tidak disimpan."
+          confirmLabel="Batalkan Pekerjaan"
+          tone="warning"
+          onConfirm={handleUnclaimConfirm}
+        />
+      )}
     </div>
   );
 }
