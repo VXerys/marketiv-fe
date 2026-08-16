@@ -415,9 +415,8 @@ export function SettingsView({ initialProfile, initialPortfolio }: SettingsViewP
       }
     }
 
-    const fresh = await getCreatorProfile();
     setIsSavingProfile(false);
-    setProfile(fresh.success && fresh.data ? fresh.data : res.data);
+    setProfile(res.data);
     setIsEditing(false);
     setIsProfileSuccessOpen(true);
     await refreshIdentity();

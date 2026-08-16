@@ -64,28 +64,36 @@ function ModalFrame({
 }) {
   return (
     <ResponsiveModal open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <ResponsiveModalContent className="max-w-lg rounded-t-3xl sm:rounded-3xl">
-        <ResponsiveModalHeader className="space-y-2 text-left">
-          <ResponsiveModalTitle className="text-xl font-bold text-neutral-950">
+      <ResponsiveModalContent className="max-w-md p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-2xl bg-white">
+        <ResponsiveModalHeader className="space-y-1.5 text-center">
+          <ResponsiveModalTitle className="text-xl sm:text-2xl font-black text-slate-900 font-display tracking-tight">
             {title}
           </ResponsiveModalTitle>
           {description ? (
-            <ResponsiveModalDescription className="text-sm leading-6 text-neutral-500">
+            <ResponsiveModalDescription className="text-xs text-slate-500 font-medium leading-relaxed">
               {description}
             </ResponsiveModalDescription>
           ) : null}
         </ResponsiveModalHeader>
-        {children ? <div className="mt-2">{children}</div> : null}
-        <ResponsiveModalFooter className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        {children ? <div className="mt-3">{children}</div> : null}
+        <ResponsiveModalFooter className="mt-5 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
           {footer ?? (
             <>
-              <DashboardButton type="button" variant="outline" onClick={onClose} fullWidthOnMobile>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-extrabold text-xs transition-all cursor-pointer"
+              >
                 {cancelLabel}
-              </DashboardButton>
+              </button>
               {confirmLabel && onConfirm ? (
-                <DashboardButton type="button" variant="primary" onClick={onConfirm} fullWidthOnMobile>
+                <button
+                  type="button"
+                  onClick={onConfirm}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white font-black text-xs shadow-[0_4px_14px_rgba(124,58,237,0.3)] hover:shadow-[0_6px_20px_rgba(124,58,237,0.4)] transition-all cursor-pointer hover:-translate-y-0.5"
+                >
                   {confirmLabel}
-                </DashboardButton>
+                </button>
               ) : null}
             </>
           )}
@@ -517,44 +525,43 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                   </div>
 
                   {/* Reward formula info banner */}
-                  <div
-                    className="border rounded-xl px-3 py-2.5 text-[11px] text-violet-900 font-semibold leading-relaxed flex items-start gap-2"
-                    style={{ background: "color-mix(in srgb, var(--color-kreator-600) 4%, transparent)", borderColor: "color-mix(in srgb, var(--color-kreator-600) 15%, transparent)" }}
-                  >
-                    <Info className="w-4 h-4 shrink-0 text-violet-500 mt-0.5" />
+                  <div className="border border-violet-200/70 bg-violet-50/60 rounded-2xl p-4 text-xs text-violet-900 leading-relaxed flex items-start gap-3 shadow-2xs">
+                    <div className="w-7 h-7 rounded-xl bg-violet-100/80 border border-violet-200 flex items-center justify-center text-violet-700 shrink-0 mt-0.5">
+                      <Info size={15} />
+                    </div>
                     <div>
-                      <span className="block font-extrabold text-violet-700 mb-0.5">Cara Hitung Reward</span>
-                      <span>Reward = (jumlah views ÷ 1.000) × tarif per 1K views, dibulatkan ke bawah. Di bawah 1.000 views, reward = Rp0.</span>
+                      <span className="block font-black text-violet-800 text-xs mb-0.5">Cara Hitung Reward</span>
+                      <span className="font-medium text-violet-700/90 text-[11.5px]">Reward = (jumlah views ÷ 1.000) × tarif per 1K views, dibulatkan ke bawah. Di bawah 1.000 views, reward = Rp0.</span>
                     </div>
                   </div>
 
                   {validationError && (
-                    <div className="bg-red-50 border border-red-200/60 p-4 rounded-[14px] flex items-start gap-3 text-red-800 text-xs font-bold leading-relaxed">
-                      <AlertCircle className="w-4 h-4 shrink-0 text-red-500 mt-0.5" />
+                    <div className="bg-rose-50 border border-rose-200/80 p-4 rounded-2xl flex items-start gap-3 text-rose-800 text-xs font-bold leading-relaxed shadow-2xs">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
                       <span>{validationError}</span>
                     </div>
                   )}
 
                   <form onSubmit={handlePreSubmit} className="space-y-5">
                     {/* Read-only Platform context (Derived from Campaign) */}
-                    <div className="space-y-2">
-                      <label className="block text-[10px] font-extrabold text-neutral-400 uppercase tracking-widest">
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
                         Platform Campaign
                       </label>
-                      <div className="px-4 py-3 bg-neutral-100 border border-neutral-200/80 rounded-[14px] font-bold text-xs text-neutral-800 flex items-center justify-between">
+                      <div className="px-4 py-3 bg-slate-50 border border-slate-200/90 rounded-2xl font-bold text-xs text-slate-800 flex items-center justify-between">
                         <span className="flex items-center gap-2">
-                          <ShieldCheck className="w-4 h-4 text-[#f97316]" />
+                          <ShieldCheck className="w-4 h-4 text-violet-600" />
                           <span>{campaignPlatform === "tiktok" ? "TikTok Video" : "Instagram Reels"}</span>
                         </span>
-                        <span className="text-[10px] font-extrabold text-neutral-400 uppercase bg-white px-2 py-0.5 rounded border">
+                        <span className="text-[9px] font-black text-slate-500 uppercase bg-white px-2 py-0.5 rounded-lg border border-slate-200 shadow-3xs">
                           Read-Only
                         </span>
                       </div>
                     </div>
 
                     {/* URL input */}
-                    <div className="space-y-2">
-                      <label className="block text-[10px] font-extrabold text-neutral-400 uppercase tracking-widest">
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
                         Tautan URL Postingan Publik
                       </label>
                       <input
@@ -570,16 +577,17 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                           setContentUrl(e.target.value);
                           if (validationError) setValidationError(null);
                         }}
-                        className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-[14px] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all font-medium text-neutral-800 placeholder-neutral-400"
+                        className="w-full px-4 py-3 bg-slate-50/70 border border-slate-200/90 rounded-2xl text-xs sm:text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all font-semibold text-slate-900 placeholder:text-slate-400"
                       />
-                      <p className="text-[10px] text-neutral-400 font-bold leading-relaxed">
-                        ⚠️ Campaign Mode: Dilarang mengunggah file video. Cukup masukkan tautan URL video publik di atas.
+                      <p className="text-[10px] text-amber-700 font-bold leading-relaxed flex items-center gap-1.5 pt-0.5">
+                        <span>⚠️</span>
+                        <span>Campaign Mode: Dilarang mengunggah file video. Cukup masukkan tautan URL video publik di atas.</span>
                       </p>
                     </div>
 
                     {/* Notes */}
-                    <div className="space-y-2">
-                      <label className="block text-[10px] font-extrabold text-neutral-400 uppercase tracking-widest">
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-black text-slate-500 uppercase tracking-wider">
                         Catatan Tambahan untuk Admin Marketiv (Opsional)
                       </label>
                       <textarea
@@ -587,18 +595,14 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
                         placeholder="Contoh: Video sudah ditayangkan menggunakan hashtag brand..."
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-[14px] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400 transition-all font-medium text-neutral-800 placeholder-neutral-400 resize-none"
+                        className="w-full px-4 py-3 bg-slate-50/70 border border-slate-200/90 rounded-2xl text-xs sm:text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all font-semibold text-slate-900 placeholder:text-slate-400 resize-none"
                       />
                     </div>
 
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full py-4 text-center text-white font-black text-sm rounded-full transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none"
-                      style={{
-                        background: CREATOR_ACTION_GRADIENT,
-                        boxShadow: "var(--shadow-kreator-cta)",
-                      }}
+                      className="w-full py-3.5 sm:py-4 text-center text-white font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 shadow-[0_4px_16px_rgba(124,58,237,0.35)] hover:shadow-[0_8px_24px_rgba(124,58,237,0.45)]"
                     >
                       Kirim untuk Diverifikasi
                     </button>
@@ -973,22 +977,25 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
         onClose={() => setIsSuccessOpen(false)}
         footer={
           <div className="flex gap-3 w-full">
-            <DashboardButton type="button" variant="outline" onClick={() => setIsSuccessOpen(false)} fullWidthOnMobile>
-              Tutup
-            </DashboardButton>
-            <DashboardButton
+            <button
               type="button"
-              variant="primary"
+              onClick={() => setIsSuccessOpen(false)}
+              className="flex-1 py-3 px-4 rounded-xl sm:rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-extrabold text-xs transition-all cursor-pointer shadow-xs"
+            >
+              Tutup
+            </button>
+            <button
+              type="button"
               onClick={() => { window.location.href = "/dashboard/kreator/pekerjaan-aktif"; }}
-              fullWidthOnMobile
+              className="flex-1 py-3 px-4 rounded-xl sm:rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:shadow-[0_6px_20px_rgba(124,58,237,0.35)] text-white font-black text-xs transition-all cursor-pointer shadow-md hover:-translate-y-0.5"
             >
               Kembali ke Daftar
-            </DashboardButton>
+            </button>
           </div>
         }
       >
-        <div className="flex flex-col items-center text-center pt-2">
-          <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500 mx-auto mb-2">
+        <div className="flex flex-col items-center text-center pb-2">
+          <div className="w-16 h-16 rounded-3xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center text-emerald-500 mx-auto mb-2 shadow-xs">
             <CheckCircle className="w-8 h-8" />
           </div>
         </div>
@@ -996,19 +1003,24 @@ export function ActiveWorkDetailView({ work: initialWork }: ActiveWorkDetailView
 
       {isSubmitting && (
         <ResponsiveModal open={isSubmitting}>
-          <ResponsiveModalContent className="max-w-sm rounded-2xl border border-neutral-100 p-6">
+          <ResponsiveModalContent className="max-w-sm rounded-2xl border border-slate-200/80 p-5 bg-white shadow-2xl" showCloseButton={false}>
             <ResponsiveModalHeader className="sr-only">
               <ResponsiveModalTitle>Mengirim Bukti</ResponsiveModalTitle>
               <ResponsiveModalDescription>
                 Tautan bukti posting sedang dikirim.
               </ResponsiveModalDescription>
             </ResponsiveModalHeader>
-            <div className="flex items-center gap-3">
-              <svg className="animate-spin h-5 w-5 text-kreator-600" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              <span className="text-xs font-bold text-neutral-700">Mengirim tautan bukti posting...</span>
+            <div className="flex items-center gap-3.5">
+              <div className="w-9 h-9 rounded-xl bg-violet-50 border border-violet-200/60 flex items-center justify-center shrink-0">
+                <svg className="animate-spin h-5 w-5 text-violet-600" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-black text-slate-900 leading-snug">Mengirim Bukti Posting</p>
+                <p className="text-[11px] font-medium text-slate-500 leading-tight">Menyimpan URL tayang ke sistem...</p>
+              </div>
             </div>
           </ResponsiveModalContent>
         </ResponsiveModal>

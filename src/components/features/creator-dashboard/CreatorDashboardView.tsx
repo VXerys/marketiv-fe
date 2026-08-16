@@ -46,12 +46,12 @@ import { cn } from "@/lib/utils";
 // ─── Niche theme maps ────────────────────────────────────────────────────────
 
 const NICHE_GRADIENTS: Record<string, [string, string]> = {
-  kuliner:    ["var(--color-amber-500)", "var(--color-red-500)"],
-  fashion:     ["var(--color-pink-500)", "var(--color-violet-500)"],
-  pariwisata: ["var(--color-teal-500)", "var(--color-blue-500)"],
-  edukasi:    ["var(--color-blue-500)", "var(--color-blue-700)"],
-  kecantikan: ["var(--color-pink-400)", "var(--color-fuchsia-500)"],
-  lainnya:    ["var(--color-kreator-600)", "var(--color-kreator-gradient-end)"],
+  kuliner:    ["#1e3a8a", "#6d28d9"],
+  fashion:     ["#1d4ed8", "#7c3aed"],
+  pariwisata: ["#0369a1", "#6366f1"],
+  edukasi:    ["#1e40af", "#4f46e5"],
+  kecantikan: ["#2563eb", "#7c3aed"],
+  lainnya:    ["#1e1b4b", "#6d28d9"],
 };
 
 const NICHE_LABELS: Record<string, string> = {
@@ -80,33 +80,81 @@ const formatCount = (n: number): string => {
 
 // ─── EmptyPlaceholderCampaignCard ───────────────────────────────────────────
 
-function EmptyPlaceholderCampaignCard() {
+const EMPTY_CARD_VARIANTS = [
+  {
+    badge: "Eksplorasi",
+    icon: Search,
+    iconBg: "bg-violet-50 text-violet-600 border-violet-200/60",
+    title: "Cari Job di Pool",
+    desc: "Temukan puluhan kampanye pay-per-view baru dari UMKM lokal.",
+    href: "/dashboard/kreator/job-pool",
+    btnLabel: "Buka Job Pool",
+  },
+  {
+    badge: "Tips Cuan",
+    icon: Sparkles,
+    iconBg: "bg-amber-50 text-amber-600 border-amber-200/60",
+    title: "Lengkapi Profil",
+    desc: "Kreator dengan portofolio lengkap lebih cepat dapat rekomendasi.",
+    href: "/dashboard/kreator/settings",
+    btnLabel: "Kelola Profil",
+  },
+  {
+    badge: "Rate Card",
+    icon: Tag,
+    iconBg: "bg-emerald-50 text-emerald-600 border-emerald-200/60",
+    title: "Aktifkan Rate Card",
+    desc: "Terima tawaran negosiasi langsung dan kolaborasi harga tetap.",
+    href: "/dashboard/kreator/rate-card",
+    btnLabel: "Atur Rate Card",
+  },
+  {
+    badge: "Reputasi",
+    icon: TrendingUp,
+    iconBg: "bg-blue-50 text-blue-600 border-blue-200/60",
+    title: "Tingkatkan Performa",
+    desc: "Posting tepat waktu untuk membuka rekomendasi job prioritas.",
+    href: "/dashboard/kreator/pekerjaan-aktif",
+    btnLabel: "Lihat Pekerjaan",
+  },
+];
+
+interface EmptyPlaceholderCampaignCardProps {
+  variantIndex?: number;
+}
+
+function EmptyPlaceholderCampaignCard({ variantIndex = 0 }: EmptyPlaceholderCampaignCardProps) {
+  const variant = EMPTY_CARD_VARIANTS[variantIndex % EMPTY_CARD_VARIANTS.length];
+  const Icon = variant.icon;
+
   return (
-    <div className="group flex flex-col justify-between overflow-hidden rounded-[16px] sm:rounded-[20px] border border-dashed border-neutral-200/90 bg-neutral-50/50 p-3 sm:p-5 shadow-xs transition-all duration-300 hover:border-violet-300 hover:bg-violet-50/20 min-h-[240px] sm:min-h-[320px]">
-      <div className="space-y-2 sm:space-y-4">
+    <div className="group flex flex-col justify-between h-full overflow-hidden rounded-2xl sm:rounded-[20px] border border-dashed border-neutral-300/80 bg-neutral-50/60 p-3 sm:p-5 shadow-xs transition-all duration-300 hover:border-violet-300 hover:bg-violet-50/20 min-h-[270px] sm:min-h-[380px]">
+      <div className="flex flex-col gap-2 sm:gap-3">
         <div className="flex items-center justify-between">
-          <div className="h-7 w-7 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl bg-violet-100/70 border border-violet-200/60 flex items-center justify-center text-violet-600">
-            <Sparkles className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+          <div className={cn("h-8 w-8 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl border flex items-center justify-center transition-transform group-hover:scale-105 duration-300", variant.iconBg)}>
+            <Icon className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
           </div>
-          <span className="px-1.5 sm:px-2.5 py-0.5 rounded-full text-[8px] sm:text-[9px] font-extrabold uppercase tracking-wider text-neutral-400 border border-neutral-200/80 bg-white">
-            Tersedia
+          <span className="px-1.5 sm:px-2 py-0.5 rounded-full text-[8px] sm:text-[9px] font-extrabold uppercase tracking-wider text-neutral-500 border border-neutral-200 bg-white shadow-3xs">
+            {variant.badge}
           </span>
         </div>
 
-        <div className="space-y-1">
-          <h4 className="text-xs sm:text-sm font-extrabold text-neutral-700 leading-tight">Slot Kosong</h4>
-          <p className="text-[10px] sm:text-xs font-semibold text-neutral-400 leading-relaxed line-clamp-2 hidden sm:block">
-            Kampanye baru yang cocok dengan kualifikasi profil kamu akan otomatis tampil di sini.
+        <div className="space-y-1 sm:space-y-1.5 pt-0.5 sm:pt-1">
+          <h4 className="text-xs sm:text-sm font-extrabold text-neutral-800 leading-snug line-clamp-1 sm:line-clamp-2">
+            {variant.title}
+          </h4>
+          <p className="text-[10px] sm:text-[11px] font-medium text-neutral-500 leading-relaxed line-clamp-2 sm:line-clamp-3">
+            {variant.desc}
           </p>
         </div>
       </div>
 
-      <div className="pt-2 sm:pt-4 border-t border-dashed border-neutral-200/80">
+      <div className="pt-3 sm:pt-4 mt-auto border-t border-dashed border-neutral-200">
         <Link
-          href="/dashboard/kreator/job-pool"
-          className="w-full py-1.5 sm:py-2.5 px-2 sm:px-3 rounded-lg sm:rounded-xl border border-neutral-200 bg-white hover:bg-neutral-100/80 text-neutral-700 text-[9px] sm:text-xs font-extrabold flex items-center justify-center gap-1 transition-all shadow-3xs"
+          href={variant.href}
+          className="w-full py-1.5 sm:py-2.5 px-2 sm:px-3 rounded-lg sm:rounded-[12px] border border-neutral-200 bg-white hover:bg-neutral-100/80 text-neutral-700 text-[9px] sm:text-[11px] font-extrabold flex items-center justify-center gap-1 sm:gap-1.5 transition-all shadow-3xs hover:border-neutral-300"
         >
-          <span>Job Pool</span>
+          <span>{variant.btnLabel}</span>
           <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-violet-600" />
         </Link>
       </div>
@@ -125,15 +173,15 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
   const isNearLimit  = job.quota - job.usedQuota <= 1;
   const isHighReward = job.ratePerThousandViews >= 6000;
   const slotUsedPct  = Math.min(100, Math.round((job.usedQuota / job.quota) * 100));
-  const slotsLeft    = job.quota - job.usedQuota;
+  const slotsLeft    = Math.max(0, job.quota - job.usedQuota);
   const [g1, g2]    = NICHE_GRADIENTS[job.niche] ?? NICHE_GRADIENTS.lainnya;
   const nicheLabel   = NICHE_LABELS[job.niche]   ?? "Lainnya";
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-[16px] sm:rounded-[20px] border border-neutral-200/50 bg-white shadow-[0_2px_16px_rgba(15,23,42,.05)] transition-all duration-300 hover:-translate-y-1.5 hover:border-kreator-400/20 hover:shadow-kreator">
+    <div className="group flex flex-col h-full overflow-hidden rounded-2xl sm:rounded-[20px] border border-neutral-200/60 bg-white shadow-[0_2px_16px_rgba(15,23,42,.05)] transition-all duration-300 hover:-translate-y-1.5 hover:border-kreator-400/30 hover:shadow-kreator">
 
       {/* Cover image */}
-      <div className="relative w-full overflow-hidden" style={{ aspectRatio: "4/3" }}>
+      <div className="relative w-full overflow-hidden aspect-[16/10] sm:aspect-[4/3] bg-neutral-100 shrink-0">
         {job.thumbnailUrl ? (
           <Image
             src={job.thumbnailUrl}
@@ -147,7 +195,7 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
             className="absolute inset-0 flex items-center justify-center"
             style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }}
           >
-            <span className="text-white/20 font-black text-4xl sm:text-7xl leading-none select-none">
+            <span className="text-white/25 font-black text-4xl sm:text-6xl leading-none select-none">
               {job.brandName?.charAt(0) ?? "C"}
             </span>
           </div>
@@ -156,22 +204,24 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
         {/* Dark gradient overlay */}
         <div
           className="absolute inset-0"
-          style={{ background: "linear-gradient(to top, rgba(0,0,0,.72) 0%, rgba(0,0,0,0) 52%)" }}
+          style={{ background: "linear-gradient(to top, rgba(0,0,0,.75) 0%, rgba(0,0,0,0) 55%)" }}
         />
 
         {/* Brand overlay row */}
-        <div className="absolute bottom-0 left-0 right-0 px-2 sm:px-3 pb-2 sm:pb-3 flex items-center justify-between">
+        <div className="absolute bottom-0 left-0 right-0 px-2 sm:px-3 pb-2 sm:pb-3 flex items-center justify-between gap-1.5">
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-            <div className="h-5 w-5 sm:h-7 sm:w-7 rounded-md sm:rounded-lg border border-white/20 overflow-hidden shrink-0 relative bg-white/10">
-              {job.brandAvatar && (
+            <div className="h-5 w-5 sm:h-7 sm:w-7 rounded-md sm:rounded-lg border border-white/25 overflow-hidden shrink-0 relative bg-white/10 flex items-center justify-center text-[9px] sm:text-[10px] font-bold text-white">
+              {job.brandAvatar ? (
                 <Image src={job.brandAvatar} alt={job.brandName} fill className="object-cover" sizes="28px" />
+              ) : (
+                <span>{job.brandName?.charAt(0) ?? "U"}</span>
               )}
             </div>
-            <span className="text-white text-[10px] sm:text-xs font-bold drop-shadow-sm truncate">{job.brandName}</span>
+            <span className="text-white text-[10px] sm:text-xs font-bold drop-shadow-xs truncate">{job.brandName}</span>
           </div>
           <span
-            className="shrink-0 ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 rounded-full text-[7px] sm:text-[8px] font-extrabold uppercase tracking-wider text-white border border-white/20"
-            style={{ background: "rgba(255,255,255,.15)", backdropFilter: "blur(4px)" }}
+            className="shrink-0 px-1.5 sm:px-2 py-0.5 rounded-full text-[7px] sm:text-[8px] font-extrabold uppercase tracking-wider text-white border border-white/20"
+            style={{ background: "rgba(255,255,255,.18)", backdropFilter: "blur(4px)" }}
           >
             PPV
           </span>
@@ -179,12 +229,12 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
 
         {/* Badge chip */}
         {(isNearLimit || isHighReward) && (
-          <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5">
+          <div className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 z-10">
             <span
               className={cn(
-                "px-1.5 sm:px-2 py-0.5 rounded-full text-[7px] sm:text-[8px] font-extrabold uppercase tracking-wider border",
+                "px-1.5 sm:px-2 py-0.5 rounded-full text-[7px] sm:text-[8px] font-extrabold uppercase tracking-wider border shadow-xs",
                 isNearLimit
-                  ? "bg-amber-50/90 text-amber-700 border-amber-300/40"
+                  ? "bg-amber-500/90 text-white border-amber-300/50"
                   : "bg-violet-600/90 text-white border-violet-400/30"
               )}
               style={{ backdropFilter: "blur(4px)" }}
@@ -196,53 +246,57 @@ function CampaignCard({ job, onClaim }: CampaignCardProps) {
       </div>
 
       {/* Card body */}
-      <div className="p-2.5 sm:p-4 flex flex-col gap-2 sm:gap-3 flex-1">
-        <h4 className="text-xs sm:text-sm font-extrabold text-kreator-ink leading-snug line-clamp-2">{job.title}</h4>
+      <div className="p-2.5 sm:p-4 flex flex-col flex-1 justify-between gap-2 sm:gap-3">
+        <div className="space-y-1.5 sm:space-y-2.5">
+          <h4 className="text-xs sm:text-sm font-extrabold text-kreator-ink leading-snug line-clamp-2 h-8 sm:h-10" title={job.title}>
+            {job.title}
+          </h4>
 
-        <div className="flex items-baseline gap-1 sm:gap-1.5">
-          <span className="font-display text-xs sm:text-[1.1rem] font-black text-kreator-600 tracking-tight leading-none">
-            {formatCurrency(job.ratePerThousandViews)}
-          </span>
-          <span className="text-[9px] sm:text-[10px] text-neutral-400 font-semibold">/ 1K views</span>
-        </div>
-
-        <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-          <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 text-[8px] sm:text-[9px] font-bold border border-violet-200/50 uppercase tracking-wide">
-            {nicheLabel}
-          </span>
-          <span className="flex items-center gap-0.5 sm:gap-1 text-[8px] sm:text-[9px] font-bold text-neutral-400 ml-auto">
-            <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-            {slotsLeft} slot
-          </span>
-        </div>
-
-        <div className="space-y-1">
-          <div className="flex justify-between text-[8px] sm:text-[9px] font-bold text-neutral-400">
-            <span>Slot Tersisa</span>
-            <span>{100 - slotUsedPct}%</span>
+          <div className="flex items-baseline gap-1 sm:gap-1.5">
+            <span className="font-display text-xs sm:text-base font-black text-kreator-600 tracking-tight leading-none">
+              {formatCurrency(job.ratePerThousandViews)}
+            </span>
+            <span className="text-[9px] sm:text-[10px] text-neutral-400 font-semibold">/ 1K views</span>
           </div>
-          <div className="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${100 - slotUsedPct}%`,
-                background: CREATOR_PROGRESS_GRADIENT,
-                transition: "width .4s ease",
-              }}
-            />
+
+          <div className="flex items-center justify-between gap-1">
+            <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 text-[8px] sm:text-[9px] font-bold border border-violet-200/50 uppercase tracking-wide">
+              {nicheLabel}
+            </span>
+            <span className="flex items-center gap-0.5 sm:gap-1 text-[8px] sm:text-[10px] font-bold text-neutral-400">
+              <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-neutral-400" />
+              {slotsLeft} slot
+            </span>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex justify-between text-[8px] sm:text-[9px] font-bold text-neutral-400">
+              <span>Slot Tersisa</span>
+              <span>{Math.max(0, 100 - slotUsedPct)}%</span>
+            </div>
+            <div className="w-full h-1 sm:h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full"
+                style={{
+                  width: `${Math.max(4, 100 - slotUsedPct)}%`,
+                  background: CREATOR_PROGRESS_GRADIENT,
+                  transition: "width .4s ease",
+                }}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2 mt-auto pt-1">
+        <div className="grid grid-cols-3 gap-1 sm:gap-2 pt-1.5 sm:pt-2 mt-auto border-t border-neutral-100">
           <Link
             href="/dashboard/kreator/job-pool"
-            className="w-full sm:flex-1 text-center py-1.5 sm:py-2.5 rounded-lg sm:rounded-[12px] text-[9px] sm:text-[10px] font-extrabold text-neutral-600 border border-neutral-200 hover:bg-neutral-50 transition-all duration-200"
+            className="col-span-1 text-center py-1.5 sm:py-2.5 rounded-lg sm:rounded-[12px] text-[9px] sm:text-[10px] font-extrabold text-neutral-600 border border-neutral-200 hover:bg-neutral-50 transition-all duration-200"
           >
             Detail
           </Link>
           <button
             onClick={() => onClaim(job.id, job.title)}
-            className="w-full sm:flex-[2] py-1.5 sm:py-2.5 rounded-lg sm:rounded-[12px] text-white text-[9px] sm:text-[10px] font-extrabold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+            className="col-span-2 py-1.5 sm:py-2.5 rounded-lg sm:rounded-[12px] text-white text-[9px] sm:text-[10px] font-extrabold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer text-center"
             style={{
               background: CREATOR_BRAND_GRADIENT,
               boxShadow: "var(--shadow-kreator)",
@@ -598,12 +652,12 @@ export function CreatorDashboardView({
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 lg:gap-5">
               {recJobs.slice(0, 4).map((job) => (
                 <CampaignCard key={job.id} job={job} onClaim={handleKlaimJob} />
               ))}
               {Array.from({ length: Math.max(0, 4 - Math.min(4, recJobs.length)) }).map((_, idx) => (
-                <EmptyPlaceholderCampaignCard key={`empty-card-${idx}`} />
+                <EmptyPlaceholderCampaignCard key={`empty-card-${idx}`} variantIndex={idx} />
               ))}
             </div>
           </div>

@@ -21,10 +21,17 @@ export function SettingsPageClient() {
 
   /** Ambil data; setState hanya di posisi setelah await. */
   const fetchData = useCallback(async (isActive: () => boolean) => {
-    const [res, portfolioRes] = await Promise.all([
+    let [res, portfolioRes] = await Promise.all([
       getCreatorProfile(),
       getCreatorPortfolio(),
     ]);
+
+    if (!res.success && isActive()) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      if (!isActive()) return;
+      res = await getCreatorProfile();
+    }
+
     if (!isActive()) return;
     if (!res.success || !res.data) {
       setError(res.error ?? "Gagal memuat profil.");

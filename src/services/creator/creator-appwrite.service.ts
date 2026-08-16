@@ -273,6 +273,15 @@ export async function getCreatorProfileFromAppwrite(): Promise<ServiceResult<Cre
     const data = await executeFunction<CreatorProfile>(FUNCTION_IDS.creatorProfile);
     return { success: true, data };
   } catch (err) {
+    if (err instanceof FunctionExecutionError && (err.statusCode === 404 || err.statusCode >= 500)) {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      try {
+        const retryData = await executeFunction<CreatorProfile>(FUNCTION_IDS.creatorProfile);
+        return { success: true, data: retryData };
+      } catch (retryErr) {
+        return failFromError<CreatorProfile>(retryErr, null as unknown as CreatorProfile);
+      }
+    }
     return failFromError<CreatorProfile>(err, null as unknown as CreatorProfile);
   }
 }

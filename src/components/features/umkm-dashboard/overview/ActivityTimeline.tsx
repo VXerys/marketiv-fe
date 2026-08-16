@@ -1,6 +1,7 @@
 "use client";
 
-import { UserPlus, FileText, CheckCircle, DollarSign, Rocket, MessageCircle, ChevronRight } from "lucide-react";
+import { UserPlus, FileText, CheckCircle, DollarSign, Rocket, MessageCircle, ChevronRight, Sparkles } from "lucide-react";
+import { formatRelativeTime } from "@/lib/formatters";
 
 type ActivityType = "kreator_bergabung" | "submission_baru" | "campaign_selesai" | "dana_cair" | "campaign_dibuat" | "progress";
 
@@ -13,7 +14,7 @@ interface Activity {
 }
 
 const ACTIVITY_CONFIG: Record<ActivityType, {
-  icon: React.ComponentType<{ size?: number; color?: string }>;
+  icon: React.ComponentType<{ size?: number; color?: string; className?: string }>;
   bg: string;
   color: string;
   border: string;
@@ -26,6 +27,17 @@ const ACTIVITY_CONFIG: Record<ActivityType, {
   progress:          { icon: MessageCircle,  bg: "#f0f9ff", color: "#0284c7", border: "rgba(2,132,199,.18)" },
 };
 
+function formatActivityTime(val: string): string {
+  if (!val) return "";
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return val;
+    return formatRelativeTime(val);
+  } catch {
+    return val;
+  }
+}
+
 interface ActivityTimelineProps {
   activities?: Activity[];
   isLoading?: boolean;
@@ -33,16 +45,16 @@ interface ActivityTimelineProps {
 }
 
 export function ActivityTimeline({ activities = [], isLoading = false, onViewAllClick }: ActivityTimelineProps) {
-  // Capped at 5 activities per user requirement
-  const visibleActivities = activities.slice(0, 5);
+  // Capped at 4 activities
+  const visibleActivities = activities.slice(0, 4);
 
   return (
     <div
       className="relative rounded-3xl bg-white border border-slate-200/80 p-5 sm:p-6 shadow-[0_4px_20px_rgba(15,23,42,0.04)] h-full flex flex-col justify-between"
     >
-      <div className="flex flex-col h-full justify-between">
+      <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="flex items-center justify-between gap-3 mb-3 shrink-0">
+        <div className="flex items-center justify-between gap-3 mb-4 shrink-0">
           <div>
             <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 block mb-0.5">
               AKTIVITAS TERBARU
@@ -63,29 +75,40 @@ export function ActivityTimeline({ activities = [], isLoading = false, onViewAll
         </div>
 
         {isLoading ? (
-          <div className="grid gap-2.5 flex-1">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="grid grid-cols-[38px_1fr] gap-3 items-start">
-                <div className="w-9 h-9 rounded-xl bg-slate-100 animate-pulse" />
-                <div className="p-3 rounded-2xl bg-slate-50 space-y-2">
-                  <div className="w-1/2 h-3 rounded-md bg-slate-200 animate-pulse" />
-                  <div className="w-3/4 h-3 rounded-md bg-slate-150 animate-pulse" />
+          <div className="space-y-3 flex-1">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50 animate-pulse">
+                <div className="w-8 h-8 rounded-xl bg-slate-200 shrink-0" />
+                <div className="flex-1 space-y-2 py-0.5">
+                  <div className="w-1/2 h-3 rounded bg-slate-200" />
+                  <div className="w-3/4 h-2.5 rounded bg-slate-200" />
                 </div>
               </div>
             ))}
           </div>
         ) : visibleActivities.length === 0 ? (
-          <div className="text-center py-8 rounded-2xl bg-orange-50/40 border border-dashed border-orange-200/60 flex-1 flex flex-col items-center justify-center">
-            <div className="text-2xl mb-2">📭</div>
-            <div className="text-xs font-bold text-slate-900 mb-1">
-              Belum Ada Aktivitas
+          <div className="space-y-3 flex-1 flex flex-col justify-center">
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-orange-50/30 border border-dashed border-orange-200/70">
+              <div className="w-8 h-8 rounded-xl bg-orange-100/70 border border-orange-200/60 flex items-center justify-center text-orange-600 shrink-0">
+                <Rocket size={15} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h5 className="text-xs font-black text-slate-800 leading-snug">Buat Kampanye Pertama</h5>
+                <p className="text-[11px] font-medium text-slate-500 leading-tight">Mulai kampanye agar kreator dapat mengklaim job Anda.</p>
+              </div>
             </div>
-            <div className="text-[11px] text-slate-500 font-medium">
-              Aktivitas campaign akan muncul di sini.
+            <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-slate-50 border border-dashed border-slate-200/80">
+              <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 shrink-0">
+                <Sparkles size={15} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h5 className="text-xs font-black text-slate-700 leading-snug">Belum Ada Aktivitas</h5>
+                <p className="text-[11px] font-medium text-slate-400 leading-tight">Riwayat klaim &amp; bukti posting akan tampil otomatis di sini.</p>
+              </div>
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex flex-col justify-between gap-2.5">
+          <div className="space-y-3 flex-1 flex flex-col justify-start">
             {visibleActivities.map((act) => {
               let mappedType: ActivityType = "kreator_bergabung";
               if (act.type === "submission")      mappedType = "submission_baru";
@@ -99,11 +122,11 @@ export function ActivityTimeline({ activities = [], isLoading = false, onViewAll
               return (
                 <div
                   key={act.id}
-                  className="grid grid-cols-[34px_1fr] gap-2.5 items-center group flex-1"
+                  className="flex items-start gap-3 p-3 rounded-2xl bg-slate-50/80 border border-slate-100 hover:bg-slate-100/60 transition-colors group"
                 >
                   {/* Icon badge */}
                   <div
-                    className="w-8 h-8 rounded-xl grid place-items-center shrink-0 border transition-transform group-hover:scale-105"
+                    className="w-8 h-8 rounded-xl grid place-items-center shrink-0 border transition-transform group-hover:scale-105 mt-0.5"
                     style={{
                       background: cfg.bg,
                       borderColor: cfg.border,
@@ -113,26 +136,40 @@ export function ActivityTimeline({ activities = [], isLoading = false, onViewAll
                   </div>
 
                   {/* Content card */}
-                  <div className="p-2.5 rounded-2xl bg-slate-50/80 border border-slate-100 group-hover:bg-slate-100/60 transition-colors h-full flex flex-col justify-center min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-0.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
                       <strong className="text-xs font-black text-slate-900 leading-snug truncate">
                         {act.title}
                       </strong>
                       <span className="text-[10px] font-bold text-slate-400 shrink-0 whitespace-nowrap">
-                        {act.time}
+                        {formatActivityTime(act.time)}
                       </span>
                     </div>
-                    <p className="text-[11px] font-normal text-slate-600 leading-tight line-clamp-1">
+                    <p className="text-[11px] font-normal text-slate-600 leading-tight line-clamp-2">
                       {act.description}
                     </p>
                   </div>
                 </div>
               );
             })}
+
+            {/* When only 1 activity exists, show 1 placeholder below it as requested */}
+            {visibleActivities.length === 1 && (
+              <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-orange-50/30 border border-dashed border-orange-200/70 mt-1">
+                <div className="w-8 h-8 rounded-xl bg-orange-100/70 border border-orange-200/60 flex items-center justify-center text-orange-600 shrink-0">
+                  <Sparkles size={15} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h5 className="text-xs font-black text-slate-800 leading-snug">Menunggu Aktivitas Berikutnya</h5>
+                  <p className="text-[11px] font-medium text-slate-500 leading-tight">
+                    Aktivitas klaim &amp; submission kreator akan muncul otomatis di sini.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
     </div>
   );
 }
-

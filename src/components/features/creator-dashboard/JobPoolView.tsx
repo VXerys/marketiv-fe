@@ -28,12 +28,12 @@ import { cn } from "@/lib/utils";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const NICHE_GRADIENTS: Record<string, [string, string]> = {
-  kuliner:    ["var(--color-amber-500)", "var(--color-red-500)"],
-  fashion:     ["var(--color-pink-500)", "var(--color-violet-500)"],
-  pariwisata: ["var(--color-teal-500)", "var(--color-blue-500)"],
-  edukasi:    ["var(--color-blue-500)", "var(--color-blue-700)"],
-  kecantikan: ["var(--color-pink-400)", "var(--color-fuchsia-500)"],
-  lainnya:    ["var(--color-kreator-600)", "var(--color-kreator-action-end)"],
+  kuliner:    ["#1e3a8a", "#6d28d9"],
+  fashion:     ["#1d4ed8", "#7c3aed"],
+  pariwisata: ["#0369a1", "#6366f1"],
+  edukasi:    ["#1e40af", "#4f46e5"],
+  kecantikan: ["#2563eb", "#7c3aed"],
+  lainnya:    ["#1e1b4b", "#6d28d9"],
 };
 
 const CREATOR_ACTION_GRADIENT =

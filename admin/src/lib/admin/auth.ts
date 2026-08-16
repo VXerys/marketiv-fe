@@ -27,7 +27,7 @@ export class AdminAuthError extends Error {
 
 type AdminAuthDependencies = {
   account: Pick<typeof account, "createEmailPasswordSession" | "get" | "deleteSession">;
-  databases: Pick<typeof databases, "listDocuments">;
+  databases: Pick<typeof databases, "listDocuments"> & Partial<Pick<typeof databases, "getDocument">>;
 };
 
 function failureFrom(error: unknown): AdminAuthError {
@@ -75,7 +75,17 @@ export async function resolveAdminSession(
       ]);
       userDoc = userRes.documents[0];
     } catch {
-      // Allow fallback to Appwrite Auth session labels/prefs
+      if (typeof dependencies.databases.getDocument === "function") {
+        try {
+          userDoc = (await dependencies.databases.getDocument(
+            databaseId,
+            COLLECTIONS.users,
+            session.$id,
+          )) as Record<string, unknown>;
+        } catch {
+          // Allow fallback to Appwrite Auth session labels/prefs
+        }
+      }
     }
 
     const hasAdminLabel =

@@ -75,11 +75,11 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
   return (
     <Link
       href={`/dashboard/umkm/campaign/${campaign.id}`}
-      className="flex flex-col overflow-hidden bg-white border border-slate-200/90 rounded-3xl shadow-[0_4px_20px_rgba(15,23,42,0.04)] hover:shadow-[0_10px_30px_rgba(15,23,42,0.08)] cursor-pointer hover-card-animate h-full justify-between transition-all"
+      className="flex flex-col overflow-hidden bg-white border border-slate-200/90 rounded-2xl sm:rounded-3xl shadow-[0_4px_20px_rgba(15,23,42,0.04)] hover:shadow-[0_10px_30px_rgba(15,23,42,0.08)] cursor-pointer hover-card-animate h-full justify-between transition-all"
     >
       {/* Cover Header */}
       <div
-        className="h-36 relative overflow-hidden shrink-0 flex flex-col justify-between p-3.5"
+        className="h-28 sm:h-36 relative overflow-hidden shrink-0 flex flex-col justify-between p-2.5 sm:p-3.5"
         style={{
           background: coverGradient,
         }}
@@ -88,71 +88,71 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.2),transparent_70%)]" />
 
         {/* Top Header Row: Status badge */}
-        <div className="relative z-10 flex items-center justify-between">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-md shadow-sm border border-white/40">
-            <span className="w-2 h-2 rounded-full" style={{ background: statusCfg.color }} />
-            <span className="text-[11px] font-black tracking-tight" style={{ color: statusCfg.color }}>
+        <div className="relative z-10 flex items-center justify-between gap-1">
+          <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-white/95 backdrop-blur-md shadow-xs border border-white/40">
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full" style={{ background: statusCfg.color }} />
+            <span className="text-[9px] sm:text-[11px] font-black tracking-tight" style={{ color: statusCfg.color }}>
               {statusCfg.label}
             </span>
           </div>
 
-          <span className="px-2.5 py-1 rounded-full bg-black/25 backdrop-blur-md text-white text-[10px] font-black uppercase tracking-wider border border-white/20">
+          <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-black/25 backdrop-blur-md text-white text-[8px] sm:text-[10px] font-black uppercase tracking-wider border border-white/20">
             {campaign.niche}
           </span>
         </div>
 
         {/* Bottom Banner Row: Budget chip */}
         <div className="relative z-10 flex justify-end">
-          <div className="px-3 py-1.5 rounded-xl bg-white/95 backdrop-blur-md shadow-md border border-white/60 text-slate-900 font-black text-xs tracking-tight">
+          <div className="px-2 sm:px-3 py-0.5 sm:py-1.5 rounded-lg sm:rounded-xl bg-white/95 backdrop-blur-md shadow-xs border border-white/60 text-slate-900 font-black text-[10px] sm:text-xs tracking-tight">
             {formatBudget(campaign.totalBudgetEscrow)}
           </div>
         </div>
       </div>
 
       {/* Body */}
-      <div className="p-4 sm:p-5 flex flex-col justify-between flex-1 gap-3">
-        <div className="space-y-2">
+      <div className="p-3 sm:p-5 flex flex-col justify-between flex-1 gap-2 sm:gap-3">
+        <div className="space-y-1.5 sm:space-y-2">
           {/* Title */}
-          <h3 className="font-display font-black text-slate-900 text-base sm:text-lg leading-snug tracking-tight line-clamp-1">
+          <h3 className="font-display font-black text-slate-900 text-xs sm:text-base leading-snug tracking-tight line-clamp-2 h-8 sm:h-10">
             {campaign.title}
           </h3>
 
           {/* CPM / Reward Rate Info */}
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-orange-50 border border-orange-200/80 text-orange-700 text-xs font-black">
-            <span>Komisi:</span>
+          <div className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg sm:rounded-xl bg-orange-50 border border-orange-200/80 text-orange-700 text-[10px] sm:text-xs font-black flex-wrap">
+            <span className="hidden sm:inline">Komisi:</span>
             <span>{formatCurrency(campaign.pricePerThousandViews)}</span>
-            <span className="text-orange-500 font-semibold">/ 1rb Tayangan</span>
+            <span className="text-orange-500 font-semibold text-[9px] sm:text-xs">/ 1rb Tayangan</span>
           </div>
         </div>
 
         {/* Stats row with high contrast icons & text */}
-        <div className="flex items-center gap-3 text-xs font-extrabold text-slate-700 flex-wrap pt-1 border-t border-slate-100">
-          <div className="flex items-center gap-1.5">
-            <Users size={14} className="text-slate-500 shrink-0" />
-            <span>{campaign.usedQuota}/{campaign.creatorQuota} Kreator</span>
+        <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs font-extrabold text-slate-700 flex-wrap pt-1 border-t border-slate-100">
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <Users size={12} className="text-slate-500 shrink-0 sm:w-3.5 sm:h-3.5" />
+            <span>{campaign.usedQuota}/{campaign.creatorQuota} <span className="hidden sm:inline">Kreator</span></span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Eye size={14} className="text-slate-500 shrink-0" />
-            <span>{campaign.totalViews === undefined ? "—" : formatViews(campaign.totalViews)} tayangan</span>
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <Eye size={12} className="text-slate-500 shrink-0 sm:w-3.5 sm:h-3.5" />
+            <span>{campaign.totalViews === undefined ? "—" : formatViews(campaign.totalViews)} <span className="hidden sm:inline">tayangan</span></span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Calendar size={14} className="text-slate-500 shrink-0" />
-            <span>{new Date(campaign.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}</span>
+          <div className="flex items-center gap-1 sm:gap-1.5 hidden sm:flex">
+            <Calendar size={12} className="text-slate-500 shrink-0 sm:w-3.5 sm:h-3.5" />
+            <span>{new Date(campaign.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</span>
           </div>
         </div>
 
         {/* Progress & Budget */}
-        <div className="pt-2">
-          <div className="flex items-center justify-between gap-2 mb-1.5 text-xs font-black">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
-              ANGGARAN TERPAKAI
+        <div className="pt-1 sm:pt-2">
+          <div className="flex items-center justify-between gap-1 mb-1 text-[10px] sm:text-xs font-black">
+            <span className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+              ANGGARAN
             </span>
-            <div className="flex items-center gap-1.5 whitespace-nowrap text-slate-900 font-extrabold">
+            <div className="flex items-center gap-1 text-slate-900 font-extrabold text-[9px] sm:text-xs">
               <span>{formatBudget(campaign.usedBudget)}</span>
               <span className="text-slate-300 font-normal">/</span>
               <span className="text-slate-500">{formatBudget(campaign.totalBudgetEscrow)}</span>
               <span
-                className={`px-1.5 py-0.5 rounded-md text-[10px] font-black border ${
+                className={`px-1 py-0.2 sm:px-1.5 sm:py-0.5 rounded text-[8px] sm:text-[10px] font-black border ${
                   progressPercent >= 100
                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                     : "bg-orange-50 text-orange-600 border-orange-200"
@@ -163,7 +163,7 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
             </div>
           </div>
 
-          <div className="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden relative shadow-inner">
+          <div className="h-1.5 sm:h-2 w-full rounded-full bg-slate-100 overflow-hidden relative shadow-inner">
             <div
               className={`h-full rounded-full transition-all duration-700 relative ${
                 progressPercent >= 100
@@ -181,145 +181,142 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
   );
 }
 
+// ─── Empty Placeholder Card for UMKM ──────────────────────────────────────────
+
+const UMKM_EMPTY_CAMPAIGN_VARIANTS = [
+  {
+    badge: "Buat Baru",
+    icon: Plus,
+    iconBg: "bg-orange-50 text-orange-600 border-orange-200/80",
+    title: "Buat Kampanye Baru",
+    desc: "Siapkan brief produk dan reward per views untuk kreator.",
+    href: "/dashboard/umkm/campaign/buat",
+    btnLabel: "Buat Kampanye",
+    isPrimary: true,
+  },
+  {
+    badge: "Kolaborasi",
+    icon: Users,
+    iconBg: "bg-blue-50 text-blue-600 border-blue-200/80",
+    title: "Jelajahi Kreator",
+    desc: "Temukan kreator terbaik untuk kolaborasi paket Rate Card.",
+    href: "/dashboard/umkm/kreator",
+    btnLabel: "Cari Kreator",
+    isPrimary: false,
+  },
+];
+
+interface EmptyPlaceholderCampaignCardProps {
+  variantIndex?: number;
+  onCreateClick?: () => void;
+}
+
+function EmptyPlaceholderCampaignCard({ variantIndex = 0, onCreateClick }: EmptyPlaceholderCampaignCardProps) {
+  const variant = UMKM_EMPTY_CAMPAIGN_VARIANTS[variantIndex % UMKM_EMPTY_CAMPAIGN_VARIANTS.length];
+  const Icon = variant.icon;
+
+  return (
+    <div className="flex flex-col justify-between overflow-hidden bg-slate-50/60 border border-dashed border-slate-300/90 rounded-2xl sm:rounded-3xl p-3.5 sm:p-6 shadow-xs hover:border-orange-300 hover:bg-orange-50/20 transition-all duration-300 min-h-[280px] sm:min-h-[380px]">
+      <div className="space-y-2.5 sm:space-y-4">
+        <div className="flex items-center justify-between">
+          <div className={`h-8 w-8 sm:h-11 sm:w-11 rounded-xl sm:rounded-2xl border flex items-center justify-center transition-transform hover:scale-105 ${variant.iconBg}`}>
+            <Icon size={16} className="sm:w-5 sm:h-5" />
+          </div>
+          <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[8px] sm:text-[10px] font-black uppercase tracking-wider text-slate-500 border border-slate-200 bg-white shadow-3xs">
+            {variant.badge}
+          </span>
+        </div>
+
+        <div className="space-y-1 sm:space-y-1.5 pt-0.5 sm:pt-1">
+          <h3 className="font-display font-black text-slate-900 text-xs sm:text-base leading-snug tracking-tight">
+            {variant.title}
+          </h3>
+          <p className="text-[10px] sm:text-xs font-medium text-slate-500 leading-relaxed line-clamp-2 sm:line-clamp-3">
+            {variant.desc}
+          </p>
+        </div>
+      </div>
+
+      <div className="pt-3 sm:pt-4 border-t border-dashed border-slate-200 mt-auto">
+        {variant.isPrimary && onCreateClick ? (
+          <button
+            type="button"
+            onClick={onCreateClick}
+            className="w-full inline-flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl bg-gradient-to-b from-[#fb7a18] to-[#ea580c] text-white text-[10px] sm:text-xs font-extrabold shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+          >
+            <Plus size={13} className="sm:w-3.5 sm:h-3.5" />
+            <span>{variant.btnLabel}</span>
+          </button>
+        ) : (
+          <Link
+            href={variant.href}
+            className="w-full inline-flex items-center justify-center gap-1.5 sm:gap-2 py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-100/80 text-slate-700 text-[10px] sm:text-xs font-extrabold transition-all duration-200 shadow-3xs hover:border-slate-300"
+          >
+            <span>{variant.btnLabel}</span>
+            <ChevronRight size={13} className="text-orange-500 sm:w-3.5 sm:h-3.5" />
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function CampaignSection({ campaigns = [], isLoading = false, onCreateClick, onViewAllClick }: CampaignSectionProps) {
   const visibleCampaigns = campaigns.slice(0, 2);
+  const emptySlotsCount = Math.max(0, 2 - visibleCampaigns.length);
 
   return (
     <div>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
+      <div className="flex items-center justify-between gap-3 mb-4">
         <div>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              color: "#ea580c",
-              fontSize: ".72rem",
-              fontWeight: 900,
-              letterSpacing: ".12em",
-              textTransform: "uppercase",
-              marginBottom: 6,
-            }}
-          >
-            <span style={{ display: "block", width: 14, height: 2, borderRadius: 999, background: "#f97316" }} />
+          <div className="inline-flex items-center gap-2 text-orange-600 text-[10px] sm:text-xs font-black tracking-widest uppercase mb-1">
+            <span className="w-3.5 h-0.5 rounded-full bg-orange-500" />
             Kampanye
           </div>
-          <h2
-            style={{
-              fontFamily: "var(--font-plus-jakarta-sans), Sora, sans-serif",
-              fontSize: "clamp(1.3rem, 2.5vw, 1.8rem)",
-              fontWeight: 700,
-              letterSpacing: "-.055em",
-              lineHeight: 1,
-              color: "#182033",
-              margin: 0,
-            }}
-          >
+          <h2 className="font-display text-lg sm:text-2xl font-bold tracking-tight text-slate-900 leading-tight">
             Kampanye Terbaru Anda
           </h2>
         </div>
 
-        {!isLoading && campaigns.length > 0 && (
-          <div style={{ display: "flex", gap: 8 }}>
+        {!isLoading && (
+          <div className="flex gap-2">
             <button
               onClick={onViewAllClick}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                minHeight: 34,
-                padding: "0 12px",
-                border: "1px solid rgba(17,24,39,.09)",
-                borderRadius: 11,
-                background: "rgba(255,255,255,.82)",
-                color: "#556174",
-                fontSize: ".78rem",
-                fontWeight: 790,
-                boxShadow: "0 6px 18px rgba(15,23,42,.05)",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
+              className="inline-flex items-center gap-1 min-h-[32px] sm:min-h-[34px] px-2.5 sm:px-3 rounded-xl border border-slate-200/80 bg-white/80 text-slate-600 text-[10px] sm:text-xs font-extrabold shadow-xs hover:bg-white transition-colors cursor-pointer whitespace-nowrap"
             >
-              Lihat Semua
-              <ChevronRight size={13} />
+              <span>Lihat Semua</span>
+              <ChevronRight size={12} className="sm:w-3.5 sm:h-3.5" />
             </button>
             <button
               onClick={onCreateClick}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                minHeight: 34,
-                padding: "0 12px",
-                border: "none",
-                borderRadius: 11,
-                background: "linear-gradient(180deg, #fb7a18 0%, #ea580c 100%)",
-                color: "white",
-                fontSize: ".78rem",
-                fontWeight: 800,
-                boxShadow: "0 8px 20px rgba(234,88,12,.2)",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
+              className="inline-flex items-center gap-1 min-h-[32px] sm:min-h-[34px] px-2.5 sm:px-3 rounded-xl bg-gradient-to-b from-[#fb7a18] to-[#ea580c] text-white text-[10px] sm:text-xs font-extrabold shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 cursor-pointer whitespace-nowrap"
             >
-              <Plus size={14} />
-              Buat Kampanye Baru
+              <Plus size={13} className="sm:w-3.5 sm:h-3.5" />
+              <span className="hidden sm:inline">Buat Kampanye Baru</span>
+              <span className="sm:hidden">Buat Baru</span>
             </button>
           </div>
         )}
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6">
           {[1, 2].map((i) => (
             <CampaignSkeleton key={i} />
           ))}
         </div>
-      ) : campaigns.length === 0 ? (
-        <div
-          style={{
-            padding: "48px 20px",
-            borderRadius: 24,
-            border: "1px solid rgba(17,24,39,.08)",
-            background: "white",
-            textAlign: "center",
-            boxShadow: "0 8px 24px rgba(15,23,42,.04)",
-          }}
-        >
-          <div style={{ fontSize: "2rem", marginBottom: 12 }}>📢</div>
-          <h3 style={{ margin: "0 0 6px", fontFamily: "var(--font-plus-jakarta-sans), Sora, sans-serif", fontSize: "1.1rem", fontWeight: 700, color: "#182033" }}>
-            Belum Ada Kampanye
-          </h3>
-          <p style={{ margin: "0 0 20px", fontSize: ".82rem", color: "#737f91", maxWidth: 320, marginLeft: "auto", marginRight: "auto" }}>
-            Mulai promosikan bisnis Anda dengan membuat kampanye pertama.
-          </p>
-          <button
-            onClick={onCreateClick}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              minHeight: 36,
-              padding: "0 16px",
-              border: "none",
-              borderRadius: 11,
-              background: "linear-gradient(180deg, #fb7a18 0%, #ea580c 100%)",
-              color: "white",
-              fontSize: ".82rem",
-              fontWeight: 800,
-              boxShadow: "0 8px 20px rgba(234,88,12,.2)",
-              cursor: "pointer",
-            }}
-          >
-            <Plus size={14} />
-            Buat Kampanye Pertama
-          </button>
-        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6">
           {visibleCampaigns.map((camp) => (
             <CampaignCard key={camp.id} campaign={camp} />
+          ))}
+          {Array.from({ length: emptySlotsCount }).map((_, idx) => (
+            <EmptyPlaceholderCampaignCard
+              key={`empty-campaign-${idx}`}
+              variantIndex={idx}
+              onCreateClick={onCreateClick}
+            />
           ))}
         </div>
       )}

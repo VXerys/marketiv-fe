@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { getCreatorProfile } from "@/services/creator/creator-dashboard.service";
 
 export interface CreatorIdentity {
@@ -23,27 +23,36 @@ export function CreatorIdentityProvider({ children }: { children: ReactNode }) {
   const [identity, setIdentity] = useState<CreatorIdentity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const inFlightRef = useRef<Promise<void> | null>(null);
 
   const fetchIdentity = useCallback(async () => {
-    try {
-      const res = await getCreatorProfile();
-      if (res.success && res.data) {
-        setIdentity({
-          name: res.data.name || "",
-          username: res.data.username || "",
-          avatarUrl: res.data.avatarUrl || "",
-          isVerified: Boolean(res.data.isVerified),
-        });
-        setError(null);
-      } else {
-        setError(res.error || "Gagal memuat profil kreator");
+    if (inFlightRef.current) return inFlightRef.current;
+
+    const task = (async () => {
+      try {
+        const res = await getCreatorProfile();
+        if (res.success && res.data) {
+          setIdentity({
+            name: res.data.name || "",
+            username: res.data.username || "",
+            avatarUrl: res.data.avatarUrl || "",
+            isVerified: Boolean(res.data.isVerified),
+          });
+          setError(null);
+        } else {
+          setError(res.error || "Gagal memuat profil kreator");
+        }
+      } catch (err) {
+        console.error("Failed to load creator profile identity:", err);
+        setError("Terjadi kesalahan saat memuat profil");
+      } finally {
+        setLoading(false);
+        inFlightRef.current = null;
       }
-    } catch (err) {
-      console.error("Failed to load creator profile identity:", err);
-      setError("Terjadi kesalahan saat memuat profil");
-    } finally {
-      setLoading(false);
-    }
+    })();
+
+    inFlightRef.current = task;
+    return task;
   }, []);
 
   const refreshIdentity = useCallback(async () => {
@@ -51,11 +60,7 @@ export function CreatorIdentityProvider({ children }: { children: ReactNode }) {
   }, [fetchIdentity]);
 
   useEffect(() => {
-    let active = true;
     void fetchIdentity();
-    return () => {
-      active = false;
-    };
   }, [fetchIdentity]);
 
   return (

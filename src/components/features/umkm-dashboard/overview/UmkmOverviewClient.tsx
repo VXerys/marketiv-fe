@@ -137,7 +137,7 @@ export function UmkmOverviewClient() {
         </div>
 
         {/* 3. Bottom Row: Quick Actions (Col 1) + Financial Overview (Col 2) + Insights (Col 3) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
           <QuickActions onCreateCampaign={handleCreateCampaign} />
           <FinancialOverview
             escrowBalance={data.kpis?.escrowBalance}
