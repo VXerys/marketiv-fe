@@ -3,7 +3,20 @@
 import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import type { ChatMessage } from "@/types/chat";
+import { account } from "@/lib/appwrite/account";
+import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
+import {
+  getChatbotSuggestions,
+  type ChatbotAudience,
+} from "@/services/chatbot/chatbot-guardrails";
+import {
+  getTivvyLoadingMessage,
+  getTivvyWelcomeMessage,
+  shouldShowChatbotSuggestions,
+} from "@/services/chatbot/chatbot-ui";
+import { ChatbotLoadingState } from "./ChatbotLoadingState";
+import { ChatbotSuggestions } from "./ChatbotSuggestions";
+import type { ChatMessage, ChatResponse } from "@/types/chat";
 
 interface ChatbotPanelProps {
   isOpen: boolean;
@@ -14,14 +27,43 @@ export function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState(0);
+  const [followUpSuggestions, setFollowUpSuggestions] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const currentPath = usePathname();
+  const welcomeAudience: ChatbotAudience = currentPath.startsWith("/dashboard/umkm")
+    ? "umkm"
+    : currentPath.startsWith("/dashboard/kreator")
+      ? "creator"
+      : "landing";
+  const initialSuggestions = getChatbotSuggestions(
+    welcomeAudience,
+    currentPath,
+    [],
+    4,
+  );
+  const visibleSuggestions =
+    messages.length === 0 ? initialSuggestions : followUpSuggestions;
+  const showSuggestions = shouldShowChatbotSuggestions(
+    isLoading,
+    visibleSuggestions.length,
+  );
 
   // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isLoading, loadingStage]);
+
+  useEffect(() => {
+    if (!isLoading) return;
+
+    const intervalId = window.setInterval(() => {
+      setLoadingStage((stage) => Math.min(stage + 1, 2));
+    }, 1_800);
+
+    return () => window.clearInterval(intervalId);
+  }, [isLoading]);
 
   // Focus input when panel opens
   useEffect(() => {
@@ -30,31 +72,49 @@ export function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
     }
   }, [isOpen]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmed = input.trim();
+  async function sendMessage(content: string) {
+    const trimmed = content.trim();
     if (!trimmed || isLoading) return;
 
     const userMessage: ChatMessage = { role: "user", content: trimmed };
     const updatedMessages = [...messages, userMessage];
+    if (messages.length === 0) {
+      setFollowUpSuggestions(initialSuggestions);
+    }
     setMessages(updatedMessages);
     setInput("");
+    setLoadingStage(0);
     setIsLoading(true);
 
     try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (currentPath.startsWith("/dashboard/") && !DATA_SOURCE_CONFIG.useMockData) {
+        const { jwt } = await account.createJWT({ duration: 300 });
+        headers.Authorization = `Bearer ${jwt}`;
+      }
+
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
-          messages: updatedMessages,
+          messages: updatedMessages.slice(-30),
           currentPath,
         }),
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as Partial<ChatResponse>;
 
-      if (response.ok) {
-        setMessages((prev) => [...prev, { role: "assistant", content: data.message }]);
+      if (response.ok && typeof data.message === "string") {
+        const assistantContent = data.message;
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: assistantContent },
+        ]);
+        setFollowUpSuggestions(
+          Array.isArray(data.suggestions)
+            ? data.suggestions.filter((item): item is string => typeof item === "string")
+            : [],
+        );
       } else {
         setMessages((prev) => [
           ...prev,
@@ -75,6 +135,11 @@ export function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    void sendMessage(input);
   }
 
   return (
@@ -126,15 +191,15 @@ export function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
             </div>
             <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm border border-gray-100 max-w-[85%]">
               <p className="text-sm text-text-main leading-relaxed">
-                Hai! 👋 Aku <span className="font-semibold text-brand-coral">Tivvy</span>, asisten AI Marketiv. Aku bisa bantu kamu tentang:
+                {getTivvyWelcomeMessage(welcomeAudience)}
               </p>
-              <ul className="mt-2 space-y-1 text-sm text-text-muted">
-                <li>🔥 Campaign Mode & cara kerjanya</li>
-                <li>🤝 Rate Card Mode & negosiasi</li>
-                <li>💡 Tips untuk UMKM & Kreator</li>
-                <li>❓ Pertanyaan apapun tentang Marketiv</li>
-              </ul>
-              <p className="mt-2 text-sm text-text-main">Mau tanya apa? 😊</p>
+              {showSuggestions && <div className="mt-3">
+                <ChatbotSuggestions
+                  questions={visibleSuggestions}
+                  disabled={false}
+                  onSelect={(question) => void sendMessage(question)}
+                />
+              </div>}
             </div>
           </div>
         )}
@@ -164,25 +229,19 @@ export function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
           </div>
         ))}
 
+        {messages.length > 0 && showSuggestions && (
+          <div className="pl-9">
+            <ChatbotSuggestions
+              questions={visibleSuggestions}
+              disabled={false}
+              onSelect={(question) => void sendMessage(question)}
+            />
+          </div>
+        )}
+
         {/* Loading Indicator */}
         {isLoading && (
-          <div className="flex gap-2.5">
-            <div className="flex items-center justify-center w-7 h-7 rounded-full bg-brand-coral shrink-0 mt-0.5">
-              <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-                <path d="M12 2C8.686 2 6 4.686 6 8v1H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2v1c0 3.314 2.686 6 6 6s6-2.686 6-6v-1h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2h-2V8c0-3.314-2.686-6-6-6z" />
-                <path d="M9 13v-2" />
-                <path d="M15 13v-2" />
-                <path d="M10 17h4" />
-              </svg>
-            </div>
-            <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-sm border border-gray-100">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-brand-coral/60 animate-bounce [animation-delay:0ms]" />
-                <div className="w-2 h-2 rounded-full bg-brand-coral/60 animate-bounce [animation-delay:150ms]" />
-                <div className="w-2 h-2 rounded-full bg-brand-coral/60 animate-bounce [animation-delay:300ms]" />
-              </div>
-            </div>
-          </div>
+          <ChatbotLoadingState message={getTivvyLoadingMessage(loadingStage)} />
         )}
 
         <div ref={messagesEndRef} />

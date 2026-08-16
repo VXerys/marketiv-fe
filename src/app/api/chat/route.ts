@@ -1,64 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { VertexAI } from "@google-cloud/vertexai";
-import { CHATBOT_KNOWLEDGE } from "@/data/chatbotKnowledge";
 import type { ChatMessage, ChatRequest } from "@/types/chat";
+import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
+import { authenticateChatRole, readBearerToken } from "@/services/chatbot/chatbot-auth";
+import {
+  buildSystemPrompt,
+  CHATBOT_GENERATION_CONFIG,
+  getChatbotSuggestions,
+  isTruncatedFinishReason,
+  joinContinuation,
+  resolveChatAudience,
+  validateChatMessages,
+} from "@/services/chatbot/chatbot-guardrails";
+import type { UserRole } from "@/types/domain";
 
-function buildSystemPrompt(currentPath: string): string {
-  const { identity, about, problems, campaignMode, rateCardMode, faq, routeContext } = CHATBOT_KNOWLEDGE;
-
-  // Determine route-specific context
-  let pageContext = routeContext.landing;
-  if (currentPath.startsWith("/dashboard/umkm")) {
-    pageContext = routeContext.umkm;
-  } else if (currentPath.startsWith("/dashboard/kreator")) {
-    pageContext = routeContext.creator;
-  }
-
-  // Build complete system prompt
-  return `Kamu adalah ${identity.name}, ${identity.role}.
-
-PERSONALITY: ${identity.personality}
-
-TENTANG MARKETIV:
-${about}
-
-MASALAH YANG DISELESAIKAN MARKETIV:
-${problems.map((p, i) => `${i + 1}. Masalah: ${p.problem}\n   Solusi: ${p.solution}`).join("\n")}
-
-CAMPAIGN MODE (${campaignMode.tagline}):
-${campaignMode.description}
-Flow: ${campaignMode.flow.map((step, i) => `${i + 1}. ${step}`).join(" → ")}
-Aturan Campaign Mode:
-${campaignMode.rules.map((r) => `- ${r}`).join("\n")}
-Keuntungan untuk UMKM: ${campaignMode.benefits.umkm.join(", ")}
-Keuntungan untuk Kreator: ${campaignMode.benefits.creator.join(", ")}
-
-RATE CARD MODE (${rateCardMode.tagline}):
-${rateCardMode.description}
-Flow: ${rateCardMode.flow.map((step, i) => `${i + 1}. ${step}`).join(" → ")}
-Aturan Rate Card Mode:
-${rateCardMode.rules.map((r) => `- ${r}`).join("\n")}
-Keuntungan untuk UMKM: ${rateCardMode.benefits.umkm.join(", ")}
-Keuntungan untuk Kreator: ${rateCardMode.benefits.creator.join(", ")}
-
-FAQ (gunakan sebagai referensi untuk menjawab):
-${faq.map((item) => `Q: ${item.question}\nA: ${item.answer}`).join("\n\n")}
-
-KONTEKS HALAMAN SAAT INI:
-${pageContext}
-
-INSTRUKSI PENTING:
-- Selalu jawab berdasarkan pengetahuan di atas tentang Marketiv.
-- Jika ditanya hal di luar konteks Marketiv, jawab dengan sopan bahwa kamu adalah asisten khusus Marketiv dan arahkan kembali ke topik yang relevan.
-- Gunakan bahasa yang mudah dipahami, terutama untuk pengguna UMKM yang mungkin tidak familiar dengan istilah teknis.
-- Jawab dengan ringkas tapi informatif. Jangan terlalu panjang kecuali diminta penjelasan detail.
-- Jika user tampak bingung, proaktif tawarkan langkah selanjutnya atau sarankan fitur yang relevan.
-- DILARANG KERAS menampilkan proses berpikir, reasoning, thinking process, atau analisis internal apapun di jawabanmu.
-- Langsung berikan jawaban final secara natural seperti percakapan biasa.
-- DILARANG menggunakan format markdown apapun di jawabanmu. Tidak boleh pakai **, *, #, ##, backtick, atau formatting markdown lainnya. Tulis jawaban dalam teks biasa saja tanpa formatting khusus.
-- Gunakan emoji untuk memberi penekanan, bukan markdown. Contoh: gunakan emoji 🔥 bukan **bold**. Gunakan tanda - untuk list, bukan *.
-- Jawab seperti sedang chat santai di WhatsApp. Pendek, jelas, natural.`;
-}
+const CONTINUATION_PROMPT =
+  "Lanjutkan tepat dari bagian terakhir tanpa mengulang isi sebelumnya. Selesaikan jawaban dan jangan berhenti di tengah kalimat.";
 
 function cleanResponse(content: string): string {
   // Step 1: Remove <think>...</think> blocks
@@ -128,8 +85,7 @@ async function callVertexAI(systemPrompt: string, messages: ChatMessage[]): Prom
   const generativeModel = vertexAI.getGenerativeModel({
     model,
     generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 1024,
+      ...CHATBOT_GENERATION_CONFIG,
     },
     systemInstruction: {
       role: "system",
@@ -149,10 +105,20 @@ async function callVertexAI(systemPrompt: string, messages: ChatMessage[]): Prom
   const chat = generativeModel.startChat({ history });
   const result = await chat.sendMessage(lastMessage.content);
   const response = result.response;
-  const text = response.candidates?.[0]?.content?.parts?.[0]?.text;
+  const candidate = response.candidates?.[0];
+  let text = candidate?.content?.parts?.[0]?.text;
 
   if (!text) {
     throw new Error("Vertex AI returned an empty response.");
+  }
+
+  if (isTruncatedFinishReason(candidate?.finishReason)) {
+    console.warn("[Chat API] Vertex AI answer reached token limit; requesting one continuation.");
+    const continuationResult = await chat.sendMessage(CONTINUATION_PROMPT);
+    const continuation = continuationResult.response.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (continuation) {
+      text = joinContinuation(text, continuation);
+    }
   }
 
   return text;
@@ -168,35 +134,59 @@ async function callOpenRouter(systemPrompt: string, messages: ChatMessage[]): Pr
     throw new Error("OPENROUTER_API_KEY is not configured.");
   }
 
-  const apiMessages: ChatMessage[] = [{ role: "system", content: systemPrompt }, ...messages];
+  type OpenRouterMessage = {
+    role: "system" | ChatMessage["role"];
+    content: string;
+  };
+  const apiMessages: OpenRouterMessage[] = [
+    { role: "system", content: systemPrompt },
+    ...messages,
+  ];
 
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": "https://marketiv.id",
-      "X-Title": "Marketiv Chatbot",
-    },
-    body: JSON.stringify({
-      model,
-      messages: apiMessages,
-      temperature: 0.7,
-      max_tokens: 1024,
-      reasoning: { effort: "none" },
-    }),
-  });
+  async function requestCompletion(requestMessages: OpenRouterMessage[]) {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        "HTTP-Referer": "https://marketiv.id",
+        "X-Title": "Marketiv Chatbot",
+      },
+      body: JSON.stringify({
+        model,
+        messages: requestMessages,
+        temperature: CHATBOT_GENERATION_CONFIG.temperature,
+        max_tokens: CHATBOT_GENERATION_CONFIG.maxOutputTokens,
+        reasoning: { effort: "none" },
+      }),
+    });
 
-  if (!response.ok) {
-    const errorData = await response.text();
-    throw new Error(`OpenRouter API error (${response.status}): ${errorData}`);
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`OpenRouter API error (${response.status}): ${errorData}`);
+    }
+
+    return response.json();
   }
 
-  const data = await response.json();
-  const text = data.choices?.[0]?.message?.content;
+  const data = await requestCompletion(apiMessages);
+  let text = data.choices?.[0]?.message?.content;
 
   if (!text) {
     throw new Error("OpenRouter returned an empty response.");
+  }
+
+  if (isTruncatedFinishReason(data.choices?.[0]?.finish_reason)) {
+    console.warn("[Chat API] OpenRouter answer reached token limit; requesting one continuation.");
+    const continuationData = await requestCompletion([
+      ...apiMessages,
+      { role: "assistant", content: text },
+      { role: "user", content: CONTINUATION_PROMPT },
+    ]);
+    const continuation = continuationData.choices?.[0]?.message?.content;
+    if (continuation) {
+      text = joinContinuation(text, continuation);
+    }
   }
 
   return text;
@@ -206,10 +196,37 @@ async function callOpenRouter(systemPrompt: string, messages: ChatMessage[]): Pr
 export async function POST(request: NextRequest) {
   try {
     const body: ChatRequest = await request.json();
-    const { messages, currentPath } = body;
+    const currentPath = typeof body.currentPath === "string" ? body.currentPath : "/";
+    const validation = validateChatMessages(body.messages);
+    if (!validation.ok) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
 
-    // Build system prompt with knowledge base + route context
-    const systemPrompt = buildSystemPrompt(currentPath || "/");
+    let authenticatedRole: UserRole | null = null;
+    if (DATA_SOURCE_CONFIG.useMockData && currentPath.startsWith("/dashboard/")) {
+      authenticatedRole = currentPath.startsWith("/dashboard/kreator") ? "creator" : "umkm";
+    } else {
+      const token = readBearerToken(request.headers.get("authorization"));
+      if (token) {
+        try {
+          authenticatedRole = await authenticateChatRole(token);
+        } catch (authError) {
+          console.warn("[Chat API] Appwrite JWT validation failed:", authError);
+          return NextResponse.json({ error: "Sesi Tivvy tidak valid." }, { status: 401 });
+        }
+      }
+    }
+
+    const audienceResult = resolveChatAudience(currentPath, authenticatedRole);
+    if (!audienceResult.ok) {
+      return NextResponse.json(
+        { error: audienceResult.error },
+        { status: audienceResult.status },
+      );
+    }
+
+    const messages = validation.messages;
+    const systemPrompt = buildSystemPrompt(audienceResult.audience, currentPath);
 
     let rawContent: string;
 
@@ -226,8 +243,14 @@ export async function POST(request: NextRequest) {
 
     // Strip any remaining thinking/reasoning content as safety net
     const assistantMessage = cleanResponse(rawContent);
+    const suggestions = getChatbotSuggestions(
+      audienceResult.audience,
+      currentPath,
+      messages,
+      3,
+    );
 
-    return NextResponse.json({ message: assistantMessage });
+    return NextResponse.json({ message: assistantMessage, suggestions });
   } catch (error) {
     console.error("[Chat API] All providers failed:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

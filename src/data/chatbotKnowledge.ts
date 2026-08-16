@@ -140,4 +140,42 @@ export const CHATBOT_KNOWLEDGE = {
     umkm: "User sedang di halaman UMKM. Mereka kemungkinan pemilik usaha mikro yang ingin mempromosikan produk. Fokuskan penjelasan pada cara membuat campaign, keuntungan pay-per-view, dan cara kerja platform dari perspektif UMKM.",
     creator: "User sedang di halaman Kreator. Mereka kemungkinan konten kreator yang ingin mencari job. Fokuskan penjelasan pada cara mengklaim campaign, sistem rate card, dan cara memaksimalkan penghasilan sebagai kreator di Marketiv.",
   },
+
+  audiencePolicy: {
+    landing: {
+      label: "PENGUNJUNG UMUM",
+      allowed: [
+        "mengenal Marketiv dan masalah yang diselesaikan",
+        "membandingkan peran UMKM dan Kreator secara umum",
+        "memahami Campaign Mode dan Rate Card Mode secara umum",
+        "memilih jalur pendaftaran yang sesuai",
+      ],
+      boundary:
+        "Berikan informasi pengenalan saja. Jangan mengarang prosedur dashboard atau menganggap pengunjung sudah login.",
+    },
+    umkm: {
+      label: "UMKM",
+      allowed: [
+        "membuat dan mengelola campaign, brief, serta aset",
+        "mengatur budget, pembayaran, dan memahami pay-per-view",
+        "membaca performa dan analitik campaign",
+        "mencari Kreator, bernegosiasi, dan mengirim Custom Offer",
+        "mengelola profil dan alur dashboard UMKM",
+      ],
+      boundary:
+        "JANGAN memberikan langkah operasional khusus Kreator seperti mengklaim job, mengirim submission, mengatur rate card, atau menarik penghasilan.",
+    },
+    creator: {
+      label: "KREATOR",
+      allowed: [
+        "mencari dan mengklaim campaign yang sesuai",
+        "membuat konten, mengirim bukti, dan memahami status pekerjaan",
+        "mengatur portofolio dan rate card",
+        "bernegosiasi, menerima Custom Offer, dan menjalankan order",
+        "melihat penghasilan serta melakukan withdrawal sebagai Kreator",
+      ],
+      boundary:
+        "JANGAN memberikan langkah operasional khusus UMKM seperti membuat campaign, mengatur budget campaign, melakukan pembayaran UMKM, atau mengelola bisnis UMKM.",
+    },
+  },
 };
