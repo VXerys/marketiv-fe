@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { AdminAuthError, type AdminUserSession, getCurrentAdminSession, logoutAdminSession } from "@/lib/admin/auth";
+import { usePathname } from "next/navigation";
+import { AdminAuthError, type AdminUserSession, getCurrentAdminSession, logoutAdminSession, signInAdminSession } from "@/lib/admin/auth";
 import { DashboardLayoutShell } from "./DashboardLayoutShell";
 
 export type AdminAuthState =
@@ -15,18 +16,11 @@ export type AdminAuthState =
 type AdminAuthContextValue = {
   state: AdminAuthState;
   session: AdminUserSession | null;
+  signIn: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
 const AdminAuthContext = createContext<AdminAuthContextValue | null>(null);
-
-function getUserAppLoginUrl(): string {
-  const raw = process.env.NEXT_PUBLIC_USER_APP_URL?.trim();
-  if (!raw) throw new Error("NEXT_PUBLIC_USER_APP_URL is required to redirect to login.");
-  const url = new URL(raw);
-  if (url.protocol !== "https:" && url.protocol !== "http:") throw new Error("NEXT_PUBLIC_USER_APP_URL must use http or https.");
-  return new URL("/login", url.origin).toString();
-}
 
 function stateFrom(error: unknown): AdminAuthState {
   if (error instanceof AdminAuthError) return error.kind;
@@ -53,6 +47,19 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const signIn = useCallback(async (email: string, password: string) => {
+    setState("loading");
+    setSession(null);
+    try {
+      const resolved = await signInAdminSession(email, password);
+      setSession(resolved);
+      setState("authenticated");
+    } catch (error) {
+      setState(stateFrom(error));
+      throw error;
+    }
+  }, []);
+
   useEffect(() => {
     void Promise.resolve().then(bootstrap);
   }, [bootstrap]);
@@ -68,7 +75,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const value = useMemo(() => ({ state, session, logout }), [state, session, logout]);
+  const value = useMemo(() => ({ state, session, signIn, logout }), [state, session, signIn, logout]);
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>;
 }
 
@@ -79,25 +86,86 @@ export function useAdminAuth(): AdminAuthContextValue {
 }
 
 export function AdminAuthGate({ children }: { children: ReactNode }) {
-  const { state } = useAdminAuth();
+  const { state, logout } = useAdminAuth();
+  const pathname = usePathname();
+  const isLoginRoute = pathname === "/login";
 
   useEffect(() => {
-    if (state !== "unauthenticated") return;
-    try {
-      window.location.replace(getUserAppLoginUrl());
-    } catch {
-      // Fail closed with the local error state below if cross-app config is invalid.
-    }
-  }, [state]);
+    if (!isLoginRoute || state !== "authenticated") return;
+    window.location.replace("/dashboard");
+  }, [isLoginRoute, state]);
+
+  if (isLoginRoute) return <>{children}</>;
 
   if (state === "authenticated") return <DashboardLayoutShell>{children}</DashboardLayoutShell>;
   if (state === "loading") return <AdminAccessState title="Memverifikasi sesi Admin" detail="Mohon tunggu." />;
-  if (state === "unauthenticated") return <AdminAccessState title="Sesi Admin diperlukan" detail="Mengarahkan ke halaman login Marketiv." />;
-  if (state === "forbidden") return <AdminAccessState title="Akses Admin ditolak" detail="Akun ini bukan Admin Marketiv." />;
-  if (state === "suspended") return <AdminAccessState title="Akun Admin tidak aktif" detail="Hubungi Marketiv untuk mengaktifkan kembali akun." />;
-  return <AdminAccessState title="Verifikasi Admin gagal" detail="Data operasional tidak dimuat. Coba muat ulang atau hubungi support." />;
+  if (state === "unauthenticated") return <AdminAccessState title="Sesi Admin diperlukan" detail="Masuk dengan akun Admin Marketiv untuk melanjutkan." actionLabel="Masuk Admin" actionHref="/login" />;
+  if (state === "forbidden") {
+    return (
+      <AdminAccessState
+        title="Akses Admin ditolak"
+        detail="Akun ini bukan Admin Marketiv. Pastikan label 'admin' atau role 'admin' terpasang di Appwrite."
+        actionLabel="Keluar & Coba Akun Lain"
+        onAction={() => void logout()}
+      />
+    );
+  }
+  if (state === "suspended") {
+    return (
+      <AdminAccessState
+        title="Akun Admin tidak aktif"
+        detail="Hubungi Marketiv untuk mengaktifkan kembali akun."
+        actionLabel="Keluar & Coba Akun Lain"
+        onAction={() => void logout()}
+      />
+    );
+  }
+  return (
+    <AdminAccessState
+      title="Verifikasi Admin gagal"
+      detail="Data operasional tidak dimuat. Coba muat ulang atau hubungi support."
+      actionLabel="Muat Ulang"
+      onAction={() => window.location.reload()}
+    />
+  );
 }
 
-function AdminAccessState({ title, detail }: { title: string; detail: string }) {
-  return <main className="grid min-h-screen place-items-center bg-[#F7F3EE] p-6 text-center"><div className="max-w-md rounded-2xl border border-stone-200 bg-white p-6 shadow-sm"><h1 className="text-lg font-black text-[#0c172b]">{title}</h1><p className="mt-2 text-sm text-stone-600">{detail}</p></div></main>;
+export function AdminAccessState({
+  title,
+  detail,
+  actionLabel,
+  actionHref,
+  onAction,
+}: {
+  title: string;
+  detail: string;
+  actionLabel?: string;
+  actionHref?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <main className="grid min-h-screen place-items-center bg-[#F7F3EE] p-6 text-center">
+      <div className="max-w-md rounded-[2rem] border border-stone-200 bg-white p-8 shadow-[0_20px_45px_rgba(15,23,42,0.08)]">
+        <h1 className="text-lg font-black text-[#0c172b]">{title}</h1>
+        <p className="mt-3 text-sm text-stone-600">{detail}</p>
+        {actionLabel && actionHref ? (
+          <a
+            href={actionHref}
+            className="mt-6 inline-flex rounded-xl bg-[#0c172b] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#172541]"
+          >
+            {actionLabel}
+          </a>
+        ) : null}
+        {actionLabel && onAction ? (
+          <button
+            type="button"
+            onClick={onAction}
+            className="mt-6 inline-flex cursor-pointer rounded-xl bg-[#0c172b] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#172541]"
+          >
+            {actionLabel}
+          </button>
+        ) : null}
+      </div>
+    </main>
+  );
 }

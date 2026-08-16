@@ -46,12 +46,40 @@ export function createGetAdminSubmissionQueueHandler({ createDatabases = createD
 }
 
 async function findActiveAdmin(databases, env, userId) {
-  const result = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
-    Query.equal("userId", userId),
-    Query.limit(1),
-  ]);
-  const user = result.documents[0];
-  return user?.role === "admin" && user?.status === "active" ? user : null;
+  try {
+    const result = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
+      Query.equal("userId", userId),
+      Query.limit(1),
+    ]);
+    const user = result.documents[0];
+    if (user?.role && user.role.toLowerCase() === "admin") {
+      const status = user.status ? user.status.toLowerCase() : "active";
+      return status === "active" ? user : null;
+    }
+  } catch {
+    // database lookup failed or empty
+  }
+
+  try {
+    const { Users, Client: NodeClient } = await import("node-appwrite");
+    const client = new NodeClient()
+      .setEndpoint(env.appwriteEndpoint)
+      .setProject(env.appwriteProjectId)
+      .setKey(env.appwriteApiKey);
+    const usersClient = new Users(client);
+    const authUser = await usersClient.get(userId);
+    if (authUser && authUser.status !== false) {
+      const hasLabel = Array.isArray(authUser.labels) && authUser.labels.some((l) => typeof l === "string" && l.toLowerCase() === "admin");
+      const hasPref = typeof authUser.prefs?.role === "string" && authUser.prefs.role.toLowerCase() === "admin";
+      if (hasLabel || hasPref) {
+        return { userId, role: "admin", status: "active" };
+      }
+    }
+  } catch {
+    // Auth user lookup failed
+  }
+
+  return null;
 }
 
 async function toQueueDtos(databases, env, submissions) {

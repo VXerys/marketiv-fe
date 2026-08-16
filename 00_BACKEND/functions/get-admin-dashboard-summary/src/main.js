@@ -10,9 +10,8 @@ export function createGetAdminDashboardSummaryHandler({ createDatabases = create
       const userId = getUserId(req);
       if (!userId) return json(res, { error: "Unauthorized" }, 401);
       const databases = createDatabases(env);
-      const userResult = await databases.listDocuments(env.databaseId, env.usersCollectionId, [Query.equal("userId", userId), Query.limit(1)]);
-      const user = userResult.documents[0];
-      if (user?.role !== "admin" || user?.status !== "active") {
+      const admin = await findActiveAdmin(databases, env, userId);
+      if (!admin) {
         log(`Admin dashboard ditolak untuk ${userId}`);
         return json(res, { error: "Akses Admin ditolak." }, 403);
       }
@@ -47,6 +46,43 @@ function getEnv(req) {
   if (missing.length) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
   return env;
 }
+async function findActiveAdmin(databases, env, userId) {
+  try {
+    const result = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
+      Query.equal("userId", userId),
+      Query.limit(1),
+    ]);
+    const user = result.documents[0];
+    if (user?.role && user.role.toLowerCase() === "admin") {
+      const status = user.status ? user.status.toLowerCase() : "active";
+      return status === "active" ? user : null;
+    }
+  } catch {
+    // database lookup failed or empty
+  }
+
+  try {
+    const { Users, Client: NodeClient } = await import("node-appwrite");
+    const client = new NodeClient()
+      .setEndpoint(env.appwriteEndpoint)
+      .setProject(env.appwriteProjectId)
+      .setKey(env.appwriteApiKey);
+    const usersClient = new Users(client);
+    const authUser = await usersClient.get(userId);
+    if (authUser && authUser.status !== false) {
+      const hasLabel = Array.isArray(authUser.labels) && authUser.labels.some((l) => typeof l === "string" && l.toLowerCase() === "admin");
+      const hasPref = typeof authUser.prefs?.role === "string" && authUser.prefs.role.toLowerCase() === "admin";
+      if (hasLabel || hasPref) {
+        return { userId, role: "admin", status: "active" };
+      }
+    }
+  } catch {
+    // Auth user lookup failed
+  }
+
+  return null;
+}
+
 function createDatabasesClient(env) { return new Databases(new Client().setEndpoint(env.appwriteEndpoint).setProject(env.appwriteProjectId).setKey(env.appwriteApiKey)); }
 function getUserId(req) { return req.headers?.["x-appwrite-user-id"] || req.headers?.["X-Appwrite-User-Id"]; }
 function json(res, body, statusCode = 200) { return res.json(body, statusCode, { "content-type": "application/json" }); }

@@ -7,8 +7,8 @@ export class AdminAppwriteConfigurationError extends Error {
   }
 }
 
-function requiredValue(name: string): string {
-  const value = process.env[name]?.trim();
+function requiredValue(name: string, valueRaw?: string): string {
+  const value = valueRaw?.trim();
   if (!value) {
     throw new AdminAppwriteConfigurationError(
       `${name} is required. Set it in the Admin deployment environment.`,
@@ -18,7 +18,10 @@ function requiredValue(name: string): string {
 }
 
 function requiredAppwriteEndpoint(): string {
-  const value = requiredValue("NEXT_PUBLIC_APPWRITE_ENDPOINT");
+  const value = requiredValue(
+    "NEXT_PUBLIC_APPWRITE_ENDPOINT",
+    process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT,
+  );
 
   try {
     const url = new URL(value);
@@ -34,8 +37,8 @@ function requiredAppwriteEndpoint(): string {
   return value;
 }
 
-function requiredAppwriteId(name: string): string {
-  const value = requiredValue(name);
+function requiredAppwriteId(name: string, valueRaw?: string): string {
+  const value = requiredValue(name, valueRaw);
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,35}$/.test(value)) {
     throw new AdminAppwriteConfigurationError(
       `${name} must be a valid Appwrite identifier.`,
@@ -45,8 +48,14 @@ function requiredAppwriteId(name: string): string {
 }
 
 const endpoint = requiredAppwriteEndpoint();
-const projectId = requiredAppwriteId("NEXT_PUBLIC_APPWRITE_PROJECT_ID");
-export const databaseId = requiredAppwriteId("NEXT_PUBLIC_APPWRITE_DATABASE_ID");
+const projectId = requiredAppwriteId(
+  "NEXT_PUBLIC_APPWRITE_PROJECT_ID",
+  process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID,
+);
+export const databaseId = requiredAppwriteId(
+  "NEXT_PUBLIC_APPWRITE_DATABASE_ID",
+  process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
+);
 
 export const client = new Client()
   .setEndpoint(endpoint)

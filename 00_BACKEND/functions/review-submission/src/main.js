@@ -4,24 +4,6 @@ import { decrementColumn } from "./atomic.js";
 
 /**
  * Admin Marketiv menyetujui atau menolak bukti kerja kreator (Alur A).
- *
- * ADA DI SISI SERVER KARENA TERPAKSA. Sprint 8 mencabut `update("users")` dari
- * `campaign_submissions` dan `campaign_claims` — benar, karena permission itu
- * berarti SIAPA PUN yang login bisa menulis status:"approved" ke submission
- * siapa pun, dan update itulah yang memicu `calculate-campaign-reward` menambah
- * saldo kreator. Penggantinya waktu itu adalah permission baris untuk UMKM yang
- * dipasang dari browser kreator — dan itu ditolak Appwrite, karena klien tidak
- * boleh memasang permission untuk user lain. Jadi jalur review putus di kedua
- * ujungnya sampai pekerjaan ini.
- *
- * Kepemilikan ditegakkan di sini, bukan dipercayakan ke permission: submission
- * tidak menyimpan umkmId, jadi pemiliknya dibaca dari campaign induknya.
- *
- * SENGAJA TIDAK mengembalikan kuota campaign saat submission ditolak. Itu tetap
- * dikerjakan klien lewat `decrementDocumentAttribute`, yang atomik dan memang
- * boleh dilakukan UMKM karena dia pemilik baris `campaigns`. node-appwrite 14
- * belum punya operasi itu, dan menggantinya dengan baca-ubah-tulis di sini
- * justru mengembalikan race yang baru saja ditutup commit 016811d.
  */
 
 const VALID_STATUS = new Set(["approved", "rejected"]);
@@ -62,20 +44,51 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Submission ini sudah pernah direview." }, 409);
     }
 
-    const userRes = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
-      Query.equal("userId", userId),
-      Query.limit(1)
-    ]);
-    const userDoc = userRes.documents[0] || null;
-
-    if (!userDoc || userDoc.role !== "admin") {
-      log(`Review ditolak untuk ${userId}: role '${userDoc?.role}' bukan admin`);
-      return json(res, { error: "Akses ditolak: Hanya Admin Marketiv yang dapat memvalidasi submission." }, 403);
+    let isAdmin = false;
+    try {
+      const userRes = await databases.listDocuments(env.databaseId, env.usersCollectionId, [
+        Query.equal("userId", userId),
+        Query.limit(1)
+      ]);
+      const userDoc = userRes.documents[0] || null;
+      if (userDoc?.role && userDoc.role.toLowerCase() === "admin") {
+        const userStatus = userDoc.status ? userDoc.status.toLowerCase() : "active";
+        if (userStatus !== "active") {
+          return json(res, { error: "Akun Anda sedang tidak aktif." }, 403);
+        }
+        isAdmin = true;
+      }
+    } catch {
+      // database lookup skipped
     }
 
-    if (userDoc.status !== "active") {
-      log(`Review ditolak untuk ${userId}: status akun ${userDoc.status}`);
-      return json(res, { error: "Akun Anda sedang tidak aktif." }, 403);
+    if (!isAdmin) {
+      try {
+        const { Users, Client: NodeClient } = await import("node-appwrite");
+        const client = new NodeClient()
+          .setEndpoint(env.appwriteEndpoint)
+          .setProject(env.appwriteProjectId)
+          .setKey(env.appwriteApiKey);
+        const usersClient = new Users(client);
+        const authUser = await usersClient.get(userId);
+        if (authUser) {
+          if (authUser.status === false) {
+            return json(res, { error: "Akun Anda sedang tidak aktif." }, 403);
+          }
+          const hasLabel = Array.isArray(authUser.labels) && authUser.labels.some((l) => typeof l === "string" && l.toLowerCase() === "admin");
+          const hasPref = typeof authUser.prefs?.role === "string" && authUser.prefs.role.toLowerCase() === "admin";
+          if (hasLabel || hasPref) {
+            isAdmin = true;
+          }
+        }
+      } catch {
+        // auth user lookup skipped
+      }
+    }
+
+    if (!isAdmin) {
+      log(`Review ditolak untuk ${userId}: bukan admin`);
+      return json(res, { error: "Akses ditolak: Hanya Admin Marketiv yang dapat memvalidasi submission." }, 403);
     }
 
     const parent = await databases.listDocuments(env.databaseId, env.campaignsCollectionId, [
