@@ -12,12 +12,57 @@ export function CreatorErrorState({ errorMsg = "Gagal memuat data dari server.",
 type CreatorStatusType = "campaign" | "claim" | "submission" | "negotiation" | "transaction";
 export function CreatorStatusBadge({ status, type, className }: { status: string; type: CreatorStatusType; className?: string }) {
   const value = status.toLowerCase();
-  const success = ["aktif", "valid", "success", "selesai", "complete", "verified"].includes(value);
+  const success = ["aktif", "valid", "success", "selesai", "complete", "completed", "verified", "settlement", "paid", "approved", "released"].includes(value);
   const pending = ["pending", "menunggupembayaran", "waiting_payment", "menungguverifikasi", "waiting_verification", "processing", "revisi", "negosiasi", "negotiation"].includes(value);
-  const escrow = value === "escrow" || value === "underreview";
+  const escrow = value === "escrow" || value === "underreview" || value === "under_review";
   const dispute = value === "dispute" || value === "open";
-  const tone = success ? "bg-green-50 text-green-700 border-green-200/60" : pending ? "bg-amber-50 text-amber-700 border-amber-200/50" : escrow ? "bg-indigo-50 text-indigo-700 border-indigo-200/50" : dispute ? "bg-purple-50 text-purple-700 border-purple-200/50" : "bg-red-50 text-red-700 border-red-200/50";
-  const label = value === "menunggupembayaran" || value === "waiting_payment" ? "Menunggu Pembayaran" : value === "menungguverifikasi" || value === "waiting_verification" ? "Menunggu Verifikasi" : value === "underreview" ? "Dalam Review" : value === "escrow_release" ? "Pelepasan Escrow" : status;
-  const dot = success ? "bg-green-500" : pending ? "bg-amber-500" : escrow ? "bg-indigo-500" : dispute ? "bg-purple-500" : "bg-red-500";
-  return <span data-status-type={type} className={cn("inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full border text-[10px] font-extrabold uppercase tracking-wider shadow-sm shrink-0", tone, className)}><span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dot)} />{label}</span>;
+
+  const tone = success
+    ? "bg-emerald-50 text-emerald-700 border-emerald-200/70"
+    : pending
+    ? "bg-amber-50 text-amber-700 border-amber-200/60"
+    : escrow
+    ? "bg-violet-50 text-violet-700 border-violet-200/60"
+    : dispute
+    ? "bg-purple-50 text-purple-700 border-purple-200/60"
+    : "bg-rose-50 text-rose-700 border-rose-200/60";
+
+  const label =
+    value === "completed" || value === "complete" || value === "selesai" || value === "settlement"
+      ? "Selesai"
+      : value === "success"
+      ? "Berhasil"
+      : value === "menunggupembayaran" || value === "waiting_payment"
+      ? "Menunggu Pembayaran"
+      : value === "menungguverifikasi" || value === "waiting_verification"
+      ? "Menunggu Verifikasi"
+      : value === "underreview" || value === "under_review"
+      ? "Dalam Review"
+      : value === "escrow_release"
+      ? "Pelepasan Escrow"
+      : status;
+
+  const dot = success
+    ? "bg-emerald-500"
+    : pending
+    ? "bg-amber-500"
+    : escrow
+    ? "bg-violet-500"
+    : dispute
+    ? "bg-purple-500"
+    : "bg-rose-500";
+
+  return (
+    <span
+      data-status-type={type}
+      className={cn(
+        "inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full border text-[10px] font-extrabold uppercase tracking-wider shadow-3xs shrink-0",
+        tone,
+        className
+      )}
+    >
+      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", dot)} />
+      {label}
+    </span>
+  );
 }

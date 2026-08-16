@@ -858,8 +858,9 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                   </div>
 
                   <button
+                    type="button"
                     onClick={resetWithdrawForm}
-                    className="w-full min-h-[44px] bg-ink-950 hover:bg-primary text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-md hover:shadow-finance-action-sm hover:-translate-y-px cursor-pointer text-center"
+                    className="w-full h-11 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-xl transition-all duration-200 shadow-xs hover:shadow-md cursor-pointer text-center flex items-center justify-center"
                   >
                     Selesai
                   </button>
@@ -873,30 +874,36 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
         {/* Transaction Detail Modal */}
         {selectedTx && (
           <ResponsiveModal open={!!selectedTx} onOpenChange={(open) => !open && setSelectedTx(null)}>
-            <ResponsiveModalContent className="max-w-md w-full rounded-[26px] border border-neutral-200/50 p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+            <ResponsiveModalContent
+              showCloseButton={false}
+              className="max-w-md w-full rounded-3xl border border-slate-200/80 bg-white p-6 sm:p-7 shadow-2xl max-h-[90vh] overflow-y-auto"
+            >
               <ResponsiveModalHeader className="sr-only">
                 <ResponsiveModalTitle>Detail Transaksi Wallet</ResponsiveModalTitle>
                 <ResponsiveModalDescription>
                   Rincian transaksi wallet kreator.
                 </ResponsiveModalDescription>
               </ResponsiveModalHeader>
+
+              {/* Modal Header Row */}
               <div className="flex justify-between items-start gap-4 mb-5">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-[14px] grid place-items-center bg-neutral-50 border border-neutral-200/60 text-neutral-500 shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-violet-50 border border-violet-100 text-violet-600 grid place-items-center shrink-0 shadow-3xs">
                     <ReceiptText size={18} />
                   </div>
                   <div>
-                    <h3 className="font-display text-base font-black text-neutral-950 leading-tight tracking-tight">
+                    <h3 className="font-display text-base font-black text-slate-900 leading-tight tracking-tight">
                       Detail Transaksi Wallet
                     </h3>
-                    <p className="text-[9px] font-mono font-black text-neutral-400 mt-1.5 uppercase tracking-wider">
+                    <p className="text-[10px] font-mono font-bold text-slate-400 mt-1 uppercase tracking-wider">
                       ID: {selectedTx.id}
                     </p>
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setSelectedTx(null)}
-                  className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer"
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
                   aria-label="Tutup"
                 >
                   <X size={18} />
@@ -904,27 +911,29 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
               </div>
 
               <div className="space-y-4">
-                {/* Status and Big Amount */}
-                <div className="text-center py-6 bg-gradient-to-b from-neutral-50 to-white rounded-2xl border border-neutral-200/60">
-                  <div className="mb-2.5">
+                {/* Status and Big Amount Card */}
+                <div className="text-center py-5 px-4 bg-gradient-to-b from-slate-50/80 to-white rounded-2xl border border-slate-200/70 shadow-3xs">
+                  <div className="mb-2">
                     <CreatorStatusBadge status={selectedTx.status} type="transaction" />
                   </div>
-                  <h2 className={cn(
-                    "font-display text-2xl font-black tracking-tight",
-                    selectedTx.type === "withdrawal" ? "text-red-600" : "text-emerald-600"
-                  )}>
+                  <h2
+                    className={cn(
+                      "font-display text-2xl sm:text-3xl font-black tracking-tight",
+                      selectedTx.type === "withdrawal" ? "text-slate-900" : "text-emerald-600"
+                    )}
+                  >
                     {selectedTx.type === "withdrawal" ? "−" : "+"} {formatCurrency(selectedTx.amount)}
                   </h2>
-                  <p className="text-[10px] text-neutral-400 font-extrabold uppercase tracking-wider mt-1">
+                  <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mt-1">
                     Jumlah Transaksi
                   </p>
                 </div>
 
-                {/* Data list */}
-                <div className="space-y-3 text-xs text-neutral-600 px-1">
-                  <div className="flex justify-between items-start gap-4">
-                    <span className="font-semibold text-neutral-400 whitespace-nowrap">Tanggal &amp; Waktu</span>
-                    <span className="font-bold text-neutral-800 text-right">
+                {/* Metadata List */}
+                <div className="space-y-2.5 text-xs text-slate-600 px-1 divide-y divide-slate-100">
+                  <div className="flex justify-between items-start gap-4 pt-1">
+                    <span className="font-semibold text-slate-400 whitespace-nowrap">Tanggal &amp; Waktu</span>
+                    <span className="font-bold text-slate-800 text-right">
                       {new Date(selectedTx.createdAt).toLocaleString("id-ID", {
                         day: "numeric",
                         month: "long",
@@ -936,42 +945,45 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                     </span>
                   </div>
 
-                  <div className="flex justify-between items-center gap-4">
-                    <span className="font-semibold text-neutral-400">Sumber Transaksi</span>
-                    <span className="font-extrabold text-neutral-800 uppercase">
+                  <div className="flex justify-between items-center gap-4 pt-2.5">
+                    <span className="font-semibold text-slate-400">Sumber Transaksi</span>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10.5px] font-extrabold bg-violet-50 text-violet-700 border border-violet-200/60 uppercase tracking-wider">
                       {selectedTx.source || getTransactionTypeLabel(selectedTx.type)}
                     </span>
                   </div>
 
                   {selectedTx.relatedName && (
-                    <div className="flex justify-between items-start gap-4">
-                      <span className="font-semibold text-neutral-400 whitespace-nowrap">Nama Terkait</span>
-                      <span className="font-bold text-neutral-800 text-right">
+                    <div className="flex justify-between items-start gap-4 pt-2.5">
+                      <span className="font-semibold text-slate-400 whitespace-nowrap">Nama Terkait</span>
+                      <span className="font-bold text-slate-800 text-right">
                         {selectedTx.relatedName}
                       </span>
                     </div>
                   )}
 
-                  <div className="flex justify-between items-start gap-4">
-                    <span className="font-semibold text-neutral-400 whitespace-nowrap">Deskripsi</span>
-                    <span className="font-medium text-neutral-700 text-right leading-relaxed">
+                  <div className="flex justify-between items-start gap-4 pt-2.5">
+                    <span className="font-semibold text-slate-400 whitespace-nowrap">Deskripsi</span>
+                    <span className="font-medium text-slate-700 text-right leading-relaxed max-w-[240px]">
                       {selectedTx.description}
                     </span>
                   </div>
 
                   {selectedTx.notes && (
-                    <div className="p-3.5 bg-amber-50/50 rounded-xl border border-amber-200/50 mt-4 text-[11px] leading-relaxed text-neutral-500 font-semibold">
-                      <span className="block text-[9px] font-black text-amber-600/80 uppercase tracking-wide mb-1">Catatan Audit Wallet</span>
+                    <div className="p-3 bg-violet-50/60 rounded-xl border border-violet-200/50 mt-3 text-[11px] leading-relaxed text-slate-600 font-medium">
+                      <span className="block text-[9px] font-black text-violet-700 uppercase tracking-wider mb-1">
+                        Catatan Audit Wallet
+                      </span>
                       {selectedTx.notes}
                     </div>
                   )}
                 </div>
 
-                {/* Action */}
-                <div className="pt-4">
+                {/* Action CTA */}
+                <div className="pt-3">
                   <button
+                    type="button"
                     onClick={() => setSelectedTx(null)}
-                    className="w-full min-h-[44px] bg-ink-950 hover:bg-primary text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-md hover:shadow-finance-action-sm hover:-translate-y-px cursor-pointer text-center"
+                    className="w-full h-11 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-xl transition-all duration-200 shadow-xs hover:shadow-md cursor-pointer text-center flex items-center justify-center"
                   >
                     Tutup Rincian
                   </button>

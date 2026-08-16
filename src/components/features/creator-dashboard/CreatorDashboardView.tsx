@@ -16,9 +16,6 @@ import {
   Tag,
   MessageCircle,
   Search,
-  Upload,
-  Settings,
-  User,
   Users,
   Star,
   BadgeCheck,
@@ -427,214 +424,182 @@ export function CreatorDashboardView({
         {/* ── Main content ─────────────────────────────────────────────────── */}
         <div className="max-w-[1400px] mx-auto space-y-8">
 
-          {/* 1 ── Hero Profile Card */}
-          <div
-            className="relative overflow-hidden rounded-[32px] p-6 sm:p-10"
-            style={{
-              background: "linear-gradient(135deg, rgb(255 255 255 / 0.85) 0%, color-mix(in srgb, var(--color-kreator-soft) 75%, transparent) 45%, rgb(255 255 255 / 0.95) 100%)",
-              backdropFilter: "blur(24px)",
-              WebkitBackdropFilter: "blur(24px)",
-              border: "1px solid color-mix(in srgb, var(--color-kreator-600) 15%, transparent)",
-              boxShadow: "var(--shadow-kreator-hero)",
-            }}
-          >
-            {/* Decorative radial blobs */}
-            <div className="absolute -top-16 -right-16 h-64 w-64 rounded-full pointer-events-none"
-              style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--color-kreator-600) 12%, transparent), transparent 70%)" }} />
-            <div className="absolute -bottom-20 right-40 h-48 w-48 rounded-full pointer-events-none"
-              style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--color-kreator-gradient-end) 8%, transparent), transparent 70%)" }} />
+          {/* 1 ── Master Hero Overview Card (Unified Greeting & 4 KPI Tiles) */}
+          <div className="relative rounded-3xl bg-white border border-slate-200/90 p-5 sm:p-7 shadow-[0_4px_24px_rgba(15,23,42,0.04)] overflow-hidden select-none">
+            {/* Background subtle mesh glow */}
+            <div
+              aria-hidden="true"
+              className="absolute top-0 right-0 w-80 h-80 rounded-full bg-violet-100/40 blur-3xl pointer-events-none -mr-20 -mt-20"
+            />
 
-            <div className="relative flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
-
-              {/* Left: avatar + info */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 w-full lg:w-auto">
-                <div className="relative shrink-0 mx-auto sm:mx-0">
-                  <div
-                    className="relative h-24 w-24 overflow-hidden rounded-3xl border-4 border-white bg-kreator-100 shadow-kreator-avatar sm:h-[105px] sm:w-[105px]"
-                  >
-                    {profile.avatarUrl ? (
-                      <Image src={profile.avatarUrl} alt={profile.name} fill className="object-cover" sizes="105px" />
-                    ) : (
-                      <span className="absolute inset-0 flex items-center justify-center text-3xl font-black text-kreator-300">
-                        {profile.name.charAt(0)}
-                      </span>
-                    )}
-                  </div>
-                  <span className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-emerald-400 border-3 border-white shadow-sm" />
-                </div>
-
-                <div className="space-y-3.5 text-center sm:text-left flex-1 min-w-0">
-                  <div>
-                    <div className="flex items-center justify-center sm:justify-start gap-2.5 flex-wrap mb-1">
-                      <h2 className="text-2xl font-black leading-none tracking-tight text-kreator-ink sm:text-3xl">
-                        Halo, {profile.name}
-                      </h2>
-                      {profile.isVerified ? (
-                        <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/50 text-emerald-700 text-[9px] font-extrabold uppercase tracking-wider shadow-3xs">
-                          <BadgeCheck className="w-3.5 h-3.5" /> Terverifikasi
-                        </span>
+            <div className="relative z-10">
+              {/* Top Header Row */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                {/* Left: Avatar + Greeting + Bio */}
+                <div className="flex items-start sm:items-center gap-4 sm:gap-5 flex-1 min-w-0">
+                  {/* Avatar */}
+                  <div className="relative shrink-0">
+                    <div className="relative h-16 w-16 sm:h-18 sm:w-18 overflow-hidden rounded-2xl border-2 border-slate-100 bg-violet-50 shadow-xs">
+                      {profile.avatarUrl ? (
+                        <Image
+                          src={profile.avatarUrl}
+                          alt={profile.name}
+                          fill
+                          className="object-cover"
+                          sizes="72px"
+                        />
                       ) : (
-                        <span className="px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200/50 text-amber-700 text-[9px] font-extrabold uppercase tracking-wider shadow-3xs">
-                          Sedang Diverifikasi
+                        <span className="absolute inset-0 flex items-center justify-center text-2xl font-black text-violet-600">
+                          {profile.name.charAt(0)}
                         </span>
                       )}
                     </div>
-                    <span className="mb-2 mt-1 inline-flex items-center rounded-full border border-kreator-600/10 bg-kreator-soft/70 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-kreator-600">
-                      Niche: {profile.niche}
-                    </span>
-                    <p className="text-[0.92rem] font-semibold text-neutral-600 max-w-xl leading-relaxed mt-1">
-                      {profile.bio || "Selamat datang kembali di dashboard pekerjaan Anda."}
+                    {profile.isVerified && (
+                      <div
+                        title="Kreator Terverifikasi"
+                        className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-white bg-blue-600 grid place-items-center shadow-xs"
+                      >
+                        <CheckCircle2 size={12} className="text-white fill-blue-600" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Text Details */}
+                  <div className="flex-1 min-w-0">
+                    {/* Role Pill + Status */}
+                    <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-violet-200 bg-violet-50 text-violet-700 text-[10px] font-black uppercase tracking-wider">
+                        <span className="w-1.5 h-1.5 rounded-full bg-violet-600 animate-pulse" />
+                        <span>DASHBOARD KREATOR</span>
+                        <Sparkles size={11} className="text-violet-600 ml-0.5" />
+                      </div>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-100 text-slate-700 uppercase tracking-wider border border-slate-200/60">
+                        {profile.niche}
+                      </span>
+                    </div>
+
+                    {/* Greeting Headline */}
+                    <h1 className="font-display text-xl sm:text-2xl lg:text-3xl font-black text-slate-900 tracking-tight leading-tight">
+                      Selamat Datang,{" "}
+                      <span className="text-violet-600 font-black">
+                        {profile.name}
+                      </span>
+                    </h1>
+
+                    <p className="text-slate-500 font-medium text-xs sm:text-sm mt-1 max-w-2xl line-clamp-1">
+                      {profile.bio || "Ringkasan performa kampanye & kolaborasi konten Anda hari ini."}
                     </p>
                   </div>
+                </div>
 
-                  {/* Structured high-contrast metrics pills */}
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-0.5">
-                    {/* Followers */}
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/80 border border-neutral-200/50 shadow-3xs">
-                      <Users className="w-3.5 h-3.5 text-violet-600 shrink-0" />
-                      <div className="flex flex-col text-left leading-none">
-                        <span className="text-[8px] text-neutral-400 font-extrabold uppercase tracking-wider">Followers</span>
-                        <span className="text-xs font-black text-neutral-900 mt-0.5">{formatCount(profile.followers)}</span>
-                      </div>
+                {/* Right: Quick Action CTAs */}
+                <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
+                  <Link
+                    href="/dashboard/kreator/rate-card"
+                    className="flex-1 sm:flex-none h-10 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-extrabold shadow-3xs transition-all flex items-center justify-center"
+                  >
+                    Kelola Rate Card
+                  </Link>
+                  <Link
+                    href="/dashboard/kreator/job-pool"
+                    className="flex-1 sm:flex-none h-10 px-5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white text-xs font-black shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <Sparkles size={13} />
+                    <span>Buka Job Pool</span>
+                  </Link>
+                </div>
+              </div>
+
+              {/* 4 KPI Stat Tiles */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-6 border-t border-slate-100">
+                {/* 1. Saldo Tersedia */}
+                <div className="group p-4 sm:p-5 rounded-2xl border transition-all duration-300 select-none hover:-translate-y-1 hover:shadow-sm flex flex-col justify-between bg-gradient-to-br from-emerald-50/70 via-emerald-50/30 to-white border-emerald-200/80 hover:border-emerald-300">
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center border border-emerald-200/60 bg-emerald-500/10 text-emerald-600 shrink-0 transition-transform duration-300 group-hover:scale-105">
+                      <Wallet size={16} strokeWidth={2.5} />
                     </div>
-                    {/* Rating */}
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/80 border border-neutral-200/50 shadow-3xs">
-                      <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" />
-                      <div className="flex flex-col text-left leading-none">
-                        <span className="text-[8px] text-neutral-400 font-extrabold uppercase tracking-wider">Rating</span>
-                        <span className="text-xs font-black text-neutral-900 mt-0.5">{profile.rating.toFixed(1)}</span>
-                      </div>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase tracking-wider">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      Utama
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-0.5">
+                      SALDO TERSEDIA
+                    </span>
+                    <div className="font-display text-xl sm:text-2xl lg:text-[26px] font-black text-slate-900 tracking-tight leading-none">
+                      {formatCompactCurrency(currentMetrics.balance)}
                     </div>
-                    {/* Job Selesai */}
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/80 border border-neutral-200/50 shadow-3xs">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                      <div className="flex flex-col text-left leading-none">
-                        <span className="text-[8px] text-neutral-400 font-extrabold uppercase tracking-wider">Job Selesai</span>
-                        <span className="text-xs font-black text-neutral-900 mt-0.5">{profile.completedJobs}</span>
-                      </div>
+                    <span className="block text-[11px] text-slate-500 font-medium mt-1">
+                      Tarik ke rekening bank
+                    </span>
+                  </div>
+                </div>
+
+                {/* 2. Pekerjaan Aktif */}
+                <div className="group p-4 sm:p-5 rounded-2xl border transition-all duration-300 select-none hover:-translate-y-1 hover:shadow-sm flex flex-col justify-between bg-gradient-to-br from-blue-50/70 via-blue-50/30 to-white border-blue-200/80 hover:border-blue-300">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center border border-blue-200/60 bg-blue-500/10 text-blue-600 shrink-0 transition-transform duration-300 group-hover:scale-105">
+                      <FileCheck size={16} strokeWidth={2.5} />
                     </div>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-0.5">
+                      PEKERJAAN AKTIF
+                    </span>
+                    <div className="font-display text-xl sm:text-2xl lg:text-[26px] font-black text-slate-900 tracking-tight leading-none">
+                      {currentMetrics.activeJobsCount}
+                    </div>
+                    <span className="block text-[11px] text-slate-500 font-medium mt-1">
+                      Sedang dikerjakan
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3. Job Tersedia */}
+                <div className="group p-4 sm:p-5 rounded-2xl border transition-all duration-300 select-none hover:-translate-y-1 hover:shadow-sm flex flex-col justify-between bg-gradient-to-br from-violet-50/70 via-violet-50/30 to-white border-violet-200/80 hover:border-violet-300">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center border border-violet-200/60 bg-violet-500/10 text-violet-600 shrink-0 transition-transform duration-300 group-hover:scale-105">
+                      <Briefcase size={16} strokeWidth={2.5} />
+                    </div>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-0.5">
+                      JOB TERSEDIA
+                    </span>
+                    <div className="font-display text-xl sm:text-2xl lg:text-[26px] font-black text-slate-900 tracking-tight leading-none">
+                      {currentMetrics.availableJobsCount}
+                    </div>
+                    <span className="block text-[11px] text-slate-500 font-medium mt-1">
+                      Kampanye pool
+                    </span>
+                  </div>
+                </div>
+
+                {/* 4. Pesanan Negosiasi */}
+                <div className="group p-4 sm:p-5 rounded-2xl border transition-all duration-300 select-none hover:-translate-y-1 hover:shadow-sm flex flex-col justify-between bg-gradient-to-br from-orange-50/70 via-orange-50/30 to-white border-orange-200/80 hover:border-orange-300">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center border border-orange-200/60 bg-orange-500/10 text-orange-600 shrink-0 transition-transform duration-300 group-hover:scale-105">
+                      <MessageCircle size={16} strokeWidth={2.5} />
+                    </div>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] text-slate-400 font-extrabold uppercase tracking-wider mb-0.5">
+                      PESANAN NEGOSIASI
+                    </span>
+                    <div className="font-display text-xl sm:text-2xl lg:text-[26px] font-black text-slate-900 tracking-tight leading-none">
+                      {currentMetrics.negotiationOrdersCount}
+                    </div>
+                    <span className="block text-[11px] text-slate-500 font-medium mt-1">
+                      Pesanan Rate Card
+                    </span>
                   </div>
                 </div>
               </div>
-
-              {/* Right: CTAs */}
-              <div className="flex flex-row sm:flex-row lg:flex-col gap-2.5 shrink-0 w-full lg:w-auto">
-                <Link
-                  href="/dashboard/kreator/rate-card"
-                  className="flex min-h-[44px] flex-1 items-center justify-center rounded-2xl border border-kreator-200 bg-white px-6 py-3 text-center text-xs font-extrabold text-kreator-600 transition-all duration-200 hover:-translate-y-0.5 hover:border-kreator-300 hover:bg-kreator-50 hover:shadow-sm lg:flex-initial"
-                >
-                  Kelola Rate Card
-                </Link>
-                <Link
-                  href="/dashboard/kreator/job-pool"
-                  className="flex-1 lg:flex-initial text-center px-6 py-3 rounded-2xl text-white text-xs font-extrabold transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 min-h-[44px] flex items-center justify-center"
-                  style={{
-                    background: CREATOR_BRAND_GRADIENT,
-                    boxShadow: "var(--shadow-kreator-lg)",
-                  }}
-                >
-                  Buka Job Pool
-                </Link>
-              </div>
             </div>
           </div>
 
-          {/* 2 ── KPI Tiles */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-            <MetricCard label="Job Tersedia"        value={currentMetrics.availableJobsCount}                helper="Kampanye pool"          tone="kreator" icon={<Briefcase       className="w-4 h-4" />} />
-            <MetricCard label="Pekerjaan Aktif"     value={currentMetrics.activeJobsCount}                   helper="Sedang dikerjakan"      tone="info"    icon={<FileCheck       className="w-4 h-4" />} />
-            <MetricCard label="Sedang Divalidasi"   value={currentMetrics.pendingSubmissionsCount}           helper="Menunggu audit admin"   tone="warning" icon={<Clock           className="w-4 h-4" />} />
-            <MetricCard label="Saldo Tersedia"      value={formatCompactCurrency(currentMetrics.balance)}    helper="Tarik ke rekening bank" tone="success" icon={<Wallet          className="w-4 h-4" />} badge="Utama" highlight />
-            <MetricCard label="Pencairan Tertunda"  value={formatCompactCurrency(currentMetrics.pendingPayouts)} helper="Proses verifikasi"  tone="default" icon={<ArrowDownToLine className="w-4 h-4" />} />
-            <MetricCard label="Views Tervalidasi"   value={formatCount(currentMetrics.validatedViewsCount)}  helper="Total views valid"      tone="info"    icon={<Eye             className="w-4 h-4" />} />
-            <MetricCard label="Rate Card Aktif"     value={currentMetrics.activeRateCardsCount}              helper="Paket penawaran"        tone="success" icon={<Tag             className="w-4 h-4" />} />
-            <MetricCard label="Pesanan Negosiasi"   value={currentMetrics.negotiationOrdersCount}            helper="Pesanan Rate Card"      tone="accent"  icon={<MessageCircle   className="w-4 h-4" />} />
-          </div>
-
-          {/* 3 ── Quick Actions */}
-          <div>
-            <h3 className="text-[.67rem] font-extrabold text-neutral-400 uppercase tracking-widest mb-4 leading-none">
-              Aksi Cepat
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-              {/* Cari Job */}
-              <Link
-                href="/dashboard/kreator/job-pool"
-                className="group flex flex-col items-center justify-center gap-2 rounded-[18px] border border-neutral-200/60 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-kreator-400/30 hover:bg-kreator-50/40 hover:shadow-kreator cursor-pointer"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-kreator-200/50 bg-kreator-50 transition-colors duration-200 group-hover:bg-kreator-100/80">
-                  <Search className="h-4 w-4 text-kreator-600" />
-                </div>
-                <span className="text-center text-[10px] font-extrabold leading-tight text-neutral-700 transition-colors group-hover:text-kreator-700">Cari Job Pool</span>
-              </Link>
-
-              {/* Submit Bukti — dialihkan ke Pekerjaan Aktif.
-                  Dulu tombol ini membuka modal yang menandai pekerjaan
-                  `submitted` dan MENGARANG `fraudStatus: "safe"` tanpa menulis
-                  apa pun. Alur sebenarnya ada di ActiveWorkDetailView, lengkap
-                  dengan pra-cek ai-fraud-precheck. */}
-              <Link
-                href="/dashboard/kreator/pekerjaan-aktif"
-                className="group flex flex-col items-center justify-center gap-2 rounded-[18px] border border-neutral-200/60 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-kreator-400/30 hover:bg-kreator-50/40 hover:shadow-kreator cursor-pointer"
-              >
-                <div className="h-9 w-9 rounded-[12px] bg-indigo-50 border border-indigo-200/50 flex items-center justify-center group-hover:bg-indigo-100/80 transition-colors duration-200">
-                  <Upload className="w-4 h-4 text-indigo-600" />
-                </div>
-                <span className="text-center text-[10px] font-extrabold leading-tight text-neutral-700 transition-colors group-hover:text-kreator-700">Kirim Bukti</span>
-              </Link>
-
-              {/* Kelola Rate Card */}
-              <Link
-                href="/dashboard/kreator/rate-card"
-                className="group flex flex-col items-center justify-center gap-2 rounded-[18px] border border-neutral-200/60 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-kreator-400/30 hover:bg-kreator-50/40 hover:shadow-kreator cursor-pointer"
-              >
-                <div className="h-9 w-9 rounded-[12px] bg-emerald-50 border border-emerald-200/50 flex items-center justify-center group-hover:bg-emerald-100/80 transition-colors duration-200">
-                  <Settings className="w-4 h-4 text-emerald-600" />
-                </div>
-                <span className="text-center text-[10px] font-extrabold leading-tight text-neutral-700 transition-colors group-hover:text-kreator-700">Kelola Rate Card</span>
-              </Link>
-
-              {/* Tarik Dana — dialihkan ke Keuangan.
-                  Dulu tombol ini membuka modal yang mengurangi saldo di layar
-                  dan bilang "penarikan berhasil dikirim" tanpa memanggil
-                  requestWithdrawal. Alur sebenarnya ada di KeuanganView, lengkap
-                  dengan requestKey idempoten dan validasi Zod terhadap saldo. */}
-              <Link
-                href="/dashboard/kreator/keuangan"
-                aria-disabled={currentMetrics.balance <= 0}
-                tabIndex={currentMetrics.balance <= 0 ? -1 : undefined}
-                className={cn(
-                  "group flex flex-col items-center justify-center gap-2 p-4 rounded-[18px] border transition-all duration-200 shadow-[0_2px_8px_rgba(15,23,42,.04)]",
-                  currentMetrics.balance <= 0
-                    ? "bg-neutral-50 border-neutral-200 text-neutral-400 pointer-events-none"
-                    : "bg-white border-neutral-200/60 hover:border-kreator-400/30 hover:bg-kreator-50/40 hover:-translate-y-0.5 hover:shadow-kreator cursor-pointer"
-                )}
-              >
-                <div className={cn(
-                  "h-9 w-9 rounded-[12px] flex items-center justify-center transition-colors duration-200",
-                  currentMetrics.balance <= 0
-                    ? "bg-neutral-100 border border-neutral-200"
-                    : "bg-kreator-50 border border-kreator-200/50 group-hover:bg-kreator-100/80"
-                )}>
-                  <Wallet className={cn("w-4 h-4", currentMetrics.balance <= 0 ? "text-neutral-400" : "text-kreator-600")} />
-                </div>
-                <span className="text-center text-[10px] font-extrabold leading-tight transition-colors group-hover:text-kreator-700">Tarik Dana</span>
-              </Link>
-
-              {/* Edit Profil */}
-              <Link
-                href="/dashboard/kreator/settings"
-                className="group flex flex-col items-center justify-center gap-2 rounded-[18px] border border-neutral-200/60 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,.04)] transition-all duration-200 hover:-translate-y-0.5 hover:border-kreator-400/30 hover:bg-kreator-50/40 hover:shadow-kreator cursor-pointer"
-              >
-                <div className="h-9 w-9 rounded-[12px] bg-blue-50 border border-blue-200/50 flex items-center justify-center group-hover:bg-blue-100/80 transition-colors duration-200">
-                  <User className="w-4 h-4 text-blue-600" />
-                </div>
-                <span className="text-center text-[10px] font-extrabold leading-tight text-neutral-700 transition-colors group-hover:text-kreator-700">Edit Profil</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* 4 ── Campaign Recommendations — full width 3-col grid */}
+          {/* 3 ── Campaign Recommendations — full width 3-col grid */}
           <div>
             <div className="flex justify-between items-center mb-5">
               <div>
