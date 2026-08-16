@@ -85,7 +85,7 @@ export function CampaignListSkeleton({ viewMode = "card" }: { viewMode?: "card" 
   }
 
   return (
-    <div className="responsive-card-grid-2">
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 min-w-0">
       {Array.from({ length: 6 }).map((_, i) => (
         <CampaignCardSkeleton key={i} />
       ))}

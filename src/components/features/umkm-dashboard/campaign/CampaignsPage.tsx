@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Plus, Users, Sparkles, ChevronRight, PlusCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { UmkmDashboardChrome } from "@/components/features/dashboard/UmkmDashboardChrome";
 import { UmkmPageWrapper } from "../shared/UmkmPageWrapper";
 import { CampaignsHeader } from "./CampaignsHeader";
@@ -38,6 +41,120 @@ import { ExportReportModal } from "./modals/ExportReportModal";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 import { toast } from "sonner";
+
+const UMKM_CAMPAIGN_EMPTY_VARIANTS = [
+  {
+    badge: "Slot Campaign",
+    icon: PlusCircle,
+    iconBg: "bg-orange-50 text-orange-600 border-orange-200/80",
+    title: "Buat Kampanye Pay-Per-View Baru",
+    desc: "Unggah brief produk dan tentukan reward CPM. Konten kreator akan mengklaim dan memposting di akun medsos mereka.",
+    btnLabel: "Buat Kampanye Baru",
+    href: "/dashboard/umkm/campaign/buat",
+    isPrimary: true,
+    features: [
+      "Bayar hanya berdasarkan performa views nyata",
+      "Kreator langsung eksekusi tanpa drama revisi",
+    ],
+  },
+  {
+    badge: "Kolaborasi Kreator",
+    icon: Users,
+    iconBg: "bg-blue-50 text-blue-600 border-blue-200/80",
+    title: "Jelajahi Direktori Kreator",
+    desc: "Cari mikro-kreator lokal potensial berdasarkan niche kuliner, fashion, kecantikan, dan mulai penawaran Rate Card.",
+    btnLabel: "Cari Mikro-Kreator",
+    href: "/dashboard/umkm/kreator",
+    isPrimary: false,
+    features: [
+      "Ratusan kreator aktif terverifikasi",
+      "Negosiasi harga transparan dan aman",
+    ],
+  },
+  {
+    badge: "Rate Card",
+    icon: Sparkles,
+    iconBg: "bg-amber-50 text-amber-600 border-amber-200/80",
+    title: "Mulai Negosiasi Rate Card",
+    desc: "Pesan paket promosi fixed price dengan Collab Post resmi di Instagram / TikTok untuk promosi eksklusif.",
+    btnLabel: "Buka Tab Negosiasi",
+    href: "/dashboard/umkm/negosiasi",
+    isPrimary: false,
+    features: [
+      "Format Collab Post resmi",
+      "Dana diamankan sistem Escrow hingga deal tuntas",
+    ],
+  },
+];
+
+function EmptyPlaceholderCampaignCard({
+  variantIndex = 0,
+  onCreateClick,
+}: {
+  variantIndex?: number;
+  onCreateClick?: () => void;
+}) {
+  const variant = UMKM_CAMPAIGN_EMPTY_VARIANTS[variantIndex % UMKM_CAMPAIGN_EMPTY_VARIANTS.length];
+  const Icon = variant.icon;
+
+  return (
+    <div className="flex flex-col justify-between bg-slate-50/70 hover:bg-orange-50/20 border border-dashed border-slate-300/90 hover:border-orange-300 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-3xs hover:shadow-md transition-all duration-300 animate-in fade-in">
+      <div className="space-y-3">
+        {/* Top badge + icon */}
+        <div className="flex items-center justify-between">
+          <div className={cn("h-10 w-10 rounded-xl border flex items-center justify-center transition-transform hover:scale-105 duration-300 shadow-3xs", variant.iconBg)}>
+            <Icon className="w-5 h-5" />
+          </div>
+          <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider text-slate-500 border border-slate-200 bg-white shadow-3xs">
+            {variant.badge}
+          </span>
+        </div>
+
+        {/* Title & Desc */}
+        <div className="space-y-1">
+          <h4 className="font-display font-black text-slate-900 text-sm sm:text-base leading-snug tracking-tight">
+            {variant.title}
+          </h4>
+          <p className="text-xs font-medium text-slate-500 leading-relaxed line-clamp-3">
+            {variant.desc}
+          </p>
+        </div>
+
+        {/* Feature bullet box */}
+        <div className="p-3 rounded-xl bg-white/90 border border-slate-200/70 space-y-1.5 shadow-3xs">
+          {variant.features.map((feature, idx) => (
+            <div key={idx} className="flex items-center gap-2 text-xs font-bold text-slate-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500 shrink-0" />
+              <span className="line-clamp-1">{feature}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Button CTA */}
+      <div className="pt-3 mt-auto">
+        {variant.isPrimary && onCreateClick ? (
+          <button
+            type="button"
+            onClick={onCreateClick}
+            className="w-full inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-gradient-to-b from-[#fb7a18] to-[#ea580c] text-white text-xs font-extrabold shadow-xs hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+          >
+            <Plus size={14} />
+            <span>{variant.btnLabel}</span>
+          </button>
+        ) : (
+          <Link
+            href={variant.href}
+            className="w-full inline-flex items-center justify-center gap-2 h-10 px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-extrabold transition-all duration-200 shadow-3xs hover:border-slate-300 hover:-translate-y-0.5 active:translate-y-0"
+          >
+            <span>{variant.btnLabel}</span>
+            <ChevronRight size={14} className="text-orange-500" />
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function CampaignsPage() {
   const router = useRouter();
@@ -275,7 +392,7 @@ export function CampaignsPage() {
             onEdit={(camp) => router.push(`/dashboard/umkm/campaign/${camp.id}/edit`)}
           />
         ) : (
-          <div className="responsive-card-grid-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 min-w-0">
             {processedCampaigns.map((camp) => {
               const counts = submissionCounts[camp.id] || { pending: 0, valid: 0, dispute: 0 };
               return (
@@ -294,6 +411,16 @@ export function CampaignsPage() {
                 />
               );
             })}
+
+            {/* Empty Placeholder Cards bila jumlah card < 3 (hanya saat tidak ada filter aktif) */}
+            {!hasActiveFilters &&
+              Array.from({ length: Math.max(0, 3 - processedCampaigns.length) }).map((_, idx) => (
+                <EmptyPlaceholderCampaignCard
+                  key={`empty-campaign-slot-${idx}`}
+                  variantIndex={processedCampaigns.length + idx}
+                  onCreateClick={() => router.push("/dashboard/umkm/campaign/buat")}
+                />
+              ))}
           </div>
         )}
 

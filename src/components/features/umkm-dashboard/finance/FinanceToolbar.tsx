@@ -73,6 +73,7 @@ export function FinanceToolbar({
       filters={filters}
       onClearFilters={onClearAll}
       hasActiveFilters={hasFilters}
+      theme="umkm"
     />
   );
 }

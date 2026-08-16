@@ -59,6 +59,7 @@ export function CreatorToolbar({
       onSearchChange={onSearchChange}
       searchPlaceholder="Cari nama kreator atau keahlian..."
       filters={filters}
+      theme="umkm"
       onClearFilters={() => {
         onSearchChange("");
         onCategoryChange("all");

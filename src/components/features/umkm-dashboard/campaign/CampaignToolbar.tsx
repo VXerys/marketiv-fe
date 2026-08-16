@@ -86,6 +86,7 @@ export function CampaignToolbar({
       filters={filters}
       onClearFilters={onClearFilters}
       hasActiveFilters={hasActiveFilters}
+      theme="umkm"
       extraActions={
         <div className="flex h-10 shrink-0 items-center gap-0.5 rounded-xl border border-neutral-200 bg-neutral-100 p-1">
           <button

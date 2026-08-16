@@ -15,9 +15,12 @@ import {
   ClipboardCheck,
   Tag,
   Hourglass,
-  Clock3,
+  Clock,
   Archive,
   ArchiveRestore,
+  Sparkles,
+  ArrowRight,
+  User,
 } from "lucide-react";
 import { setConversationArchived } from "@/services/shared/conversation.service";
 import { getCreatorNegotiations } from "@/services/creator/creator-dashboard.service";
@@ -26,13 +29,6 @@ import { toast } from "sonner";
 
 const CREATOR_ACTION_GRADIENT =
   "linear-gradient(135deg, var(--color-kreator-600), var(--color-kreator-action-end))";
-
-/**
- * Tanpa props. Data diambil di klien, BUKAN di Server Component: DTO
- * `get-creator-negotiations` menegakkan kepemilikan lewat header
- * `x-appwrite-user-id` sesi aktif, dan sesi Appwrite hidup di browser — memanggil
- * dari server akan selalu balik 401 (pelajaran `s3-ssr-session`).
- */
 
 // ─── MetricTile ───────────────────────────────────────────────────────────────
 
@@ -51,23 +47,23 @@ function MetricTile({ label, value, helper, icon, iconClass, cardClass, badge, b
   return (
     <div
       className={cn(
-        "group relative p-4 sm:p-5 rounded-[22px] border bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_36px_rgba(15,23,42,.08)] select-none cursor-default",
-        cardClass ?? "border-neutral-200/60 shadow-[0_2px_12px_rgba(15,23,42,.03)]"
+        "group relative p-4 sm:p-5 rounded-2xl sm:rounded-[22px] border bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_36px_rgba(15,23,42,.08)] select-none cursor-default",
+        cardClass ?? "border-slate-200/70 shadow-xs"
       )}
     >
       {badge && (
         <div className="absolute top-3.5 right-3.5">
-          <span className={cn("px-2.5 py-0.5 rounded-full text-[8px] font-extrabold border uppercase tracking-wider", badgeClass)}>
+          <span className={cn("px-2.5 py-0.5 rounded-full text-[9px] font-black border uppercase tracking-wider shadow-3xs", badgeClass)}>
             {badge}
           </span>
         </div>
       )}
-      <div className={cn("h-9 w-9 rounded-[12px] flex items-center justify-center mb-3.5 border transition-transform duration-300 group-hover:scale-105", iconClass)}>
+      <div className={cn("h-10 w-10 rounded-2xl flex items-center justify-center mb-3 border transition-transform duration-300 group-hover:scale-105 shadow-3xs", iconClass)}>
         {icon}
       </div>
-      <div className="text-[.67rem] font-extrabold text-neutral-400 uppercase tracking-widest leading-none">{label}</div>
-      <div className="font-display text-[1.3rem] sm:text-[1.4rem] font-black text-kreator-ink tracking-tight leading-none mt-1.5">{value}</div>
-      <div className="text-[.7rem] text-neutral-400 font-semibold mt-1 leading-none">{helper}</div>
+      <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider leading-none">{label}</div>
+      <div className="font-display text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-none mt-1.5">{value}</div>
+      <div className="text-xs text-slate-500 font-medium mt-1 leading-none">{helper}</div>
     </div>
   );
 }
@@ -76,36 +72,25 @@ function MetricTile({ label, value, helper, icon, iconClass, cardClass, badge, b
 
 type StageStyle = { dot: string; text: string; bg: string; border: string; label: string };
 
-/**
- * Key = `NegotiationStage` (src/types/domain.ts), BUKAN `OrderStatus`.
- *
- * Empat tahap teratas terjadi SEBELUM order lahir, dan di Alur B order lahir
- * paling akhir — jadi justru di sanalah sebagian besar ruang negosiasi berada.
- * Versi sebelumnya hanya memetakan tujuh `OrderStatus` dan mem-fallback ke
- * `STATUS_STYLES.chatting` yang tidak pernah ada, sehingga percakapan baru
- * (stage `chatting`) membuat `s` bernilai undefined dan seluruh halaman
- * Negosiasi kreator crash ke error boundary.
- */
 const STATUS_STYLES: Record<string, StageStyle> = {
-  chatting:        { dot: "bg-neutral-400", text: "text-neutral-600", bg: "bg-neutral-50", border: "border-neutral-200/50", label: "Diskusi" },
-  offer_pending:   { dot: "bg-violet-400",  text: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200/50",  label: "Penawaran Masuk" },
-  offer_rejected:  { dot: "bg-rose-400",    text: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-200/50",    label: "Penawaran Ditolak" },
-  awaiting_order:  { dot: "bg-indigo-400",  text: "text-indigo-700",  bg: "bg-indigo-50",  border: "border-indigo-200/50",  label: "Menyiapkan Pesanan" },
-  pending_payment: { dot: "bg-blue-400",   text: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-200/50",   label: "Menunggu Bayar" },
-  escrow:          { dot: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200/50", label: "Escrow Aktif" },
-  in_progress:     { dot: "bg-amber-400",  text: "text-amber-700",  bg: "bg-amber-50",  border: "border-amber-200/50",  label: "Dikerjakan" },
-  revision:        { dot: "bg-orange-400",  text: "text-orange-700",  bg: "bg-orange-50",  border: "border-orange-200/50",  label: "Revisi" },
-  approved:        { dot: "bg-violet-400",  text: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200/50",  label: "Disetujui" },
-  completed:       { dot: "bg-neutral-400", text: "text-neutral-600", bg: "bg-neutral-50", border: "border-neutral-200/50", label: "Selesai" },
-  cancelled:       { dot: "bg-neutral-400", text: "text-neutral-600", bg: "bg-neutral-50", border: "border-neutral-200/50", label: "Dibatalkan" },
+  chatting:        { dot: "bg-slate-400",   text: "text-slate-700",   bg: "bg-slate-100",   border: "border-slate-200",   label: "Diskusi" },
+  offer_pending:   { dot: "bg-violet-500",  text: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200",  label: "Penawaran Masuk" },
+  offer_rejected:  { dot: "bg-rose-500",    text: "text-rose-700",    bg: "bg-rose-50",    border: "border-rose-200",    label: "Penawaran Ditolak" },
+  awaiting_order:  { dot: "bg-indigo-500",  text: "text-indigo-700",  bg: "bg-indigo-50",  border: "border-indigo-200",  label: "Menyiapkan Pesanan" },
+  pending_payment: { dot: "bg-blue-500",    text: "text-blue-700",    bg: "bg-blue-50",    border: "border-blue-200",    label: "Menunggu Bayar" },
+  escrow:          { dot: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", label: "Escrow Aktif" },
+  in_progress:     { dot: "bg-amber-500",   text: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200",   label: "Dikerjakan" },
+  revision:        { dot: "bg-orange-500",  text: "text-orange-700",  bg: "bg-orange-50",  border: "border-orange-200",  label: "Revisi" },
+  approved:        { dot: "bg-violet-500",  text: "text-violet-700",  bg: "bg-violet-50",  border: "border-violet-200",  label: "Disetujui" },
+  completed:       { dot: "bg-emerald-600", text: "text-emerald-800", bg: "bg-emerald-50", border: "border-emerald-200", label: "Selesai" },
+  cancelled:       { dot: "bg-slate-400",   text: "text-slate-600",   bg: "bg-slate-100",  border: "border-slate-200",   label: "Dibatalkan" },
 };
 
-/** Dipakai bila `stage` tidak dikenali — selalu ada, jadi tidak pernah undefined. */
 const UNKNOWN_STAGE_STYLE: StageStyle = {
-  dot: "bg-neutral-300",
-  text: "text-neutral-500",
-  bg: "bg-neutral-50",
-  border: "border-neutral-200/50",
+  dot: "bg-slate-400",
+  text: "text-slate-600",
+  bg: "bg-slate-100",
+  border: "border-slate-200",
   label: "Negosiasi",
 };
 
@@ -120,113 +105,156 @@ function NegotiationCard({
   isToggling: boolean;
   onToggleArchive: () => void;
 }) {
-  // Fallback ke konstanta, bukan ke entri lain di peta — kalau kuncinya salah
-  // ketik, `s` diam-diam jadi undefined dan seluruh daftar ikut mati.
   const s = STATUS_STYLES[neg.stage] ?? UNKNOWN_STAGE_STYLE;
-  const dateStr = new Date(neg.lastMessageAt).toLocaleDateString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const dateStr = new Date(neg.lastMessageAt).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   const hasUrgent = neg.unreadCount > 0;
+  const earningsAmount = neg.totalAmount ?? (neg.finalPrice - calculatePlatformFee(neg.finalPrice));
+  const hasProjectTitle = Boolean(neg.projectTitle && neg.projectTitle.trim());
+  const cleanLastMessage = neg.lastMessage ? neg.lastMessage.trim() : "";
 
   return (
     <div
       className={cn(
-        "group relative bg-white rounded-[20px] border-l-4 border overflow-hidden",
-        "shadow-1 hover:shadow-kreator-avatar hover:-translate-y-0.5",
-        "transition-all duration-300 flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4",
+        "group relative bg-white rounded-2xl sm:rounded-[22px] border transition-all duration-300",
+        "p-4 sm:p-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4",
         hasUrgent
-          ? "border-l-violet-500 border-violet-200/50"
-          : "border-l-neutral-200 border-neutral-200/60 hover:border-violet-200/40"
+          ? "border-violet-300 shadow-[0_4px_24px_rgba(124,58,237,.08)] ring-1 ring-violet-200/60"
+          : "border-slate-200/70 shadow-2xs hover:shadow-md hover:border-violet-200/80 hover:-translate-y-0.5"
       )}
     >
-      {/* Unread top strip */}
+      {/* Unread top indicator strip */}
       {hasUrgent && (
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-violet-500 via-indigo-400 to-violet-500" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 rounded-t-[22px]" />
       )}
 
-      {/* Avatar */}
-      <div className="relative shrink-0">
-        <div className="w-11 h-11 rounded-[13px] border border-neutral-200/40 overflow-hidden bg-neutral-50 flex items-center justify-center font-black text-neutral-300 text-lg">
-          {neg.umkmAvatarUrl ? (
-            <img src={neg.umkmAvatarUrl} alt={neg.umkmName} className="w-full h-full object-cover" />
-          ) : (
-            <span>{neg.umkmName.charAt(0)}</span>
+      {/* Left section: Avatar + Info */}
+      <div className="flex items-start gap-3.5 sm:gap-4 flex-1 min-w-0">
+        {/* Avatar with unread badge */}
+        <div className="relative shrink-0 mt-0.5">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border border-slate-200/80 bg-gradient-to-br from-violet-50 to-slate-100 flex items-center justify-center font-black text-slate-400 text-lg shadow-3xs overflow-hidden">
+            {neg.umkmAvatarUrl ? (
+              <img
+                src={neg.umkmAvatarUrl}
+                alt={neg.umkmName}
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+            ) : (
+              <span className="font-display text-slate-500 font-black text-base sm:text-lg">
+                {neg.umkmName ? neg.umkmName.charAt(0).toUpperCase() : <User className="w-5 h-5 text-slate-400" />}
+              </span>
+            )}
+          </div>
+          {hasUrgent && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-violet-600 rounded-full text-white font-black text-[10px] flex items-center justify-center border-2 border-white shadow-xs animate-pulse">
+              {neg.unreadCount > 9 ? "9+" : neg.unreadCount}
+            </span>
           )}
         </div>
-        {neg.unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-0.5 bg-violet-600 rounded-full text-white font-extrabold text-[9px] flex items-center justify-center border-2 border-white">
-            {neg.unreadCount > 9 ? "9+" : neg.unreadCount}
-          </span>
-        )}
-      </div>
 
-      {/* Main content */}
-      <div className="flex-1 min-w-0 space-y-1.5">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-extrabold text-kreator-ink text-sm group-hover:text-violet-700 transition-colors">
-            {neg.umkmName}
-          </span>
-          <span className={cn(
-            "inline-flex items-center gap-1.5 px-2.5 py-[3px] rounded-full text-[9px] font-extrabold border",
-            s.text, s.bg, s.border
-          )}>
-            <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", s.dot)} />
-            {s.label}
-          </span>
-        </div>
+        {/* Content body */}
+        <div className="flex-1 min-w-0 space-y-1.5">
+          {/* Header row: Name + Stage badge + Date on mobile */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap min-w-0">
+              <span className="font-display font-black text-slate-900 text-sm sm:text-base group-hover:text-violet-700 transition-colors truncate">
+                {neg.umkmName || "Brand UMKM"}
+              </span>
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black border shadow-3xs",
+                  s.text,
+                  s.bg,
+                  s.border
+                )}
+              >
+                <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", s.dot)} />
+                {s.label}
+              </span>
+            </div>
 
-        <h4 className="font-extrabold text-sm text-kreator-ink truncate leading-tight flex items-center gap-1.5">
-          <Tag className="w-3 h-3 text-neutral-400 shrink-0" />
-          {neg.projectTitle}
-        </h4>
-
-        <p className="text-[10px] text-neutral-500 font-semibold line-clamp-1 leading-relaxed">
-          &ldquo;{neg.lastMessage}&rdquo;
-        </p>
-
-        <div className="flex items-center gap-3 pt-0.5">
-          <span className="flex items-center gap-1 text-[9px] font-bold text-neutral-400">
-            <Clock3 className="w-2.5 h-2.5 shrink-0" />
-            {dateStr}
-          </span>
-          <div className="flex flex-col gap-0">
-            <span className="font-display text-xs font-black text-kreator-ink tracking-tight leading-none">
-              {formatCurrency(neg.totalAmount ?? (neg.finalPrice - calculatePlatformFee(neg.finalPrice)))}
-            </span>
-            <span className="text-[8px] font-semibold text-neutral-400 leading-none">kamu terima</span>
+            {/* Date time on top right */}
+            <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400">
+              <Clock className="w-3 h-3 text-slate-400 shrink-0" />
+              <span>{dateStr}</span>
+            </div>
           </div>
+
+          {/* Project title */}
+          {hasProjectTitle ? (
+            <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-700">
+              <Tag className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+              <span className="truncate">{neg.projectTitle}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
+              <MessageSquare className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>Diskusi Paket &amp; Kebutuhan Konten</span>
+            </div>
+          )}
+
+          {/* Last message preview */}
+          {cleanLastMessage ? (
+            <p className="text-xs text-slate-600 font-medium line-clamp-1 bg-slate-50/80 border border-slate-100 rounded-lg px-2.5 py-1 leading-relaxed">
+              &ldquo;{cleanLastMessage}&rdquo;
+            </p>
+          ) : (
+            <p className="text-xs text-slate-400 italic">Belum ada pesan terbaru</p>
+          )}
         </div>
       </div>
 
-      {/* CTA */}
-      <div className="self-end sm:self-center flex items-center gap-2 shrink-0">
-        <button
-          onClick={onToggleArchive}
-          disabled={isToggling}
-          title={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
-          aria-label={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
-          className="flex items-center justify-center h-9 w-9 rounded-[12px] border border-neutral-200 text-neutral-400 hover:text-kreator-600 hover:border-violet-200 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none"
-        >
-          {isToggling
-            ? <span className="w-3.5 h-3.5 border-2 border-neutral-300 border-t-violet-500 rounded-full animate-spin" />
-            : isArchived ? <ArchiveRestore className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />
-          }
-        </button>
-        <Link
-          href={`/dashboard/kreator/negosiasi/${neg.id}`}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-[12px] text-[11px] font-extrabold text-white transition-all hover:-translate-y-0.5 active:translate-y-0"
-          style={{
-            background: CREATOR_ACTION_GRADIENT,
-            boxShadow: "var(--shadow-kreator)",
-          }}
-        >
-          <MessageSquare className="w-3.5 h-3.5" />
-          Buka Room
-        </Link>
+      {/* Right section: Price earnings + Action buttons */}
+      <div className="flex md:flex-row items-center justify-between md:justify-end gap-3 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 shrink-0">
+        {/* Earnings info box */}
+        <div className="flex flex-col md:items-end justify-center">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            Kamu Terima
+          </span>
+          <span className="font-display font-black text-sm sm:text-base text-violet-700 tracking-tight leading-snug">
+            {formatCurrency(earningsAmount)}
+          </span>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onToggleArchive}
+            disabled={isToggling}
+            title={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
+            aria-label={isArchived ? "Kembalikan ke inbox" : "Arsipkan percakapan"}
+            className="flex items-center justify-center h-10 w-10 rounded-xl border border-slate-200 text-slate-400 hover:text-violet-600 hover:border-violet-300 hover:bg-violet-50/30 transition-all cursor-pointer shadow-3xs disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {isToggling ? (
+              <span className="w-4 h-4 border-2 border-slate-300 border-t-violet-600 rounded-full animate-spin" />
+            ) : isArchived ? (
+              <ArchiveRestore className="w-4 h-4" />
+            ) : (
+              <Archive className="w-4 h-4" />
+            )}
+          </button>
+
+          <Link
+            href={`/dashboard/kreator/negosiasi/${neg.id}`}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-black text-white transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_14px_rgba(124,58,237,0.25)] hover:shadow-[0_6px_20px_rgba(124,58,237,0.35)]"
+            style={{
+              background: CREATOR_ACTION_GRADIENT,
+            }}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Buka Room</span>
+          </Link>
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export function NegosiasiView() {
   const [negotiations, setNegotiations] = useState<CreatorNegotiation[]>([]);
@@ -239,11 +267,6 @@ export function NegosiasiView() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
 
-  /**
-   * Status arsip kini ikut di DTO `get-creator-negotiations` (`isArchived`
-   * dibaca langsung dari `conversations.is_archived`), jadi query terpisah dan
-   * penjodohan per-umkmId yang dulu ada di sini tidak diperlukan lagi.
-   */
   const handleToggleArchive = async (neg: CreatorNegotiation) => {
     if (togglingId === neg.conversationId) return;
     const next = !neg.isArchived;
@@ -285,17 +308,14 @@ export function NegosiasiView() {
     setSortBy("latest");
   };
 
-  // "Negosiasi" dan "Menunggu pembayaran" dulu menghitung hal yang PERSIS SAMA
-  // (`pending_payment`) karena tahap sebelum order belum punya nilai status.
-  // Sekarang keduanya benar-benar berbeda.
   const NEGOTIATING_STAGES = ["chatting", "offer_pending", "offer_rejected", "awaiting_order"];
   const ESCROW_STAGES = ["escrow", "in_progress", "revision", "approved"];
 
-  const countNegotiation        = negotiations.filter(n => NEGOTIATING_STAGES.includes(n.stage)).length;
-  const countPendingPayment     = negotiations.filter(n => n.stage === "pending_payment").length;
-  const countEscrow             = negotiations.filter(n => ESCROW_STAGES.includes(n.stage)).length;
-  const countCompleted          = negotiations.filter(n => n.stage === "completed").length;
-  const totalUnread             = negotiations.reduce((acc, n) => acc + (n.unreadCount || 0), 0);
+  const countNegotiation    = negotiations.filter((n) => NEGOTIATING_STAGES.includes(n.stage)).length;
+  const countPendingPayment = negotiations.filter((n) => n.stage === "pending_payment").length;
+  const countEscrow         = negotiations.filter((n) => ESCROW_STAGES.includes(n.stage)).length;
+  const countCompleted      = negotiations.filter((n) => n.stage === "completed").length;
+  const totalUnread         = negotiations.reduce((acc, n) => acc + (n.unreadCount || 0), 0);
 
   const filteredNegotiations = negotiations
     .filter((n) => {
@@ -382,124 +402,147 @@ export function NegosiasiView() {
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 relative">
-        <div>
-          <CreatorPageHeader
-            title="Negosiasi Rate Card"
-            description="Kelola order Rate Card dari UMKM."
+      <div>
+        <CreatorPageHeader
+          title="Negosiasi Rate Card"
+          description="Kelola order Rate Card dari UMKM."
+        />
+
+        {/* Metric tiles — 4 cards max, 1 row on desktop */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-7">
+          <MetricTile
+            label="Negosiasi Aktif"
+            value={countNegotiation}
+            helper="Perlu respons kamu"
+            iconClass="text-amber-600 bg-amber-50 border-amber-200/50"
+            icon={<MessageSquare className="w-5 h-5" />}
+            cardClass="border-amber-200/50 shadow-xs bg-gradient-to-br from-amber-50/30 via-white to-white"
+            badge={totalUnread > 0 ? `${totalUnread} belum dibaca` : undefined}
+            badgeClass="bg-violet-50 border-violet-200/60 text-violet-700"
           />
+          <MetricTile
+            label="Menunggu Pembayaran"
+            value={countPendingPayment}
+            helper="Tawaran kamu disetujui"
+            iconClass="text-blue-600 bg-blue-50 border-blue-200/50"
+            icon={<Hourglass className="w-5 h-5" />}
+            cardClass="border-blue-200/50 shadow-xs bg-gradient-to-br from-blue-50/30 via-white to-white"
+          />
+          <MetricTile
+            label="Escrow Aktif"
+            value={countEscrow}
+            helper="Kamu sedang mengerjakan"
+            iconClass="text-emerald-600 bg-emerald-50 border-emerald-200/50"
+            icon={<ShieldCheck className="w-5 h-5" />}
+            cardClass="border-emerald-200/50 shadow-xs bg-gradient-to-br from-emerald-50/30 via-white to-white"
+          />
+          <MetricTile
+            label="Order Selesai"
+            value={countCompleted}
+            helper="Reward siap dicairkan"
+            iconClass="text-violet-600 bg-violet-50 border-violet-200/50"
+            icon={<ClipboardCheck className="w-5 h-5" />}
+            cardClass="border-violet-200/50 shadow-xs bg-gradient-to-br from-violet-50/30 via-white to-white"
+          />
+        </div>
 
-          {/* Metric tiles — 4 cards max, 1 row on desktop */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-7">
-            <MetricTile
-              label="Negosiasi Aktif"
-              value={countNegotiation}
-              helper="Perlu respons kamu"
-              iconClass="text-amber-600 bg-amber-50 border-amber-200/50"
-              icon={<MessageSquare className="w-4 h-4" />}
-              cardClass="border-amber-200/40 shadow-[0_4px_20px_rgba(217,119,6,.06)] bg-gradient-to-br from-amber-50/20 to-white"
-              badge={totalUnread > 0 ? `${totalUnread} belum dibaca` : undefined}
-              badgeClass="bg-violet-50 border-violet-200/40 text-violet-600"
-            />
-            <MetricTile
-              label="Menunggu Pembayaran"
-              value={countPendingPayment}
-              helper="Tawaran kamu disetujui"
-              iconClass="text-blue-600 bg-blue-50 border-blue-200/50"
-              icon={<Hourglass className="w-4 h-4" />}
-              cardClass="border-blue-200/40 shadow-kreator-brand-sm bg-gradient-to-br from-blue-50/20 to-white"
-            />
-            <MetricTile
-              label="Escrow Aktif"
-              value={countEscrow}
-              helper="Kamu sedang mengerjakan"
-              iconClass="text-emerald-600 bg-emerald-50 border-emerald-200/50"
-              icon={<ShieldCheck className="w-4 h-4" />}
-              cardClass="border-emerald-200/40 shadow-[0_4px_20px_rgba(22,163,74,.06)] bg-gradient-to-br from-emerald-50/20 to-white"
-            />
-            <MetricTile
-              label="Order Selesai"
-              value={countCompleted}
-              helper="Reward siap dicairkan"
-              iconClass="text-violet-600 bg-violet-50 border-violet-200/50"
-              icon={<ClipboardCheck className="w-4 h-4" />}
-              cardClass="border-violet-200/40 shadow-kreator-brand-sm bg-gradient-to-br from-violet-50/20 to-white"
-            />
-          </div>
+        {/* Toolbar — sticky when scrolling */}
+        <div className="mb-6">
+          <SearchToolbar
+            searchValue={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Cari UMKM / judul order..."
+            filters={toolbarFilters}
+            onClearFilters={handleClearFilters}
+            hasActiveFilters={hasActiveFilters}
+            theme="kreator"
+          />
+        </div>
 
-          {/* Toolbar — sticky when scrolling */}
-          <div className="mb-6">
-            <SearchToolbar
-              searchValue={search}
-              onSearchChange={setSearch}
-              searchPlaceholder="Cari UMKM / judul order..."
-              filters={toolbarFilters}
-              onClearFilters={handleClearFilters}
-              hasActiveFilters={hasActiveFilters}
-            />
-          </div>
-          {/* Tab Inbox / Arsip */}
-          <div className="flex items-center gap-2 mb-4">
+        {/* Tab Inbox / Arsip — Modern Segmented Control */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="inline-flex p-1 bg-slate-100/90 rounded-2xl border border-slate-200/70 gap-1 shadow-3xs">
             <button
               onClick={() => setShowArchived(false)}
               className={cn(
-                "px-3.5 py-1.5 rounded-full text-[11px] font-extrabold transition-colors cursor-pointer border",
-                showArchived
-                  ? "border-neutral-200/60 text-neutral-500 hover:bg-neutral-50"
-                  : "border-transparent bg-kreator-600 text-white"
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all duration-200 cursor-pointer",
+                !showArchived
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-500 hover:text-slate-900"
               )}
             >
-              Inbox
+              <MessageSquare className="w-3.5 h-3.5 text-violet-600" />
+              <span>Inbox</span>
+              {negotiations.filter((n) => !n.isArchived).length > 0 && (
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-black",
+                  !showArchived ? "bg-violet-100 text-violet-700" : "bg-slate-200 text-slate-600"
+                )}>
+                  {negotiations.filter((n) => !n.isArchived).length}
+                </span>
+              )}
             </button>
+
             <button
               onClick={() => setShowArchived(true)}
               className={cn(
-                "px-3.5 py-1.5 rounded-full text-[11px] font-extrabold transition-colors cursor-pointer border",
+                "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all duration-200 cursor-pointer",
                 showArchived
-                  ? "border-transparent bg-kreator-600 text-white"
-                  : "border-neutral-200/60 text-neutral-500 hover:bg-neutral-50"
+                  ? "bg-white text-slate-900 shadow-xs"
+                  : "text-slate-500 hover:text-slate-900"
               )}
             >
-              Arsip{archivedCount > 0 ? ` (${archivedCount})` : ""}
+              <Archive className="w-3.5 h-3.5 text-slate-500" />
+              <span>Arsip</span>
+              {archivedCount > 0 && (
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-black",
+                  showArchived ? "bg-violet-100 text-violet-700" : "bg-slate-200 text-slate-600"
+                )}>
+                  {archivedCount}
+                </span>
+              )}
             </button>
           </div>
-
-          {/* Negotiation cards */}
-          {filteredNegotiations.length === 0 ? (
-            <CreatorEmptyState
-              title={showArchived ? "Tidak ada percakapan diarsipkan" : "Belum ada negosiasi Rate Card"}
-              description={
-                showArchived
-                  ? "Percakapan yang kamu arsipkan akan muncul di sini."
-                  : hasActiveFilters
-                  ? "Tidak ada negosiasi yang cocok dengan filter pencarian Anda."
-                  : "Belum ada chat negosiasi masuk dari UMKM buat paket Rate Card kamu."
-              }
-              actionButton={
-                hasActiveFilters ? (
-                  <button
-                    onClick={handleClearFilters}
-                    className="text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow border border-transparent cursor-pointer"
-                    style={{ background: CREATOR_ACTION_GRADIENT, boxShadow: "var(--shadow-kreator)" }}
-                  >
-                    Reset Filter
-                  </button>
-                ) : null
-              }
-            />
-          ) : (
-            <div className="flex flex-col gap-3 animate-in fade-in duration-300">
-              {filteredNegotiations.map((neg) => (
-                <NegotiationCard
-                  key={neg.id}
-                  neg={neg}
-                  isArchived={neg.isArchived}
-                  isToggling={togglingId === neg.conversationId}
-                  onToggleArchive={() => handleToggleArchive(neg)}
-                />
-              ))}
-            </div>
-          )}
         </div>
+
+        {/* Negotiation cards */}
+        {filteredNegotiations.length === 0 ? (
+          <CreatorEmptyState
+            title={showArchived ? "Tidak ada percakapan diarsipkan" : "Belum ada negosiasi Rate Card"}
+            description={
+              showArchived
+                ? "Percakapan yang kamu arsipkan akan muncul di sini."
+                : hasActiveFilters
+                ? "Tidak ada negosiasi yang cocok dengan filter pencarian Anda."
+                : "Belum ada chat negosiasi masuk dari UMKM buat paket Rate Card kamu."
+            }
+            actionButton={
+              hasActiveFilters ? (
+                <button
+                  onClick={handleClearFilters}
+                  className="text-white font-bold text-xs px-5 py-2.5 rounded-full transition-all shadow border border-transparent cursor-pointer"
+                  style={{ background: CREATOR_ACTION_GRADIENT, boxShadow: "var(--shadow-kreator)" }}
+                >
+                  Reset Filter
+                </button>
+              ) : null
+            }
+          />
+        ) : (
+          <div className="flex flex-col gap-3.5 animate-in fade-in duration-300">
+            {filteredNegotiations.map((neg) => (
+              <NegotiationCard
+                key={neg.id}
+                neg={neg}
+                isArchived={neg.isArchived}
+                isToggling={togglingId === neg.conversationId}
+                onToggleArchive={() => handleToggleArchive(neg)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

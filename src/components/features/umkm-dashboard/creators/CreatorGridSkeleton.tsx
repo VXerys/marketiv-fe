@@ -2,7 +2,7 @@
 
 export function CreatorGridSkeleton() {
   return (
-    <div className="responsive-card-grid-2 animate-pulse">
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 animate-pulse min-w-0">
       {Array.from({ length: 8 }).map((_, idx) => (
         <div key={idx} className="rounded-2xl border border-neutral-200/50 bg-white overflow-hidden flex flex-col min-h-[300px]">
           {/* Cover image placeholder */}

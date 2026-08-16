@@ -433,6 +433,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                   filters={toolbarFilters}
                   onClearFilters={handleResetFilters}
                   hasActiveFilters={isFilterActive}
+                  theme="kreator"
                 />
               </div>
               {/* Ledger Table */}

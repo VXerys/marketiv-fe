@@ -94,7 +94,7 @@ export function CreatorDirectoryPage() {
       ) : error ? (
         <CreatorErrorState message={error} onRetry={loadCreators} />
       ) : filteredCreators.length > 0 ? (
-        <div className="responsive-card-grid-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 min-w-0">
           {filteredCreators.map((creator) => (
             <CreatorCard key={creator.id} creator={toCreatorView(creator)} />
           ))}

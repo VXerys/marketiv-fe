@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Star, MapPin, Users, Package, MessageCircle, CheckCircle2 } from "lucide-react";
+import { Star, MapPin, TrendingUp, Briefcase, MessageCircle, CheckCircle2 } from "lucide-react";
 import * as Avatar from "@radix-ui/react-avatar";
 import type { Creator } from "@/types/campaign";
 
@@ -11,7 +11,7 @@ interface CreatorCardProps {
   creator: Creator;
 }
 
-const CATEGORY_COVER: Record<string, { from: string; to: string; mid: string }> = {
+const CATEGORY_COVER: Record<string, { from: string; mid: string; to: string }> = {
   kuliner:    { from: "#fb923c", mid: "#ea580c", to: "#c2410c" },
   fashion:    { from: "#a78bfa", mid: "#7c3aed", to: "#5b21b6" },
   pariwisata: { from: "#60a5fa", mid: "#2563eb", to: "#1e3a5f" },
@@ -36,31 +36,20 @@ const AVATAR_GRADIENTS: Record<string, string> = {
 export function CreatorCard({ creator }: CreatorCardProps) {
   const router = useRouter();
 
-  const key = creator.category.toLowerCase();
+  const key = (creator.category || "lainnya").toLowerCase();
   const cover = CATEGORY_COVER[key] ?? CATEGORY_COVER.lainnya;
   const avatarGradient = AVATAR_GRADIENTS[key] ?? AVATAR_GRADIENTS.lainnya;
-  const handle = `@${creator.name.toLowerCase().replace(/\s+/g, "")}`;
+  const handle = creator.username ? `@${creator.username}` : `@${creator.name.toLowerCase().replace(/\s+/g, "")}`;
+  const engagementText = creator.engagementRate && creator.engagementRate > 0 ? `${creator.engagementRate}%` : "Aktif";
+  const completedJobsText = `${creator.completedJobs ?? 0} Proyek`;
 
   return (
-    <article
-      className="hover-card-animate group select-none flex flex-col min-w-0"
-      style={{
-        borderRadius: 24,
-        border: "1px solid rgba(17,24,39,.08)",
-        background: "white",
-        boxShadow: "0 4px 16px rgba(15,23,42,.06)",
-        overflow: "hidden",
-      }}
-    >
+    <article className="group relative flex flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white shadow-3xs hover:shadow-md hover:-translate-y-1 hover:border-orange-300/60 transition-all duration-300 select-none">
       {/* ── Cover strip ── */}
       <div
-        aria-hidden="true"
+        className="relative h-28 sm:h-32 w-full overflow-hidden shrink-0"
         style={{
-          position: "relative",
-          height: 125,
-          background: `linear-gradient(135deg,${cover.from} 0%,${cover.mid} 55%,${cover.to} 100%)`,
-          overflow: "hidden",
-          flexShrink: 0,
+          background: `linear-gradient(135deg, ${cover.from} 0%, ${cover.mid} 55%, ${cover.to} 100%)`,
         }}
       >
         {creator.bannerUrl ? (
@@ -68,348 +57,121 @@ export function CreatorCard({ creator }: CreatorCardProps) {
             src={creator.bannerUrl}
             alt={`Banner ${creator.name}`}
             fill
-            className="object-cover object-center"
+            className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
           />
         ) : (
-          /* Gloss overlay */
-          <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 60% 20%, rgba(255,255,255,.18), transparent 70%)" }} />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_20%,rgba(255,255,255,.22),transparent_70%)] pointer-events-none" />
         )}
 
-        {/* Category badge — TOP LEFT (above avatar overlap zone) */}
-        <div
-          style={{
-            position: "absolute",
-            top: 12,
-            left: 12,
-            padding: "4px 9px",
-            borderRadius: 8,
-            background: "rgba(255,255,255,.18)",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            border: "1px solid rgba(255,255,255,.30)",
-            fontSize: ".65rem",
-            fontWeight: 870,
-            color: "white",
-            textTransform: "uppercase",
-            letterSpacing: ".1em",
-            lineHeight: 1,
-          }}
-        >
+        {/* Category badge — TOP LEFT */}
+        <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-black/30 backdrop-blur-md border border-white/25 text-[10px] font-black text-white uppercase tracking-wider">
           {creator.category}
         </div>
 
         {/* Rating pill — TOP RIGHT */}
-        <div
-          style={{
-            position: "absolute",
-            top: 12,
-            right: 12,
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            padding: "4px 9px",
-            borderRadius: 8,
-            background: "rgba(255,255,255,.18)",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            border: "1px solid rgba(255,255,255,.30)",
-            fontSize: ".75rem",
-            fontWeight: 870,
-            color: "white",
-            lineHeight: 1,
-          }}
-        >
-          <Star size={11} fill="white" color="white" />
-          {creator.rating.toFixed(1)}
+        <div className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/95 text-amber-800 text-xs font-black shadow-xs border border-amber-200/60 backdrop-blur-md">
+          <Star size={12} className="fill-amber-500 text-amber-500" />
+          <span>{creator.rating > 0 ? creator.rating.toFixed(1) : "Baru"}</span>
         </div>
       </div>
 
-      {/* ── Avatar row — overlaps cover by 38px ── */}
-      <div
-        style={{
-          position: "relative",
-          marginTop: -38,
-          padding: "0 14px",
-          display: "flex",
-          alignItems: "flex-end",
-          justifyContent: "space-between",
-          marginBottom: 12,
-        }}
-      >
-        {/* Avatar with optional verified dot */}
-        <div style={{ position: "relative", flexShrink: 0 }}>
-          <Avatar.Root
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 76,
-              height: 76,
-              borderRadius: 22,
-              border: "4px solid white",
-              boxShadow: "0 6px 18px rgba(15,23,42,.15)",
-              overflow: "hidden",
-              background: "#f3f4f6",
-            }}
-          >
+      {/* ── Avatar row — overlaps cover ── */}
+      <div className="relative -mt-9 sm:-mt-10 px-4 sm:px-5 flex items-end justify-between mb-3">
+        {/* Avatar with verified dot */}
+        <div className="relative shrink-0">
+          <Avatar.Root className="flex h-16 w-16 sm:h-18 sm:w-18 items-center justify-center rounded-2xl border-4 border-white shadow-md overflow-hidden bg-slate-100">
             <Avatar.Image
               src={creator.imageUrl}
               alt={creator.name}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              className="h-full w-full object-cover"
             />
             <Avatar.Fallback
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 800,
-                fontSize: "1.05rem",
-                color: "white",
-                background: avatarGradient,
-              }}
+              className="flex h-full w-full items-center justify-center text-sm sm:text-base font-black text-white"
+              style={{ background: avatarGradient }}
             >
               {creator.name.slice(0, 2).toUpperCase()}
             </Avatar.Fallback>
           </Avatar.Root>
 
-          {/* Verified check — overlaid on avatar bottom-right */}
           {creator.isVerified && (
             <div
               title="Kreator Terverifikasi"
-              style={{
-                position: "absolute",
-                bottom: -1,
-                right: -1,
-                width: 22,
-                height: 22,
-                borderRadius: "50%",
-                border: "2px solid white",
-                background: "#2563eb",
-                display: "grid",
-                placeItems: "center",
-                boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
-              }}
+              className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full border-2 border-white bg-blue-600 grid place-items-center shadow-xs"
             >
-              <CheckCircle2 size={13} color="white" fill="#2563eb" strokeWidth={0} />
+              <CheckCircle2 size={12} className="text-white fill-blue-600" />
             </div>
           )}
         </div>
 
         {/* Review count chip */}
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            padding: "5px 10px",
-            borderRadius: 10,
-            background: "#fffbeb",
-            border: "1px solid rgba(217,119,6,.16)",
-            fontSize: ".7rem",
-            fontWeight: 800,
-            color: "#92400e",
-            marginBottom: 2,
-            lineHeight: 1,
-          }}
-        >
-          <Star size={10} color="#d97706" fill="#d97706" />
-          {creator.totalReviews} ulasan
+        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200/60 text-xs font-extrabold text-amber-800 shadow-3xs mb-0.5">
+          <Star size={11} className="fill-amber-500 text-amber-500" />
+          <span>{creator.totalReviews} ulasan</span>
         </div>
       </div>
 
       {/* ── Card body ── */}
-      <div className="flex flex-col flex-1" style={{ padding: "0 14px 14px", gap: 11 }}>
-
+      <div className="p-4 sm:p-5 pt-0 flex flex-col gap-3 flex-1">
         {/* Name + handle + location */}
-        <div>
-          <h3
-            style={{
-              margin: "0 0 4px",
-              fontFamily: "var(--font-sora), var(--font-plus-jakarta-sans), sans-serif",
-              fontSize: "1.05rem",
-              fontWeight: 800,
-              letterSpacing: "-.045em",
-              color: "#182033",
-              lineHeight: 1.15,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
+        <div className="space-y-0.5 min-w-0">
+          <h3 className="font-display text-sm sm:text-base font-black text-slate-900 leading-snug tracking-tight truncate group-hover:text-orange-600 transition-colors">
             {creator.name}
           </h3>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <span style={{ fontSize: ".76rem", fontWeight: 650, color: "#9ca8b8", letterSpacing: "-.01em" }}>
-              {handle}
-            </span>
+          <div className="flex items-center gap-2 flex-wrap text-xs font-semibold text-slate-500">
+            <span className="truncate">{handle}</span>
             {creator.location && (
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 3,
-                  fontSize: ".72rem",
-                  fontWeight: 640,
-                  color: "#9ca8b8",
-                }}
-              >
-                <MapPin size={10} />
-                {creator.location}
+              <span className="inline-flex items-center gap-1 shrink-0 text-slate-400">
+                <MapPin size={11} />
+                <span>{creator.location}</span>
               </span>
             )}
           </div>
         </div>
 
-        {/* Stats row — followers + packages */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 8,
-          }}
-        >
-          {[
-            { label: "Followers", value: creator.followers, Icon: Users, color: "#ea580c", border: "rgba(234,88,12,.08)", iconBg: "rgba(234,88,12,.08)" },
-            { label: "Paket Jasa", value: creator.rateCardCount != null ? String(creator.rateCardCount) : "—", Icon: Package, color: "#2563eb", border: "rgba(37,99,235,.08)", iconBg: "rgba(37,99,235,.08)" },
-          ].map(({ label, value, Icon, color, border, iconBg }) => (
-            <div
-              key={label}
-              style={{
-                padding: "12px 14px",
-                borderRadius: 16,
-                background: label === "Followers"
-                  ? "linear-gradient(180deg, #fff7ed 0%, #ffffff 100%)"
-                  : "linear-gradient(180deg, #eff6ff 0%, #ffffff 100%)",
-                border: `1px solid ${border}`,
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
-                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.01)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: 20,
-                    height: 20,
-                    borderRadius: 6,
-                    background: iconBg,
-                  }}
-                >
-                  <Icon size={11} color={color} />
-                </div>
-                <span
-                  style={{
-                    fontSize: "0.62rem",
-                    fontWeight: 800,
-                    color,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  {label}
-                </span>
-              </div>
-              <span
-                style={{
-                  fontFamily: "var(--font-sora), sans-serif",
-                  fontSize: "1.05rem",
-                  fontWeight: 850,
-                  color: "#0f172a",
-                  letterSpacing: "-.02em",
-                  lineHeight: 1.1,
-                }}
-              >
-                {value}
-              </span>
+        {/* Stats row — Engagement + Proyek Selesai */}
+        <div className="grid grid-cols-2 gap-2 min-w-0">
+          {/* Engagement */}
+          <div className="p-2 sm:p-2.5 rounded-xl bg-orange-50/60 border border-orange-200/50 flex flex-col gap-0.5 shadow-3xs min-w-0 overflow-hidden">
+            <div className="flex items-center gap-1.5 text-orange-700 min-w-0">
+              <TrendingUp size={12} className="shrink-0" />
+              <span className="text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider truncate">Engagement</span>
             </div>
-          ))}
+            <span className="font-display text-xs sm:text-sm font-black text-slate-900 leading-tight truncate">
+              {engagementText}
+            </span>
+          </div>
+
+          {/* Selesai */}
+          <div className="p-2 sm:p-2.5 rounded-xl bg-blue-50/60 border border-blue-200/50 flex flex-col gap-0.5 shadow-3xs min-w-0 overflow-hidden">
+            <div className="flex items-center gap-1.5 text-blue-700 min-w-0">
+              <Briefcase size={12} className="shrink-0" />
+              <span className="text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider truncate">Order Selesai</span>
+            </div>
+            <span className="font-display text-xs sm:text-sm font-black text-slate-900 leading-tight truncate">
+              {completedJobsText}
+            </span>
+          </div>
         </div>
 
-        {/* Offer box — pushed to bottom */}
-        <div
-          style={{
-            marginTop: "auto",
-            padding: "14px 16px",
-            borderRadius: 18,
-            border: "1px solid rgba(234, 88, 12, 0.12)",
-            background: "linear-gradient(180deg, #fffbeb 0%, #ffffff 100%)",
-            boxShadow: "0 4px 14px rgba(234, 88, 12, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.6)",
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-          }}
-        >
-          <div>
-            <span
-              style={{
-                display: "block",
-                fontSize: "0.62rem",
-                fontWeight: 800,
-                color: "#f97316",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                marginBottom: 2,
-              }}
-            >
-              Estimasi Biaya Jasa
-            </span>
-            <strong
-              style={{
-                display: "block",
-                fontFamily: "var(--font-sora), sans-serif",
-                fontSize: "1.28rem",
-                fontWeight: 900,
-                color: "#ea580c",
-                letterSpacing: "-.03em",
-                lineHeight: 1,
-              }}
-            >
-              {creator.estimatedSalary}
-            </strong>
-          </div>
-          <span
-            style={{
-              display: "-webkit-box",
-              fontSize: ".75rem",
-              fontWeight: 550,
-              color: "#475569",
-              lineHeight: 1.45,
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
-            {creator.description}
+        {/* Estimasi Biaya Jasa & Bio */}
+        <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-b from-orange-50/80 to-white border border-orange-200/60 flex flex-col gap-1 shadow-3xs mt-auto min-w-0">
+          <span className="text-[9.5px] sm:text-[10px] font-extrabold uppercase tracking-wider text-orange-600 truncate">
+            Estimasi Biaya Jasa
           </span>
+          <strong className="font-display text-sm sm:text-base lg:text-lg font-black text-orange-600 tracking-tight leading-none truncate">
+            {creator.estimatedSalary}
+          </strong>
+          <p className="text-xs text-slate-600 font-medium line-clamp-2 leading-relaxed mt-0.5">
+            {creator.description}
+          </p>
         </div>
 
         {/* CTA buttons */}
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="flex items-center gap-2 pt-1">
           <Link
             href={`/dashboard/umkm/kreator/${creator.id}`}
-            className="transition-all duration-150 hover:-translate-y-px hover:shadow-2xs active:scale-[0.98] active:translate-y-0 hover:bg-ink-900/[.07] cursor-pointer"
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: 44,
-              borderRadius: 14,
-              border: "1px solid rgba(17,24,39,.1)",
-              background: "rgba(17,24,39,.042)",
-              color: "#182033",
-              fontSize: ".83rem",
-              fontWeight: 820,
-              textDecoration: "none",
-              letterSpacing: "-.02em",
-            }}
+            className="flex-1 flex items-center justify-center h-10 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white text-slate-800 text-xs font-extrabold shadow-3xs hover:border-slate-300 hover:shadow-xs transition-all no-underline text-center"
           >
             Lihat Profil
           </Link>
@@ -417,21 +179,9 @@ export function CreatorCard({ creator }: CreatorCardProps) {
             type="button"
             aria-label="Mulai negosiasi"
             onClick={() => router.push(`/dashboard/umkm/kreator/${creator.id}`)}
-            className="transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(234,88,12,.32)] active:scale-[0.96] active:translate-y-0 cursor-pointer"
-            style={{
-              width: 44,
-              height: 44,
-              flexShrink: 0,
-              borderRadius: 14,
-              border: "1px solid rgba(194,65,12,.2)",
-              background: "linear-gradient(180deg,#fb7a18,#ea580c)",
-              color: "white",
-              display: "grid",
-              placeItems: "center",
-              boxShadow: "0 4px 14px rgba(234,88,12,.22)",
-            }}
+            className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-b from-[#fb7a18] to-[#ea580c] text-white flex items-center justify-center shadow-xs hover:shadow-md hover:from-[#ea580c] hover:to-[#c2410c] hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer"
           >
-            <MessageCircle size={17} />
+            <MessageCircle size={16} />
           </button>
         </div>
       </div>

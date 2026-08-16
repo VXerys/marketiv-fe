@@ -542,6 +542,7 @@ export function PekerjaanAktifView({ initialWorks }: PekerjaanAktifViewProps) {
             filters={toolbarFilters}
             onClearFilters={handleClearFilters}
             hasActiveFilters={hasActiveFilters}
+            theme="kreator"
           />
         </div>
 

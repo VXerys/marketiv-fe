@@ -30,6 +30,6 @@ export { MarketplaceCard } from "./MarketplaceCard";
 export { ResponsiveDataRow } from "./ResponsiveDataRow";
 export type { ResponsiveDataCell } from "./ResponsiveDataRow";
 export { SearchToolbar } from "./SearchToolbar";
-export type { SearchToolbarFilter, SearchToolbarOption } from "./SearchToolbar";
+export type { SearchToolbarFilter, SearchToolbarOption, SearchToolbarQuickFilter, SearchToolbarProps } from "./SearchToolbar";
 export { HelpAdminModal } from "./HelpAdminModal";
 export type { HelpAdminModalProps } from "./HelpAdminModal";

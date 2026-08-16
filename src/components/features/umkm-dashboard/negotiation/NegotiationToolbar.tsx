@@ -57,6 +57,7 @@ export function NegotiationToolbar({
       filters={filters}
       onClearFilters={onClearFilters}
       hasActiveFilters={hasActiveFilters}
+      theme="umkm"
     />
   );
 }

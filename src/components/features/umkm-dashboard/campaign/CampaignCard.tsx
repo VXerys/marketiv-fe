@@ -80,13 +80,10 @@ export function CampaignCard({
 
   const isCancelDisabled = campaign.status === "completed";
   const isEditVisible    = campaign.status === "draft";
-  // Hapus permanen hanya untuk draft — sekali tayang campaign cuma bisa dijeda.
   const isDeleteVisible  = campaign.status === "draft";
 
   const actionItems = [
     { label: "Lihat Detail",       onClick: () => router.push(`/dashboard/umkm/campaign/${campaign.id}`) },
-    // Jalan keluar bila webhook Midtrans telat: dana sudah masuk tapi wizard
-    // sudah menyerah menunggu. Service tetap menolak bila dananya belum ada.
     ...(isDeleteVisible ? [{ label: "Terbitkan Campaign", onClick: onPublish }] : []),
     ...(isEditVisible ? [{ label: "Edit Draft", onClick: onEdit }] : []),
     { label: "Duplikasi Campaign", onClick: onDuplicate },
@@ -101,29 +98,24 @@ export function CampaignCard({
   const nicheCfg = NICHE_COLOR_CONFIG[campaign.niche] ?? NICHE_COLOR_CONFIG.lainnya;
 
   return (
-    <div className="campaign-card hover-card-animate">
-      {/* Action menu — z-50 so it floats above cover art */}
-      <div className="absolute top-3 right-3 z-50">
-        <DashboardActionMenu items={actionItems} />
-      </div>
-
-      {/* Cover art */}
-      <div className="campaign-card-cover" style={{ background: coverGradient }}>
-        {/* Decorative light overlay — kompleks gradient, dipertahankan */}
+    <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white shadow-3xs hover:shadow-md hover:-translate-y-1 hover:border-orange-300/60 transition-all duration-300">
+      {/* Cover Header */}
+      <div className="relative h-32 sm:h-36 w-full overflow-hidden shrink-0" style={{ background: coverGradient }}>
+        {/* Subtle decorative glow overlay */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "radial-gradient(circle at 18% 24%, rgba(255,255,255,.82) 0 10%, transparent 11%)," +
-              "radial-gradient(circle at 82% 22%, rgba(255,255,255,.38) 0 8%, transparent 9%)," +
-              "linear-gradient(180deg, transparent 34%, rgba(12,23,43,.32))",
+              "radial-gradient(circle at 18% 24%, rgba(255,255,255,.75) 0 12%, transparent 13%)," +
+              "radial-gradient(circle at 82% 22%, rgba(255,255,255,.35) 0 10%, transparent 11%)," +
+              "linear-gradient(180deg, transparent 40%, rgba(15,23,42,.35))",
           }}
         />
 
-        {/* Status badge overlay — menggunakan Tailwind token, bukan hex statik */}
+        {/* Status Badge Overlay */}
         <span
           className={cn(
-            "absolute top-3 left-3 inline-flex items-center gap-1.5 min-h-[28px] px-2.5 rounded-full bg-white/90 border text-[.72rem] font-[800] backdrop-blur-[10px]",
+            "absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 border text-[11px] font-extrabold shadow-3xs backdrop-blur-md",
             statusDotClass
           )}
         >
@@ -131,108 +123,120 @@ export function CampaignCard({
           {statusLabel}
         </span>
 
-        {/* Budget chip — pakai formatCompactCurrency dari @/lib/formatters */}
-        <span className="absolute bottom-3 right-3 px-3 py-2 rounded-[14px] bg-white/90 border border-white/30 shadow-md text-[.82rem] font-[850] text-ink-900 tracking-tight backdrop-blur-[10px]">
+        {/* Action menu */}
+        <div className="absolute top-2.5 right-2.5 z-20">
+          <DashboardActionMenu items={actionItems} />
+        </div>
+
+        {/* Budget Chip Overlay */}
+        <span className="absolute bottom-2.5 right-3 px-2.5 py-1 rounded-xl bg-white/95 border border-white/40 shadow-xs text-xs font-black text-slate-900 tracking-tight backdrop-blur-md">
           {formatCompactCurrency(campaign.totalBudgetEscrow)}
         </span>
       </div>
 
-      {/* Body */}
-      <div className="campaign-card-body">
-        <div className="min-w-0">
-          {/* Category chip dengan warna yang bervariasi sesuai niche */}
+      {/* Card Body */}
+      <div className="p-4 sm:p-5 flex flex-col gap-3 flex-1">
+        {/* Niche & Title & Brief */}
+        <div className="space-y-1 min-w-0">
           <span className={cn(
-            "inline-block text-[9px] font-black uppercase tracking-widest mb-1.5 select-none px-2 py-0.5 rounded-md border",
+            "inline-block text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border",
             nicheCfg.bg,
             nicheCfg.text,
             nicheCfg.border
           )}>
             {campaign.niche}
           </span>
-          <h3 className="campaign-card-title">{campaign.title}</h3>
-          <p className="hidden sm:block text-xs text-text-muted line-clamp-2 min-w-0 mt-1">{campaign.brief}</p>
+          <h3 className="font-display text-sm sm:text-base font-black text-slate-900 leading-snug tracking-tight truncate group-hover:text-orange-600 transition-colors">
+            {campaign.title}
+          </h3>
+          <p className="text-xs text-slate-500 font-medium line-clamp-2 leading-relaxed min-w-0">
+            {campaign.brief}
+          </p>
         </div>
 
-        {/* CPM / Reward Rate Info — Exact formatCurrency is best practice for exact payouts */}
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-primary-50/70 border border-primary/10 text-[10px] font-bold text-primary w-fit select-none">
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span>Komisi: <strong className="font-extrabold">{formatCurrency(campaign.pricePerThousandViews)}</strong> / 1.000 tayangan</span>
+        {/* CPM / Komisi Rate Box */}
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-orange-50/90 border border-orange-200/70 text-xs font-bold text-orange-800 w-fit select-none">
+          <span className="text-orange-600 font-extrabold">💰</span>
+          <span>Komisi: <strong className="font-black text-orange-950">{formatCurrency(campaign.pricePerThousandViews)}</strong> / 1K tayangan</span>
         </div>
 
-        {/* Stats row — descriptive terminology */}
-        <div className="campaign-card-meta">
-          <span className="flex items-center gap-1 font-extrabold text-[0.72rem]"><Users size={13} className="text-text-muted" />{campaign.usedQuota}/{campaign.creatorQuota} Kreator</span>
-          <span className="flex items-center gap-1 font-extrabold text-[0.72rem]"><Eye size={13} className="text-text-muted" />{campaign.totalViews === undefined ? "—" : formatCompactViews(campaign.totalViews)} Views</span>
-          <span className="flex items-center gap-1 font-extrabold text-[0.72rem]">
-            <Calendar size={13} className="text-text-muted" />
-            {new Date(campaign.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+        {/* Metadata stats row */}
+        <div className="flex items-center justify-between text-xs font-bold text-slate-600 border-y border-slate-100 py-2">
+          <span className="flex items-center gap-1">
+            <Users size={13} className="text-slate-400 shrink-0" />
+            <span>{campaign.usedQuota}/{campaign.creatorQuota} Kreator</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <Eye size={13} className="text-slate-400 shrink-0" />
+            <span>{campaign.totalViews === undefined ? "—" : formatCompactViews(campaign.totalViews)} Views</span>
+          </span>
+          <span className="flex items-center gap-1 text-slate-500">
+            <Calendar size={13} className="text-slate-400 shrink-0" />
+            <span>{new Date(campaign.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</span>
           </span>
         </div>
 
-        {/* Budget progress (Ganti progress kuota ke progress uang) */}
-        <div className="min-w-0">
-          <div className="hidden sm:flex justify-between items-baseline mb-2">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-text-muted">
+        {/* Budget Progress */}
+        <div className="space-y-1.5 min-w-0">
+          <div className="flex justify-between items-baseline text-xs">
+            <span className="font-extrabold uppercase tracking-wider text-[10px] text-slate-400">
               Anggaran Terpakai
             </span>
-            <span className="text-[12px] font-extrabold text-neutral-900">
+            <span className="font-extrabold text-slate-900 text-xs">
               {formatCompactCurrency(campaign.usedBudget)}{" "}
-              <span className="text-neutral-400 font-medium">/ {formatCompactCurrency(campaign.totalBudgetEscrow)}</span>{" "}
+              <span className="text-slate-400 font-normal">/ {formatCompactCurrency(campaign.totalBudgetEscrow)}</span>{" "}
               <span className={cn(
-                "ml-1 text-[11px] px-1.5 py-0.5 rounded-md font-bold border",
+                "ml-1 text-[10px] px-1.5 py-0.5 rounded-md font-black border",
                 progressPercent >= 100
-                  ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                  : "bg-orange-50 text-orange-600 border-orange-100"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : "bg-orange-50 text-orange-700 border-orange-200"
               )}>
                 {progressPercent}%
               </span>
             </span>
           </div>
-          <div className="relative h-2.5 w-full rounded-full bg-neutral-100/80 shadow-[inset_0_1.5px_3px_rgba(15,23,42,0.06)] overflow-hidden">
+          <div className="relative h-2 w-full rounded-full bg-slate-100 overflow-hidden">
             <div
               className={cn(
-                "h-full rounded-full transition-[width] duration-[800ms] ease-[cubic-bezier(.2,.8,.2,1)] relative bg-gradient-to-r",
+                "h-full rounded-full transition-all duration-500 relative bg-gradient-to-r",
                 progressPercent >= 100
-                  ? "from-emerald-500 via-teal-500 to-emerald-400"
-                  : "from-orange-600 via-orange-500 to-amber-400"
+                  ? "from-emerald-500 to-teal-400"
+                  : "from-[#fb7a18] to-[#ea580c]"
               )}
               style={{ width: `${progressPercent}%` }}
-            >
-              {/* Glossy top highlight for 3D premium depth */}
-              <div className="absolute inset-x-0 top-0 h-[35%] bg-white/25 rounded-full" />
-            </div>
+            />
           </div>
         </div>
 
-        {/* Submissions summary — descriptive label; hidden on narrow mobile */}
-        <div className="hidden sm:flex flex-wrap gap-2 text-[10px] text-text-secondary border-t border-border-soft pt-3 justify-between items-center min-w-0">
-          <span className="font-bold uppercase tracking-wider text-[9px] text-text-muted truncate">Validasi Konten</span>
-          <div className="flex gap-1.5 shrink-0">
-            <DashboardBadge tone="amber" className="h-4.5 px-2 text-[9px] font-bold">
+        {/* Content Validation Badges */}
+        <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 text-xs">
+          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 truncate">
+            Validasi
+          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <DashboardBadge tone="amber" className="h-5 px-2 text-[10px] font-bold">
               {pendingCount} Pending
             </DashboardBadge>
-            <DashboardBadge tone="green" className="h-4.5 px-2 text-[9px] font-bold">
+            <DashboardBadge tone="green" className="h-5 px-2 text-[10px] font-bold">
               {validCount} Valid
             </DashboardBadge>
             {disputeCount > 0 && (
-              <DashboardBadge tone="red" className="h-4.5 px-2 text-[9px] font-bold">
+              <DashboardBadge tone="red" className="h-5 px-2 text-[10px] font-bold">
                 {disputeCount} Sengketa
               </DashboardBadge>
             )}
           </div>
         </div>
 
-        {/* Primary CTA with premium hover transitions */}
-        <div className="mt-auto pt-1 sm:pt-2">
+        {/* Primary CTA Button */}
+        <div className="mt-auto pt-2">
           <Link
             href={`/dashboard/umkm/campaign/${campaign.id}`}
             className={cn(
-              "flex items-center justify-center min-h-[32px] sm:min-h-[36px] w-full rounded-[11px] text-[.78rem] sm:text-[.82rem] font-[800] transition-all duration-250 no-underline cursor-pointer select-none text-center",
+              "flex items-center justify-center h-10 w-full rounded-xl text-xs font-extrabold transition-all duration-200 no-underline cursor-pointer select-none text-center shadow-xs",
               campaign.status === "draft"
-                ? "bg-neutral-900 text-white shadow-[0_8px_20px_rgba(0,0,0,.15)] hover:bg-neutral-800 hover:-translate-y-0.5 active:translate-y-0"
-                : "bg-gradient-to-b from-[#fb7a18] to-primary-600 text-white shadow-[0_8px_20px_rgba(234,88,12,.2)] hover:from-[#ea580c] hover:to-[#c2410c] hover:shadow-[0_12px_28px_rgba(234,88,12,.35)] hover:-translate-y-0.5 active:translate-y-0"
+                ? "bg-slate-900 text-white hover:bg-slate-800 hover:-translate-y-0.5 active:translate-y-0"
+                : "bg-gradient-to-b from-[#fb7a18] to-[#ea580c] text-white hover:shadow-md hover:from-[#ea580c] hover:to-[#c2410c] hover:-translate-y-0.5 active:translate-y-0"
             )}
           >
             {campaign.status === "draft" ? "Lanjutkan Draft" : "Lihat Detail"}

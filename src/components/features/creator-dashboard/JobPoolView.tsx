@@ -445,6 +445,7 @@ export function JobPoolView({ initialJobs }: JobPoolViewProps) {
               filters={toolbarFilters}
               onClearFilters={handleClearFilters}
               hasActiveFilters={hasActiveFilters}
+              theme="kreator"
               extraActions={
                 <button
                   type="button"
