@@ -199,13 +199,23 @@ function ActiveJobCard({
     >
       {/* Cover image — same 4:3 as Job Pool */}
       <div className="relative w-full overflow-hidden shrink-0" style={{ aspectRatio: "4/3" }}>
-        <div
-          aria-hidden="true"
-          className="absolute inset-0"
-          style={{
-            background: CREATOR_DARK_GRADIENT,
-          }}
-        />
+        {work.thumbnailUrl ? (
+          <Image
+            src={work.thumbnailUrl}
+            alt={work.title}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          />
+        ) : (
+          <div
+            aria-hidden="true"
+            className="absolute inset-0"
+            style={{
+              background: CREATOR_DARK_GRADIENT,
+            }}
+          />
+        )}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{ background: "linear-gradient(to top, rgba(0,0,0,.72) 0%, rgba(0,0,0,0) 52%)" }}

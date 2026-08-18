@@ -160,14 +160,16 @@ export function formatTime(isoString: string): string {
  * Formats full Indonesian date for deadlines.
  */
 export function deadlineTime(isoString: string): string {
+  if (!isoString || typeof isoString !== "string") return "Belum ditentukan";
   try {
     const date = new Date(isoString);
+    if (isNaN(date.getTime())) return "Belum ditentukan";
     return date.toLocaleDateString("id-ID", {
       day: "numeric",
       month: "short",
       year: "numeric",
     });
   } catch {
-    return isoString;
+    return "Belum ditentukan";
   }
 }

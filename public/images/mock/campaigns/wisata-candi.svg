@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+  <defs>
+    <linearGradient id="cg9" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0c4a6e"/>
+    </linearGradient>
+    <linearGradient id="overlay" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.1"/>
+      <stop offset="60%" stop-color="#000000" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.85"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="300" fill="url(#cg9)"/>
+  <circle cx="340" cy="60" r="110" fill="white" opacity="0.08"/>
+  <circle cx="80" cy="220" r="140" fill="white" opacity="0.05"/>
+  <rect width="400" height="300" fill="url(#overlay)"/>
+  
+  <rect x="24" y="24" width="160" height="24" rx="12" fill="white" fill-opacity="0.2"/>
+  <text x="34" y="40" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="9" font-weight="900" fill="white" letter-spacing="1">PARIWISATA • TOURISM</text>
+  
+  <text x="320" y="90" font-size="52" opacity="0.85">🏛️</text>
+  
+  <text x="24" y="225" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="900" fill="white">Wisata Candi</text>
+  <text x="24" y="250" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600" fill="white" fill-opacity="0.85">Explore Cultural Heritage</text>
+</svg>

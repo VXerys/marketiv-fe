@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Users, Eye, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -101,15 +102,30 @@ export function CampaignCard({
     <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl border border-slate-200/80 bg-white shadow-3xs hover:shadow-md hover:-translate-y-1 hover:border-orange-300/60 transition-all duration-300">
       {/* Cover Header */}
       <div className="relative h-32 sm:h-36 w-full overflow-hidden shrink-0" style={{ background: coverGradient }}>
-        {/* Subtle decorative glow overlay */}
+        {campaign.thumbnailUrl ? (
+          <Image
+            src={campaign.thumbnailUrl}
+            alt={campaign.title}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          />
+        ) : (
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                "radial-gradient(circle at 18% 24%, rgba(255,255,255,.75) 0 12%, transparent 13%)," +
+                "radial-gradient(circle at 82% 22%, rgba(255,255,255,.35) 0 10%, transparent 11%)," +
+                "linear-gradient(180deg, transparent 40%, rgba(15,23,42,.35))",
+            }}
+          />
+        )}
+
+        {/* Dark overlay for contrast and text/badge readability */}
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(circle at 18% 24%, rgba(255,255,255,.75) 0 12%, transparent 13%)," +
-              "radial-gradient(circle at 82% 22%, rgba(255,255,255,.35) 0 10%, transparent 11%)," +
-              "linear-gradient(180deg, transparent 40%, rgba(15,23,42,.35))",
-          }}
+          style={{ background: "linear-gradient(to top, rgba(0,0,0,.70) 0%, rgba(0,0,0,.15) 50%, rgba(0,0,0,.35) 100%)" }}
         />
 
         {/* Status Badge Overlay */}

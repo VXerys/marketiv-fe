@@ -53,13 +53,19 @@ export function CreatorCard({ creator }: CreatorCardProps) {
         }}
       >
         {creator.bannerUrl ? (
-          <Image
-            src={creator.bannerUrl}
-            alt={`Banner ${creator.name}`}
-            fill
-            className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          />
+          <>
+            <Image
+              src={creator.bannerUrl}
+              alt={`Banner ${creator.name}`}
+              fill
+              className="object-cover object-center group-hover:scale-105 transition-transform duration-500"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            />
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: "linear-gradient(to top, rgba(0,0,0,.60) 0%, rgba(0,0,0,.10) 50%, rgba(0,0,0,.30) 100%)" }}
+            />
+          </>
         ) : (
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_60%_20%,rgba(255,255,255,.22),transparent_70%)] pointer-events-none" />
         )}

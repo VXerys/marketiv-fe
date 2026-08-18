@@ -20,6 +20,7 @@ import {
 } from "@/types/umkm-dashboard.types";
 import {
   mockUmkmProfile,
+  mockUmkmSettingsProfile,
   mockCampaigns,
   mockSubmissions,
   mockCreators,
@@ -568,16 +569,40 @@ export async function duplicateCampaign(
 export type { UmkmProfileWriteInput };
 
 export async function getUmkmSettingsProfile(): Promise<ServiceResult<UmkmSettingsProfile>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return { success: true, data: mockUmkmSettingsProfile };
+  }
   return getUmkmSettingsProfileFromAppwrite();
 }
 
 export async function updateUmkmProfile(
   input: UmkmProfileWriteInput
 ): Promise<ServiceResult<UmkmSettingsProfile>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return {
+      success: true,
+      data: {
+        ...mockUmkmSettingsProfile,
+        businessName: typeof input.businessName === "string" ? input.businessName : mockUmkmSettingsProfile.businessName,
+        category: typeof input.category === "string" ? input.category : mockUmkmSettingsProfile.category,
+        description: typeof input.description === "string" ? input.description : mockUmkmSettingsProfile.description,
+        city: typeof input.city === "string" ? input.city : mockUmkmSettingsProfile.city,
+        address: typeof input.address === "string" ? input.address : mockUmkmSettingsProfile.address,
+        tiktok: typeof input.tiktok === "string" ? input.tiktok : mockUmkmSettingsProfile.tiktok,
+        logoUrl: typeof input.logoUrl === "string" ? input.logoUrl : mockUmkmSettingsProfile.logoUrl,
+      },
+    };
+  }
   return updateUmkmProfileInAppwrite(input);
 }
 
 export async function uploadUmkmLogo(file: File): Promise<ServiceResult<string>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(600);
+    return { success: true, data: URL.createObjectURL(file) };
+  }
   return uploadUmkmLogoInAppwrite(file);
 }
 

@@ -167,6 +167,7 @@ export interface CreatorActiveWork {
   rejectedReason?: string;
   /** Materi pendukung campaign — `campaign_assets.fileUrl` pertama. */
   assetUrl?: string;
+  thumbnailUrl?: string;
   /** Locked views count dari Admin Marketiv validation (ADR-010). */
   viewsCount?: number;
   viewsCapturedAt?: string;

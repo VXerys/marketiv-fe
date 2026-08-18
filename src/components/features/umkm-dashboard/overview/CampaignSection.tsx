@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Users, Eye, Calendar, ChevronRight, Plus } from "lucide-react";
 import type { Campaign, CampaignStatus } from "@/types/umkm-dashboard.types";
 import { formatCurrency } from "@/lib/formatters";
@@ -84,8 +85,20 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
           background: coverGradient,
         }}
       >
-        {/* Subtle overlay texture */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.2),transparent_70%)]" />
+        {campaign.thumbnailUrl && (
+          <Image
+            src={campaign.thumbnailUrl}
+            alt={campaign.title}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            sizes="(max-width: 640px) 100vw, 50vw"
+          />
+        )}
+        {/* Subtle overlay gradient */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: "linear-gradient(to top, rgba(0,0,0,.70) 0%, rgba(0,0,0,.15) 50%, rgba(0,0,0,.35) 100%)" }}
+        />
 
         {/* Top Header Row: Status badge */}
         <div className="relative z-10 flex items-center justify-between gap-1">

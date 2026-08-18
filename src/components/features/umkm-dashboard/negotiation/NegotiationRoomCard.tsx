@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { MessageSquare, Clock, AlertCircle, Archive, ArchiveRestore } from "lucide-react";
@@ -120,6 +121,7 @@ export function NegotiationRoomCard({
   isArchived = false,
   onToggleArchive,
 }: NegotiationRoomCardProps) {
+  const [imgError, setImgError] = useState(false);
   const statusDetail = getStatusDetails(order.stage);
   const style = STATUS_STYLE[order.stage] ?? UNKNOWN_STAGE_STYLE;
 
@@ -137,20 +139,18 @@ export function NegotiationRoomCard({
       <div className="flex gap-4 flex-1 min-w-0">
         {/* Avatar with unread badge */}
         <div className="relative shrink-0">
-          {/* Kreator tanpa foto profil mengirim `avatarUrl: ""`, dan next/image
-              melempar pada src kosong — cukup untuk mematikan seluruh daftar.
-              Inisial nama dipakai sebagai gantinya, sama seperti kartu kreator. */}
-          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-neutral-100 border border-neutral-200/60 relative overflow-hidden shadow-3xs transition-transform duration-300 group-hover:scale-105 flex items-center justify-center">
-            {order.creatorAvatarUrl ? (
+          <div className="h-11 w-11 sm:h-12 sm:w-12 rounded-xl bg-orange-100 border border-neutral-200/60 relative overflow-hidden shadow-3xs transition-transform duration-300 group-hover:scale-105 flex items-center justify-center">
+            {order.creatorAvatarUrl && !imgError ? (
               <Image
                 src={order.creatorAvatarUrl}
                 alt={order.creatorName}
                 fill
                 className="object-cover"
                 sizes="48px"
+                onError={() => setImgError(true)}
               />
             ) : (
-              <span className="font-black text-neutral-300 text-lg select-none">
+              <span className="font-black text-orange-600 text-base sm:text-lg select-none">
                 {order.creatorName?.charAt(0) ?? "?"}
               </span>
             )}

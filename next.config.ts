@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ["dev.marketiv.id", "dev.marketiv.id:3000", "local.marketiv.id"],
   outputFileTracingRoot: __dirname,
   images: {
+    unoptimized: true,
     qualities: [75, 85, 90],
     remotePatterns: [
       {

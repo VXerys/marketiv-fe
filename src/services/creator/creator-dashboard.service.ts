@@ -17,8 +17,11 @@ import {
   CreatorRateCardPackage,
   CreatorTransaction,
   CreatorActivity,
+  CreatorNiche,
 } from "@/types/creator-dashboard";
 import {
+  mockCreatorProfile,
+  mockCreatorPortfolioItems,
   mockCreatorMetrics,
   mockCreatorJobs,
   mockCreatorActiveWorks,
@@ -72,10 +75,18 @@ import type {
 import type { RateCardStatus } from "@/types/domain";
 
 export async function getCreatorProfile(): Promise<ServiceResult<CreatorProfile>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return { success: true, data: mockCreatorProfile };
+  }
   return getCreatorProfileFromAppwrite();
 }
 
 export async function getCreatorPortfolio(): Promise<ServiceResult<CreatorPortfolioItem[]>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(300);
+    return { success: true, data: mockCreatorPortfolioItems };
+  }
   return getCreatorPortfolioFromAppwrite();
 }
 
@@ -312,14 +323,37 @@ export type { CreatorProfileWriteInput, CreatorPortfolioWriteInput };
 export async function updateCreatorProfile(
   input: CreatorProfileWriteInput
 ): Promise<ServiceResult<CreatorProfile>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return {
+      success: true,
+      data: {
+        ...mockCreatorProfile,
+        name: typeof input.displayName === "string" ? input.displayName : mockCreatorProfile.name,
+        bio: typeof input.bio === "string" ? input.bio : mockCreatorProfile.bio,
+        niche: (typeof input.niche === "string" ? input.niche : mockCreatorProfile.niche) as CreatorNiche,
+        location: typeof input.city === "string" ? input.city : mockCreatorProfile.location,
+        avatarUrl: typeof input.avatarUrl === "string" ? input.avatarUrl : mockCreatorProfile.avatarUrl,
+        bannerUrl: typeof input.bannerUrl === "string" ? input.bannerUrl : mockCreatorProfile.bannerUrl,
+      },
+    };
+  }
   return updateCreatorProfileInAppwrite(input);
 }
 
 export async function uploadCreatorAvatar(file: File): Promise<ServiceResult<string>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(600);
+    return { success: true, data: URL.createObjectURL(file) };
+  }
   return uploadCreatorAvatarInAppwrite(file);
 }
 
 export async function uploadCreatorBanner(file: File): Promise<ServiceResult<string>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(600);
+    return { success: true, data: URL.createObjectURL(file) };
+  }
   return uploadCreatorBannerInAppwrite(file);
 }
 
@@ -327,12 +361,29 @@ export async function upsertCreatorSocialAccount(input: {
   platform: "tiktok";
   username: string;
 }): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    return { success: true, data: null };
+  }
   return upsertCreatorSocialAccountInAppwrite(input);
 }
 
 export async function createCreatorPortfolio(
   input: CreatorPortfolioWriteInput
 ): Promise<ServiceResult<CreatorPortfolioItem>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return {
+      success: true,
+      data: {
+        id: `port_mock_${Date.now()}`,
+        title: input.title,
+        description: input.description ?? "",
+        url: input.portfolioUrl ?? "",
+        thumbnailUrl: input.thumbnailUrl,
+      },
+    };
+  }
   return createCreatorPortfolioInAppwrite(input);
 }
 
@@ -340,16 +391,37 @@ export async function updateCreatorPortfolio(
   id: string,
   input: CreatorPortfolioWriteInput
 ): Promise<ServiceResult<CreatorPortfolioItem>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(500);
+    return {
+      success: true,
+      data: {
+        id,
+        title: input.title,
+        description: input.description ?? "",
+        url: input.portfolioUrl ?? "",
+        thumbnailUrl: input.thumbnailUrl,
+      },
+    };
+  }
   return updateCreatorPortfolioInAppwrite(id, input);
 }
 
 export async function deleteCreatorPortfolio(id: string): Promise<ServiceResult<null>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(400);
+    return { success: true, data: null };
+  }
   return deleteCreatorPortfolioInAppwrite(id);
 }
 
 export async function uploadCreatorPortfolioThumbnail(
   file: File
 ): Promise<ServiceResult<string>> {
+  if (DATA_SOURCE_CONFIG.useMockData) {
+    await mockDelay(600);
+    return { success: true, data: URL.createObjectURL(file) };
+  }
   return uploadCreatorPortfolioThumbnailInAppwrite(file);
 }
 
