@@ -21,10 +21,11 @@ export function SettingsPageClient() {
 
   /** Ambil data; setState hanya di posisi setelah await. */
   const fetchData = useCallback(async (isActive: () => boolean) => {
-    let [res, portfolioRes] = await Promise.all([
+    const [profileRes, portfolioRes] = await Promise.all([
       getCreatorProfile(),
       getCreatorPortfolio(),
     ]);
+    let res = profileRes;
 
     if (!res.success && isActive()) {
       await new Promise((resolve) => setTimeout(resolve, 400));
