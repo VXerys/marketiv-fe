@@ -22,14 +22,10 @@ export default async ({ req, res, log, error }) => {
     }
 
     const existingEscrow = await findEscrow(databases, env, payment.order_id);
-    const escrow = existingEscrow || await databases.createDocument(
-      env.databaseId,
-      env.escrowsCollectionId,
-      ID.unique(),
-      { orderId: payment.order_id, amount: Number(payment.amount), status: "held", fee_rate: env.feeRate }
-    );
+    const escrow = existingEscrow || await createEscrowOnce(databases, env, payment);
 
     await ensureTransaction(databases, env, {
+      documentId: deterministicId(payment.order_id, "order-payment"),
       userId: payment.user_id,
       amount: Number(payment.amount),
       type: "payment",
@@ -177,7 +173,25 @@ async function findEscrow(databases, env, orderId) {
   return result.documents[0] || null;
 }
 
+async function createEscrowOnce(databases, env, payment) {
+  try {
+    return await databases.createDocument(
+      env.databaseId,
+      env.escrowsCollectionId,
+      ID.unique(),
+      { orderId: payment.order_id, amount: Number(payment.amount), status: "held", fee_rate: env.feeRate }
+    );
+  } catch (err) {
+    if (err?.code !== 409) throw err;
+    const winner = await findEscrow(databases, env, payment.order_id);
+    if (!winner) throw err;
+    return winner;
+  }
+}
+
 async function ensureTransaction(databases, env, transaction) {
+  const documentId = transaction.documentId || ID.unique();
+  const { documentId: _ignored, ...data } = transaction;
   const existing = await databases.listDocuments(env.databaseId, env.transactionsCollectionId, [
     Query.equal("referenceId", transaction.referenceId),
     Query.equal("referenceType", transaction.referenceType),
@@ -186,13 +200,19 @@ async function ensureTransaction(databases, env, transaction) {
   ]);
   if (existing.documents[0]) return { transaction: existing.documents[0], created: false };
 
-  const transactionDocument = await databases.createDocument(
-    env.databaseId,
-    env.transactionsCollectionId,
-    ID.unique(),
-    transaction,
-    [Permission.read(Role.user(transaction.userId))]
-  );
+  let transactionDocument;
+  try {
+    transactionDocument = await databases.createDocument(
+      env.databaseId,
+      env.transactionsCollectionId,
+      documentId,
+      data,
+      [Permission.read(Role.user(transaction.userId))]
+    );
+  } catch (err) {
+    if (err?.code !== 409) throw err;
+    transactionDocument = await databases.getDocument(env.databaseId, env.transactionsCollectionId, documentId);
+  }
 
   return { transaction: transactionDocument, created: true };
 }

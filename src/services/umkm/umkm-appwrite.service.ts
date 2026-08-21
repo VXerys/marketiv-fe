@@ -1160,6 +1160,7 @@ export type PaymentIntent = {
   snapToken?: string;
   redirectUrl?: string;
   status: "pending";
+  reused?: boolean;
 };
 
 /**

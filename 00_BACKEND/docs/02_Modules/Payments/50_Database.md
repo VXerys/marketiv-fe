@@ -28,6 +28,7 @@ Payment intent lokal untuk pembayaran yang diproses oleh Midtrans. Relasi: Order
 | ---------------- | ------- | -------- | ------------------------------------------------------------- |
 | user_id          | string  | yes      | FK → users, pembayar                                          |
 | order_id         | string  | no       | FK → orders untuk pembayaran order                            |
+| order_payment_key| string  | no       | `order:<orderId>`; unique lock untuk active/paid Rate Card payment |
 | campaign_id      | string  | no       | FK → campaigns untuk top-up campaign                          |
 | amount           | integer | yes      | nominal transaksi (sebelum fee)                                |
 | total_amount     | integer | yes      | nominal + fee platform (yang dibayar ke Midtrans)             |
@@ -40,7 +41,7 @@ Payment intent lokal untuk pembayaran yang diproses oleh Midtrans. Relasi: Order
 | status           | enum    | yes      | `pending\|paid\|failed\|expired\|cancelled`                 |
 | paid_at          | datetime| no       | waktu status berubah ke `paid`                                |
 
-**Index**: `gateway_reference (unique)`, `order_id`, `campaign_id`, `user_id`, `status`, `purpose`, `createdAt DESC`.
+**Index**: `gateway_reference (unique)`, `order_payment_key (unique)`, `order_id`, `campaign_id`, `user_id`, `status`, `purpose`, `createdAt DESC`.
 
 **Permission**: Owner read · System write · Admin read.
 

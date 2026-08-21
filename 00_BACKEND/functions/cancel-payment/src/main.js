@@ -1,7 +1,7 @@
 import { Client, Databases } from "node-appwrite";
 
 /**
- * cancel-payment — Batalkan payment yg masih pending.
+ * cancel-payment — Batalkan payment campaign yg masih pending.
  *
  * POST
  * Header: x-appwrite-user-id → 401 bila absen
@@ -10,6 +10,8 @@ import { Client, Databases } from "node-appwrite";
  * Syarat:
  *   - Payment harus milik user yg login
  *   - Payment status harus "pending" (belum paid/expired/failed/cancelled)
+ *   - Rate Card order tidak bisa dibatalkan lokal: Function ini tidak punya
+ *     integrasi Midtrans cancel, jadi gateway payment lama mungkin masih aktif.
  *
  * 200: { ok: true }
  * 400: { error: "..." }
@@ -61,7 +63,20 @@ export default async ({ req, res, log, error }) => {
       }, 409);
     }
 
-    // Update status
+    // Rate Card lock hanya boleh dibuka oleh status terminal dari Midtrans
+    // webhook. Menandai lokal sebagai cancelled akan mengizinkan payment baru
+    // ketika Snap lama masih mungkin dibayar.
+    if (payment.purpose === "order") {
+      log(`Order payment ${payload.paymentId} local cancel rejected: gateway confirmation required`);
+      return json(res, {
+        error: "Payment order masih aktif di gateway. Tunggu status Midtrans terkonfirmasi.",
+        code: "gateway_cancellation_required",
+        paymentId: payment.$id,
+        status: payment.status,
+      }, 409);
+    }
+
+    // Campaign mempertahankan behavior lokal yang sudah ada.
     await databases.updateDocument(
       env.databaseId,
       env.paymentsCollectionId,

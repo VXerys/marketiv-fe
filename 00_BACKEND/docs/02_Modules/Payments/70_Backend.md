@@ -8,15 +8,17 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 
 - **Trigger**: callable dari frontend saat user membatalkan payment yang masih `pending`.
 - **Pola**: service `payment.service.ts:cancelPayment(paymentId)` → Function `cancel-payment`.
-- **Aksi**: validasi kepemilikan + status `pending`, update status → `cancelled`.
+- **Aksi**: Campaign: validasi kepemilikan + status `pending`, update status → `cancelled`. Rate Card order: tolak local cancel dengan `409 gateway_cancellation_required`.
 - **Syarat**: payment `status = pending` (belum `paid`/`failed`/`expired`/`cancelled`).
 - **Env wajib**: `APPWRITE_API_KEY`, `APPWRITE_DATABASE_ID`, `PAYMENTS_COLLECTION_ID`.
-- **Catatan**: Tidak memanggil Midtrans — hanya update status internal. Jika ingin void transaksi Midtrans, perlu integrasi tambahan.
+- **Catatan**: Function tidak memanggil Midtrans. Karena itu Rate Card lock hanya dilepas webhook terminal Midtrans (`failed|expired|cancelled`), bukan dari local UX cancel.
 
 ### create-payment
 
 - **Trigger**: callable dari frontend saat UMKM checkout order atau top up.
 - **Aksi**: validasi user/order/amount, buat dokumen `payments`, panggil Midtrans, simpan `snapToken` dan/atau `redirectUrl`.
+- **Idempotensi Rate Card**: unique `order_payment_key` menjadi arbitrator race. Request kalah unique race membaca intent pemenang; tidak membuat Snap transaction kedua. Key dipertahankan saat `pending|paid`, dibersihkan authoritative saat `failed|expired|cancelled`.
+- **Error Snap ambigu**: setelah request ke Midtrans dimulai, kegagalan Function/network tidak mengubah order payment menjadi `failed` dan tidak membuka key. Request berikutnya mendapat `payment_preparing` sampai status gateway dapat dikonfirmasi.
 - **Env wajib**: `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_ENV`.
 - **Validasi per purpose**: `order` dan `campaign` sama-sama memeriksa kepemilikan, status, dan kecocokan nominal terhadap baris sumbernya. `campaign` wajib berstatus `draft` dan `amount` harus sama persis dengan `campaigns.budget`.
 - **Batas `gateway_reference`**: maksimal **50 karakter** — itu batas `transaction_details.order_id` di Midtrans. Referensi dibentuk `<prefix>-<paymentId>` (`ord`/`top`/`cmp`, total 24 karakter) dan id campaign/order **tidak** ikut di dalamnya; kaitannya sudah disimpan di kolom `campaign_id`/`order_id`. Bentuk lama yang menyertakan id + timestamp mencapai 52 karakter dan membuat **setiap** pembayaran campaign ditolak Midtrans dengan `transaction_details.order_id is too long`.

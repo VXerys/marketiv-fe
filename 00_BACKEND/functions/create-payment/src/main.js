@@ -53,8 +53,23 @@ export default async ({ req, res, log, error }) => {
       const orderAmount = Number(order.price ?? order.amount ?? order.escrow_amount);
 
       if (orderOwner !== userId) return json(res, { error: "Order does not belong to current user" }, 403);
-      if (orderStatus !== "pending_payment") return json(res, { error: "Order is not pending payment" }, 409);
       if (orderAmount !== amount) return json(res, { error: "Payment amount does not match order amount" }, 409);
+
+      const existing = await findOrderPayment(databases, env, payload.orderId);
+      if (existing?.status === "paid") {
+        log(`already-paid-rejected order=${payload.orderId}`);
+        return json(res, {
+          error: "Order payment is already paid",
+          code: "payment_already_paid",
+          paymentId: existing.$id,
+          status: existing.status,
+        }, 409);
+      }
+      if (existing?.status === "pending") {
+        log(`payment-reused order=${payload.orderId} payment=${existing.$id}`);
+        return existingPaymentResponse(res, existing);
+      }
+      if (orderStatus !== "pending_payment") return json(res, { error: "Order is not pending payment" }, 409);
     }
 
     // Cabang campaign dulu tidak memeriksa apa pun: user UMKM mana pun yang
@@ -89,14 +104,17 @@ export default async ({ req, res, log, error }) => {
       payload.purpose === "campaign" ? Math.floor(amount * env.feeRate) : 0;
     const totalAmount = amount + feeAmount;
 
-    const payment = await databases.createDocument(
-      env.databaseId,
-      env.paymentsCollectionId,
-      paymentId,
-      {
+    let payment;
+    try {
+      payment = await databases.createDocument(
+        env.databaseId,
+        env.paymentsCollectionId,
+        paymentId,
+        {
         user_id: userId,
         order_id: payload.orderId || null,
         campaign_id: payload.campaignId || null,
+        ...(payload.purpose === "order" && { order_payment_key: orderPaymentKey(payload.orderId) }),
         amount,
         total_amount: totalAmount,
         fee_amount: feeAmount,
@@ -107,9 +125,26 @@ export default async ({ req, res, log, error }) => {
         redirect_url: null,
         status: "pending",
         paid_at: null
-      },
-      [Permission.read(Role.user(userId))]
-    );
+        },
+        [Permission.read(Role.user(userId))]
+      );
+    } catch (err) {
+      if (payload.purpose !== "order" || err?.code !== 409) throw err;
+
+      const winner = await findOrderPaymentByKey(databases, env, orderPaymentKey(payload.orderId));
+      if (!winner) throw err;
+      log(`unique-race-recovered order=${payload.orderId} payment=${winner.$id}`);
+      if (winner.status === "paid") {
+        return json(res, {
+          error: "Order payment is already paid",
+          code: "payment_already_paid",
+          paymentId: winner.$id,
+          status: winner.status,
+        }, 409);
+      }
+      if (winner.status === "pending") return existingPaymentResponse(res, winner);
+      throw err;
+    }
 
     try {
       const midtrans = await createMidtransTransaction(env, {
@@ -142,7 +177,15 @@ itemName:
         status: "pending"
       });
     } catch (err) {
-      await databases.updateDocument(env.databaseId, env.paymentsCollectionId, payment.$id, { status: "failed" });
+      // Untuk order, error setelah fetch dimulai ambigu: Midtrans mungkin sudah
+      // membuat Snap intent walau Function tidak menerima respons. Pertahankan
+      // payment pending + unique lock; retry akan mendapat payment_preparing,
+      // bukan membuat jalur bayar kedua. Campaign mempertahankan behavior lama.
+      if (payload.purpose === "order") {
+        log(`payment-reconciliation-required order=${payload.orderId} payment=${payment.$id}`);
+      } else {
+        await databases.updateDocument(env.databaseId, env.paymentsCollectionId, payment.$id, { status: "failed" });
+      }
       throw err;
     }
   } catch (err) {
@@ -257,6 +300,50 @@ async function createMidtransTransaction(env, params) {
     throw err;
   }
   return body;
+}
+
+async function findOrderPayment(databases, env, orderId) {
+  const result = await databases.listDocuments(
+    env.databaseId,
+    env.paymentsCollectionId,
+    [Query.equal("order_id", orderId), Query.limit(100)]
+  );
+  return result.documents
+    .filter((payment) => payment.purpose === "order" && ["pending", "paid"].includes(payment.status))
+    .sort((a, b) => String(b.$createdAt || "").localeCompare(String(a.$createdAt || "")))[0] || null;
+}
+
+async function findOrderPaymentByKey(databases, env, key) {
+  const result = await databases.listDocuments(
+    env.databaseId,
+    env.paymentsCollectionId,
+    [Query.equal("order_payment_key", key), Query.limit(1)]
+  );
+  return result.documents[0] || null;
+}
+
+function orderPaymentKey(orderId) {
+  return `order:${orderId}`;
+}
+
+function existingPaymentResponse(res, payment) {
+  if (!payment.snap_token && !payment.redirect_url) {
+    return json(res, {
+      error: "Payment sedang dipersiapkan. Coba lagi setelah beberapa saat.",
+      code: "payment_preparing",
+      paymentId: payment.$id,
+      status: payment.status,
+    }, 409);
+  }
+
+  return json(res, {
+    paymentId: payment.$id,
+    gateway: "midtrans",
+    snapToken: payment.snap_token || undefined,
+    redirectUrl: payment.redirect_url || undefined,
+    status: payment.status,
+    reused: true,
+  });
 }
 
 function json(res, body, statusCode = 200) {

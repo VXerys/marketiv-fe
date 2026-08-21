@@ -683,6 +683,7 @@ const collections = [
     attributes: [
       createStringAttr("user_id", true),
       createStringAttr("order_id", false),
+      createStringAttr("order_payment_key", false),
       createStringAttr("campaign_id", false),
       createIntAttr("amount", true),
       createIntAttr("total_amount", true),
@@ -697,6 +698,7 @@ const collections = [
     ],
     indexes: [
       createIndex("idx_gateway_reference", "unique", ["gateway_reference"]),
+      createIndex("idx_order_payment_key", "unique", ["order_payment_key"]),
       createIndex("idx_order_id", "key", ["order_id"]),
       createIndex("idx_campaign_id", "key", ["campaign_id"]),
       createIndex("idx_user_id", "key", ["user_id"]),

@@ -50,6 +50,7 @@ Payment dibuat lewat Appwrite Function agar Midtrans secret key tidak pernah kel
   - Jika `purpose = campaign`, `campaignId` wajib dan campaign harus status `draft` milik UMKM yang login.
   - Amount harus sama dengan nilai order untuk payment order; sama dengan budget untuk payment campaign.
 - **Proses**:
+  - Untuk `purpose = order`, klaim `order_payment_key = order:<orderId>` lewat unique index. Payment `pending` direuse; payment `paid` ditolak; `failed|expired|cancelled` membuka retry.
   - Buat dokumen `payments` dengan `gateway = midtrans`, `status = pending`, dan `gateway_reference` unik.
   - Buat transaksi ke Midtrans dari server.
   - Simpan `snapToken` dan/atau `redirectUrl` dari Midtrans.
@@ -72,8 +73,8 @@ Payment dibuat lewat Appwrite Function agar Midtrans secret key tidak pernah kel
 
 - **Input**: `{ paymentId }`
 - **Validasi**: Payment harus milik user yang login, status harus `pending` (belum `paid`/`expired`/`failed`/`cancelled`).
-- **Proses**: panggil Function `cancel-payment` → update `status: pending → cancelled`.
-- **Output**: `{ ok: true }`
+- **Proses**: Campaign mempertahankan cancel lokal `pending → cancelled`. Untuk Rate Card order, Function menolak cancel lokal dengan `409 gateway_cancellation_required` karena Snap aktif tidak dapat dianggap batal tanpa konfirmasi Midtrans.
+- **Output**: Campaign `{ ok: true }`; Rate Card order `{ error, code: 'gateway_cancellation_required' }`.
 - **Akses**: Authenticated user (owner payment).
 
 ---

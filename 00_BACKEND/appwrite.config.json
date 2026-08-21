@@ -4051,6 +4051,15 @@
                     "encrypt": false
                 },
                 {
+                    "key": "order_payment_key",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 255,
+                    "default": null,
+                    "encrypt": false
+                },
+                {
                     "key": "campaign_id",
                     "type": "string",
                     "required": false,
@@ -4158,6 +4167,17 @@
                     ],
                     "columns": [
                         "gateway_reference"
+                    ]
+                },
+                {
+                    "key": "idx_order_payment_key",
+                    "type": "unique",
+                    "status": "available",
+                    "orders": [
+                        "ASC"
+                    ],
+                    "columns": [
+                        "order_payment_key"
                     ]
                 },
                 {

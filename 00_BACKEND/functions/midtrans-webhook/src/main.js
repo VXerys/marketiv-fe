@@ -54,7 +54,13 @@ export default async ({ req, res, log, error }) => {
       return json(res, { status: "ok", paymentId: payment.$id, paymentStatus: currentStatus });
     }
 
-    const update = { status: nextStatus };
+    const update = {
+      status: nextStatus,
+      ...(payment.purpose === "order" &&
+        ["failed", "expired", "cancelled"].includes(nextStatus) && {
+          order_payment_key: null,
+        }),
+    };
 
     if (nextStatus === "paid") {
       update.paid_at = toIsoDate(notification.settlement_time || notification.transaction_time);
@@ -66,6 +72,10 @@ export default async ({ req, res, log, error }) => {
       payment.$id,
       update
     );
+
+    if (payment.purpose === "order" && ["failed", "expired", "cancelled"].includes(nextStatus)) {
+      log(`payment-retry-unlocked payment=${payment.$id}`);
+    }
 
     log(`Payment ${payment.$id} updated to ${nextStatus}`);
     return json(res, { status: "ok", paymentId: payment.$id, paymentStatus: nextStatus });

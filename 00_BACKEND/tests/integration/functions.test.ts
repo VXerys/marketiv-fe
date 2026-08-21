@@ -74,7 +74,12 @@ class Databases {
   }
   async createDocument(_db: string, collection: string, docId: string, data: any, permissions?: any[]) {
     const existing = (store[collection] || []).find((d) => d.$id === docId);
-    if (existing) {
+    const uniqueConflict = collection === 'payments' && data.order_payment_key
+      ? (store[collection] || []).find((d) => d.order_payment_key === data.order_payment_key)
+      : collection === 'escrows' && data.orderId
+        ? (store[collection] || []).find((d) => d.orderId === data.orderId)
+        : null;
+    if (existing || uniqueConflict) {
       const e: any = new Error('document already exists');
       e.code = 409;
       throw e;
@@ -663,6 +668,220 @@ describe('midtrans-webhook function', () => {
     const res = makeRes();
     await main({ req, res, log: () => {}, error: () => {} });
     expect(res.calls[0].status).toBe(401);
+  });
+
+  it('unlocks retryable terminal status and ignores duplicate webhook', async () => {
+    process.env.APPWRITE_DATABASE_ID = 'db';
+    process.env.PAYMENTS_COLLECTION_ID = 'payments';
+    process.env.MIDTRANS_SERVER_KEY = 'server_key';
+    const orderId = 'ord-payment-1';
+    const gross = 100000;
+    const statusCode = '200';
+    const crypto = await import('node:crypto');
+    const signatureKey = crypto.createHash('sha512')
+      .update(`${orderId}${statusCode}${gross}${process.env.MIDTRANS_SERVER_KEY}`).digest('hex');
+    seed('payments', [{ $id: 'p1', user_id: 'user-1', order_id: 'o1', amount: gross, total_amount: gross,
+      purpose: 'order', gateway_reference: orderId, order_payment_key: 'order:o1', status: 'pending' }]);
+    const main = (await import('../../functions/midtrans-webhook/src/main.js')).default;
+    const req = makeReq({ bodyJson: { order_id: orderId, status_code: statusCode, gross_amount: gross,
+      signature_key: signatureKey, transaction_status: 'expire' } });
+    await main({ req, res: makeRes(), log: () => {}, error: () => {} });
+    await main({ req, res: makeRes(), log: () => {}, error: () => {} });
+    expect(store.payments[0]).toMatchObject({ status: 'expired', order_payment_key: null });
+    expect(updateCalls.filter((call) => call.collection === 'payments')).toHaveLength(1);
+  });
+});
+
+describe('Rate Card payment idempotency', () => {
+  const setup = () => {
+    process.env.PAYMENTS_COLLECTION_ID = 'payments';
+    process.env.ORDERS_COLLECTION_ID = 'orders';
+    process.env.USERS_COLLECTION_ID = 'users';
+    seed('users', [{ $id: 'profile-1', userId: 'user-1', role: 'umkm', status: 'active' }]);
+    seed('orders', [{ $id: 'order-1', umkmId: 'user-1', amount: 100000, status: 'pending_payment' }]);
+  };
+
+  const mockSnap = (calls: string[] = []) => {
+    (globalThis as any).fetch = async (url: string) => {
+      if (url.endsWith('/snap/v1/transactions')) {
+        calls.push(url);
+        return { ok: true, json: async () => ({ token: 'snap-token', redirect_url: 'https://pay.test/1' }) };
+      }
+      return { ok: true, json: async () => ({}), text: async () => '{}' };
+    };
+  };
+
+  it('creates exactly one payment and reuses pending intent sequentially', async () => {
+    setup();
+    const calls: string[] = [];
+    mockSnap(calls);
+    const main = (await import('../../functions/create-payment/src/main.js')).default;
+    const request = () => main({
+      req: makeReq({ bodyJson: { purpose: 'order', orderId: 'order-1', amount: 100000 } }),
+      res: makeRes(), log: () => {}, error: () => {},
+    });
+
+    const first = await request();
+    const retry = await request();
+    expect(first.status).toBe(200);
+    expect(retry.body).toMatchObject({ paymentId: first.body.paymentId, reused: true });
+    expect((store.payments || []).filter((p) => p.purpose === 'order')).toHaveLength(1);
+    expect(calls).toHaveLength(1);
+  });
+
+  it('keeps a locally-cancelled order payment payable and reuses its existing intent', async () => {
+    setup();
+    seed('payments', [{
+      $id: 'payment-a', user_id: 'user-1', order_id: 'order-1', amount: 100000,
+      total_amount: 100000, purpose: 'order', status: 'pending',
+      order_payment_key: 'order:order-1', snap_token: 'snap-a', redirect_url: 'https://pay.test/a',
+      gateway_reference: 'ord-payment-a',
+    }]);
+    const cancel = (await import('../../functions/cancel-payment/src/main.js')).default;
+    const cancelResult = await cancel({
+      req: makeReq({ bodyJson: { paymentId: 'payment-a' } }),
+      res: makeRes(), log: () => {}, error: () => {},
+    });
+    expect(cancelResult).toMatchObject({ status: 409, body: { code: 'gateway_cancellation_required' } });
+    expect(store.payments[0]).toMatchObject({ status: 'pending', order_payment_key: 'order:order-1' });
+
+    const calls: string[] = [];
+    mockSnap(calls);
+    const create = (await import('../../functions/create-payment/src/main.js')).default;
+    const retry = await create({
+      req: makeReq({ bodyJson: { purpose: 'order', orderId: 'order-1', amount: 100000 } }),
+      res: makeRes(), log: () => {}, error: () => {},
+    });
+    expect(retry.body).toMatchObject({ paymentId: 'payment-a', reused: true });
+    expect(calls).toHaveLength(0);
+    expect(store.payments).toHaveLength(1);
+  });
+
+  it.each([
+    ['cancel', 'cancelled'], ['expire', 'expired'], ['deny', 'failed'],
+  ])('unlocks retry only after Midtrans webhook confirms %s', async (transactionStatus, paymentStatus) => {
+    setup();
+    const gatewayReference = `ord-${transactionStatus}`;
+    const gross = 100000;
+    const signature = (await import('node:crypto')).createHash('sha512')
+      .update(`${gatewayReference}200${gross}${process.env.MIDTRANS_SERVER_KEY}`).digest('hex');
+    seed('payments', [{
+      $id: 'payment-a', user_id: 'user-1', order_id: 'order-1', amount: gross, total_amount: gross,
+      purpose: 'order', status: 'pending', order_payment_key: 'order:order-1', gateway_reference: gatewayReference,
+    }]);
+    const webhook = (await import('../../functions/midtrans-webhook/src/main.js')).default;
+    await webhook({
+      req: makeReq({ bodyJson: { order_id: gatewayReference, status_code: '200', gross_amount: gross,
+        signature_key: signature, transaction_status: transactionStatus } }),
+      res: makeRes(), log: () => {}, error: () => {},
+    });
+    expect(store.payments[0]).toMatchObject({ status: paymentStatus, order_payment_key: null });
+
+    const calls: string[] = [];
+    mockSnap(calls);
+    const create = (await import('../../functions/create-payment/src/main.js')).default;
+    const retry = await create({
+      req: makeReq({ bodyJson: { purpose: 'order', orderId: 'order-1', amount: gross } }),
+      res: makeRes(), log: () => {}, error: () => {},
+    });
+    expect(retry.status).toBe(200);
+    expect(calls).toHaveLength(1);
+  });
+
+  it('keeps order lock after ambiguous Snap failure and blocks a second transaction', async () => {
+    setup();
+    let attempts = 0;
+    (globalThis as any).fetch = async () => {
+      attempts += 1;
+      throw new Error('connection reset after request sent');
+    };
+    const create = (await import('../../functions/create-payment/src/main.js')).default;
+    const first = await create({
+      req: makeReq({ bodyJson: { purpose: 'order', orderId: 'order-1', amount: 100000 } }),
+      res: makeRes(), log: () => {}, error: () => {},
+    });
+    expect(first.status).toBe(500);
+    expect(store.payments[0]).toMatchObject({ status: 'pending', order_payment_key: 'order:order-1' });
+
+    const retry = await create({
+      req: makeReq({ bodyJson: { purpose: 'order', orderId: 'order-1', amount: 100000 } }),
+      res: makeRes(), log: () => {}, error: () => {},
+    });
+    expect(retry).toMatchObject({ status: 409, body: { code: 'payment_preparing' } });
+    expect(attempts).toBe(1);
+    expect(store.payments).toHaveLength(1);
+  });
+
+  it('lets unique database winner handle concurrent duplicate requests', async () => {
+    setup();
+    const calls: string[] = [];
+    mockSnap(calls);
+    const main = (await import('../../functions/create-payment/src/main.js')).default;
+    const request = () => main({
+      req: makeReq({ bodyJson: { purpose: 'order', orderId: 'order-1', amount: 100000 } }),
+      res: makeRes(), log: () => {}, error: () => {},
+    });
+    const results = await Promise.all([request(), request()]);
+    expect((store.payments || []).filter((p) => p.purpose === 'order')).toHaveLength(1);
+    expect(calls).toHaveLength(1);
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+  });
+
+  it.each([
+    ['failed', true], ['expired', true], ['cancelled', true], ['paid', false],
+  ])('handles terminal payment status %s', async (status, retryAllowed) => {
+    setup();
+    seed('payments', [{
+      $id: 'old-payment', user_id: 'user-1', order_id: 'order-1', amount: 100000,
+      total_amount: 100000, purpose: 'order', status, order_payment_key: status === 'paid' ? 'order:order-1' : null,
+      snap_token: 'old-token', redirect_url: 'old-url', gateway_reference: `ord-old-${status}`,
+    }]);
+    const calls: string[] = [];
+    mockSnap(calls);
+    const main = (await import('../../functions/create-payment/src/main.js')).default;
+    const result = await main({
+      req: makeReq({ bodyJson: { purpose: 'order', orderId: 'order-1', amount: 100000 } }),
+      res: makeRes(), log: () => {}, error: () => {},
+    });
+    expect(result.status).toBe(retryAllowed ? 200 : 409);
+    expect(calls).toHaveLength(retryAllowed ? 1 : 0);
+  });
+
+  it('rejects wrong owner and wrong amount before payment creation', async () => {
+    setup();
+    const main = (await import('../../functions/create-payment/src/main.js')).default;
+    const wrongOwner = await main({
+      req: makeReq({ headers: { 'x-appwrite-user-id': 'other-user' }, bodyJson: { purpose: 'order', orderId: 'order-1', amount: 100000 } }),
+      res: makeRes(), log: () => {}, error: () => {},
+    });
+    const wrongAmount = await main({
+      req: makeReq({ bodyJson: { purpose: 'order', orderId: 'order-1', amount: 99000 } }),
+      res: makeRes(), log: () => {}, error: () => {},
+    });
+    expect(wrongOwner.status).toBe(403);
+    expect(wrongAmount.status).toBe(409);
+    expect(store.payments || []).toHaveLength(0);
+  });
+});
+
+describe('create-escrow duplicate webhook protection', () => {
+  it('keeps one escrow and one order payment ledger row on repeated event', async () => {
+    process.env.APPWRITE_DATABASE_ID = 'db';
+    process.env.ESCROWS_COLLECTION_ID = 'escrows';
+    process.env.ORDERS_COLLECTION_ID = 'orders';
+    process.env.PAYMENTS_COLLECTION_ID = 'payments';
+    process.env.TRANSACTIONS_COLLECTION_ID = 'transactions';
+    process.env.WALLETS_COLLECTION_ID = 'wallets';
+    seed('orders', [{ $id: 'o1', umkmId: 'u1', creatorId: 'c1', amount: 100000, status: 'pending_payment' }]);
+    const main = (await import('../../functions/create-escrow/src/main.js')).default;
+    const request = () => main({
+      req: makeReq({ bodyJson: { $id: 'p1', status: 'paid', purpose: 'order', order_id: 'o1', user_id: 'u1', amount: 100000 } }),
+      res: makeRes(), log: () => {}, error: () => {},
+    });
+    await request();
+    await request();
+    expect(store.escrows).toHaveLength(1);
+    expect(store.transactions).toHaveLength(1);
   });
 });
 
