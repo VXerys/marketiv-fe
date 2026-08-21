@@ -131,6 +131,8 @@ export interface ServiceResult<T> {
   error?: string;
   /** UI memetakan code → perilaku. JANGAN mem-parse teks `error`. */
   code?: ServiceErrorCode;
+  /** Kode domain dari Function untuk aksi yang perlu dibedakan UI. */
+  reason?: string;
 }
 
 // ---------------------------------------------------------------------------

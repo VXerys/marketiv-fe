@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Maximize2, Minimize2 } from "lucide-react";
 import {
   getNegotiationById,
@@ -44,6 +45,11 @@ import { NegotiationNotFoundState } from "./NegotiationNotFoundState";
 import { NegotiationErrorState } from "../NegotiationErrorState";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
 import { realtimeClient, tableChannels } from "@/lib/appwrite/realtime";
+import {
+  buildPaymentReturnUrl,
+  isPaymentConfirmedStage,
+} from "@/lib/negotiation/room-sync";
+import { useNegotiationRoomSync } from "@/lib/negotiation/use-negotiation-room-sync";
 
 import { SendCustomOfferModal } from "../modals/SendCustomOfferModal";
 import { PaymentSimulationModal } from "../modals/PaymentSimulationModal";
@@ -73,6 +79,9 @@ interface NegotiationRoomPageProps {
 }
 
 export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [order, setOrder] = useState<NegotiationOrder | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,6 +92,7 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [paymentVerification, setPaymentVerification] = useState<"idle" | "verifying" | "unresolved">("idle");
   const [isCancelOrderOpen, setIsCancelOrderOpen] = useState(false);
   const [isChatFullscreen, setIsChatFullscreen] = useState(false);
 
@@ -91,10 +101,15 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   const [isRevisionOpen, setIsRevisionOpen] = useState(false);
   const [revisionMessage, setRevisionMessage] = useState("");
   const [reviewing, setReviewing] = useState(false);
+  const loadInFlightRef = useRef(false);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadData = useCallback(async (initial = false) => {
+    if (loadInFlightRef.current) return;
+    loadInFlightRef.current = true;
+    if (initial) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const [roomRes, msgRes] = await Promise.all([
         getNegotiationById(conversationId),
@@ -103,7 +118,7 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
       if (roomRes.success && roomRes.data) {
         setOrder(roomRes.data);
       } else {
-        setError(roomRes.error || "Gagal memuat detail negosiasi.");
+        if (initial) setError(roomRes.error || "Gagal memuat detail negosiasi.");
       }
       if (msgRes.success && msgRes.data) setMessages(msgRes.data);
 
@@ -117,21 +132,38 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
         setDeliverables([]);
       }
     } catch {
-      setError("Kesalahan memuat data Negosiasi.");
+      if (initial) setError("Kesalahan memuat data Negosiasi.");
     } finally {
-      setLoading(false);
+      loadInFlightRef.current = false;
+      if (initial) setLoading(false);
     }
   }, [conversationId]);
 
   useEffect(() => {
     void (async () => {
-      await loadData();
+      await loadData(true);
       // Membuka ruang = pesannya terbaca. Tanpa ini `messages.read_at` tetap
       // kosong selamanya dan badge belum-dibaca tidak pernah turun. Kegagalannya
       // tidak boleh menahan chat, jadi hasilnya sengaja diabaikan.
       void markConversationRead(conversationId);
     })();
   }, [loadData, conversationId]);
+
+  const reloadAuthoritativeRoom = useCallback(async () => {
+    await loadData(false);
+  }, [loadData]);
+
+  const handlePaymentVerificationTimeout = useCallback(() => {
+    setPaymentVerification("unresolved");
+  }, []);
+
+  useNegotiationRoomSync({
+    stage: order?.stage,
+    enabled: !DATA_SOURCE_CONFIG.useMockData,
+    paymentVerification: paymentVerification === "verifying",
+    reload: reloadAuthoritativeRoom,
+    onPaymentVerificationTimeout: handlePaymentVerificationTimeout,
+  });
 
   useEffect(() => {
     if (DATA_SOURCE_CONFIG.useMockData) return;
@@ -140,9 +172,22 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
 
     return realtimeClient.subscribe(channels, (event) => {
       const payload = event.payload as { conversation_id?: string };
-      if (payload.conversation_id === conversationId) void loadData();
+      if (payload.conversation_id === conversationId) void reloadAuthoritativeRoom();
     });
-  }, [conversationId, loadData]);
+  }, [conversationId, reloadAuthoritativeRoom]);
+
+  useEffect(() => {
+    if (searchParams.get("payment_return") !== "1") return;
+    setPaymentVerification("verifying");
+    void reloadAuthoritativeRoom();
+  }, [reloadAuthoritativeRoom, searchParams]);
+
+  useEffect(() => {
+    if (paymentVerification !== "verifying" || !isPaymentConfirmedStage(order?.stage)) return;
+    setPaymentVerification("idle");
+    setIsSuccessModalOpen(true);
+    router.replace(pathname, { scroll: false });
+  }, [order?.stage, pathname, paymentVerification, router]);
 
   /**
    * Kirim pesan lalu muat ulang riwayatnya.
@@ -205,10 +250,15 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
     const res = await createOrderPayment({
       orderId: order.orderId,
       amount: order.finalPrice,
-      finishUrl: typeof window !== "undefined" ? window.location.href : undefined,
+      finishUrl: typeof window !== "undefined" ? buildPaymentReturnUrl(window.location.href) : undefined,
     });
     setPaying(false);
     if (!res.success || !res.data) {
+      if (res.reason === "payment_preparing" || res.reason === "payment_already_paid") {
+        setIsPaymentModalOpen(false);
+        setPaymentVerification("verifying");
+        await reloadAuthoritativeRoom();
+      }
       toast.error(res.error ?? "Gagal membuat pembayaran.");
       return;
     }
@@ -218,8 +268,9 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
       window.location.href = res.data.redirectUrl;
       return;
     }
-    setIsSuccessModalOpen(true);
-    await loadData();
+    setPaymentVerification("verifying");
+    toast.error("Pembayaran masih disiapkan. Jangan buat pembayaran baru; periksa lagi sebentar.");
+    await reloadAuthoritativeRoom();
   };
 
   /**
@@ -315,7 +366,7 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
       "px-3 py-1.5 rounded-[10px] text-white text-[10px] font-extrabold transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer shrink-0 leading-none";
     // Custom Offer dikirim lewat composer chat (tombol +); begitu offer diterima,
     // order lahir dengan status pending_payment dan CTA-nya menjadi "Bayar".
-    if (order.stage === "pending_payment") {
+    if (order.stage === "pending_payment" && paymentVerification === "idle") {
       return (
         <button
           type="button"
@@ -326,7 +377,7 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
             boxShadow: "0 3px 8px rgba(249,115,22,.28)",
           }}
         >
-          Bayar
+          Bayar dengan Midtrans
         </button>
       );
     }
@@ -356,6 +407,30 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
           </svg>
           Kembali ke Negosiasi
         </Link>
+      )}
+
+      {order.stage === "pending_payment" && !isChatFullscreen && (
+        <div className="rounded-[18px] border border-orange-200 bg-orange-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-extrabold text-orange-900">Pembayaran diperlukan untuk memulai pekerjaan</p>
+            <p className="text-[11px] font-semibold text-orange-700 mt-0.5">
+              {paymentVerification === "verifying"
+                ? "Pembayaran sedang diperiksa/disiapkan. Jangan membuat pembayaran baru."
+                : paymentVerification === "unresolved"
+                  ? "Belum ada konfirmasi server dari Midtrans. Periksa lagi sebelum mencoba tindakan lain."
+                  : `Bayar ${formatCurrency(order.finalPrice)} melalui Midtrans.`}
+            </p>
+          </div>
+          {paymentVerification === "unresolved" ? (
+            <button type="button" onClick={() => { setPaymentVerification("verifying"); void reloadAuthoritativeRoom(); }} className="px-4 py-2 rounded-xl bg-white border border-orange-300 text-orange-800 text-xs font-extrabold cursor-pointer">
+              Periksa lagi
+            </button>
+          ) : paymentVerification === "idle" ? (
+            <button type="button" onClick={() => setIsPaymentModalOpen(true)} className="px-4 py-2 rounded-xl bg-orange-600 text-white text-xs font-extrabold cursor-pointer">
+              Bayar dengan Midtrans
+            </button>
+          ) : null}
+        </div>
       )}
 
       {/* Main grid: chat left, sidebar right */}
@@ -434,7 +509,7 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
           {/* Messages feed — fills remaining space */}
           <ChatTimeline
             messages={messages}
-            onPayOffer={() => setIsPaymentModalOpen(true)}
+            onPayOffer={() => paymentVerification === "idle" && setIsPaymentModalOpen(true)}
             onDeleteOffer={handleDeleteOffer}
             stage={order.stage}
             activeOfferId={order.offerId}
@@ -446,7 +521,7 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
             stage={order.stage}
             sending={sending}
             onSendOffer={() => setIsOfferModalOpen(true)}
-            onPay={() => setIsPaymentModalOpen(true)}
+            onPay={() => paymentVerification === "idle" && setIsPaymentModalOpen(true)}
           />
         </div>
 

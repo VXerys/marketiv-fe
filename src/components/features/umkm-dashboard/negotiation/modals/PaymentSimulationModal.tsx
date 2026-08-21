@@ -48,10 +48,10 @@ export function PaymentSimulationModal({
           </div>
           <div className="text-left">
             <ResponsiveModalTitle className="text-sm sm:text-base font-extrabold text-text-primary uppercase tracking-wider leading-none">
-              Deposit Dana Escrow
+              Bayar dengan Midtrans
             </ResponsiveModalTitle>
             <ResponsiveModalDescription className="text-[10px] text-text-muted mt-1 block">
-              Dana ditahan Marketiv sampai kamu menyetujui hasil kerjanya.
+              Dana ditahan di escrow setelah pembayaran dikonfirmasi server.
             </ResponsiveModalDescription>
           </div>
         </ResponsiveModalHeader>
@@ -106,7 +106,7 @@ export function PaymentSimulationModal({
             disabled={isPaying}
             className="flex-1 py-2.5 rounded-xl bg-primary hover:bg-primary-600 text-white text-xs font-bold transition-all duration-200 cursor-pointer border border-primary hover:border-primary-600 shadow-xs text-center select-none disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isPaying ? "Memproses…" : "Konfirmasi Deposit"}
+            {isPaying ? "Memproses…" : "Lanjut ke Midtrans"}
           </button>
         </ResponsiveModalFooter>
       </ResponsiveModalContent>

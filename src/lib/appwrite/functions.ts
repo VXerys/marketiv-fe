@@ -85,12 +85,14 @@ export type FunctionId = (typeof FUNCTION_IDS)[keyof typeof FUNCTION_IDS];
 export class FunctionExecutionError extends Error {
   readonly code: ServiceErrorCode;
   readonly statusCode: number;
+  readonly responseCode?: string;
 
-  constructor(message: string, statusCode: number, code: ServiceErrorCode) {
+  constructor(message: string, statusCode: number, code: ServiceErrorCode, responseCode?: string) {
     super(message);
     this.name = "FunctionExecutionError";
     this.statusCode = statusCode;
     this.code = code;
+    this.responseCode = responseCode;
   }
 }
 
@@ -164,7 +166,12 @@ export async function executeFunction<T>(
     }
     const message =
       (payload as { error?: string } | null)?.error ?? `Function ${functionId} gagal dieksekusi`;
-    throw new FunctionExecutionError(message, statusCode || 500, statusToCode(statusCode || 500));
+    throw new FunctionExecutionError(
+      message,
+      statusCode || 500,
+      statusToCode(statusCode || 500),
+      (payload as { code?: string } | null)?.code
+    );
   }
 
   if (payload === null && execution.responseBody) {
@@ -178,7 +185,12 @@ export async function executeFunction<T>(
   if (statusCode < 200 || statusCode >= 300) {
     const message =
       (payload as { error?: string } | null)?.error ?? `Function ${functionId} mengembalikan ${statusCode}`;
-    throw new FunctionExecutionError(message, statusCode, statusToCode(statusCode));
+    throw new FunctionExecutionError(
+      message,
+      statusCode,
+      statusToCode(statusCode),
+      (payload as { code?: string } | null)?.code
+    );
   }
 
   return payload as T;

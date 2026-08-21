@@ -31,6 +31,7 @@ import { getEscrowStatusLabel } from "@/lib/creator-status";
 import { cn } from "@/lib/utils";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
 import { realtimeClient, tableChannels } from "@/lib/appwrite/realtime";
+import { useNegotiationRoomSync } from "@/lib/negotiation/use-negotiation-room-sync";
 import {
   ArrowLeft,
   Send,
@@ -54,9 +55,6 @@ interface NegosiasiRoomViewProps {
   conversationId: string;
 }
 
-/** Poll `create-order` sesudah accept — Function-nya berjalan asinkron. */
-const ORDER_POLL_ATTEMPTS = 5;
-const ORDER_POLL_INTERVAL_MS = 2000;
 const CREATOR_ACTION_GRADIENT =
   "linear-gradient(135deg, var(--color-kreator-600), var(--color-kreator-action-end))";
 const CREATOR_INK_ACTION_GRADIENT =
@@ -123,15 +121,6 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
-  // Mount guard untuk poll loop answerOffer — cegah setState setelah unmount
-  // (fix LOW-2 2026-08-08)
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
   const [inputMessage, setInputMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [answering, setAnswering] = useState(false);
@@ -219,6 +208,12 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
     };
   }, [loadRoom, conversationId]);
 
+  useNegotiationRoomSync({
+    stage: neg?.stage,
+    enabled: !DATA_SOURCE_CONFIG.useMockData,
+    reload: loadRoom,
+  });
+
   useEffect(() => {
     if (DATA_SOURCE_CONFIG.useMockData) return;
     const channels = tableChannels("messages");
@@ -301,25 +296,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
 
     toast.success("Penawaran diterima. Menyiapkan pesanan…");
 
-    // Poll sampai `create-order` selesai. Batasnya sengaja terhingga: kalau
-    // Function gagal, kreator harus tahu — bukan dibiarkan menunggu selamanya.
-    for (let attempt = 0; attempt < ORDER_POLL_ATTEMPTS; attempt++) {
-      await new Promise((r) => setTimeout(r, ORDER_POLL_INTERVAL_MS));
-      if (!mountedRef.current) return; // komponen sudah unmount — hentikan polling
-      const res = await getCreatorNegotiationById(conversationId);
-      if (res.success && res.data) {
-        setNeg(res.data);
-        if (res.data.orderId) {
-          setAnswering(false);
-          toast.success("Pesanan dibuat. Menunggu pembayaran UMKM.");
-          return;
-        }
-      }
-    }
-
-    if (!mountedRef.current) return; // unmount saat polling selesai
     setAnswering(false);
-    toast.info("Pesanan sedang diproses. Muat ulang halaman sebentar lagi.");
     await loadRoom();
   };
 

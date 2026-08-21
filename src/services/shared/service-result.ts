@@ -128,7 +128,15 @@ export const failFromWriteError = <T>(
   } else if (code === "validation" && validationMessage) {
     error = validationMessage;
   }
-  return { success: false, data: empty, error, code };
+  return {
+    success: false,
+    data: empty,
+    error,
+    code,
+    ...(err instanceof FunctionExecutionError && err.responseCode
+      ? { reason: err.responseCode }
+      : {}),
+  };
 };
 
 /** Ambil userId sesi aktif, atau ServiceResult error yang siap dikembalikan. */

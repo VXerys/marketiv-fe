@@ -20,6 +20,7 @@ export default defineConfig({
       "src/services/auth/__tests__/**/*.test.ts",
       "src/components/features/**/__tests__/**/*.test.tsx",
       "src/lib/onboarding/__tests__/**/*.test.ts",
+      "src/lib/negotiation/__tests__/**/*.test.ts",
       "src/services/**/__tests__/**/*.test.ts",
     ],
     exclude: ["node_modules", "00_BACKEND/tests/e2e"],

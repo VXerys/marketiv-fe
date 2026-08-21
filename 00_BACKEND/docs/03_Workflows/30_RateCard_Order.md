@@ -52,7 +52,9 @@ UMKM buka `Creator Discovery` → profil creator → lihat rate card → pilih j
    - Input: amount = `hargaPaket` (sesuai rate card, tanpa tambahan fee).
    - Appwrite Function `create-payment` membuat transaksi Midtrans dan mengembalikan `snapToken`/`redirectUrl`.
    - UMKM menyelesaikan pembayaran di Midtrans sebesar harga paket.
+   - URL kembali Midtrans hanya membuka ruang negosiasi dengan marker verifikasi; browser tidak boleh menandai pembayaran sukses sendiri.
    - Webhook `midtrans-webhook` tervalidasi → `payments.status: pending → paid`.
+   - UI menyatakan pembayaran berhasil hanya setelah DTO ruang dari server sudah mencapai `in_progress` (escrow telah diproses).
 6b. **Frontend** — UMKM melihat **modal sukses**:
    - Title: "Pembayaran Berhasil!"
    - Body: "Pesanan #{orderId} sedang diproses. Tunggu Creator mengirimkan deliverable."
