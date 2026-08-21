@@ -21,18 +21,38 @@ export default async ({ req, res, log, error }) => {
       error("Invalid Midtrans signature_key");
       return json(res, { error: "Invalid signature" }, 401);
     }
+    // Midtrans Dashboard test notification.
+    // Payload sudah lolos signature verification, tetapi order_id test
+    // memang tidak memiliki payment yang tersimpan di Marketiv.
+    if (
+      typeof notification.order_id === "string" &&
+      notification.order_id.startsWith("payment_notif_test_")
+    ) {
+      log(`Midtrans test notification accepted: ${notification.order_id}`);
 
+      return json(res, {
+        status: "ok",
+        test: true,
+      });
+    }
     const databases = createDatabasesClient(env);
     const payment = await findPayment(databases, env, notification.order_id);
 
     if (!payment) {
-      error(`Payment not found for Midtrans order_id: ${notification.order_id}`);
+      error(
+        `Payment not found for Midtrans order_id: ${notification.order_id}`,
+      );
       return json(res, { error: "Payment not found" }, 404);
     }
 
     // Midtrans menagih total_amount (budget + fee platform), bukan amount dasar.
     // `?? payment.amount` menjaga baris lama yang belum punya total_amount.
-    if (!isAmountEqual(payment.total_amount ?? payment.amount, notification.gross_amount)) {
+    if (
+      !isAmountEqual(
+        payment.total_amount ?? payment.amount,
+        notification.gross_amount,
+      )
+    ) {
       error(`Amount mismatch for payment ${payment.$id}`);
       return json(res, { error: "Amount mismatch" }, 409);
     }
@@ -41,17 +61,29 @@ export default async ({ req, res, log, error }) => {
     const currentStatus = payment.status;
 
     if (!nextStatus) {
-      log(`Ignoring Midtrans status ${notification.transaction_status} for payment ${payment.$id}`);
+      log(
+        `Ignoring Midtrans status ${notification.transaction_status} for payment ${payment.$id}`,
+      );
       return json(res, { status: "ignored" });
     }
 
     if (currentStatus === nextStatus) {
-      return json(res, { status: "ok", paymentId: payment.$id, paymentStatus: currentStatus });
+      return json(res, {
+        status: "ok",
+        paymentId: payment.$id,
+        paymentStatus: currentStatus,
+      });
     }
 
     if (TERMINAL_STATUSES.has(currentStatus)) {
-      log(`Ignoring ${nextStatus} for terminal payment ${payment.$id} (${currentStatus})`);
-      return json(res, { status: "ok", paymentId: payment.$id, paymentStatus: currentStatus });
+      log(
+        `Ignoring ${nextStatus} for terminal payment ${payment.$id} (${currentStatus})`,
+      );
+      return json(res, {
+        status: "ok",
+        paymentId: payment.$id,
+        paymentStatus: currentStatus,
+      });
     }
 
     const update = {
@@ -63,14 +95,16 @@ export default async ({ req, res, log, error }) => {
     };
 
     if (nextStatus === "paid") {
-      update.paid_at = toIsoDate(notification.settlement_time || notification.transaction_time);
+      update.paid_at = toIsoDate(
+        notification.settlement_time || notification.transaction_time,
+      );
     }
 
     await databases.updateDocument(
       env.databaseId,
       env.paymentsCollectionId,
       payment.$id,
-      update
+      update,
     );
 
     if (payment.purpose === "order" && ["failed", "expired", "cancelled"].includes(nextStatus)) {
@@ -78,7 +112,11 @@ export default async ({ req, res, log, error }) => {
     }
 
     log(`Payment ${payment.$id} updated to ${nextStatus}`);
-    return json(res, { status: "ok", paymentId: payment.$id, paymentStatus: nextStatus });
+    return json(res, {
+      status: "ok",
+      paymentId: payment.$id,
+      paymentStatus: nextStatus,
+    });
   } catch (err) {
     error(err?.stack || err?.message || String(err));
     if (err?.statusCode) {
@@ -91,12 +129,21 @@ export default async ({ req, res, log, error }) => {
 
 function getEnv(req) {
   const env = {
-    appwriteEndpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT || process.env.APPWRITE_ENDPOINT,
-    appwriteProjectId: process.env.APPWRITE_FUNCTION_PROJECT_ID || process.env.APPWRITE_PROJECT_ID,
-    appwriteApiKey: req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY,
-    databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
-    paymentsCollectionId: process.env.PAYMENTS_COLLECTION_ID || process.env.NEXT_PUBLIC_PAYMENT_COLLECTION || "payments",
-    midtransServerKey: process.env.MIDTRANS_SERVER_KEY
+    appwriteEndpoint:
+      process.env.APPWRITE_FUNCTION_API_ENDPOINT ||
+      process.env.APPWRITE_ENDPOINT,
+    appwriteProjectId:
+      process.env.APPWRITE_FUNCTION_PROJECT_ID ||
+      process.env.APPWRITE_PROJECT_ID,
+    appwriteApiKey:
+      req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY,
+    databaseId:
+      process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID,
+    paymentsCollectionId:
+      process.env.PAYMENTS_COLLECTION_ID ||
+      process.env.NEXT_PUBLIC_PAYMENT_COLLECTION ||
+      "payments",
+    midtransServerKey: process.env.MIDTRANS_SERVER_KEY,
   };
 
   const missing = Object.entries(env)
@@ -104,7 +151,9 @@ function getEnv(req) {
     .map(([key]) => key);
 
   if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
+    throw new Error(
+      `Missing required environment variables: ${missing.join(", ")}`,
+    );
   }
 
   return env;
@@ -147,7 +196,13 @@ function parseBody(req, error) {
 }
 
 function validateRequiredPayload(notification) {
-  const requiredFields = ["order_id", "status_code", "gross_amount", "signature_key", "transaction_status"];
+  const requiredFields = [
+    "order_id",
+    "status_code",
+    "gross_amount",
+    "signature_key",
+    "transaction_status",
+  ];
   const missing = requiredFields.filter((field) => !notification?.[field]);
 
   if (missing.length > 0) {
@@ -189,9 +244,15 @@ function mapMidtransStatus(notification) {
   if (transactionStatus === "pending") return "pending";
   if (transactionStatus === "expire") return "expired";
   if (transactionStatus === "cancel") return "cancelled";
-  if (transactionStatus === "deny" || transactionStatus === "failure") return "failed";
-  if (transactionStatus === "refund" || transactionStatus === "partial_refund") return "cancelled";
-  if (transactionStatus === "chargeback" || transactionStatus === "partial_chargeback") return "cancelled";
+  if (transactionStatus === "deny" || transactionStatus === "failure")
+    return "failed";
+  if (transactionStatus === "refund" || transactionStatus === "partial_refund")
+    return "cancelled";
+  if (
+    transactionStatus === "chargeback" ||
+    transactionStatus === "partial_chargeback"
+  )
+    return "cancelled";
 
   return null;
 }
@@ -200,7 +261,7 @@ async function findPayment(databases, env, gatewayReference) {
   const result = await databases.listDocuments(
     env.databaseId,
     env.paymentsCollectionId,
-    [Query.equal("gateway_reference", gatewayReference), Query.limit(1)]
+    [Query.equal("gateway_reference", gatewayReference), Query.limit(1)],
   );
 
   return result.documents[0] || null;
@@ -220,7 +281,9 @@ function isAmountEqual(localAmount, midtransGrossAmount) {
 function toIsoDate(value) {
   if (!value) return new Date().toISOString();
 
-  const normalized = value.includes("T") ? value : value.replace(" ", "T") + "+07:00";
+  const normalized = value.includes("T")
+    ? value
+    : value.replace(" ", "T") + "+07:00";
   const date = new Date(normalized);
 
   if (Number.isNaN(date.getTime())) {
