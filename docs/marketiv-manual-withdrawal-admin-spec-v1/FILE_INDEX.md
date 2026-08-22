@@ -1,0 +1,32 @@
+# File Index
+
+- `01-reward-availability/PROMPT_CODEX.md`
+- `01-reward-availability/design.md`
+- `01-reward-availability/requirements.md`
+- `01-reward-availability/tasks.md`
+- `02-manual-withdrawal-request/PROMPT_CODEX.md`
+- `02-manual-withdrawal-request/design.md`
+- `02-manual-withdrawal-request/requirements.md`
+- `02-manual-withdrawal-request/tasks.md`
+- `03-admin-withdrawal-backend/PROMPT_CODEX.md`
+- `03-admin-withdrawal-backend/design.md`
+- `03-admin-withdrawal-backend/requirements.md`
+- `03-admin-withdrawal-backend/tasks.md`
+- `04-admin-withdrawal-ui/PROMPT_CODEX.md`
+- `04-admin-withdrawal-ui/design.md`
+- `04-admin-withdrawal-ui/requirements.md`
+- `04-admin-withdrawal-ui/tasks.md`
+- `05-creator-finance-ui-contract/PROMPT_CODEX.md`
+- `05-creator-finance-ui-contract/design.md`
+- `05-creator-finance-ui-contract/requirements.md`
+- `05-creator-finance-ui-contract/tasks.md`
+- `06-legacy-retirement-and-staging-uat/PROMPT_CODEX.md`
+- `06-legacy-retirement-and-staging-uat/design.md`
+- `06-legacy-retirement-and-staging-uat/requirements.md`
+- `06-legacy-retirement-and-staging-uat/tasks.md`
+- `CODEX_MASTER_PROMPT.md`
+- `FILE_INDEX.md`
+- `MASTER_SPEC.md`
+- `README.md`
+- `SCOPE_AND_DEPENDENCIES.md`
+- `VERIFICATION_MATRIX.md`
