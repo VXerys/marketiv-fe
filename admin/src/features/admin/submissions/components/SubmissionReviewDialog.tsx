@@ -16,7 +16,9 @@ import { ApproveSubmissionDialog } from "./ApproveSubmissionDialog";
 import { RejectSubmissionDialog } from "./RejectSubmissionDialog";
 import {
   calculateEstimatedCampaignReward,
+  getViewValidationEligibility,
   validateViewsInput,
+  VIEW_VALIDATION_DELAY_HOURS,
 } from "../utils";
 import {
   approveCampaignSubmission,
@@ -38,6 +40,7 @@ import {
   AlertCircle,
   Info,
   Calculator,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -59,6 +62,7 @@ export function SubmissionReviewDialog({
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [inputErrorMsg, setInputErrorMsg] = useState<string | null>(null);
+  const [observationNow, setObservationNow] = useState<Date>(() => new Date());
 
   useEffect(() => {
     if (submission) {
@@ -71,13 +75,47 @@ export function SubmissionReviewDialog({
       setInputErrorMsg(null);
       setIsApproveConfirmOpen(false);
       setIsRejectDialogOpen(false);
+      setObservationNow(new Date());
     }
   }, [submission]);
+
+  useEffect(() => {
+    if (!isOpen || !submission || submission.status !== "pending") return;
+
+    const initialNow = new Date();
+    const initialEligibility = getViewValidationEligibility(
+      submission.submittedAt,
+      initialNow
+    );
+    const syncTimeoutId = window.setTimeout(() => {
+      setObservationNow(initialNow);
+    }, 0);
+    if (initialEligibility.isEligible || !initialEligibility.eligibleAt) {
+      return () => window.clearTimeout(syncTimeoutId);
+    }
+
+    const intervalId = window.setInterval(() => {
+      const currentNow = new Date();
+      setObservationNow(currentNow);
+      if (currentNow >= initialEligibility.eligibleAt!) {
+        window.clearInterval(intervalId);
+      }
+    }, 30_000);
+
+    return () => {
+      window.clearTimeout(syncTimeoutId);
+      window.clearInterval(intervalId);
+    };
+  }, [isOpen, submission]);
 
   if (!submission) return null;
 
   const isPending = submission.status === "pending";
   const validation = validateViewsInput(viewsInputText);
+  const observationEligibility = getViewValidationEligibility(
+    submission.submittedAt,
+    observationNow
+  );
   const numericViews = validation.isValid ? validation.numericValue : 0;
   const fullThousands = Math.floor(numericViews / 1000);
   const estimatedReward = calculateEstimatedCampaignReward(
@@ -97,6 +135,14 @@ export function SubmissionReviewDialog({
   };
 
   const handleOpenApproveConfirm = () => {
+    if (!observationEligibility.isEligible) {
+      toast.error(
+        observationEligibility.eligibleAt
+          ? `Views baru dapat difinalisasi setelah periode observasi ${VIEW_VALIDATION_DELAY_HOURS} jam selesai.`
+          : "Waktu submission tidak valid. Views tidak dapat difinalisasi."
+      );
+      return;
+    }
     if (!viewsInputText || !validation.isValid || numericViews <= 0) {
       toast.error("Wajib menginputkan Jumlah Views Saat Ini yang valid (> 0).");
       setInputErrorMsg("Jumlah views harus diisi dengan angka positif.");
@@ -246,6 +292,63 @@ export function SubmissionReviewDialog({
               )}
             </div>
 
+            {isPending && (
+              <div
+                aria-live="polite"
+                className={`rounded-xl border p-3.5 space-y-2 ${
+                  observationEligibility.isEligible
+                    ? "border-emerald-200 bg-emerald-50/80"
+                    : "border-amber-200 bg-amber-50/80"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  {observationEligibility.isEligible ? (
+                    <CheckCircle className="h-4 w-4 text-emerald-600 shrink-0" />
+                  ) : (
+                    <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+                  )}
+                  <p className={`font-extrabold text-xs ${
+                    observationEligibility.isEligible
+                      ? "text-emerald-900"
+                      : "text-amber-900"
+                  }`}>
+                    Periode Observasi Views
+                  </p>
+                </div>
+
+                {observationEligibility.eligibleAt ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                      <span className="text-stone-500 block">Dikirim:</span>
+                      <strong className="text-stone-800">
+                        {formatDateTime(submission.submittedAt)}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-stone-500 block">Views dapat difinalisasi mulai:</span>
+                      <strong className="text-stone-800">
+                        {formatDateTime(observationEligibility.eligibleAt.toISOString())}
+                      </strong>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] font-bold text-red-700">
+                    Waktu submission tidak valid. Approval diblokir; periksa data submission.
+                  </p>
+                )}
+
+                <p className={`text-[11px] font-bold ${
+                  observationEligibility.isEligible
+                    ? "text-emerald-700"
+                    : "text-amber-700"
+                }`}>
+                  {observationEligibility.isEligible
+                    ? "Periode observasi selesai. Submission siap divalidasi."
+                    : `Finalisasi views menunggu ${VIEW_VALIDATION_DELAY_HOURS} jam penuh sejak submission.`}
+                </p>
+              </div>
+            )}
+
             {/* Manual View Verification Section */}
             <div className="rounded-xl border border-orange-200/90 bg-orange-50/40 p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -258,7 +361,9 @@ export function SubmissionReviewDialog({
                 </label>
                 {isPending && (
                   <span className="text-[10px] font-extrabold text-orange-800 bg-orange-100/90 border border-orange-200 px-2 py-0.5 rounded-md">
-                    Wajib diisi Admin
+                    {observationEligibility.isEligible
+                      ? "Wajib diisi Admin"
+                      : `Tersedia setelah ${VIEW_VALIDATION_DELAY_HOURS} jam`}
                   </span>
                 )}
               </div>
@@ -272,7 +377,8 @@ export function SubmissionReviewDialog({
                       placeholder="Contoh: 15.800"
                       value={viewsInputText}
                       onChange={handleInputChange}
-                      className="h-12 border-orange-300 bg-white font-mono text-base sm:text-lg font-extrabold text-stone-900 pl-3.5 pr-24 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 rounded-xl"
+                      disabled={!observationEligibility.isEligible || isSubmitting}
+                      className="h-12 border-orange-300 bg-white font-mono text-base sm:text-lg font-extrabold text-stone-900 pl-3.5 pr-24 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 rounded-xl disabled:cursor-not-allowed disabled:bg-stone-100 disabled:text-stone-500"
                     />
                     <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-extrabold text-stone-400 uppercase tracking-wider">
                       views
@@ -398,8 +504,8 @@ export function SubmissionReviewDialog({
                 <Button
                   type="button"
                   onClick={handleOpenApproveConfirm}
-                  disabled={isSubmitting || numericViews <= 0}
-                  className="w-full sm:w-auto h-10 px-5 text-xs font-extrabold gap-1.5 bg-gradient-to-r from-[#f97316] to-[#ea580c] text-white hover:opacity-95 shadow-md cursor-pointer"
+                  disabled={isSubmitting || !observationEligibility.isEligible || numericViews <= 0}
+                  className="w-full sm:w-auto h-10 px-5 text-xs font-extrabold gap-1.5 bg-gradient-to-r from-[#f97316] to-[#ea580c] text-white hover:opacity-95 shadow-md cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <CheckCircle className="h-4 w-4" />
                   <span>Setujui Submission</span>

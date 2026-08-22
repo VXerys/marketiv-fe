@@ -1,5 +1,37 @@
 import { SubmissionStatus, StatusUIConfig } from "./types";
 
+export const VIEW_VALIDATION_DELAY_HOURS = 72;
+
+const VIEW_VALIDATION_DELAY_MS = VIEW_VALIDATION_DELAY_HOURS * 60 * 60 * 1000;
+
+export function getViewValidationEligibility(
+  submittedAt: string,
+  now: Date = new Date()
+): {
+  isEligible: boolean;
+  eligibleAt: Date | null;
+  remainingMs: number;
+} {
+  const submittedAtMs = Date.parse(submittedAt);
+  const nowMs = now.getTime();
+
+  if (!Number.isFinite(submittedAtMs) || !Number.isFinite(nowMs)) {
+    return { isEligible: false, eligibleAt: null, remainingMs: 0 };
+  }
+
+  const eligibleAtMs = submittedAtMs + VIEW_VALIDATION_DELAY_MS;
+  const eligibleAt = new Date(eligibleAtMs);
+  if (!Number.isFinite(eligibleAt.getTime())) {
+    return { isEligible: false, eligibleAt: null, remainingMs: 0 };
+  }
+
+  return {
+    isEligible: nowMs >= eligibleAtMs,
+    eligibleAt,
+    remainingMs: Math.max(eligibleAtMs - nowMs, 0),
+  };
+}
+
 /**
  * Pure utility function to calculate estimated campaign PPV reward.
  * Formula: floor(views / 1000) * rewardPer1000Views

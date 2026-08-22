@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 import { Client, Databases, Permission, Query, Role } from "node-appwrite";
 import { decrementColumn } from "./atomic.js";
+import {
+  VIEW_VALIDATION_DELAY_HOURS,
+  getViewValidationEligibility,
+} from "./observation-window.js";
 
 /**
  * Admin Marketiv menyetujui atau menolak bukti kerja kreator (Alur A).
@@ -89,6 +93,21 @@ export default async ({ req, res, log, error }) => {
     if (!isAdmin) {
       log(`Review ditolak untuk ${userId}: bukan admin`);
       return json(res, { error: "Akses ditolak: Hanya Admin Marketiv yang dapat memvalidasi submission." }, 403);
+    }
+
+    if (status === "approved") {
+      const eligibility = getViewValidationEligibility(submission);
+      if (!eligibility.eligibleAt) {
+        return json(res, {
+          error: "Views tidak dapat difinalisasi karena waktu submission tidak valid.",
+        }, 409);
+      }
+      if (!eligibility.isEligible) {
+        return json(res, {
+          error: `Views belum dapat difinalisasi. Periode observasi ${VIEW_VALIDATION_DELAY_HOURS} jam belum selesai.`,
+          eligibleAt: eligibility.eligibleAt,
+        }, 409);
+      }
     }
 
     const parent = await databases.listDocuments(env.databaseId, env.campaignsCollectionId, [
