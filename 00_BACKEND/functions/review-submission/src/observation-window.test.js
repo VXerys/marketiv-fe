@@ -1,11 +1,31 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  VIEW_VALIDATION_DELAY_HOURS,
-  getViewValidationEligibility,
-} from "./observation-window.js";
 
 const NOW_MS = Date.parse("2026-08-22T10:00:00.000Z");
+const ORIGINAL_DELAY = process.env.VIEW_VALIDATION_DELAY_HOURS;
+
+async function importObservationWindow(delay, caseName) {
+  if (delay === undefined) {
+    delete process.env.VIEW_VALIDATION_DELAY_HOURS;
+  } else {
+    process.env.VIEW_VALIDATION_DELAY_HOURS = delay;
+  }
+
+  try {
+    return await import(`./observation-window.js?case=${caseName}`);
+  } finally {
+    if (ORIGINAL_DELAY === undefined) {
+      delete process.env.VIEW_VALIDATION_DELAY_HOURS;
+    } else {
+      process.env.VIEW_VALIDATION_DELAY_HOURS = ORIGINAL_DELAY;
+    }
+  }
+}
+
+const {
+  VIEW_VALIDATION_DELAY_HOURS,
+  getViewValidationEligibility,
+} = await importObservationWindow(undefined, "default");
 
 test("approval remains blocked at 71 hours 59 minutes", () => {
   const result = getViewValidationEligibility(
@@ -77,5 +97,62 @@ test("legacy submittedAt remains supported when $createdAt is missing", () => {
       NOW_MS
     ).isEligible,
     true
+  );
+});
+
+test("missing delay environment variable defaults to 72 hours", () => {
+  assert.equal(VIEW_VALIDATION_DELAY_HOURS, 72);
+});
+
+test("zero-hour delay makes a new submission immediately eligible", async () => {
+  const configured = await importObservationWindow("0", "zero");
+
+  assert.equal(configured.VIEW_VALIDATION_DELAY_HOURS, 0);
+  assert.deepEqual(
+    configured.getViewValidationEligibility(
+      { $createdAt: "2026-08-22T10:00:00.000Z" },
+      NOW_MS
+    ),
+    {
+      isEligible: true,
+      eligibleAt: "2026-08-22T10:00:00.000Z",
+    }
+  );
+});
+
+test("valid positive delay controls eligibleAt", async () => {
+  const configured = await importObservationWindow("24", "positive");
+
+  assert.equal(configured.VIEW_VALIDATION_DELAY_HOURS, 24);
+  assert.deepEqual(
+    configured.getViewValidationEligibility(
+      { $createdAt: "2026-08-21T10:00:00.000Z" },
+      NOW_MS
+    ),
+    {
+      isEligible: true,
+      eligibleAt: "2026-08-22T10:00:00.000Z",
+    }
+  );
+});
+
+test("invalid delay falls back to 72 hours", async () => {
+  const configured = await importObservationWindow("not-a-number", "invalid");
+
+  assert.equal(configured.VIEW_VALIDATION_DELAY_HOURS, 72);
+});
+
+test("negative delay falls back to 72 hours", async () => {
+  const configured = await importObservationWindow("-1", "negative");
+
+  assert.equal(configured.VIEW_VALIDATION_DELAY_HOURS, 72);
+});
+
+test("invalid timestamp still fails closed with zero-hour delay", async () => {
+  const configured = await importObservationWindow("0", "zero-invalid-timestamp");
+
+  assert.deepEqual(
+    configured.getViewValidationEligibility({ $createdAt: "invalid" }, NOW_MS),
+    { isEligible: false, eligibleAt: null }
   );
 });

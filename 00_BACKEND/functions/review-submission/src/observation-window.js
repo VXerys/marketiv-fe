@@ -1,4 +1,19 @@
-export const VIEW_VALIDATION_DELAY_HOURS = 72;
+const DEFAULT_VIEW_VALIDATION_DELAY_HOURS = 72;
+
+function parseViewValidationDelayHours(value) {
+  if (typeof value !== "string" || value.trim() === "") {
+    return DEFAULT_VIEW_VALIDATION_DELAY_HOURS;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0
+    ? parsed
+    : DEFAULT_VIEW_VALIDATION_DELAY_HOURS;
+}
+
+export const VIEW_VALIDATION_DELAY_HOURS = parseViewValidationDelayHours(
+  process.env.VIEW_VALIDATION_DELAY_HOURS
+);
 
 const VIEW_VALIDATION_DELAY_MS = VIEW_VALIDATION_DELAY_HOURS * 60 * 60 * 1000;
 
