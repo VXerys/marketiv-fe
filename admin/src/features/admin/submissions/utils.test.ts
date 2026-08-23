@@ -1,10 +1,28 @@
-import { describe, expect, it } from "vitest";
-import {
-  VIEW_VALIDATION_DELAY_HOURS,
-  getViewValidationEligibility,
-} from "./utils";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 const NOW = new Date("2026-08-22T10:00:00.000Z");
+
+async function importUtilsWithDelay(delay: string | undefined) {
+  vi.resetModules();
+  if (delay === undefined) {
+    vi.stubEnv("NEXT_PUBLIC_VIEW_VALIDATION_DELAY_HOURS", undefined);
+  } else {
+    vi.stubEnv("NEXT_PUBLIC_VIEW_VALIDATION_DELAY_HOURS", delay);
+  }
+  return import("./utils");
+}
+
+const {
+  VIEW_VALIDATION_DELAY_HOURS,
+  getViewValidationEligibility,
+} = await importUtilsWithDelay(undefined);
+vi.unstubAllEnvs();
+vi.resetModules();
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.resetModules();
+});
 
 describe("getViewValidationEligibility", () => {
   it("blocks finalization before 72 full hours", () => {
@@ -46,4 +64,51 @@ describe("getViewValidationEligibility", () => {
       getViewValidationEligibility("+275760-09-12T23:59:59.999Z", NOW)
     ).toEqual({ isEligible: false, eligibleAt: null, remainingMs: 0 });
   });
+
+  it("defaults to 72 hours when configuration is absent", async () => {
+    const configured = await importUtilsWithDelay(undefined);
+
+    expect(configured.VIEW_VALIDATION_DELAY_HOURS).toBe(72);
+  });
+
+  it("allows immediate finalization when configured to zero hours", async () => {
+    const configured = await importUtilsWithDelay("0");
+
+    expect(configured.VIEW_VALIDATION_DELAY_HOURS).toBe(0);
+    expect(
+      configured.getViewValidationEligibility(
+        "2026-08-22T10:00:00.000Z",
+        NOW
+      )
+    ).toEqual({
+      isEligible: true,
+      eligibleAt: new Date("2026-08-22T10:00:00.000Z"),
+      remainingMs: 0,
+    });
+  });
+
+  it("uses a valid positive configured delay", async () => {
+    const configured = await importUtilsWithDelay("24");
+
+    expect(configured.VIEW_VALIDATION_DELAY_HOURS).toBe(24);
+    expect(
+      configured.getViewValidationEligibility(
+        "2026-08-21T10:00:00.000Z",
+        NOW
+      )
+    ).toEqual({
+      isEligible: true,
+      eligibleAt: new Date("2026-08-22T10:00:00.000Z"),
+      remainingMs: 0,
+    });
+  });
+
+  it.each(["invalid", "-1"])(
+    "falls back to 72 hours for invalid configuration %s",
+    async (delay) => {
+      const configured = await importUtilsWithDelay(delay);
+
+      expect(configured.VIEW_VALIDATION_DELAY_HOURS).toBe(72);
+    }
+  );
 });
