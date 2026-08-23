@@ -1087,7 +1087,7 @@ describe('mark-notifications-read function', () => {
 });
 
 describe('calculate-campaign-reward function', () => {
-  it('credits creator pending balance and updates campaign budget', async () => {
+  it('credits creator available balance and updates campaign budget', async () => {
     process.env.APPWRITE_DATABASE_ID = 'db';
     process.env.CAMPAIGNS_COLLECTION_ID = 'campaigns';
     process.env.WALLETS_COLLECTION_ID = 'wallets';
@@ -1109,20 +1109,46 @@ describe('calculate-campaign-reward function', () => {
       }
       return { ok: false, status: 404, text: async () => '' };
     };
-    const oldFetch = globalThis.fetch;
     (globalThis as any).fetch = mockTablesDb;
     const main = (await import('../../functions/calculate-campaign-reward/src/main.js')).default;
     // submission document delivered via event payload
     const req = makeReq({ bodyJson: { $id: 's1', status: 'approved', campaignId: 'c1', creatorId: 'c1', views: 10000 } });
     const res = makeRes();
-    const result = await main({ req, res, log: console.log, error: console.error });
-    console.log("RESULT", result);
+    await main({ req, res, log: () => {}, error: () => {} });
     const wallet = (store['wallets'] || []).find((w) => w.$id === 'w1');
     // reward = views/1000 * rewardPer1000Views = 10 * 1000 = 10000
-    expect(wallet.pendingBalance).toBe(10000);
+    expect(wallet.balance).toBe(10000);
+    expect(wallet.pendingBalance).toBe(0);
     const campaign = (store['campaigns'] || []).find((c) => c.$id === 'c1');
     expect(campaign.spentAmount).toBe(10000);
     expect(campaign.remainingBudget).toBe(40000);
+    const rewardTransaction = (store['transactions'] || []).find((tx) => tx.referenceId === 's1');
+    expect(rewardTransaction).toMatchObject({
+      amount: 10000,
+      type: 'release',
+      referenceType: 'campaign_submission',
+      status: 'matured',
+    });
+    const notification = (store['notifications'] || []).find((item) => item.userId === 'c1');
+    expect(notification?.message).toContain('saldo');
+    expect(notification?.message).not.toContain('pending');
+  });
+
+  it('ignores rejected submissions without changing wallet, ledger, or budget', async () => {
+    seed('campaigns', [{ $id: 'c1', rewardPer1000Views: 1000, remainingBudget: 50000, spentAmount: 0 }]);
+    seed('wallets', [{ $id: 'w1', userId: 'c1', balance: 2500, pendingBalance: 750 }]);
+    const main = (await import('../../functions/calculate-campaign-reward/src/main.js')).default;
+
+    await main({
+      req: makeReq({ bodyJson: { $id: 's-rejected', status: 'rejected', campaignId: 'c1', creatorId: 'c1', views: 10000 } }),
+      res: makeRes(),
+      log: () => {},
+      error: () => {},
+    });
+
+    expect(store.wallets[0]).toMatchObject({ balance: 2500, pendingBalance: 750 });
+    expect(store.campaigns[0]).toMatchObject({ remainingBudget: 50000, spentAmount: 0 });
+    expect(store.transactions || []).toHaveLength(0);
   });
 });
 
@@ -1197,7 +1223,10 @@ describe('review-submission function', () => {
     process.env.NOTIFICATIONS_COLLECTION_ID = 'notifications';
     seed('users', [{ $id: 'admin-1', userId: 'admin-1', role: 'admin', status: 'active' }]);
     seed('campaigns', [{ $id: 'c1', umkmId: 'umkm-1' }]);
-    seed('campaign_submissions', [{ $id: 's1', campaignId: 'c1', creatorId: 'c1', claimId: 'cl1', status: 'pending', views: 0 }, { $id: 's2', campaignId: 'c1', creatorId: 'c1', claimId: 'cl2', status: 'pending', views: 0 }]);
+    seed('campaign_submissions', [
+      { $id: 's1', $createdAt: '2026-08-01T00:00:00.000Z', campaignId: 'c1', creatorId: 'c1', claimId: 'cl1', status: 'pending', views: 0 },
+      { $id: 's2', $createdAt: '2026-08-01T00:00:00.000Z', campaignId: 'c1', creatorId: 'c1', claimId: 'cl2', status: 'pending', views: 0 },
+    ]);
     seed('campaign_claims', [{ $id: 'cl1', status: 'pending' }, { $id: 'cl2', status: 'pending' }]);
     
     const main = (await import('../../functions/review-submission/src/main.js')).default;
@@ -1255,7 +1284,8 @@ describe('calculate-campaign-reward function locked views', () => {
     const req = makeReq({ bodyJson: { $id: 's1', status: 'approved', campaignId: 'c1', creatorId: 'c1', views: 10000, views_final: true, views_count: 4850 } });
     await main({ req, res: makeRes(), log: () => {}, error: () => {} });
     const wallet = (store['wallets'] || []).find((w) => w.$id === 'w1');
-    expect(wallet.pendingBalance).toBe(4850);
+    expect(wallet.balance).toBe(4850);
+    expect(wallet.pendingBalance).toBe(0);
   });
 
   it('calculates Rp0 when locked views is under 1000', async () => {
@@ -1265,7 +1295,8 @@ describe('calculate-campaign-reward function locked views', () => {
     const req = makeReq({ bodyJson: { $id: 's1', status: 'approved', campaignId: 'c1', creatorId: 'c1', views: 5000, views_final: true, views_count: 999 } });
     await main({ req, res: makeRes(), log: () => {}, error: () => {} });
     const wallet = (store['wallets'] || []).find((w) => w.$id === 'w1');
-    expect(wallet.pendingBalance).toBe(999);
+    expect(wallet.balance).toBe(999);
+    expect(wallet.pendingBalance).toBe(0);
   });
 
   it('is idempotent on repeated calls for the same submission', async () => {
@@ -1277,7 +1308,8 @@ describe('calculate-campaign-reward function locked views', () => {
     const req2 = makeReq({ bodyJson: { $id: 's1', status: 'approved', campaignId: 'c1', creatorId: 'c1', views_final: true, views_count: 9999 } });
     await main({ req: req2, res: makeRes(), log: () => {}, error: () => {} });
     const wallet = (store['wallets'] || []).find((w) => w.$id === 'w1');
-    expect(wallet.pendingBalance).toBe(4850);
+    expect(wallet.balance).toBe(4850);
+    expect(wallet.pendingBalance).toBe(0);
   });
 });
 
@@ -1502,7 +1534,8 @@ describe('calculate-campaign-reward function (FIX A: idempotency)', () => {
 
     // Assertions: only one credit, one ledger, one budget deduction
     const wallet = (store['wallets'] || []).find((w) => w.$id === 'w1');
-    expect(wallet.pendingBalance).toBe(10000); // only once
+    expect(wallet.balance).toBe(10000); // only once
+    expect(wallet.pendingBalance).toBe(0);
     const txs = (store['transactions'] || []).filter((t) => t.referenceId === 's1' && t.type === 'release');
     expect(txs).toHaveLength(1); // one ledger row
     const campaign = (store['campaigns'] || []).find((c) => c.$id === 'c1');

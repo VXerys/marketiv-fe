@@ -32,6 +32,7 @@ import {
 import { formatCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { MINIMUM_WITHDRAW } from "@/types/domain";
+import { matchesCreatorTransactionStatusFilter } from "@/lib/creator-status";
 import {
   withdrawalRequestSchema,
   PAYOUT_PROVIDERS,
@@ -261,7 +262,9 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
 
     // Status filter
     if (filterStatus !== "all") {
-      result = result.filter((tx) => tx.status.toLowerCase() === filterStatus.toLowerCase());
+      result = result.filter((tx) =>
+        matchesCreatorTransactionStatusFilter(tx.status, filterStatus)
+      );
     }
 
 

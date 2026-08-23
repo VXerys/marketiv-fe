@@ -109,6 +109,7 @@ export function getTransactionStatusLabel(status: TransactionStatus): string {
     refunded: "Dana Dikembalikan",
     // Nilai yang benar-benar ditulis ke `transactions.status` oleh backend.
     completed: "Selesai",
+    matured: "Selesai",
   };
   return map[status] || status;
 }
@@ -124,6 +125,7 @@ export function getTransactionStatusVariant(status: TransactionStatus): BadgeVar
     released: "success",
     refunded: "neutral",
     completed: "success",
+    matured: "success",
   };
   return map[status] || "neutral";
 }

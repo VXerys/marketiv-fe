@@ -96,7 +96,9 @@ reward = min(rewardBase, remainingBudget)
 ```
 
 - Reward diproses backend setelah submission authoritative `approved`.
+- Reward Campaign baru langsung menambah `wallet.balance`; `pendingBalance` hanya untuk data legacy sampai proses retirement terpisah.
 - Event/retry harus idempotent sehingga satu submission tidak menghasilkan reward ganda.
+- `remainingBudget` berkurang dan `spentAmount` bertambah tepat sekali sebesar reward.
 - UI approval status tidak sama dengan `cash paid`; financial wording mengikuti authoritative transaction state.
 
 ## 11. Read/Write Boundary

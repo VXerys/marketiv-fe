@@ -19,6 +19,8 @@ export function TransactionStatusBadge({ status, className }: TransactionStatusB
       case "released":
         return "green";
       case "paid":
+      case "completed":
+      case "matured":
         return "green";
       case "failed":
         return "red";

@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
-import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
+import { Client, Databases, ID, Permission, Role } from "node-appwrite";
 import { incrementColumn, decrementColumn } from "./atomic.js";
 
-export default async ({ req, res, log, error }) => {
+export default async function calculateCampaignReward({ req, res, log, error }) {
   try {
     const env = getEnv(req);
     const databases = createDatabasesClient(env);
@@ -54,10 +54,10 @@ export default async ({ req, res, log, error }) => {
     const creatorId = doc.creatorId;
     const walletDoc = await findOrCreateWallet(databases, env, creatorId);
 
-    // Atomik: dua submission yang di-approve bersamaan sama-sama membaca
-    // pendingBalance lama, dan yang terakhir menulis menghapus reward yang lain.
+    // Atomik: dua submission yang di-approve bersamaan tidak boleh saling
+    // menimpa available balance kreator.
     await incrementColumn(
-      env, env.walletsCollectionId, walletDoc.$id, "pendingBalance", reward
+      env, env.walletsCollectionId, walletDoc.$id, "balance", reward
     );
 
     await databases.createDocument(
@@ -68,7 +68,9 @@ export default async ({ req, res, log, error }) => {
         type: "release",
         referenceId: submissionId,
         referenceType: "campaign_submission",
-        status: "completed",
+        // Reward baru langsung available. Status `matured` mencegah cron legacy
+        // memindahkan pendingBalance lagi untuk ledger yang sama setelah 7 hari.
+        status: "matured",
       },
       // Sejajar dengan release-escrow: baris ledger dimiliki kreator. Saat ini
       // `transactions` masih punya read("users") di level koleksi, jadi tanpa baris
@@ -109,17 +111,17 @@ export default async ({ req, res, log, error }) => {
       kind: "reward",
       userId: creatorId,
       title: "Reward Campaign",
-      message: `Reward Rp${reward.toLocaleString("id-ID")} sudah masuk ke pending balance`,
+      message: `Reward Rp${reward.toLocaleString("id-ID")} sudah masuk ke saldo dan bisa kamu tarik.`,
       type: "reward",
     }, log);
 
-    log(`Reward ${reward} calculated for submission ${submissionId}`);
+    log(`Reward ${reward} credited to available balance for submission ${submissionId}`);
     return res.json({ success: true, reward });
   } catch (err) {
     error(err?.stack || err?.message || String(err));
     return res.json({ success: false, error: err.message }, 500);
   }
-};
+}
 
 async function notify(databases, env, payload, log) {
   try {

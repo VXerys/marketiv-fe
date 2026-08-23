@@ -86,3 +86,12 @@
 ## Denormalisasi
 
 - `totalClaims`, `spentAmount`, `remainingBudget` akurat setelah setiap aksi (dihandle Appwrite Function `calculate-campaign-reward` & `expire-stale-claims`).
+
+## Campaign Reward (`calculate-campaign-reward`)
+
+- Approved submission → reward menambah `wallet.balance`; `pendingBalance` tetap.
+- Reward ledger tetap tunggal per submission dan berstatus `matured` agar cron legacy tidak memindahkan reward lagi.
+- Duplicate approved event → tidak ada kredit, ledger, atau perubahan budget kedua.
+- Rejected submission → wallet, ledger, dan budget tidak berubah.
+- Locked admin views tetap menjadi basis reward; eligibility approval tetap 72 jam.
+- `release-escrow` Rate Card tetap memakai jalur dan accounting terpisah.

@@ -12,7 +12,7 @@ export function CreatorErrorState({ errorMsg = "Gagal memuat data dari server.",
 type CreatorStatusType = "campaign" | "claim" | "submission" | "negotiation" | "transaction";
 export function CreatorStatusBadge({ status, type, className }: { status: string; type: CreatorStatusType; className?: string }) {
   const value = status.toLowerCase();
-  const success = ["aktif", "valid", "success", "selesai", "complete", "completed", "verified", "settlement", "paid", "approved", "released"].includes(value);
+  const success = ["aktif", "valid", "success", "selesai", "complete", "completed", "matured", "verified", "settlement", "paid", "approved", "released"].includes(value);
   const pending = ["pending", "menunggupembayaran", "waiting_payment", "menungguverifikasi", "waiting_verification", "processing", "revisi", "negosiasi", "negotiation"].includes(value);
   const escrow = value === "escrow" || value === "underreview" || value === "under_review";
   const dispute = value === "dispute" || value === "open";
@@ -28,7 +28,7 @@ export function CreatorStatusBadge({ status, type, className }: { status: string
     : "bg-rose-50 text-rose-700 border-rose-200/60";
 
   const label =
-    value === "completed" || value === "complete" || value === "selesai" || value === "settlement"
+    value === "completed" || value === "matured" || value === "complete" || value === "selesai" || value === "settlement"
       ? "Selesai"
       : value === "success"
       ? "Berhasil"

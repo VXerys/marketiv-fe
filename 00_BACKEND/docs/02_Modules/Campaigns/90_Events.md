@@ -37,7 +37,7 @@ Automasi modul Campaigns berjalan event-driven via Appwrite Functions (database 
 
 - **Trigger**: `campaign_submissions.status` `pending → approved`.
 - **Function**: `calculate-campaign-reward`.
-- **Aksi**: hitung reward (`views/1000 × rewardPer1000Views`), buat transaksi, pindahkan ke **pending balance** wallet creator.
+- **Aksi**: hitung reward (`views/1000 × rewardPer1000Views`), buat transaksi, tambah **available balance** wallet creator.
 - **Link**: detail wallet & transaksi → `../Wallet/` (atau modul Payments/Wallet).
 
 ## Claim Expired

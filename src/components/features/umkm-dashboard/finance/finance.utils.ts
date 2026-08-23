@@ -8,6 +8,8 @@ export function getStatusBadgeVariant(status: TransactionStatus): "warning" | "i
       return "info";
     case "paid":
     case "released":
+    case "completed":
+    case "matured":
       return "success";
     case "failed":
       return "danger";
@@ -30,6 +32,9 @@ export function getStatusLabel(status: TransactionStatus): string {
       return "Pembayaran Berhasil";
     case "released":
       return "Dana Dicairkan";
+    case "completed":
+    case "matured":
+      return "Selesai";
     case "failed":
       return "Gagal";
     case "expired":

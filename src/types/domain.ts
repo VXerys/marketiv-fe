@@ -103,11 +103,12 @@ export type TransactionType =
  * Gabungan payments.status + escrows.status karena satu baris riwayat bisa
  * berasal dari salah satunya.
  *
- * `"completed"` adalah nilai yang benar-benar ditulis ke kolom
- * `transactions.status` oleh calculate-campaign-reward, release-escrow, dan
- * wallet.service.ts:259 — bukan bagian dari payments/escrows, tapi nyata.
+ * `"completed"` ditulis oleh release-escrow dan wallet.service.ts:259.
+ * `"matured"` ditulis oleh calculate-campaign-reward untuk reward Campaign
+ * yang langsung available, supaya cron legacy tidak memprosesnya lagi.
+ * Keduanya bukan bagian dari payments/escrows, tetapi nyata di transactions.
  */
-export type TransactionStatus = PaymentStatus | EscrowStatus | "completed";
+export type TransactionStatus = PaymentStatus | EscrowStatus | "completed" | "matured";
 
 // ---------------------------------------------------------------------------
 // Chat
