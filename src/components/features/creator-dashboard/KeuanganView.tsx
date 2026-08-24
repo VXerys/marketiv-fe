@@ -9,13 +9,17 @@ import {
   Megaphone,
   BadgeDollarSign,
   X,
-  ChevronDown,
   ChevronRight,
   ArrowDownToLine,
   AlertTriangle,
   CheckCircle2,
   Landmark,
   ReceiptText,
+  CreditCard,
+  Smartphone,
+  User,
+  ShieldCheck,
+  Check,
 } from "lucide-react";
 import { CreatorMetric, CreatorTransaction } from "@/types/creator-dashboard";
 import { CreatorStatusBadge } from "./CreatorStatusBadge";
@@ -29,7 +33,17 @@ import {
   ResponsiveModalHeader,
   ResponsiveModalTitle,
 } from "@/components/ui/responsive-modal";
-import { formatCurrency } from "@/lib/formatters";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { formatCurrency, formatRupiahInput } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { MINIMUM_WITHDRAW } from "@/types/domain";
 import { matchesCreatorTransactionStatusFilter } from "@/lib/creator-status";
@@ -539,128 +553,227 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
 
         {/* Withdrawal Simulation Dual-Modal (Form -> Confirm -> Success) */}
         {isWithdrawOpen && (
-          <ResponsiveModal open={isWithdrawOpen} onOpenChange={(open) => !open && resetWithdrawForm()}>
-            <ResponsiveModalContent className="max-w-md w-full rounded-[26px] border border-neutral-200/50 p-6 sm:p-8 max-h-[90vh] overflow-y-auto">
+          <ResponsiveModal open={isWithdrawOpen} onOpenChange={(open) => !open && !isSubmittingWithdraw && resetWithdrawForm()}>
+            <ResponsiveModalContent
+              showCloseButton={false}
+              className="max-w-lg w-full p-0 overflow-hidden rounded-3xl border border-neutral-200/80 bg-white shadow-2xl flex flex-col max-h-[92vh] sm:max-h-[90vh]"
+            >
               <ResponsiveModalHeader className="sr-only">
                 <ResponsiveModalTitle>Tarik Saldo Wallet</ResponsiveModalTitle>
                 <ResponsiveModalDescription>
-                  Form penarikan saldo kreator.
+                  Form penarikan saldo pendapatan kreator.
                 </ResponsiveModalDescription>
               </ResponsiveModalHeader>
 
+              {/* Modal Banner Header */}
+              <div className="shrink-0 relative overflow-hidden bg-gradient-to-br from-[#120e24] via-[#1a1440] to-[#251352] p-5 sm:p-6 text-white">
+                <div className="absolute -top-12 -right-12 h-44 w-44 rounded-full bg-orange-500/20 blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-10 -left-10 h-36 w-36 rounded-full bg-violet-500/20 blur-2xl pointer-events-none" />
+
+                <div className="relative z-10 flex items-center justify-between gap-3 mb-3">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-orange-500/25 to-amber-500/15 px-3 py-1 text-[10px] font-extrabold text-orange-300 border border-orange-400/30 backdrop-blur-md">
+                    <ArrowDownToLine className="w-3.5 h-3.5 text-orange-300" />
+                    <span className="uppercase tracking-wider">Pencairan Saldo Kreator</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={resetWithdrawForm}
+                    disabled={isSubmittingWithdraw}
+                    className="p-1.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50"
+                    aria-label="Tutup"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="relative z-10">
+                  <h3 className="font-display text-lg sm:text-xl font-black text-white leading-tight tracking-tight">
+                    {withdrawStep === "form" && "Tarik Saldo Wallet"}
+                    {withdrawStep === "confirm" && "Konfirmasi Penarikan"}
+                    {withdrawStep === "success" && "Penarikan Berhasil Diajukan"}
+                  </h3>
+                  <p className="text-xs text-white/75 font-medium mt-1">
+                    {withdrawStep === "form" && "Pindahkan saldo hasil karya kreator ke rekening bank atau e-wallet."}
+                    {withdrawStep === "confirm" && "Periksa kembali rincian data penerima sebelum sistem memproses transfer."}
+                    {withdrawStep === "success" && "Permintaan pencairan dana telah berhasil diteruskan ke sistem bank."}
+                  </p>
+                </div>
+              </div>
+
               {/* Form Step */}
               {withdrawStep === "form" && (
-                <>
-                  <div className="flex justify-between items-start gap-4 mb-6">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-[14px] grid place-items-center bg-orange-50 border border-orange-200/60 text-orange-600 shrink-0">
-                        <ArrowDownToLine size={18} />
+                <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 sm:space-y-5">
+                  {/* Saldo Tersedia Card */}
+                  <div className="relative overflow-hidden bg-gradient-to-br from-orange-50/80 via-amber-50/40 to-white rounded-2xl border border-orange-200/70 p-4 shadow-3xs">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-orange-500 text-white grid place-items-center shrink-0 shadow-sm shadow-orange-500/20">
+                          <Wallet size={18} />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-black uppercase tracking-wider text-orange-800/80 block">
+                            Saldo Siap Ditarik
+                          </span>
+                          <span className="font-display text-lg font-black tracking-tight text-neutral-900 leading-tight">
+                            {formatCurrency(walletMetrics.balance)}
+                          </span>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-display text-base font-black text-neutral-950 leading-tight tracking-tight">
-                          Tarik Saldo Wallet
-                        </h3>
-                        <p className="text-[10px] text-neutral-400 font-extrabold mt-1 uppercase tracking-wider">
-                          Saldo Tersedia: {formatCurrency(walletMetrics.balance)}
-                        </p>
+                      <div className="text-right">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-[10px] font-extrabold text-emerald-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          Bebas Biaya Admin
+                        </span>
+                        <span className="block text-[10.5px] font-semibold text-neutral-400 mt-1">
+                          Min. {formatCurrency(MINIMUM_WITHDRAW)}
+                        </span>
                       </div>
                     </div>
-                    <button
-                      onClick={resetWithdrawForm}
-                      className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer"
-                      aria-label="Tutup"
-                    >
-                      <X size={18} />
-                    </button>
                   </div>
 
                   <form onSubmit={handleWithdrawSubmit} className="space-y-4">
                     {/* Destination Dropdown */}
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-extrabold text-neutral-500 uppercase tracking-wider">
-                        Tujuan Penarikan
+                      <label className="flex items-center justify-between text-xs font-bold text-neutral-700">
+                        <span>Metode / Instansi Penerima</span>
+                        <span className="text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider">
+                          {isEwallet ? "E-Wallet" : "Transfer Bank"}
+                        </span>
                       </label>
-                      <div className="relative">
-                        <select
-                          value={bankName}
-                          onChange={(e) => setBankName(e.target.value)}
-                          className="w-full appearance-none pl-4 pr-9 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs font-bold text-neutral-700 cursor-pointer focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all shadow-3xs"
+                      <Select value={bankName} onValueChange={(val) => setBankName(val)}>
+                        <SelectTrigger
+                          className="w-full min-h-[44px] h-auto px-3.5 py-2.5 bg-neutral-50/60 hover:bg-white focus:bg-white border border-neutral-200/80 rounded-xl text-xs font-bold text-neutral-800 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all shadow-3xs cursor-pointer"
                         >
-                          {PAYOUT_PROVIDERS.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.label}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400" />
-                      </div>
+                          <div className="flex items-center gap-2.5 text-left truncate">
+                            <div className="text-neutral-400 shrink-0">
+                              {isEwallet ? <Smartphone size={16} /> : <Landmark size={16} />}
+                            </div>
+                            <SelectValue placeholder="Pilih Bank / E-Wallet" />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="z-[110] max-h-64 rounded-2xl border border-neutral-200/80 bg-white p-1.5 shadow-2xl">
+                          <SelectGroup>
+                            <SelectLabel className="px-3 py-1.5 text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider">
+                              Transfer Bank
+                            </SelectLabel>
+                            {PAYOUT_PROVIDERS.filter((p) => p.method === "bank").map((p) => (
+                              <SelectItem
+                                key={p.id}
+                                value={p.id}
+                                className="rounded-xl px-3 py-2 text-xs font-bold text-neutral-800 cursor-pointer focus:bg-orange-50 focus:text-orange-600 data-[state=checked]:bg-orange-50 data-[state=checked]:text-orange-600 transition-colors"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Landmark size={14} className="text-neutral-400 shrink-0" />
+                                  <span>{p.label}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+
+                          <SelectSeparator className="my-1 bg-neutral-100" />
+
+                          <SelectGroup>
+                            <SelectLabel className="px-3 py-1.5 text-[10px] font-extrabold text-neutral-400 uppercase tracking-wider">
+                              E-Wallet
+                            </SelectLabel>
+                            {PAYOUT_PROVIDERS.filter((p) => p.method === "ewallet").map((p) => (
+                              <SelectItem
+                                key={p.id}
+                                value={p.id}
+                                className="rounded-xl px-3 py-2 text-xs font-bold text-neutral-800 cursor-pointer focus:bg-orange-50 focus:text-orange-600 data-[state=checked]:bg-orange-50 data-[state=checked]:text-orange-600 transition-colors"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Smartphone size={14} className="text-neutral-400 shrink-0" />
+                                  <span>{p.label}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     {/* Account Number or HP */}
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-extrabold text-neutral-500 uppercase tracking-wider">
-                        {isEwallet ? "Nomor HP E-Wallet" : "Nomor Rekening"}
+                      <label className="flex items-center justify-between text-xs font-bold text-neutral-700">
+                        <span>{isEwallet ? "Nomor Handphone E-Wallet" : "Nomor Rekening Bank"}</span>
+                        <span className="text-[10px] text-neutral-400 font-semibold">Wajib Terdaftar</span>
                       </label>
-                      <input
-                        type="text"
-                        required
-                        inputMode="numeric"
-                        placeholder={isEwallet ? "Contoh: 0812xxxxxxxx" : "Masukkan nomor rekening..."}
-                        value={accountNumber}
-                        onChange={(e) => setAccountNumber(e.target.value.replace(/[^0-9]/g, ""))}
-                        className="w-full px-4 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-semibold text-neutral-800 placeholder:text-neutral-400 shadow-3xs"
-                      />
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-neutral-400">
+                          {isEwallet ? <Smartphone size={16} /> : <CreditCard size={16} />}
+                        </div>
+                        <input
+                          type="text"
+                          required
+                          inputMode="numeric"
+                          placeholder={isEwallet ? "Contoh: 0812xxxxxxxx" : "Masukkan nomor rekening bank..."}
+                          value={accountNumber}
+                          onChange={(e) => setAccountNumber(e.target.value.replace(/[^0-9]/g, ""))}
+                          className="w-full pl-10 pr-4 py-2.5 bg-neutral-50/60 hover:bg-white focus:bg-white border border-neutral-200/80 rounded-xl text-xs font-mono font-bold text-neutral-800 placeholder:text-neutral-400 placeholder:font-sans placeholder:font-normal focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all shadow-3xs"
+                        />
+                      </div>
                     </div>
 
                     {/* Account Holder Name */}
                     <div className="space-y-1.5">
-                      <label className="block text-[10px] font-extrabold text-neutral-500 uppercase tracking-wider">
-                        Nama Pemilik Rekening / Akun
+                      <label className="flex items-center justify-between text-xs font-bold text-neutral-700">
+                        <span>Nama Pemilik Rekening / Akun</span>
+                        <span className="text-[10px] text-neutral-400 font-semibold">Sesuai KTP / Tabungan</span>
                       </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Nama lengkap pemilik..."
-                        value={accountHolder}
-                        onChange={(e) => setAccountHolder(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-semibold text-neutral-800 placeholder:text-neutral-400 shadow-3xs"
-                      />
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-3.5 flex items-center pointer-events-none text-neutral-400">
+                          <User size={16} />
+                        </div>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Contoh: ANDI SURYA"
+                          value={accountHolder}
+                          onChange={(e) => setAccountHolder(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2.5 bg-neutral-50/60 hover:bg-white focus:bg-white border border-neutral-200/80 rounded-xl text-xs font-bold text-neutral-800 placeholder:text-neutral-400 placeholder:font-normal focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all shadow-3xs"
+                        />
+                      </div>
                     </div>
 
                     {/* Amount Input */}
-                    <div className="space-y-1.5">
-                      <label className="block text-[10px] font-extrabold text-neutral-500 uppercase tracking-wider">
-                        Jumlah Penarikan
+                    <div className="space-y-2">
+                      <label className="flex items-center justify-between text-xs font-bold text-neutral-700">
+                        <span>Jumlah Penarikan</span>
+                        <span className="text-[10px] font-bold text-neutral-400">
+                          Maks: {formatCurrency(walletMetrics.balance)}
+                        </span>
                       </label>
                       <div className="relative">
-                        <span className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-xs font-extrabold text-neutral-400">
-                          Rp
-                        </span>
+                        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                          <span className="text-xs font-black text-neutral-400">Rp</span>
+                        </div>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="numeric"
                           required
-                          placeholder="Nominal penarikan..."
-                          value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500 transition-all font-semibold text-neutral-800 placeholder:text-neutral-400 shadow-3xs"
+                          placeholder="0"
+                          value={formatRupiahInput(amount)}
+                          onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ""))}
+                          className="w-full pl-11 pr-4 py-2.5 bg-neutral-50/60 hover:bg-white focus:bg-white border border-neutral-200/80 rounded-xl font-display text-base font-bold text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all shadow-3xs"
                         />
                       </div>
 
                       {/* Quick amount chips */}
-                      <div className="flex flex-wrap gap-1.5 pt-1">
-                        {[100000, 250000, 500000].map((quick) => (
+                      <div className="flex flex-wrap gap-1.5 pt-0.5">
+                        {[50000, 100000, 250000, 500000].map((quick) => (
                           <button
                             key={quick}
                             type="button"
                             disabled={quick > walletMetrics.balance}
                             onClick={() => setAmount(String(quick))}
                             className={cn(
-                              "px-2.5 py-1 rounded-full border text-[10px] font-extrabold transition-all cursor-pointer",
+                              "px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all cursor-pointer",
                               quick > walletMetrics.balance
-                                ? "bg-neutral-50 border-neutral-200/60 text-neutral-300 cursor-not-allowed"
+                                ? "bg-neutral-50 border-neutral-200/50 text-neutral-300 cursor-not-allowed"
                                 : Number(amount) === quick
-                                  ? "bg-primary-50 border-primary-500/30 text-primary-600 shadow-3xs"
-                                  : "bg-white border-neutral-200/80 text-neutral-500 hover:border-primary-300 hover:text-primary-600"
+                                  ? "bg-orange-50 border-orange-400 text-orange-700 shadow-3xs font-black ring-1 ring-orange-300"
+                                  : "bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-900"
                             )}
                           >
                             {formatCurrency(quick)}
@@ -671,59 +784,70 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                           disabled={maxWithdrawable < MINIMUM_WITHDRAW}
                           onClick={() => setAmount(String(maxWithdrawable))}
                           className={cn(
-                            "px-2.5 py-1 rounded-full border text-[10px] font-extrabold transition-all cursor-pointer",
+                            "px-3 py-1 rounded-lg border text-[11px] font-bold transition-all cursor-pointer",
                             maxWithdrawable < MINIMUM_WITHDRAW
-                              ? "bg-neutral-50 border-neutral-200/60 text-neutral-300 cursor-not-allowed"
+                              ? "bg-neutral-50 border-neutral-200/50 text-neutral-300 cursor-not-allowed"
                               : Number(amount) === maxWithdrawable
-                                ? "bg-primary-50 border-primary-500/30 text-primary-600 shadow-3xs"
-                                : "bg-white border-neutral-200/80 text-neutral-500 hover:border-primary-300 hover:text-primary-600"
+                                ? "bg-orange-50 border-orange-400 text-orange-700 shadow-3xs font-black ring-1 ring-orange-300"
+                                : "bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 hover:text-neutral-900"
                           )}
                         >
-                          Tarik Semua
+                          Tarik Semua (Maks)
                         </button>
                       </div>
 
                       {/* Inline warnings */}
                       {isAmountTooLow && (
-                        <span className="flex items-center gap-1.5 text-[10px] text-red-600 font-bold mt-1">
-                          <AlertTriangle size={12} className="shrink-0" />
-                          Batas minimum penarikan adalah {formatCurrency(MINIMUM_WITHDRAW)}
-                        </span>
+                        <div className="flex items-center gap-1.5 text-[11px] text-red-600 font-bold bg-red-50/80 border border-red-200/60 rounded-lg px-2.5 py-1.5">
+                          <AlertTriangle size={13} className="shrink-0 text-red-500" />
+                          <span>Batas minimum penarikan adalah {formatCurrency(MINIMUM_WITHDRAW)}</span>
+                        </div>
                       )}
                       {isAmountTooHigh && (
-                        <span className="flex items-center gap-1.5 text-[10px] text-red-600 font-bold mt-1">
-                          <AlertTriangle size={12} className="shrink-0" />
-                          Nominal melebihi saldo yang tersedia
-                        </span>
-                      )}
-                      {!isAmountTooLow && !isAmountTooHigh && (
-                        <span className="block text-[10px] text-neutral-400 font-semibold mt-1">
-                          Batas minimum penarikan {formatCurrency(MINIMUM_WITHDRAW)}. Tidak ada biaya admin.
-                        </span>
+                        <div className="flex items-center gap-1.5 text-[11px] text-red-600 font-bold bg-red-50/80 border border-red-200/60 rounded-lg px-2.5 py-1.5">
+                          <AlertTriangle size={13} className="shrink-0 text-red-500" />
+                          <span>Nominal melebihi saldo yang tersedia ({formatCurrency(walletMetrics.balance)})</span>
+                        </div>
                       )}
                     </div>
 
                     {/* Live Fee Breakdown Summary */}
                     {numericAmount > 0 && (
-                      <div className="p-4 bg-gradient-to-b from-neutral-50 to-white border border-neutral-200/60 rounded-2xl space-y-2 mt-4">
-                        <div className="flex justify-between items-center text-xs text-neutral-500 font-semibold">
+                      <div className="p-4 bg-gradient-to-b from-neutral-50/90 to-white border border-neutral-200/70 rounded-2xl space-y-2.5 shadow-3xs">
+                        <div className="flex items-center justify-between text-xs font-medium text-neutral-500">
                           <span>Nominal Penarikan</span>
-                          <span className="text-neutral-800 font-bold">{formatCurrency(numericAmount)}</span>
+                          <span className="font-bold text-neutral-800">{formatCurrency(numericAmount)}</span>
                         </div>
-                        <div className="border-t border-dashed border-neutral-200 my-1.5"></div>
-                        <div className="flex justify-between items-center text-xs font-black text-neutral-900">
-                          <span>Total Pengurangan Saldo</span>
-                          <span className="font-display text-sm text-primary tracking-tight">{formatCurrency(numericAmount)}</span>
+                        <div className="flex items-center justify-between text-xs font-medium text-neutral-500">
+                          <span className="flex items-center gap-1">
+                            Biaya Layanan Admin
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600">
+                            <Check size={12} />
+                            Gratis (Rp 0)
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs font-medium text-neutral-500">
+                          <span>Sisa Saldo Wallet</span>
+                          <span className="font-mono font-semibold text-neutral-600">
+                            {formatCurrency(Math.max(0, walletMetrics.balance - numericAmount))}
+                          </span>
+                        </div>
+                        <div className="border-t border-dashed border-neutral-200 pt-2 flex items-center justify-between text-xs">
+                          <span className="font-bold text-neutral-900">Total Potong Saldo</span>
+                          <span className="font-display text-sm font-black text-orange-600 tracking-tight">
+                            {formatCurrency(numericAmount)}
+                          </span>
                         </div>
                       </div>
                     )}
 
                     {/* Actions */}
-                    <div className="pt-4 flex gap-3">
+                    <div className="pt-2 flex items-center gap-3">
                       <button
                         type="button"
                         onClick={resetWithdrawForm}
-                        className="flex-1 min-h-[44px] border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                        className="flex-1 min-h-[44px] px-4 border border-neutral-200 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 font-bold text-xs rounded-xl transition-all cursor-pointer"
                       >
                         Batal
                       </button>
@@ -731,128 +855,154 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                         type="submit"
                         disabled={!isAmountValid}
                         className={cn(
-                          "flex-1 min-h-[44px] font-[800] text-xs rounded-xl transition-all duration-200 cursor-pointer",
+                          "flex-1 min-h-[44px] px-4 font-black text-xs rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-2",
                           !isAmountValid
                             ? "bg-neutral-100 text-neutral-400 border border-neutral-200 cursor-not-allowed"
-                            : "border border-orange-900/20 bg-gradient-to-b from-finance-action to-primary-600 text-white shadow-finance-action-sm hover:shadow-finance-action-sm-hover hover:-translate-y-px"
+                            : "border border-orange-900/20 bg-gradient-to-b from-finance-action to-primary-600 hover:from-orange-600 hover:to-primary-700 text-white shadow-finance-action-sm hover:shadow-finance-action-sm-hover hover:-translate-y-px"
                         )}
                       >
-                        Lanjutkan
+                        <span>Lanjutkan</span>
+                        <ChevronRight size={14} />
                       </button>
                     </div>
                   </form>
-                </>
+                </div>
               )}
 
               {/* Confirmation Step */}
               {withdrawStep === "confirm" && (
-                <>
-                  <div className="text-center mb-6">
-                    <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200/60 grid place-items-center text-amber-500 mx-auto mb-4">
+                <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 sm:space-y-5">
+                  <div className="text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200/70 grid place-items-center text-amber-500 mx-auto mb-3 shadow-3xs">
                       <AlertTriangle size={26} />
                     </div>
                     <h3 className="font-display text-base font-black text-neutral-900 leading-tight tracking-tight">
                       Konfirmasi Penarikan Saldo
                     </h3>
-                    <p className="text-[11px] text-neutral-400 font-bold mt-1.5 leading-relaxed">
+                    <p className="text-xs text-neutral-500 font-medium mt-1 max-w-xs mx-auto">
                       Mohon verifikasi ulang data penerima sebelum melanjutkan pencairan.
                     </p>
                   </div>
 
-                  <div className="space-y-3 bg-gradient-to-b from-neutral-50 to-white border border-neutral-200/60 rounded-2xl p-5 mb-5 text-xs text-neutral-600">
+                  <div className="space-y-3 bg-gradient-to-b from-neutral-50 to-white border border-neutral-200/70 rounded-2xl p-4 sm:p-5 text-xs shadow-3xs">
                     <div className="flex justify-between items-center gap-4">
-                      <span className="font-semibold text-neutral-400 inline-flex items-center gap-1.5">
-                        <Landmark size={12} className="shrink-0" /> Instansi Penerima
+                      <span className="font-medium text-neutral-400 inline-flex items-center gap-1.5">
+                        <Landmark size={13} className="shrink-0 text-neutral-400" />
+                        Instansi Penerima
                       </span>
                       <span className="font-extrabold text-neutral-800 uppercase">{getBankLabel(bankName)}</span>
                     </div>
                     <div className="flex justify-between items-center gap-4">
-                      <span className="font-semibold text-neutral-400">Nomor Rekening/HP</span>
-                      <span className="font-mono font-bold text-neutral-800">{accountNumber}</span>
+                      <span className="font-medium text-neutral-400 inline-flex items-center gap-1.5">
+                        <CreditCard size={13} className="shrink-0 text-neutral-400" />
+                        Nomor Rekening / HP
+                      </span>
+                      <span className="font-mono font-bold text-neutral-900">{accountNumber}</span>
                     </div>
                     <div className="flex justify-between items-center gap-4">
-                      <span className="font-semibold text-neutral-400">Nama Penerima</span>
-                      <span className="font-extrabold text-neutral-800 uppercase">{accountHolder}</span>
+                      <span className="font-medium text-neutral-400 inline-flex items-center gap-1.5">
+                        <User size={13} className="shrink-0 text-neutral-400" />
+                        Nama Penerima
+                      </span>
+                      <span className="font-extrabold text-neutral-900 uppercase">{accountHolder}</span>
                     </div>
                     <div className="border-t border-dashed border-neutral-200 my-2"></div>
                     <div className="flex justify-between items-center gap-4">
-                      <span className="font-semibold text-neutral-400">Nominal Penarikan</span>
+                      <span className="font-medium text-neutral-400">Nominal Penarikan</span>
                       <span className="font-bold text-neutral-800">{formatCurrency(numericAmount)}</span>
                     </div>
+                    <div className="flex justify-between items-center gap-4">
+                      <span className="font-medium text-neutral-400">Biaya Admin</span>
+                      <span className="font-bold text-emerald-600">Gratis (Rp 0)</span>
+                    </div>
                     <div className="border-t border-dashed border-neutral-200 my-2"></div>
-                    <div className="flex justify-between items-center gap-4 text-neutral-950 font-black">
-                      <span>Total Potong Saldo</span>
-                      <span className="font-display text-sm text-primary tracking-tight">{formatCurrency(numericAmount)}</span>
+                    <div className="flex justify-between items-center gap-4 text-neutral-950">
+                      <span className="font-bold">Total Potong Saldo</span>
+                      <span className="font-display text-base font-black text-orange-600 tracking-tight">
+                        {formatCurrency(numericAmount)}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="bg-red-50/70 border border-red-200/60 rounded-2xl p-4 text-[10px] text-red-700 font-bold leading-relaxed mb-6 flex gap-2.5">
-                    <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5" />
-                    <span>Kesalahan pengisian data rekening sepenuhnya menjadi tanggung jawab kreator. Dana tidak dapat ditarik kembali jika sudah diproses bank.</span>
+                  <div className="bg-amber-50/70 border border-amber-200/70 rounded-2xl p-3.5 text-[11px] text-amber-900/90 font-medium leading-relaxed flex gap-2.5">
+                    <ShieldCheck size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                    <span>
+                      Pastikan data rekening sudah valid. Kesalahan penulisan nomor rekening di luar tanggung jawab sistem dan dana tidak dapat ditarik kembali jika sudah diproses bank.
+                    </span>
                   </div>
 
                   {withdrawError && (
-                    <div className="mb-4 rounded-xl border border-red-300 bg-red-50 px-3.5 py-2.5 text-[11px] font-bold text-red-700">
+                    <div className="rounded-xl border border-red-300 bg-red-50 p-3 text-xs font-bold text-red-700">
                       {withdrawError}
                     </div>
                   )}
 
-                  <div className="flex gap-3">
+                  <div className="pt-2 flex gap-3">
                     <button
+                      type="button"
                       onClick={() => setWithdrawStep("form")}
                       disabled={isSubmittingWithdraw}
-                      className="flex-1 min-h-[44px] border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-bold text-xs rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 min-h-[44px] border border-neutral-200 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50 font-bold text-xs rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Kembali
                     </button>
                     <button
+                      type="button"
                       onClick={handleConfirmWithdrawal}
                       disabled={isSubmittingWithdraw}
-                      className="flex-1 min-h-[44px] border border-orange-900/20 bg-gradient-to-b from-finance-action to-primary-600 text-white font-[800] text-xs rounded-xl transition-all duration-200 shadow-finance-action-sm hover:shadow-finance-action-sm-hover hover:-translate-y-px cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
+                      className="flex-1 min-h-[44px] border border-orange-900/20 bg-gradient-to-b from-finance-action to-primary-600 text-white font-black text-xs rounded-xl transition-all duration-200 shadow-finance-action-sm hover:shadow-finance-action-sm-hover hover:-translate-y-px cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0 flex items-center justify-center gap-2"
                     >
-                      {isSubmittingWithdraw ? "Memproses…" : "Konfirmasi & Tarik"}
+                      {isSubmittingWithdraw ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Memproses…</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Konfirmasi &amp; Tarik</span>
+                          <ArrowDownToLine size={14} />
+                        </>
+                      )}
                     </button>
                   </div>
-                </>
+                </div>
               )}
 
               {/* Success Step */}
               {withdrawStep === "success" && lastWithdrawalDetails && (
-                <>
-                  <div className="text-center my-4 animate-in fade-in duration-500">
-                    <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200/60 grid place-items-center text-emerald-500 mx-auto mb-4">
+                <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 sm:space-y-5 animate-in fade-in duration-300">
+                  <div className="text-center my-2">
+                    <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200/80 grid place-items-center text-emerald-500 mx-auto mb-3.5 shadow-sm shadow-emerald-500/10">
                       <CheckCircle2 size={32} />
                     </div>
-                    <h3 className="font-display text-base font-black text-neutral-900 leading-tight tracking-tight">
+                    <h3 className="font-display text-lg font-black text-neutral-900 leading-tight tracking-tight">
                       Pengajuan Penarikan Terkirim!
                     </h3>
-                    <p className="text-xs text-neutral-400 font-bold mt-1.5 max-w-xs mx-auto leading-relaxed">
-                      Dana sebesar <span className="text-neutral-800 font-black">{formatCurrency(lastWithdrawalDetails.amount)}</span> sedang diproses transfer oleh bank.
+                    <p className="text-xs text-neutral-500 font-medium mt-1.5 max-w-xs mx-auto leading-relaxed">
+                      Dana sebesar <span className="text-neutral-900 font-black">{formatCurrency(lastWithdrawalDetails.amount)}</span> berhasil diajukan dan sedang diteruskan ke rekening Anda.
                     </p>
                   </div>
 
-                  <div className="bg-gradient-to-b from-neutral-50 to-white border border-neutral-200/60 rounded-2xl p-5 mb-6 text-xs text-neutral-600 space-y-2.5">
+                  <div className="bg-gradient-to-b from-neutral-50 to-white border border-neutral-200/70 rounded-2xl p-4 sm:p-5 text-xs text-neutral-600 space-y-2.5 shadow-3xs">
                     <div className="flex justify-between items-center gap-4">
-                      <span className="font-semibold text-neutral-400">ID Transaksi</span>
-                      <span className="font-mono font-bold text-neutral-800">{lastWithdrawalDetails.id}</span>
+                      <span className="font-medium text-neutral-400">ID Penarikan</span>
+                      <span className="font-mono font-bold text-neutral-900">{lastWithdrawalDetails.id}</span>
                     </div>
                     <div className="flex justify-between items-center gap-4">
-                      <span className="font-semibold text-neutral-400">Tujuan</span>
-                      <span className="font-extrabold text-neutral-800 uppercase">{getBankLabel(lastWithdrawalDetails.bank)}</span>
+                      <span className="font-medium text-neutral-400">Tujuan Pencairan</span>
+                      <span className="font-extrabold text-neutral-900 uppercase">{getBankLabel(lastWithdrawalDetails.bank)}</span>
                     </div>
                     <div className="flex justify-between items-center gap-4">
-                      <span className="font-semibold text-neutral-400">Nomor Rekening/HP</span>
-                      <span className="font-mono font-bold text-neutral-800">{lastWithdrawalDetails.number}</span>
+                      <span className="font-medium text-neutral-400">Nomor Rekening / HP</span>
+                      <span className="font-mono font-bold text-neutral-900">{lastWithdrawalDetails.number}</span>
                     </div>
                     <div className="flex justify-between items-center gap-4">
-                      <span className="font-semibold text-neutral-400">Nama Penerima</span>
-                      <span className="font-extrabold text-neutral-800 uppercase">{lastWithdrawalDetails.holder}</span>
+                      <span className="font-medium text-neutral-400">Nama Penerima</span>
+                      <span className="font-extrabold text-neutral-900 uppercase">{lastWithdrawalDetails.holder}</span>
                     </div>
                     <div className="border-t border-dashed border-neutral-200 my-1"></div>
                     <div className="flex justify-between items-center gap-4">
-                      <span className="font-semibold text-neutral-400">Status Transaksi</span>
-                      {/* ADR-008: withdrawal langsung processed, tanpa review admin —
-                          UI tidak boleh menyiratkan queue yang tidak ada. */}
+                      <span className="font-medium text-neutral-400">Status Penarikan</span>
                       <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60 uppercase tracking-wider">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                         Selesai
@@ -863,11 +1013,11 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                   <button
                     type="button"
                     onClick={resetWithdrawForm}
-                    className="w-full h-11 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-extrabold text-xs rounded-xl transition-all duration-200 shadow-xs hover:shadow-md cursor-pointer text-center flex items-center justify-center"
+                    className="w-full h-11 bg-gradient-to-r from-neutral-900 to-neutral-800 hover:from-neutral-800 hover:to-neutral-700 text-white font-extrabold text-xs rounded-xl transition-all duration-200 shadow-sm cursor-pointer text-center flex items-center justify-center"
                   >
-                    Selesai
+                    Kembali ke Dashboard Keuangan
                   </button>
-                </>
+                </div>
               )}
 
             </ResponsiveModalContent>

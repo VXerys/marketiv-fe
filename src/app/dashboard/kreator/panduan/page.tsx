@@ -464,51 +464,43 @@ export default function KreatorPanduanPage() {
   };
 
   return (
-    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
-      <div
-        className="w-full"
-        style={{
-          display: "grid",
-          gap: 26,
-          alignContent: "start",
-          maxWidth: 960,
-        }}
-      >
+    <div className="flex-1 p-3.5 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden min-w-0 max-w-full">
+      <div className="w-full max-w-[960px] mx-auto space-y-5 sm:space-y-6 min-w-0">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <span className="text-[0.68rem] font-[800] text-violet-600 uppercase tracking-widest block mb-1">
-              Pusat Informasi & Hukum Kreator
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 min-w-0">
+          <div className="space-y-1 min-w-0">
+            <span className="text-[0.68rem] font-[800] text-violet-600 uppercase tracking-widest block">
+              Pusat Informasi &amp; Hukum Kreator
             </span>
-            <h1 className="text-2xl sm:text-3xl font-[850] text-ink-900 leading-tight tracking-tight font-display">
-              FAQ, Aturan & Syarat Ketentuan Kreator
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-[850] text-ink-900 leading-tight tracking-tight font-display break-words">
+              FAQ, Aturan &amp; Syarat Ketentuan Kreator
             </h1>
-            <p className="text-xs sm:text-sm text-ink-500 font-medium mt-1">
-              Pencarian kata kunci lintas Aturan Kreator, FAQ Penghasilan, dan 22 Pasal S&K Versi 3.1.
+            <p className="text-xs sm:text-sm text-ink-500 font-medium leading-relaxed">
+              Pencarian kata kunci lintas Aturan Kreator, FAQ Penghasilan, dan 22 Pasal S&amp;K Versi 3.1.
             </p>
           </div>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-violet-50 border border-violet-200/80 text-violet-800 text-xs font-bold shrink-0 self-start md:self-auto">
-            <CheckCircle2 size={14} className="text-violet-600" />
-            <span>Versi Resmi 3.1 (Agustus 2026)</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-violet-50 border border-violet-200/80 text-violet-800 text-xs font-bold shrink-0 self-start sm:self-auto">
+            <CheckCircle2 size={14} className="text-violet-600 shrink-0" />
+            <span className="whitespace-nowrap">Versi Resmi 3.1 (Agustus 2026)</span>
           </div>
         </div>
 
         {/* Global Keyword Search Box */}
-        <div className="p-4 sm:p-5 rounded-3xl bg-white border border-neutral-200/90 shadow-sm space-y-3">
-          <div className="relative flex items-center">
-            <Search size={18} className="absolute left-4 text-slate-400 pointer-events-none" />
+        <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-neutral-200/90 shadow-sm space-y-3 min-w-0">
+          <div className="relative flex items-center min-w-0">
+            <Search size={18} className="absolute left-3.5 sm:left-4 text-slate-400 pointer-events-none shrink-0" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Cari kata kunci (misal: 'withdrawal', 'escrow', '5%', 'collab', 'pasal 11')..."
-              className="w-full pl-11 pr-10 py-3.5 rounded-2xl bg-neutral-50 border border-neutral-200/80 text-sm font-semibold text-ink-900 placeholder:text-slate-400 focus:outline-none focus:border-violet-500 focus:bg-white transition-all shadow-2xs"
+              placeholder="Cari kata kunci (misal: 'withdrawal', 'escrow', '5%')..."
+              className="w-full pl-10 sm:pl-11 pr-10 py-3 sm:py-3.5 rounded-xl sm:rounded-2xl bg-neutral-50 border border-neutral-200/80 text-xs sm:text-sm font-semibold text-ink-900 placeholder:text-slate-400 focus:outline-none focus:border-violet-500 focus:bg-white transition-all shadow-2xs min-w-0"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3.5 p-1.5 rounded-lg bg-neutral-200/70 hover:bg-neutral-300 text-slate-600 transition-colors cursor-pointer"
+                className="absolute right-3 p-1.5 rounded-lg bg-neutral-200/70 hover:bg-neutral-300 text-slate-600 transition-colors cursor-pointer"
                 aria-label="Bersihkan pencarian"
               >
                 <X size={14} />
@@ -517,8 +509,8 @@ export default function KreatorPanduanPage() {
           </div>
 
           {/* Popular Search Suggestions */}
-          <div className="flex items-center gap-2 flex-wrap text-xs pt-1">
-            <span className="text-[11px] font-extrabold text-ink-400 uppercase tracking-wider flex items-center gap-1">
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap text-xs pt-1">
+            <span className="text-[10.5px] sm:text-[11px] font-extrabold text-ink-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
               <Tag size={12} className="text-violet-600" />
               Kata Kunci Populer:
             </span>
@@ -527,7 +519,7 @@ export default function KreatorPanduanPage() {
                 key={kw}
                 onClick={() => setSearchQuery(kw)}
                 className={cn(
-                  "px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer border",
+                  "px-2 sm:px-2.5 py-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer border",
                   searchQuery.toLowerCase() === kw
                     ? "bg-violet-600 text-white border-violet-600 shadow-xs"
                     : "bg-neutral-100/80 hover:bg-violet-50 text-ink-700 hover:text-violet-700 border-neutral-200/80"
@@ -540,13 +532,13 @@ export default function KreatorPanduanPage() {
 
           {/* Search Result Feedback Indicator */}
           {searchQuery && (
-            <div className="pt-2 border-t border-neutral-100 flex items-center justify-between gap-3 text-xs font-semibold">
-              <p className="text-violet-900 bg-violet-50 px-3 py-1.5 rounded-xl border border-violet-200/60">
+            <div className="pt-2 border-t border-neutral-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-semibold">
+              <p className="text-violet-900 bg-violet-50 px-3 py-1.5 rounded-xl border border-violet-200/60 break-words">
                 Ditemukan <strong className="font-extrabold">{totalMatches}</strong> hasil pencarian kata kunci &quot;<span className="font-bold">{searchQuery}</span>&quot;
               </p>
               <button
                 onClick={() => setSearchQuery("")}
-                className="text-slate-500 hover:text-violet-600 font-bold underline cursor-pointer"
+                className="text-slate-500 hover:text-violet-600 font-bold underline cursor-pointer self-start sm:self-auto"
               >
                 Reset Pencarian
               </button>
@@ -556,10 +548,10 @@ export default function KreatorPanduanPage() {
 
         {/* Global Keyword Search Results Mode (When Search is Active) */}
         {searchQuery.trim() ? (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 min-w-0">
             {totalMatches === 0 ? (
-              <div className="p-10 text-center bg-white rounded-3xl border border-neutral-200/80 space-y-2">
-                <p className="text-base font-bold text-ink-900">
+              <div className="p-8 sm:p-10 text-center bg-white rounded-2xl sm:rounded-3xl border border-neutral-200/80 space-y-2">
+                <p className="text-sm sm:text-base font-bold text-ink-900">
                   Kata kunci &quot;{searchQuery}&quot; tidak ditemukan.
                 </p>
                 <p className="text-xs text-ink-500 font-medium">
@@ -567,13 +559,13 @@ export default function KreatorPanduanPage() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-6 sm:space-y-8 min-w-0">
                 {/* Match Group 1: Aturan Kreator */}
                 {matchingRules.length > 0 && (
-                  <div className="space-y-3">
+                  <div className="space-y-3 min-w-0">
                     <div className="flex items-center gap-2 border-b border-neutral-200/60 pb-2">
-                      <ShieldCheck size={16} className="text-violet-600" />
-                      <h2 className="text-sm font-extrabold text-ink-900 font-display uppercase tracking-wider">
+                      <ShieldCheck size={16} className="text-violet-600 shrink-0" />
+                      <h2 className="text-xs sm:text-sm font-extrabold text-ink-900 font-display uppercase tracking-wider">
                         Hasil di Aturan Kreator ({matchingRules.length})
                       </h2>
                     </div>
@@ -584,19 +576,19 @@ export default function KreatorPanduanPage() {
                         return (
                           <div
                             key={rule.id}
-                            className="flex gap-4 p-4 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs hover:border-violet-300 transition-all"
+                            className="flex items-start gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-neutral-200/80 shadow-2xs hover:border-violet-300 transition-all min-w-0"
                           >
                             <div
-                              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border"
+                              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 border mt-0.5"
                               style={{ background: rule.bg, borderColor: rule.border }}
                             >
                               <RuleIcon size={16} color={rule.color} />
                             </div>
-                            <div className="space-y-1">
-                              <h3 className="text-sm font-bold text-ink-900">
+                            <div className="space-y-1 min-w-0 flex-1">
+                              <h3 className="text-xs sm:text-sm font-bold text-ink-900 break-words">
                                 {rule.title}
                               </h3>
-                              <p className="text-xs text-ink-600 font-semibold leading-relaxed">
+                              <p className="text-[11.5px] sm:text-xs text-ink-600 font-semibold leading-relaxed break-words">
                                 {rule.desc}
                               </p>
                             </div>
@@ -609,10 +601,10 @@ export default function KreatorPanduanPage() {
 
                 {/* Match Group 2: FAQ Penghasilan */}
                 {matchingFAQ.length > 0 && (
-                  <div className="space-y-3">
+                  <div className="space-y-3 min-w-0">
                     <div className="flex items-center gap-2 border-b border-neutral-200/60 pb-2">
-                      <HelpCircle size={16} className="text-violet-600" />
-                      <h2 className="text-sm font-extrabold text-ink-900 font-display uppercase tracking-wider">
+                      <HelpCircle size={16} className="text-violet-600 shrink-0" />
+                      <h2 className="text-xs sm:text-sm font-extrabold text-ink-900 font-display uppercase tracking-wider">
                         Hasil di FAQ Penghasilan ({matchingFAQ.length})
                       </h2>
                     </div>
@@ -621,13 +613,13 @@ export default function KreatorPanduanPage() {
                       {matchingFAQ.map((faq, idx) => (
                         <div
                           key={idx}
-                          className="p-4 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-1.5"
+                          className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-1.5 min-w-0"
                         >
-                          <h3 className="text-sm font-extrabold text-ink-900 flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-violet-600" />
-                            {faq.question}
+                          <h3 className="text-xs sm:text-sm font-extrabold text-ink-900 flex items-start gap-2 break-words">
+                            <span className="w-1.5 h-1.5 rounded-full bg-violet-600 mt-1.5 shrink-0" />
+                            <span className="flex-1 min-w-0">{faq.question}</span>
                           </h3>
-                          <p className="text-xs text-ink-600 font-semibold leading-relaxed pl-3.5">
+                          <p className="text-[11.5px] sm:text-xs text-ink-600 font-semibold leading-relaxed pl-3.5 break-words">
                             {faq.answer}
                           </p>
                         </div>
@@ -638,11 +630,11 @@ export default function KreatorPanduanPage() {
 
                 {/* Match Group 3: Syarat & Ketentuan (Pasal 1 - 22) */}
                 {matchingPasalList.length > 0 && (
-                  <div className="space-y-3">
+                  <div className="space-y-3 min-w-0">
                     <div className="flex items-center gap-2 border-b border-neutral-200/60 pb-2">
-                      <Scale size={16} className="text-violet-600" />
-                      <h2 className="text-sm font-extrabold text-ink-900 font-display uppercase tracking-wider">
-                        Hasil di Syarat & Ketentuan Pasal ({matchingPasalList.length})
+                      <Scale size={16} className="text-violet-600 shrink-0" />
+                      <h2 className="text-xs sm:text-sm font-extrabold text-ink-900 font-display uppercase tracking-wider">
+                        Hasil di Syarat &amp; Ketentuan Pasal ({matchingPasalList.length})
                       </h2>
                     </div>
 
@@ -650,17 +642,17 @@ export default function KreatorPanduanPage() {
                       {matchingPasalList.map((p, idx) => (
                         <div
                           key={idx}
-                          className="p-4 rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2"
+                          className="p-3.5 sm:p-4 rounded-xl sm:rounded-2xl bg-white border border-neutral-200/80 shadow-2xs space-y-2 min-w-0"
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded bg-violet-100 text-violet-700 text-xs font-black font-mono">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-2 py-0.5 rounded bg-violet-100 text-violet-700 text-[11px] font-black font-mono">
                               {p.pasalNumber}
                             </span>
-                            <h3 className="text-sm font-bold text-ink-900">
+                            <h3 className="text-xs sm:text-sm font-bold text-ink-900 break-words">
                               {p.title}
                             </h3>
                           </div>
-                          <p className="text-xs text-ink-700 font-semibold leading-relaxed bg-neutral-50 p-2.5 rounded-xl border border-neutral-100">
+                          <p className="text-[11.5px] sm:text-xs text-ink-700 font-semibold leading-relaxed bg-neutral-50 p-2.5 rounded-xl border border-neutral-100 break-words">
                             {p.itemText}
                           </p>
                         </div>
@@ -674,55 +666,60 @@ export default function KreatorPanduanPage() {
         ) : (
           /* Standard Tabbed Mode (When Search Input is Empty) */
           <>
-            {/* Navigation Tabs */}
-            <div className="flex p-1.5 rounded-2xl bg-neutral-100 border border-neutral-200/60 max-w-lg shadow-3xs">
-              {[
-                { id: "rules", label: "Aturan Kreator", icon: ShieldCheck },
-                { id: "faq", label: "FAQ Penghasilan", icon: HelpCircle },
-                { id: "terms", label: "Syarat & Ketentuan (Pasal 1-22)", icon: Scale },
-              ].map((tab) => {
-                const isActive = activeTab === tab.id;
-                const TabIcon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as TabType)}
-                    className={cn(
-                      "flex-1 py-2.5 px-3 rounded-xl text-xs font-extrabold transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap",
-                      isActive
-                        ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/10"
-                        : "text-ink-600 hover:text-ink-900 hover:bg-white/60"
-                    )}
-                  >
-                    <TabIcon size={14} />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
+            {/* Navigation Tabs (Responsive Scrollable on Mobile) */}
+            <div className="w-full max-w-full overflow-x-auto no-scrollbar py-0.5">
+              <div className="inline-flex sm:flex p-1 sm:p-1.5 rounded-2xl bg-neutral-100 border border-neutral-200/60 min-w-full sm:min-w-0 sm:max-w-xl shadow-3xs gap-1">
+                {[
+                  { id: "rules", label: "Aturan Kreator", icon: ShieldCheck },
+                  { id: "faq", label: "FAQ Penghasilan", icon: HelpCircle },
+                  { id: "terms", label: "Syarat & Ketentuan", sublabel: "(Pasal 1-22)", icon: Scale },
+                ].map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  const TabIcon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as TabType)}
+                      className={cn(
+                        "flex-1 py-2 sm:py-2.5 px-3 sm:px-3.5 rounded-xl text-xs font-extrabold transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 sm:shrink",
+                        isActive
+                          ? "bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-violet-500/10"
+                          : "text-ink-600 hover:text-ink-900 hover:bg-white/60"
+                      )}
+                    >
+                      <TabIcon size={14} className="shrink-0" />
+                      <span>{tab.label}</span>
+                      {tab.sublabel && (
+                        <span className="hidden md:inline text-[10px] opacity-80">{tab.sublabel}</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Tab 1: Rules Panel */}
             {activeTab === "rules" && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 min-w-0">
                 <div className="flex justify-between items-center border-b border-neutral-200/60 pb-3">
-                  <h2 className="text-[1.05rem] font-[800] text-ink-900 font-display">
+                  <h2 className="text-[0.95rem] sm:text-[1.05rem] font-[800] text-ink-900 font-display">
                     Aturan Utama Kerja Kreator
                   </h2>
-                  <span className="text-[0.74rem] font-bold text-ink-400">
+                  <span className="text-[0.7rem] sm:text-[0.74rem] font-bold text-ink-400">
                     Versi Resmi 3.1
                   </span>
                 </div>
 
-                <div className="grid gap-4">
+                <div className="grid gap-3 sm:gap-4">
                   {RULES_DATA.map((rule) => {
                     const RuleIcon = rule.Icon;
                     return (
                       <div
                         key={rule.id}
-                        className="flex gap-4 p-5 rounded-[26px] bg-white border border-neutral-200/60 shadow-[0_4px_16px_rgba(15,23,42,.05)] hover:-translate-y-0.5 hover:shadow-md hover:border-neutral-300/80 transition-all duration-300"
+                        className="flex items-start gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl sm:rounded-[26px] bg-white border border-neutral-200/60 shadow-3xs sm:shadow-[0_4px_16px_rgba(15,23,42,.05)] hover:-translate-y-0.5 hover:shadow-md hover:border-neutral-300/80 transition-all duration-300 min-w-0"
                       >
                         <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border"
+                          className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 border mt-0.5"
                           style={{
                             background: rule.bg,
                             borderColor: rule.border,
@@ -730,11 +727,11 @@ export default function KreatorPanduanPage() {
                         >
                           <RuleIcon size={18} color={rule.color} />
                         </div>
-                        <div className="space-y-1">
-                          <h3 className="text-[0.92rem] font-bold text-ink-900">
+                        <div className="space-y-1 min-w-0 flex-1">
+                          <h3 className="text-xs sm:text-[0.92rem] font-bold text-ink-900 leading-snug break-words">
                             {rule.id}. {rule.title}
                           </h3>
-                          <p className="text-[0.84rem] text-ink-600 leading-relaxed font-semibold">
+                          <p className="text-[11.5px] sm:text-[0.84rem] text-ink-600 leading-relaxed font-semibold break-words">
                             {rule.desc}
                           </p>
                         </div>
@@ -747,44 +744,44 @@ export default function KreatorPanduanPage() {
 
             {/* Tab 2: FAQ Panel */}
             {activeTab === "faq" && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 min-w-0">
                 <div className="flex justify-between items-center border-b border-neutral-200/60 pb-3">
-                  <h2 className="text-[1.05rem] font-[800] text-ink-900 font-display">
-                    FAQ Penghasilan & Pekerjaan
+                  <h2 className="text-[0.95rem] sm:text-[1.05rem] font-[800] text-ink-900 font-display">
+                    FAQ Penghasilan &amp; Pekerjaan
                   </h2>
-                  <span className="text-[0.74rem] font-bold text-ink-400">
+                  <span className="text-[0.7rem] sm:text-[0.74rem] font-bold text-ink-400">
                     Versi Resmi 3.1
                   </span>
                 </div>
 
-                <div className="space-y-4">
-                  <span className="block text-[0.66rem] font-[800] text-ink-400 uppercase tracking-widest mb-2.5">
-                    Penghasilan & Escrow (Biaya Platform 5%, Withdrawal)
+                <div className="space-y-3 sm:space-y-4">
+                  <span className="block text-[0.66rem] font-[800] text-ink-400 uppercase tracking-widest mb-1.5 sm:mb-2.5">
+                    Penghasilan &amp; Escrow (Biaya Platform 5%, Withdrawal)
                   </span>
 
-                  <div className="grid gap-3.5">
+                  <div className="grid gap-2.5 sm:gap-3.5">
                     {FAQ_DATA.map((faq, idx) => {
                       const isOpen = openFAQIndex === idx;
                       return (
                         <div
                           key={idx}
-                          className="rounded-[26px] border border-neutral-200/60 bg-white overflow-hidden shadow-[0_4px_16px_rgba(15,23,42,.05)] hover:-translate-y-0.5 hover:shadow-md hover:border-neutral-300/80 transition-all duration-300"
+                          className="rounded-2xl sm:rounded-[26px] border border-neutral-200/60 bg-white overflow-hidden shadow-3xs sm:shadow-[0_4px_16px_rgba(15,23,42,.05)] hover:-translate-y-0.5 hover:shadow-md hover:border-neutral-300/80 transition-all duration-300 min-w-0"
                         >
                           <button
                             onClick={() => toggleFAQ(idx)}
-                            className="w-full flex items-center justify-between p-5 text-left font-bold text-[0.9rem] text-ink-900 hover:bg-neutral-50/50 transition-all cursor-pointer"
+                            className="w-full flex items-center justify-between p-4 sm:p-5 text-left font-bold text-xs sm:text-[0.9rem] text-ink-900 hover:bg-neutral-50/50 transition-all cursor-pointer gap-3 min-w-0"
                           >
-                            <span>{faq.question}</span>
+                            <span className="break-words min-w-0 flex-1">{faq.question}</span>
                             <ChevronDown
                               size={16}
                               className={cn(
-                                "text-ink-400 transition-transform duration-200 shrink-0 ml-4",
+                                "text-ink-400 transition-transform duration-200 shrink-0",
                                 isOpen && "rotate-180 text-violet-600"
                               )}
                             />
                           </button>
                           {isOpen && (
-                            <div className="px-5 pb-5 pt-1 text-[0.84rem] text-ink-600 leading-relaxed font-semibold border-t border-neutral-100 bg-neutral-50/20 animate-in fade-in slide-in-from-top-1 duration-200">
+                            <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-1 text-[11.5px] sm:text-[0.84rem] text-ink-600 leading-relaxed font-semibold border-t border-neutral-100 bg-neutral-50/20 animate-in fade-in slide-in-from-top-1 duration-200 break-words">
                               {faq.answer}
                             </div>
                           )}
@@ -798,25 +795,25 @@ export default function KreatorPanduanPage() {
 
             {/* Tab 3: Terms & Conditions (Clean 2-Column Reader View for Pasal 1 - 22) */}
             {activeTab === "terms" && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="space-y-5 sm:space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300 min-w-0">
                 {/* Callout Summary Box */}
-                <div className="p-5 rounded-2xl border border-violet-200 bg-violet-50/60 text-[0.84rem] leading-relaxed text-violet-900 relative overflow-hidden shadow-xs">
+                <div className="p-4 sm:p-5 rounded-2xl border border-violet-200 bg-violet-50/60 text-xs sm:text-[0.84rem] leading-relaxed text-violet-900 relative overflow-hidden shadow-xs">
                   <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-violet-600" />
-                  <span className="block font-bold mb-1 text-violet-800 uppercase tracking-wider text-[0.72rem]">
-                    Ketentuan Pendapatan Kreator & Biaya Platform 5% (S&K Versi 3.1)
+                  <span className="block font-bold mb-1 text-violet-800 uppercase tracking-wider text-[0.68rem] sm:text-[0.72rem]">
+                    Ketentuan Pendapatan Kreator &amp; Biaya Platform 5% (S&amp;K Versi 3.1)
                   </span>
                   (a) Di Campaign Mode, Kreator menerima 100% penuh reward tanpa potongan (5% dibayar UMKM di awal). <br />
                   (b) Di Rate Card Mode, biaya platform 5% dipotong dari pendapatan Kreator saat escrow dirilis ke Wallet. Penarikan min Rp 50.000 (Pasal 11).
                 </div>
 
                 {/* 2-Column Reader Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                  {/* Left Column: Jump Navigation BAB (Sticky TOC) */}
-                  <div className="lg:col-span-4 lg:sticky lg:top-6 bg-white p-4 rounded-3xl border border-neutral-200/80 shadow-sm space-y-3">
-                    <span className="text-[0.68rem] font-[800] text-ink-400 uppercase tracking-widest block px-2">
-                      Daftar BAB S&K (Pasal 1 - 22)
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start min-w-0">
+                  {/* Left Column: Jump Navigation BAB (Sticky TOC on Desktop, Horizontal Scroll on Mobile) */}
+                  <div className="lg:col-span-4 lg:sticky lg:top-6 bg-white p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border border-neutral-200/80 shadow-sm space-y-2.5 sm:space-y-3 min-w-0">
+                    <span className="text-[0.68rem] font-[800] text-ink-400 uppercase tracking-widest block px-1 sm:px-2">
+                      Daftar BAB S&amp;K (Pasal 1 - 22)
                     </span>
-                    <div className="space-y-1.5">
+                    <div className="flex lg:flex-col gap-1.5 overflow-x-auto no-scrollbar lg:overflow-visible pb-1 lg:pb-0">
                       {CHAPTERS_DATA.map((ch) => {
                         const isActive = activeChapterId === ch.id;
                         return (
@@ -824,13 +821,13 @@ export default function KreatorPanduanPage() {
                             key={ch.id}
                             onClick={() => scrollToChapter(ch.id)}
                             className={cn(
-                              "w-full text-left p-3 rounded-2xl transition-all cursor-pointer flex items-center justify-between gap-2 border text-xs font-bold",
+                              "text-left p-2.5 sm:p-3 rounded-xl sm:rounded-2xl transition-all cursor-pointer flex items-center justify-between gap-2 border text-xs font-bold shrink-0 lg:shrink lg:w-full min-w-[160px] lg:min-w-0",
                               isActive
                                 ? "bg-violet-50 border-violet-300 text-violet-900 shadow-xs"
                                 : "bg-neutral-50/60 border-neutral-200/60 text-ink-700 hover:bg-neutral-100 hover:text-ink-900"
                             )}
                           >
-                            <div className="min-w-0">
+                            <div className="min-w-0 flex-1">
                               <span className="text-[10px] font-black text-violet-600 block uppercase font-mono">
                                 {ch.bab}
                               </span>
@@ -838,7 +835,7 @@ export default function KreatorPanduanPage() {
                             </div>
                             <ChevronRight
                               size={14}
-                              className={cn("shrink-0 text-slate-400", isActive && "text-violet-600")}
+                              className={cn("hidden lg:block shrink-0 text-slate-400", isActive && "text-violet-600")}
                             />
                           </button>
                         );
@@ -847,40 +844,40 @@ export default function KreatorPanduanPage() {
                   </div>
 
                   {/* Right Column: Continuous Document Stream */}
-                  <div className="lg:col-span-8 space-y-8 bg-white p-6 sm:p-8 rounded-3xl border border-neutral-200/80 shadow-sm">
+                  <div className="lg:col-span-8 space-y-6 sm:space-y-8 bg-white p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl border border-neutral-200/80 shadow-sm min-w-0">
                     {matchingChapters.map((ch) => (
-                      <div id={ch.id} key={ch.id} className="space-y-6 pt-2 first:pt-0">
+                      <div id={ch.id} key={ch.id} className="space-y-4 sm:space-y-6 pt-2 first:pt-0 min-w-0">
                         {/* Chapter Title Header */}
-                        <div className="border-b-2 border-violet-500/20 pb-3">
+                        <div className="border-b-2 border-violet-500/20 pb-3 min-w-0">
                           <span className="text-xs font-black text-violet-600 tracking-wider font-mono uppercase">
                             {ch.bab}
                           </span>
-                          <h2 className="text-lg sm:text-xl font-black text-ink-900 font-display">
+                          <h2 className="text-base sm:text-lg lg:text-xl font-black text-ink-900 font-display break-words">
                             {ch.title}
                           </h2>
                         </div>
 
                         {/* Pasal Stream */}
-                        <div className="space-y-6">
+                        <div className="space-y-4 sm:space-y-6 min-w-0">
                           {ch.pasalList.map((p, pIdx) => (
                             <div
                               key={pIdx}
-                              className="p-5 rounded-2xl bg-neutral-50/70 border border-neutral-200/70 space-y-3"
+                              className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-neutral-50/70 border border-neutral-200/70 space-y-2.5 sm:space-y-3 min-w-0"
                             >
-                              <div className="flex items-center gap-2.5">
-                                <span className="px-2.5 py-0.5 rounded-md bg-violet-600 text-white text-xs font-black font-mono">
+                              <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+                                <span className="px-2 sm:px-2.5 py-0.5 rounded-md bg-violet-600 text-white text-[11px] sm:text-xs font-black font-mono">
                                   {p.pasalNumber}
                                 </span>
-                                <h3 className="text-sm sm:text-base font-bold text-ink-900">
+                                <h3 className="text-xs sm:text-sm lg:text-base font-bold text-ink-900 break-words">
                                   {p.title}
                                 </h3>
                               </div>
 
-                              <div className="space-y-2 text-xs sm:text-sm text-ink-700 leading-relaxed font-semibold pl-1">
+                              <div className="space-y-2 text-xs sm:text-sm text-ink-700 leading-relaxed font-semibold pl-0.5 sm:pl-1">
                                 {p.items.map((it, itIdx) => (
-                                  <div key={itIdx} className="flex items-start gap-2.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-violet-600 mt-2 shrink-0" />
-                                    <span>{it}</span>
+                                  <div key={itIdx} className="flex items-start gap-2 sm:gap-2.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-violet-600 mt-1.5 sm:mt-2 shrink-0" />
+                                    <span className="break-words min-w-0 flex-1">{it}</span>
                                   </div>
                                 ))}
                               </div>
@@ -897,20 +894,20 @@ export default function KreatorPanduanPage() {
         )}
 
         {/* Support Card */}
-        <div className="mt-8 p-6 rounded-3xl bg-slate-900 text-white flex flex-col md:flex-row items-center justify-between gap-5 shadow-lg">
-          <div className="space-y-1 text-center md:text-left">
-            <h4 className="text-base font-bold font-display flex items-center justify-center md:justify-start gap-2">
-              <BookOpen size={18} className="text-violet-400" />
-              Punya Pertanyaan Seputar Pekerjaan atau Pencairan?
+        <div className="mt-6 sm:mt-8 p-5 sm:p-6 rounded-2xl sm:rounded-3xl bg-slate-900 text-white flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-5 shadow-lg min-w-0">
+          <div className="space-y-1 text-center md:text-left min-w-0">
+            <h4 className="text-sm sm:text-base font-bold font-display flex items-center justify-center md:justify-start gap-2">
+              <BookOpen size={18} className="text-violet-400 shrink-0" />
+              <span>Punya Pertanyaan Seputar Pekerjaan atau Pencairan?</span>
             </h4>
-            <p className="text-xs text-slate-300 font-medium max-w-lg">
+            <p className="text-xs text-slate-300 font-medium max-w-lg leading-relaxed break-words">
               Tim Support Kreator Marketiv siap membantu menjawab kendala teknis atau sengketa pekerjaan via Email di <strong className="text-white">marketiv.official@gmail.com</strong> atau WhatsApp resmi Admin.
             </p>
           </div>
 
           <a
             href="mailto:marketiv.official@gmail.com"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-extrabold text-xs transition-colors shrink-0 no-underline shadow-md shadow-violet-500/20"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-extrabold text-xs transition-colors shrink-0 no-underline shadow-md shadow-violet-500/20"
           >
             <span>Hubungi Support Kreator</span>
             <ExternalLink size={14} />

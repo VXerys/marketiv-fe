@@ -1,13 +1,47 @@
+/**
+ * Konstanta standar mata uang & locale Rupiah di seluruh Marketiv.
+ */
+export const IDR_LOCALE = "id-ID" as const;
+export const IDR_CURRENCY_CODE = "IDR" as const;
+export const IDR_CURRENCY_SYMBOL = "Rp" as const;
+
 export function formatCurrency(value: number) {
-  return new Intl.NumberFormat("id-ID", {
+  return new Intl.NumberFormat(IDR_LOCALE, {
     style: "currency",
-    currency: "IDR",
+    currency: IDR_CURRENCY_CODE,
     maximumFractionDigits: 0,
   }).format(value);
 }
 
+/**
+ * Format string/angka menjadi representasi rupiah dengan titik pemisah ribuan (.)
+ * tanpa simbol "Rp". Sangat cocok untuk input field/form nominal uang.
+ * @example formatRupiahInput("123123131") → "123.123.131"
+ * @example formatRupiahInput(120000)      → "120.000"
+ * @example formatRupiahInput("")          → ""
+ */
+export function formatRupiahInput(value: string | number): string {
+  if (value === "" || value === null || value === undefined) return "";
+  const cleanDigits = String(value).replace(/[^0-9]/g, "");
+  if (!cleanDigits) return "";
+  const num = parseInt(cleanDigits, 10);
+  if (isNaN(num)) return "";
+  return new Intl.NumberFormat(IDR_LOCALE).format(num);
+}
+
+/**
+ * Parsing string berformat rupiah kembali ke angka murni (number/integer).
+ * @example parseRupiahInput("123.123.131") → 123123131
+ * @example parseRupiahInput("Rp 120.000")  → 120000
+ */
+export function parseRupiahInput(value: string): number {
+  if (!value) return 0;
+  const cleanDigits = value.replace(/[^0-9]/g, "");
+  return cleanDigits ? parseInt(cleanDigits, 10) : 0;
+}
+
 export function formatCompactNumber(value: number) {
-  return new Intl.NumberFormat("id-ID", {
+  return new Intl.NumberFormat(IDR_LOCALE, {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(value);
