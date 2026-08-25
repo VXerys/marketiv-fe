@@ -95,16 +95,25 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Setujui T&C terbaru terlebih dahulu." }, 403);
     }
 
-    // T-15: penarikan pertama wajib email terverifikasi (ditulis fungsi
-    // `user-email-verified` dari event Auth). Hanya gate penarikan pertama.
-    if (!(await hasWithdrawal(databases, env, userId)) && !user?.email_verified_at) {
+    // Future/strict policy: penarikan pertama wajib email terverifikasi
+    // (ditulis fungsi `user-email-verified` dari event Auth). Manual-admin MVP
+    // tidak hard-block request pada guard ini.
+    if (
+      env.advancedGuardsEnabled &&
+      !(await hasWithdrawal(databases, env, userId)) &&
+      !user?.email_verified_at
+    ) {
       log(`Withdrawal ditolak untuk ${userId}: email belum diverifikasi`);
       return json(res, { error: "Verifikasi email sebelum penarikan pertama." }, 403);
     }
 
-    // 2) KYC (Pasal 11.8): nominal besar wajib verified. Dokumen diverifikasi
-    //    admin via WhatsApp; sistem hanya mencatat status lewat `verify-kyc`.
-    if (amount >= env.kycThreshold && user?.kyc_status !== "verified") {
+    // Future/strict policy: nominal besar wajib KYC verified. Manual-admin MVP
+    // tidak hard-block dan tidak memutasi status KYC dari request ini.
+    if (
+      env.advancedGuardsEnabled &&
+      amount >= env.kycThreshold &&
+      user?.kyc_status !== "verified"
+    ) {
       if (!user?.kyc_status || user?.kyc_status === "none") {
         try {
           await databases.updateDocument(env.databaseId, env.usersCollectionId, user.$id, {
@@ -178,17 +187,21 @@ export default async ({ req, res, log, error }) => {
     }
 
     if (!existingWithdrawal) {
-      // 3) Rate limit + cooling tetap berlaku untuk klaim baru. Retry same-key
-      //    hanya melanjutkan klaim yang sudah lolos guard ini.
-      const daily = await countTodayWithdrawals(databases, env, userId);
-      if (daily >= env.withdrawPerDayLimit) {
-        log(`Withdrawal ditolak untuk ${userId}: ${daily} hari ini`);
-        return json(res, { error: "Batas penarikan harian tercapai (3/hari)." }, 429);
+      // Future/strict policy: rate limit + cooling hanya untuk klaim baru.
+      // Retry same-key melanjutkan klaim yang sebelumnya sudah lolos guard.
+      if (env.advancedGuardsEnabled) {
+        const daily = await countTodayWithdrawals(databases, env, userId);
+        if (daily >= env.withdrawPerDayLimit) {
+          log(`Withdrawal ditolak untuk ${userId}: ${daily} hari ini`);
+          return json(res, { error: "Batas penarikan harian tercapai (3/hari)." }, 429);
+        }
+        if (await hasCoolingBlock(databases, env, userId, payload)) {
+          log(`Withdrawal ditolak untuk ${userId}: rekening baru dalam cooling 3 hari`);
+          return json(res, { error: "Akun penarikan baru perlu pending 3 hari." }, 429);
+        }
       }
-      if (await hasCoolingBlock(databases, env, userId, payload)) {
-        log(`Withdrawal ditolak untuk ${userId}: rekening baru dalam cooling 3 hari`);
-        return json(res, { error: "Akun penarikan baru perlu pending 3 hari." }, 429);
-      }
+
+      // Core accidental double-submit guard remains active in every mode.
       if (await findRecentDuplicate(databases, env, userId, amount)) {
         return json(res, { error: "Permintaan penarikan ini sudah diproses." }, 409);
       }
@@ -449,6 +462,9 @@ function getEnv(req) {
   env.kycThreshold = Number(process.env.KYC_THRESHOLD || 5000000);
   env.withdrawPerDayLimit = Number(process.env.WITHDRAW_PER_DAY_LIMIT || 3);
   env.coolingDays = Number(process.env.WITHDRAW_COOLING_DAYS || 3);
+  env.advancedGuardsEnabled = String(
+    process.env.WITHDRAWAL_ADVANCED_GUARDS_ENABLED || ""
+  ).trim().toLowerCase() === "true";
   return env;
 }
 

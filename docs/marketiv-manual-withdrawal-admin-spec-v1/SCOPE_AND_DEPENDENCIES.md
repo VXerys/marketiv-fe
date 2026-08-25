@@ -19,6 +19,16 @@ Phase 06 Legacy Retirement + Staging UAT
 Phase 04 tidak boleh dimulai sebelum admin backend contract Phase 03 stabil.
 Phase 05 dijalankan setelah response contract Phase 02 dan status transitions Phase 03 final.
 
+## Withdrawal Guard Policy — Current MVP vs Future
+
+### Current MVP Guards
+
+Selalu aktif: Appwrite auth, eligible role + UMKM ledger provenance, active account, latest T&C, minimum amount, valid payout destination, wallet + sufficient balance, deterministic idempotency/reconciliation, unresolved recovery + canonical concurrency protection, recent 60-second duplicate protection, atomic reserve, pending ledger, commit-ambiguity reconciliation, dan no-negative-balance protection.
+
+### Future Advanced Guards
+
+First-withdraw email verification, KYC threshold hard gate, daily withdrawal limit, dan changed-account cooling tidak hard-block default manual-admin MVP. Policy lama tetap re-enableable dengan `WITHDRAWAL_ADVANCED_GUARDS_ENABLED=true`; env absent atau bukan `true` berarti disabled. Default mode juga tidak memutasi `kyc_status` menjadi `pending_wa` saat withdrawal diminta.
+
 ## Current Relevant Source of Truth
 
 ### Backend

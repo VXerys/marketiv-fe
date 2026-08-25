@@ -1778,6 +1778,7 @@ describe('request-withdrawal function (manual withdrawal request)', () => {
     process.env.KYC_THRESHOLD = '5000000';
     process.env.WITHDRAW_PER_DAY_LIMIT = '3';
     process.env.WITHDRAW_COOLING_DAYS = '3';
+    delete process.env.WITHDRAWAL_ADVANCED_GUARDS_ENABLED;
   };
 
   const seedCreator = (uid: string, balance: number, over: any = {}) => {
@@ -1849,7 +1850,7 @@ describe('request-withdrawal function (manual withdrawal request)', () => {
     expect((store['withdrawals'] || [])).toHaveLength(0); // no audit row
   });
 
-  it('rejects first withdrawal when email not verified', async () => {
+  it('allows first withdrawal without email verification in default MVP mode', async () => {
     (globalThis as any).fetch = mockFetch();
     envWithdrawal();
     seed('users', [{ $id: 'uY', userId: 'user-Y', role: 'creator', tos_version: 'v3.1', tos_accepted_at: new Date().toISOString(), email_verified_at: null }]);
@@ -1857,6 +1858,23 @@ describe('request-withdrawal function (manual withdrawal request)', () => {
 
     const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
     const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-Y' }, bodyJson: payload('req-key-email') });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(200);
+    expect(res.calls[0].body.status).toBe('requested');
+    expect((store['withdrawals'] || [])).toHaveLength(1);
+  });
+
+  it('rejects first withdrawal without email verification in strict mode', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    process.env.WITHDRAWAL_ADVANCED_GUARDS_ENABLED = 'true';
+    seed('users', [{ $id: 'uY-strict', userId: 'user-Y-strict', role: 'creator', tos_version: 'v3.1', tos_accepted_at: new Date().toISOString(), email_verified_at: null }]);
+    seed('wallets', [{ $id: 'wY-strict', userId: 'user-Y-strict', balance: 100000 }]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-Y-strict' }, bodyJson: payload('req-key-email-strict') });
     const res = makeRes();
     await main({ req, res, log: () => {}, error: () => {} });
 
@@ -1915,6 +1933,47 @@ describe('request-withdrawal function (manual withdrawal request)', () => {
     expect((store['withdrawals'] || [])).toHaveLength(0);
     const wallet = (store['wallets'] || []).find((w) => w.$id === 'w-user-1');
     expect(wallet.balance).toBe(0);
+  });
+
+  it('rejects withdrawal below minimum amount', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seedCreator('user-minimum', 100000);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-minimum' }, bodyJson: payload('req-key-minimum', { amount: 49999 }) });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(400);
+    expect(res.calls[0].body.error).toBe('Minimum penarikan Rp50.000');
+    expect((store['withdrawals'] || [])).toHaveLength(0);
+    expect(store.wallets[0].balance).toBe(100000);
+  });
+
+  it('blocks a recent same-amount duplicate with a different requestKey', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seedCreator('user-recent-duplicate', 100000);
+    seed('withdrawals', [{
+      $id: 'wd-recent-duplicate',
+      userId: 'user-recent-duplicate',
+      amount: 50000,
+      status: 'requested',
+      accountNumber: '1234567890',
+      providerName: 'BCA',
+      $createdAt: new Date().toISOString(),
+    }]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-recent-duplicate' }, bodyJson: payload('req-key-recent-duplicate') });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(409);
+    expect(res.calls[0].body.error).toBe('Permintaan penarikan ini sudah diproses.');
+    expect((store['withdrawals'] || [])).toHaveLength(1);
+    expect(store.wallets[0].balance).toBe(100000);
   });
 
   it('marks withdrawal failed when atomic debit and requested-row cleanup both fail', async () => {
@@ -2209,8 +2268,8 @@ describe('request-withdrawal function (manual withdrawal request)', () => {
     expect(wd.requester_role).toBe('umkm');
   });
 
-  // ===== KYC (Pasal 11.8) =====
-  it('requires KYC verified for amount at or above threshold and marks pending_wa', async () => {
+  // ===== Advanced guards: default MVP mode vs strict/future mode =====
+  it('allows amount at or above old KYC threshold without mutating KYC in default MVP mode', async () => {
     (globalThis as any).fetch = mockFetch();
     envWithdrawal();
     seedCreator('user-K', 10000000, { kyc_status: 'none' });
@@ -2220,22 +2279,41 @@ describe('request-withdrawal function (manual withdrawal request)', () => {
     const res = makeRes();
     await main({ req, res, log: () => {}, error: () => {} });
 
+    expect(res.calls[0].status).toBe(200);
+    expect(res.calls[0].body.status).toBe('requested');
+    expect((store['withdrawals'] || [])).toHaveLength(1);
+    const user = (store['users'] || []).find((u) => u.userId === 'user-K');
+    expect(user.kyc_status).toBe('none');
+    expect(updateCalls.some((call) => call.collection === 'users' && call.data.kyc_status === 'pending_wa')).toBe(false);
+  });
+
+  it('keeps KYC threshold gate and pending_wa mutation in strict mode', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    process.env.WITHDRAWAL_ADVANCED_GUARDS_ENABLED = 'true';
+    seedCreator('user-K-strict', 10000000, { kyc_status: 'none' });
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-K-strict' }, bodyJson: payload('req-key-kyc-strict', { amount: 6000000 }) });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
     expect(res.calls[0].status).toBe(403);
     expect(res.calls[0].body.error).toBe('Verifikasi KYC dulu melalui WhatsApp admin.');
     expect((store['withdrawals'] || [])).toHaveLength(0);
-    const user = (store['users'] || []).find((u) => u.userId === 'user-K');
+    const user = (store['users'] || []).find((u) => u.userId === 'user-K-strict');
     expect(user.kyc_status).toBe('pending_wa');
   });
 
-  // ===== Rate limit + cooling (T-18, Pasal 11) =====
-  it('enforces 3 withdrawals/day rate limit', async () => {
+  it('allows more than old daily limit in default MVP mode', async () => {
     (globalThis as any).fetch = mockFetch();
     envWithdrawal();
     seedCreator('user-R', 500000);
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60_000).toISOString();
     seed('withdrawals', [
-      { $id: 'wd-a', userId: 'user-R', amount: 50000, status: 'succeeded', accountNumber: '1234567890', providerName: 'BCA', $createdAt: new Date().toISOString() },
-      { $id: 'wd-b', userId: 'user-R', amount: 50000, status: 'succeeded', accountNumber: '1234567890', providerName: 'BCA', $createdAt: new Date().toISOString() },
-      { $id: 'wd-c', userId: 'user-R', amount: 50000, status: 'succeeded', accountNumber: '1234567890', providerName: 'BCA', $createdAt: new Date().toISOString() },
+      { $id: 'wd-a', userId: 'user-R', amount: 50000, status: 'succeeded', accountNumber: '1234567890', providerName: 'BCA', $createdAt: twoMinutesAgo },
+      { $id: 'wd-b', userId: 'user-R', amount: 50000, status: 'succeeded', accountNumber: '1234567890', providerName: 'BCA', $createdAt: twoMinutesAgo },
+      { $id: 'wd-c', userId: 'user-R', amount: 50000, status: 'succeeded', accountNumber: '1234567890', providerName: 'BCA', $createdAt: twoMinutesAgo },
     ]);
 
     const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
@@ -2243,22 +2321,61 @@ describe('request-withdrawal function (manual withdrawal request)', () => {
     const res = makeRes();
     await main({ req, res, log: () => {}, error: () => {} });
 
-    expect(res.calls[0].status).toBe(429);
-    expect(res.calls[0].body.error).toBe('Batas penarikan harian tercapai (3/hari).');
-    expect((store['withdrawals'] || [])).toHaveLength(3); // no 4th row
+    expect(res.calls[0].status).toBe(200);
+    expect(res.calls[0].body.status).toBe('requested');
+    expect((store['withdrawals'] || [])).toHaveLength(4);
   });
 
-  it('enforces 3-day cooling when account number changed recently', async () => {
+  it('keeps daily withdrawal limit in strict mode', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    process.env.WITHDRAWAL_ADVANCED_GUARDS_ENABLED = 'true';
+    seedCreator('user-R-strict', 500000);
+    seed('withdrawals', [
+      { $id: 'wd-strict-a', userId: 'user-R-strict', amount: 50000, status: 'succeeded', accountNumber: '1234567890', providerName: 'BCA', $createdAt: new Date().toISOString() },
+      { $id: 'wd-strict-b', userId: 'user-R-strict', amount: 50000, status: 'succeeded', accountNumber: '1234567890', providerName: 'BCA', $createdAt: new Date().toISOString() },
+      { $id: 'wd-strict-c', userId: 'user-R-strict', amount: 50000, status: 'succeeded', accountNumber: '1234567890', providerName: 'BCA', $createdAt: new Date().toISOString() },
+    ]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-R-strict' }, bodyJson: payload('req-key-rate-strict') });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(429);
+    expect(res.calls[0].body.error).toBe('Batas penarikan harian tercapai (3/hari).');
+    expect((store['withdrawals'] || [])).toHaveLength(3);
+  });
+
+  it('allows changed payout account inside old cooling window in default MVP mode', async () => {
     (globalThis as any).fetch = mockFetch();
     envWithdrawal();
     seedCreator('user-C', 500000);
-    // recent withdrawal on a DIFFERENT account -> cooling block
     seed('withdrawals', [
-      { $id: 'wd-old', userId: 'user-C', amount: 50000, status: 'succeeded', accountNumber: '9999999999', providerName: 'BNI', $createdAt: new Date().toISOString() },
+      { $id: 'wd-old', userId: 'user-C', amount: 60000, status: 'succeeded', accountNumber: '9999999999', providerName: 'BNI', $createdAt: new Date().toISOString() },
     ]);
 
     const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
     const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-C' }, bodyJson: payload('req-key-cool') });
+    const res = makeRes();
+    await main({ req, res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(200);
+    expect(res.calls[0].body.status).toBe('requested');
+    expect((store['withdrawals'] || [])).toHaveLength(2);
+  });
+
+  it('keeps changed-account cooling in strict mode', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    process.env.WITHDRAWAL_ADVANCED_GUARDS_ENABLED = 'true';
+    seedCreator('user-C-strict', 500000);
+    seed('withdrawals', [
+      { $id: 'wd-old-strict', userId: 'user-C-strict', amount: 60000, status: 'succeeded', accountNumber: '9999999999', providerName: 'BNI', $createdAt: new Date().toISOString() },
+    ]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-C-strict' }, bodyJson: payload('req-key-cool-strict') });
     const res = makeRes();
     await main({ req, res, log: () => {}, error: () => {} });
 

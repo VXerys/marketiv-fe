@@ -16,8 +16,29 @@ Tidak ada payout network call.
 
 ## Requirements
 
-### R1 — Preserve existing guards
-Jangan mengurangi current authenticated user, eligible role, active account, TOS, first-withdraw email verification, KYC threshold, minimum withdrawal, daily limit, account cooling, duplicate/requestKey, dan sufficient balance checks tanpa alasan.
+### R1 — Preserve existing guards (historical baseline)
+Baseline Phase 02 awal mempertahankan authenticated user, eligible role, active account, TOS, first-withdraw email verification, KYC threshold, minimum withdrawal, daily limit, account cooling, duplicate/requestKey, dan sufficient balance checks.
+
+#### Current MVP policy override — 2026-08-25
+Arsitektur current memakai trusted manual admin review dan transfer manual. Karena itu, `request-withdrawal` default MVP tidak menegakkan empat advanced automated-payout/fraud guards berikut sebagai hard block:
+
+- first-withdraw email verification: tidak ditegakkan oleh `request-withdrawal`,
+- KYC threshold: future scope; request juga tidak memutasi `kyc_status` menjadi `pending_wa`,
+- daily withdrawal limit: future scope,
+- changed-account cooling: future scope.
+
+Empat guard tersebut tetap tersedia sebagai strict/future policy melalui `WITHDRAWAL_ADVANCED_GUARDS_ENABLED=true`. Env absent atau bukan `true` berarti default MVP mode.
+
+Guard yang tetap current dan wajib aktif pada semua mode:
+
+- authenticated Appwrite user,
+- eligible role dan UMKM ledger provenance,
+- active account status,
+- latest T&C acceptance,
+- minimum withdrawal dan valid payout destination,
+- wallet existence dan sufficient available balance,
+- deterministic requestKey/idempotency, same-request reconciliation, unresolved recovery protection, recent 60-second duplicate protection, dan canonical concurrency claim,
+- atomic wallet reserve, pending withdrawal ledger, commit-ambiguity reconciliation, dan no-negative-balance protection.
 
 ### R2 — Atomic reserve
 Accepted request harus mengurangi `wallet.balance` atomik.
