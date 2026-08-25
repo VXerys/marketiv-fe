@@ -14,6 +14,8 @@ interface DeliverableReviewCardProps {
   deliverables: Deliverable[];
   /** Nonaktifkan aksi selama order belum berjalan atau sudah selesai. */
   canReview: boolean;
+  validationStatus?: "pending" | "valid" | "invalid";
+  validationNotes?: string;
   busy: boolean;
   onApprove: () => void;
   onRequestRevision: () => void;
@@ -28,6 +30,8 @@ const STATUS_LABEL: Record<Deliverable["status"], { text: string; className: str
 export function DeliverableReviewCard({
   deliverables,
   canReview,
+  validationStatus = "pending",
+  validationNotes,
   busy,
   onApprove,
   onRequestRevision,
@@ -87,6 +91,11 @@ export function DeliverableReviewCard({
         )}
       </div>
 
+      <div className={`mt-3 rounded-[12px] border px-3 py-2 text-[10px] font-bold ${validationStatus === "valid" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : validationStatus === "invalid" ? "border-red-200 bg-red-50 text-red-700" : "border-amber-200 bg-amber-50 text-amber-700"}`}>
+        {validationStatus === "valid" ? "Bukti Lolos Validasi Marketiv" : validationStatus === "invalid" ? "Bukti Belum Lolos Validasi" : "Menunggu Validasi Marketiv"}
+        {validationStatus === "invalid" && validationNotes ? <span className="block mt-1 font-semibold">{validationNotes}</span> : null}
+      </div>
+
       {isActionable && (
         <div className="flex gap-2 mt-3">
           <button
@@ -107,6 +116,14 @@ export function DeliverableReviewCard({
             disabled={busy}
             className="px-3.5 py-2.5 rounded-[12px] text-[10px] font-extrabold text-neutral-700 bg-neutral-100 border border-neutral-200/60 hover:bg-neutral-200/60 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
+            Minta Revisi
+          </button>
+        </div>
+      )}
+
+      {!isActionable && latest.status === "submitted" && validationStatus !== "valid" && (
+        <div className="flex gap-2 mt-3">
+          <button type="button" onClick={onRequestRevision} disabled={busy} className="w-full px-3.5 py-2.5 rounded-[12px] text-[10px] font-extrabold text-neutral-700 bg-neutral-100 border border-neutral-200/60 hover:bg-neutral-200/60 transition-all cursor-pointer disabled:opacity-60">
             Minta Revisi
           </button>
         </div>

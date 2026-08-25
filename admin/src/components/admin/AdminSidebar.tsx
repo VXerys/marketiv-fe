@@ -14,6 +14,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Landmark,
+  ClipboardCheck,
 } from "lucide-react";
 import { MarketivLogo } from "@/components/ui/MarketivLogo";
 import { cn } from "@/lib/utils";
@@ -218,6 +219,16 @@ export function AdminSidebar({
                   {pendingCount}
                 </span>
               )}
+            </Link>
+
+            <Link
+              href="/rate-card-validations"
+              onClick={onClose}
+              title={isRail ? "Validasi Rate Card" : undefined}
+              className={cn("group flex items-center rounded-xl transition-all relative overflow-hidden font-bold text-xs", isRail ? "h-11 w-11 justify-center mx-auto" : "px-3.5 py-2.5 gap-3 w-full", pathname.startsWith("/rate-card-validations") ? "bg-[#0c172b] text-white shadow-md shadow-[#0c172b]/15" : "text-stone-700 hover:bg-stone-100 hover:text-stone-900")}
+            >
+              <ClipboardCheck className={cn("h-4 w-4 shrink-0 transition-transform group-hover:scale-110", pathname.startsWith("/rate-card-validations") ? "text-[#f97316]" : "text-stone-400 group-hover:text-stone-700")} />
+              {!isRail && <span className="truncate">Validasi Rate Card</span>}
             </Link>
 
             <Link

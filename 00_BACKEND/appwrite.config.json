@@ -2851,6 +2851,141 @@
       ]
     },
     {
+      "$id": "ratecard_deliverable_validations",
+      "name": "Rate Card Deliverable Validations",
+      "$permissions": [],
+      "enabled": true,
+      "databaseId": "6a4c8598001da3b0d7f0",
+      "rowSecurity": true,
+      "columns": [
+        {
+          "key": "deliverableId",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "orderId",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "deliverableVersion",
+          "type": "integer",
+          "required": true,
+          "array": false,
+          "default": null,
+          "min": 0,
+          "max": 999999999
+        },
+        {
+          "key": "sourceSnapshot",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 50,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "evidenceUrlSnapshot",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 2048,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "status",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 20,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "reviewedBy",
+          "type": "string",
+          "required": true,
+          "array": false,
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "reviewNotes",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 2000,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "reviewedAt",
+          "type": "datetime",
+          "required": true,
+          "array": false,
+          "default": null
+        }
+      ],
+      "indexes": [
+        {
+          "key": "idx_deliverableId",
+          "type": "unique",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "deliverableId"
+          ]
+        },
+        {
+          "key": "idx_orderId",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "orderId"
+          ]
+        },
+        {
+          "key": "idx_status",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "status"
+          ]
+        },
+        {
+          "key": "idx_reviewedAt",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "DESC"
+          ],
+          "columns": [
+            "reviewedAt"
+          ]
+        }
+      ]
+    },
+    {
       "$id": "wallets",
       "name": "Wallets",
       "$permissions": [],
@@ -4411,7 +4546,8 @@
       "runtime": "node-22",
       "execute": [],
       "events": [
-        "databases.6a4c8598001da3b0d7f0.tables.deliverables.rows.*.update"
+        "databases.6a4c8598001da3b0d7f0.tables.deliverables.rows.*.update",
+        "databases.6a4c8598001da3b0d7f0.tables.ratecard_deliverable_validations.rows.*.create"
       ],
       "schedule": "",
       "timeout": 15,
@@ -4723,6 +4859,45 @@
       "path": "functions/get-admin-submission-queue",
       "scopes": [
         "documents.read"
+      ]
+    },
+    {
+      "$id": "get-admin-ratecard-deliverable-queue",
+      "name": "Get Admin Rate Card Deliverable Queue",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 30,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/get-admin-ratecard-deliverable-queue",
+      "scopes": [
+        "documents.read"
+      ]
+    },
+    {
+      "$id": "review-ratecard-deliverable",
+      "name": "Review Rate Card Deliverable",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 30,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/review-ratecard-deliverable",
+      "scopes": [
+        "documents.read",
+        "documents.write"
       ]
     },
     {

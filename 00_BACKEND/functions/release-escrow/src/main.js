@@ -15,23 +15,35 @@ const RELEASABLE_ORDER_STATUSES = new Set(["in_progress", "revision"]);
 export default async ({ req, res, log, error }) => {
   try {
     const env = getEnv(req);
-    const deliverable = parseBody(req);
-    if (!deliverable?.$id) return json(res, { error: "Missing deliverable payload" }, 400);
-    if (deliverable.status !== "approved") return json(res, { status: "ignored", reason: "deliverable is not approved" });
-
+    const databases = createDatabasesClient(env);
+    const event = parseBody(req);
+    const deliverableId = event?.deliverableId || event?.$id;
+    if (!deliverableId) return json(res, { error: "Missing deliverable id" }, 400);
+    // Event payload tidak dipercaya. Event deliverable dan validation sama-sama
+    // memicu fungsi ini; state final selalu dimuat ulang dari database.
+    const deliverable = await databases.getDocument(env.databaseId, env.deliverablesCollectionId, deliverableId);
     const orderId = deliverable.orderId;
     if (!orderId) return json(res, { error: "Missing order id" }, 400);
-
-    const databases = createDatabasesClient(env);
     const order = await databases.getDocument(env.databaseId, env.ordersCollectionId, orderId);
     const creatorId = order.creatorId;
     if (!creatorId) return json(res, { error: "Order has no creator" }, 400);
 
-    // Payload event adalah baris deliverable apa adanya; `orderId`-nya dipakai
-    // untuk memuat order di atas, jadi keduanya sudah pasti sinkron. Yang belum
-    // diperiksa adalah apakah order-nya memang sedang berjalan.
     if (!RELEASABLE_ORDER_STATUSES.has(String(order.status))) {
       return json(res, { status: "ignored", reason: `order status is ${order.status}` });
+    }
+
+    if (String(deliverable.status) !== "approved") {
+      return json(res, { status: "ignored", reason: "deliverable is not approved" });
+    }
+    const latest = await findLatestDeliverable(databases, env, orderId);
+    if (!latest || latest.$id !== deliverable.$id) {
+      return json(res, { status: "ignored", reason: "deliverable is not latest" });
+    }
+    const validation = await findValidation(databases, env, deliverable.$id);
+    if (!validation || validation.status !== "valid" ||
+      validation.orderId !== orderId || Number(validation.deliverableVersion) !== Number(deliverable.version) ||
+      validation.sourceSnapshot !== deliverable.source || validation.evidenceUrlSnapshot !== deliverable.fileUrl) {
+      return json(res, { status: "ignored", reason: "trusted validation is missing or mismatched" });
     }
 
     const escrow = await findEscrowForRelease(databases, env, orderId);
@@ -141,6 +153,8 @@ function getEnv(req) {
     transactionsCollectionId: process.env.TRANSACTIONS_COLLECTION_ID || process.env.NEXT_PUBLIC_TRANSACTION_COLLECTION || "transactions",
     escrowsCollectionId: process.env.ESCROWS_COLLECTION_ID || process.env.NEXT_PUBLIC_ESCROW_COLLECTION || "escrows",
     ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders",
+    deliverablesCollectionId: process.env.DELIVERABLES_COLLECTION_ID || "deliverables",
+    validationsCollectionId: process.env.RATECARD_DELIVERABLE_VALIDATIONS_COLLECTION_ID || "ratecard_deliverable_validations",
     notificationsCollectionId: process.env.NOTIFICATIONS_COLLECTION_ID || "notifications",
     feeRate: Number(process.env.FEE_RATE || 0.02)
   };
@@ -165,6 +179,20 @@ async function findEscrowForRelease(databases, env, orderId) {
     Query.equal("orderId", orderId),
     Query.equal("status", ["held", "releasing", "released"]),
     Query.limit(1)
+  ]);
+  return result.documents[0] || null;
+}
+
+async function findLatestDeliverable(databases, env, orderId) {
+  const result = await databases.listDocuments(env.databaseId, env.deliverablesCollectionId, [
+    Query.equal("orderId", orderId), Query.orderDesc("version"), Query.limit(1)
+  ]);
+  return result.documents[0] || null;
+}
+
+async function findValidation(databases, env, deliverableId) {
+  const result = await databases.listDocuments(env.databaseId, env.validationsCollectionId, [
+    Query.equal("deliverableId", deliverableId), Query.limit(1)
   ]);
   return result.documents[0] || null;
 }

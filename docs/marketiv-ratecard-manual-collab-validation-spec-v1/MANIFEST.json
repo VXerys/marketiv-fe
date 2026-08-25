@@ -1,0 +1,16 @@
+{
+  "name": "marketiv-ratecard-manual-collab-validation-spec-v1",
+  "repo": "marketiv-id/marketiv-web",
+  "branch": "staging",
+  "observed_head": "4f94769da5d961464b003b957f477280d55cc995",
+  "decision": "Admin Marketiv manual Collab Post validation for MVP",
+  "hard_exclusion": "withdrawal",
+  "files": [
+    "README.md",
+    "REQUIREMENTS.md",
+    "DESIGN.md",
+    "TASKS.md",
+    "VERIFICATION_MATRIX.md",
+    "CODEX_MASTER_PROMPT.md"
+  ]
+}

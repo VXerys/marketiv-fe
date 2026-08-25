@@ -673,7 +673,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                     {awaitingReview && (
                       <span className="flex items-center gap-1.5 text-[10px] font-extrabold text-amber-600">
                         <Clock className="w-3.5 h-3.5" />
-                        v{latestDeliverable?.version} menunggu review UMKM
+                        {neg.deliverableValidation?.status === "valid" ? `v${latestDeliverable?.version} bukti lolos validasi Marketiv dan menunggu review UMKM` : neg.deliverableValidation?.status === "invalid" ? `v${latestDeliverable?.version} belum lolos validasi Marketiv${neg.deliverableValidation.reviewNotes ? `: ${neg.deliverableValidation.reviewNotes}` : ""}` : `v${latestDeliverable?.version} dikirim — menunggu validasi Marketiv`}
                       </span>
                     )}
                     {latestDeliverable?.status === "revision_requested" && (

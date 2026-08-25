@@ -235,6 +235,7 @@ export interface CreatorNegotiation {
   escrowStatus?: EscrowStatus;
   deliverables?: string;
   submittedCollabUrl?: string;
+  deliverableValidation?: { status: "pending" | "valid" | "invalid"; reviewedAt?: string; reviewNotes?: string };
 
   /** Harga order kalau sudah ada, kalau belum harga offer yang ditawar. */
   finalPrice: number;

@@ -89,6 +89,9 @@
   "get-admin-submission-queue": [
     "documents.read"
   ],
+  "get-admin-ratecard-deliverable-queue": [
+    "documents.read"
+  ],
   "get-admin-withdrawal-queue": [
     "documents.read",
     "users.read"
@@ -161,6 +164,10 @@
     "documents.write"
   ],
   "review-submission": [
+    "documents.read",
+    "documents.write"
+  ],
+  "review-ratecard-deliverable": [
     "documents.read",
     "documents.write"
   ],

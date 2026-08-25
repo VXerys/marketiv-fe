@@ -993,10 +993,14 @@ describe('release-escrow function', () => {
     (globalThis as any).fetch = mockTablesDb;
     seed('escrows', [{ $id: 'e1', orderId: 'o1', amount: 100000, status: 'held' }]);
     seed('orders', [{ $id: 'o1', umkmId: 'u1', creatorId: 'c1', amount: 100000, status: 'in_progress' }]);
+    seed('deliverables', [{ $id: 'd1', orderId: 'o1', source: 'instagram', fileUrl: 'https://instagram.com/p/fee-one', version: 1, status: 'approved' }]);
+    seed('ratecard_deliverable_validations', [{ $id: 'v-fee1', deliverableId: 'd1', orderId: 'o1', deliverableVersion: 1, sourceSnapshot: 'instagram', evidenceUrlSnapshot: 'https://instagram.com/p/fee-one', status: 'valid' }]);
+    seed('deliverables', [{ $id: 'd1', orderId: 'o1', source: 'instagram', fileUrl: 'https://instagram.com/p/one', version: 1, status: 'approved' }]);
+    seed('ratecard_deliverable_validations', [{ $id: 'v1', deliverableId: 'd1', orderId: 'o1', deliverableVersion: 1, sourceSnapshot: 'instagram', evidenceUrlSnapshot: 'https://instagram.com/p/one', status: 'valid' }]);
     seed('wallets', [{ $id: 'w1', userId: 'c1', balance: 0, pendingBalance: 0 }]);
     const main = (await import('../../functions/release-escrow/src/main.js')).default;
     // deliverable document delivered via event payload
-    const req = makeReq({ bodyJson: { $id: 'd1', status: 'approved', orderId: 'o1' } });
+    const req = makeReq({ bodyJson: { $id: 'd1' } });
     const res = makeRes();
     await main({ req, res, log: () => {}, error: () => {} });
     const escrow = (store['escrows'] || []).find((e) => e.$id === 'e1');
@@ -1014,6 +1018,8 @@ describe('release-escrow function', () => {
     process.env.TRANSACTIONS_COLLECTION_ID = 'transactions';
     seed('escrows', [{ $id: 'e2', orderId: 'o2', amount: 100000, status: 'held', fee_rate: 0.02 }]);
     seed('orders', [{ $id: 'o2', umkmId: 'u1', creatorId: 'c2', amount: 100000, status: 'in_progress' }]);
+    seed('deliverables', [{ $id: 'd2', orderId: 'o2', source: 'instagram', fileUrl: 'https://instagram.com/p/two', version: 1, status: 'approved' }]);
+    seed('ratecard_deliverable_validations', [{ $id: 'v2', deliverableId: 'd2', orderId: 'o2', deliverableVersion: 1, sourceSnapshot: 'instagram', evidenceUrlSnapshot: 'https://instagram.com/p/two', status: 'valid' }]);
     seed('wallets', [{ $id: 'w2', userId: 'c2', balance: 0, pendingBalance: 0 }]);
 
     let failIncrement = true;
@@ -1037,7 +1043,7 @@ describe('release-escrow function', () => {
     (globalThis as any).fetch = mockTablesDb;
 
     const main = (await import('../../functions/release-escrow/src/main.js')).default;
-    const req = makeReq({ bodyJson: { $id: 'd2', status: 'approved', orderId: 'o2' } });
+    const req = makeReq({ bodyJson: { $id: 'd2' } });
 
     await main({ req, res: makeRes(), log: () => {}, error: () => {} });
     expect(store.escrows[0].status).toBe('releasing');
@@ -1054,6 +1060,47 @@ describe('release-escrow function', () => {
     expect(feeTx[0].status).toBe('completed');
 
     (globalThis as any).fetch = oldFetch;
+  });
+
+  it('does not release for an approved deliverable without trusted validation', async () => {
+    process.env.APPWRITE_DATABASE_ID = 'db';
+    seed('escrows', [{ $id: 'e3', orderId: 'o3', amount: 100000, status: 'held' }]);
+    seed('orders', [{ $id: 'o3', creatorId: 'c3', status: 'in_progress' }]);
+    seed('deliverables', [{ $id: 'd3', orderId: 'o3', source: 'instagram', fileUrl: 'https://instagram.com/p/three', version: 1, status: 'approved' }]);
+    const main = (await import('../../functions/release-escrow/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ bodyJson: { $id: 'd3' } }), res, log: () => {}, error: () => {} });
+    expect(res.calls[0].body).toMatchObject({ status: 'ignored', reason: 'trusted validation is missing or mismatched' });
+    expect(store.escrows[0].status).toBe('held');
+  });
+});
+
+describe('review-ratecard-deliverable function', () => {
+  it('creates one server-derived valid decision for the current Rate Card deliverable', async () => {
+    process.env.APPWRITE_DATABASE_ID = 'db';
+    seed('users', [{ $id: 'admin-doc', userId: 'admin-1', role: 'admin', status: 'active' }]);
+    seed('orders', [{ $id: 'o-validation', offerId: 'offer-1', creatorId: 'creator-1', umkmId: 'umkm-1', status: 'in_progress' }]);
+    seed('deliverables', [{ $id: 'd-validation', orderId: 'o-validation', source: 'instagram', fileUrl: 'https://instagram.com/p/proof', version: 2, status: 'submitted' }]);
+    const main = (await import('../../functions/review-ratecard-deliverable/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ headers: { 'x-appwrite-user-id': 'admin-1' }, bodyJson: { deliverableId: 'd-validation', decision: 'valid', notes: 'manual check' } }), res, log: () => {}, error: () => {} });
+    expect(res.calls[0].body).toMatchObject({ success: true, deliverableId: 'd-validation', decision: 'valid' });
+    expect(store.ratecard_deliverable_validations[0]).toMatchObject({ deliverableId: 'd-validation', orderId: 'o-validation', deliverableVersion: 2, sourceSnapshot: 'instagram', evidenceUrlSnapshot: 'https://instagram.com/p/proof', reviewedBy: 'admin-1', status: 'valid' });
+  });
+
+  it('rejects invalid decision without notes and duplicate final decision', async () => {
+    process.env.APPWRITE_DATABASE_ID = 'db';
+    seed('users', [{ $id: 'admin-doc', userId: 'admin-1', role: 'admin', status: 'active' }]);
+    seed('orders', [{ $id: 'o-validation', offerId: 'offer-1', status: 'in_progress' }]);
+    seed('deliverables', [{ $id: 'd-validation', orderId: 'o-validation', source: 'instagram', fileUrl: 'https://instagram.com/p/proof', version: 1, status: 'submitted' }]);
+    const main = (await import('../../functions/review-ratecard-deliverable/src/main.js')).default;
+    const invalid = makeRes();
+    await main({ req: makeReq({ headers: { 'x-appwrite-user-id': 'admin-1' }, bodyJson: { deliverableId: 'd-validation', decision: 'invalid' } }), res: invalid, log: () => {}, error: () => {} });
+    expect(invalid.calls[0].status).toBe(400);
+    seed('ratecard_deliverable_validations', [{ $id: 'existing', deliverableId: 'd-validation', status: 'valid' }]);
+    const duplicate = makeRes();
+    await main({ req: makeReq({ headers: { 'x-appwrite-user-id': 'admin-1' }, bodyJson: { deliverableId: 'd-validation', decision: 'valid' } }), res: duplicate, log: () => {}, error: () => {} });
+    expect(duplicate.calls[0].status).toBe(409);
   });
 });
 
@@ -2461,10 +2508,12 @@ describe('Phase 2: T-01 Fee from env + snapshot', () => {
     // Escrow created when fee_rate was 0.02 (snapshot)
     seed('escrows', [{ $id: 'e1', orderId: 'o1', amount: 100000, status: 'held', fee_rate: 0.02 }]);
     seed('orders', [{ $id: 'o1', umkmId: 'u1', creatorId: 'c1', amount: 100000, status: 'in_progress' }]);
+    seed('deliverables', [{ $id: 'd1', orderId: 'o1', source: 'instagram', fileUrl: 'https://instagram.com/p/fee-one', version: 1, status: 'approved' }]);
+    seed('ratecard_deliverable_validations', [{ $id: 'v-fee1', deliverableId: 'd1', orderId: 'o1', deliverableVersion: 1, sourceSnapshot: 'instagram', evidenceUrlSnapshot: 'https://instagram.com/p/fee-one', status: 'valid' }]);
     seed('wallets', [{ $id: 'w1', userId: 'c1', balance: 0, pendingBalance: 0 }]);
 
     const main = (await import('../../functions/release-escrow/src/main.js')).default;
-    const req = makeReq({ bodyJson: { $id: 'd1', status: 'approved', orderId: 'o1' } });
+    const req = makeReq({ bodyJson: { $id: 'd1' } });
     const res = makeRes();
     await main({ req, res, log: () => {}, error: () => {} });
 
@@ -2487,10 +2536,12 @@ describe('Phase 2: T-01 Fee from env + snapshot', () => {
     // Old escrow without fee_rate column
     seed('escrows', [{ $id: 'e2', orderId: 'o2', amount: 100000, status: 'held' }]);
     seed('orders', [{ $id: 'o2', umkmId: 'u1', creatorId: 'c1', amount: 100000, status: 'in_progress' }]);
+    seed('deliverables', [{ $id: 'd2', orderId: 'o2', source: 'instagram', fileUrl: 'https://instagram.com/p/fee-two', version: 1, status: 'approved' }]);
+    seed('ratecard_deliverable_validations', [{ $id: 'v-fee2', deliverableId: 'd2', orderId: 'o2', deliverableVersion: 1, sourceSnapshot: 'instagram', evidenceUrlSnapshot: 'https://instagram.com/p/fee-two', status: 'valid' }]);
     seed('wallets', [{ $id: 'w2', userId: 'c1', balance: 0, pendingBalance: 0 }]);
 
     const main = (await import('../../functions/release-escrow/src/main.js')).default;
-    const req = makeReq({ bodyJson: { $id: 'd2', status: 'approved', orderId: 'o2' } });
+    const req = makeReq({ bodyJson: { $id: 'd2' } });
     const res = makeRes();
     await main({ req, res, log: () => {}, error: () => {} });
 

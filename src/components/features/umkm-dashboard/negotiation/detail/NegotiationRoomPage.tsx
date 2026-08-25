@@ -314,17 +314,14 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
     await loadData();
   };
 
-  /**
-   * Setujui hasil kerja.
-   *
-   * ⚠️ INI YANG MENCAIRKAN DANA. Tulisan `status: "approved"` memicu
-   * `release-escrow`, yang memindahkan escrow ke wallet kreator dikurangi fee
-   * 2% dan menandai order `completed` — semuanya ASINKRON lewat event database.
-   * Karena itu hasilnya dimuat ulang, bukan diasumsikan.
-   */
+  /** UMKM baru dapat menyetujui setelah validasi manual Admin bernilai valid. */
   const handleApproveDeliverable = async () => {
     const latest = deliverables[deliverables.length - 1];
     if (!order?.orderId || !latest || reviewing) return;
+    if (order.deliverableValidation?.status !== "valid") {
+      toast.error("Menunggu validasi manual Admin Marketiv sebelum persetujuan UMKM.");
+      return;
+    }
 
     setReviewing(true);
     const res = await approveDeliverable(order.orderId, latest.id);
@@ -335,7 +332,7 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
       throw new Error(res.error ?? "Gagal menyetujui deliverable.");
     }
     setIsApproveOpen(false);
-    toast.success("Deliverable disetujui. Dana escrow sedang dilepaskan ke kreator.");
+    toast.success("Deliverable disetujui. Sistem sedang memeriksa syarat pelepasan escrow.");
     await loadData();
   };
 
@@ -570,7 +567,9 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
             <OrderSummaryCard order={order} onCancelOrder={() => setIsCancelOrderOpen(true)} />
             <DeliverableReviewCard
               deliverables={deliverables}
-              canReview={order.stage === "in_progress" || order.stage === "revision"}
+              canReview={(order.stage === "in_progress" || order.stage === "revision") && order.deliverableValidation?.status === "valid"}
+              validationStatus={order.deliverableValidation?.status}
+              validationNotes={order.deliverableValidation?.reviewNotes}
               busy={reviewing}
               onApprove={() => setIsApproveOpen(true)}
               onRequestRevision={() => setIsRevisionOpen(true)}

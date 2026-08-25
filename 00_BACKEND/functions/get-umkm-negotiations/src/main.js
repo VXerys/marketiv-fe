@@ -119,6 +119,7 @@ async function loadContext(databases, env, conversations, userId) {
     listByIds(databases, env.databaseId, env.deliverablesCollectionId, "orderId", orderIds),
     listByIds(databases, env.databaseId, env.rateCardPackagesCollectionId, "$id", packageIds),
   ]);
+  const validations = await listByIds(databases, env.databaseId, env.validationsCollectionId, "deliverableId", deliverables.map((item) => item.$id));
 
   return {
     userId,
@@ -128,6 +129,7 @@ async function loadContext(databases, env, conversations, userId) {
     creatorByUserId: byKey(creatorProfiles, (p) => str(p.userId)),
     escrowByOrderId: byKey(escrows, (e) => str(e.orderId)),
     latestDeliverableByOrderId: pickLatestDeliverables(deliverables),
+    validationByDeliverableId: byKey(validations, (item) => str(item.deliverableId)),
     unreadByConversationId: countUnread(messages, userId),
   };
 }
@@ -144,6 +146,7 @@ function toNegotiation(conversation, ctx) {
   const creator = ctx.creatorByUserId.get(str(conversation.creator_id));
   const escrow = order ? ctx.escrowByOrderId.get(order.$id) : null;
   const deliverable = order ? ctx.latestDeliverableByOrderId.get(order.$id) : null;
+  const validation = deliverable ? ctx.validationByDeliverableId.get(deliverable.$id) : null;
 
   // Nominal mengikuti order kalau sudah ada (itu yang mengikat), kalau belum
   // pakai harga offer yang sedang ditawar.
@@ -185,6 +188,7 @@ function toNegotiation(conversation, ctx) {
     // selalu memakai snapshot di atas agar riwayat tidak berubah saat paket diedit.
     deliverables: str(pkg?.output) || undefined,
     submittedCollabUrl: str(deliverable?.fileUrl) || undefined,
+    deliverableValidation: validation ? { status: str(validation.status), reviewedAt: str(validation.reviewedAt) || undefined, reviewNotes: str(validation.reviewNotes) || undefined } : { status: "pending" },
 
     finalPrice,
     // Seller-side (ADR-008): UMKM membayar persis harga rate card. Nol, bukan
@@ -266,6 +270,7 @@ function getEnv(req) {
     messagesCollectionId: process.env.MESSAGES_COLLECTION_ID || process.env.NEXT_PUBLIC_MESSAGE_COLLECTION || "messages",
     escrowsCollectionId: process.env.ESCROWS_COLLECTION_ID || process.env.NEXT_PUBLIC_ESCROW_COLLECTION || "escrows",
     deliverablesCollectionId: process.env.DELIVERABLES_COLLECTION_ID || "deliverables",
+    validationsCollectionId: process.env.RATECARD_DELIVERABLE_VALIDATIONS_COLLECTION_ID || "ratecard_deliverable_validations",
   };
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);

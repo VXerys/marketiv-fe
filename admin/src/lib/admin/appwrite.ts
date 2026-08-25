@@ -81,6 +81,8 @@ export const FUNCTION_IDS = {
   getAdminWithdrawalQueue: "get-admin-withdrawal-queue",
   getAdminDashboardSummary: "get-admin-dashboard-summary",
   reviewSubmission: "review-submission",
+  getAdminRatecardDeliverableQueue: "get-admin-ratecard-deliverable-queue",
+  reviewRatecardDeliverable: "review-ratecard-deliverable",
   reviewWithdrawal: "review-withdrawal",
   submitCampaignProof: "submit-campaign-proof",
   calculateCampaignReward: "calculate-campaign-reward",
