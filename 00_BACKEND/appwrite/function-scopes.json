@@ -89,6 +89,10 @@
   "get-admin-submission-queue": [
     "documents.read"
   ],
+  "get-admin-withdrawal-queue": [
+    "documents.read",
+    "users.read"
+  ],
   "get-creator-dashboard-summary": [
     "documents.read"
   ],
@@ -159,6 +163,12 @@
   "review-submission": [
     "documents.read",
     "documents.write"
+  ],
+  "review-withdrawal": [
+    "documents.read",
+    "documents.write",
+    "rows.write",
+    "users.read"
   ],
   "unclaim-campaign": [
     "documents.read",

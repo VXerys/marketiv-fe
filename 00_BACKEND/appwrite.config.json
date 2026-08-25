@@ -3319,11 +3319,45 @@
           "encrypt": false
         },
         {
+          "key": "processing_at",
+          "type": "datetime",
+          "required": false,
+          "array": false,
+          "default": null
+        },
+        {
           "key": "processedAt",
           "type": "datetime",
           "required": false,
           "array": false,
           "default": null
+        },
+        {
+          "key": "processed_by",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "transfer_reference",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "admin_note",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 1000,
+          "default": null,
+          "encrypt": false
         },
         {
           "key": "failure_reason",
@@ -3400,6 +3434,17 @@
           ],
           "columns": [
             "userId"
+          ]
+        },
+        {
+          "key": "idx_status",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "status"
           ]
         }
       ]
@@ -4544,6 +4589,28 @@
       ]
     },
     {
+      "$id": "review-withdrawal",
+      "name": "Review Withdrawal",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 30,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/review-withdrawal",
+      "scopes": [
+        "documents.read",
+        "documents.write",
+        "rows.write",
+        "users.read"
+      ]
+    },
+    {
       "$id": "unclaim-campaign",
       "name": "Unclaim Campaign",
       "runtime": "node-22",
@@ -4600,6 +4667,26 @@
       "path": "functions/get-admin-submission-queue",
       "scopes": [
         "documents.read"
+      ]
+    },
+    {
+      "$id": "get-admin-withdrawal-queue",
+      "name": "Get Admin Withdrawal Queue",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 30,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/get-admin-withdrawal-queue",
+      "scopes": [
+        "documents.read",
+        "users.read"
       ]
     },
     {
