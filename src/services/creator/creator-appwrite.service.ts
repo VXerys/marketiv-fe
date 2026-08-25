@@ -249,12 +249,16 @@ const TRANSACTION_DESCRIPTION: Record<string, string> = {
 
 const mapTransaction = (d: Doc): CreatorTransaction => {
   const referenceType = str(d.referenceType);
+  const transactionType = str(d.type) as TransactionType;
   return {
     id: str(d.$id),
-    type: str(d.type) as TransactionType,
+    type: transactionType,
     amount: num(d.amount),
     status: str(d.status) as TransactionStatus,
-    description: TRANSACTION_DESCRIPTION[referenceType] ?? str(d.type),
+    description:
+      transactionType === "withdrawal_reversal"
+        ? "Pengembalian saldo penarikan"
+        : TRANSACTION_DESCRIPTION[referenceType] ?? str(d.type),
     // `transactions` tidak punya kolom tanggal sendiri.
     createdAt: str(d.$createdAt),
     referenceId: orUndefined(str(d.referenceId)),
@@ -1169,8 +1173,8 @@ export type WithdrawRequestInput = {
 export type WithdrawalReceipt = {
   withdrawalId: string;
   amount: number;
-  status: "processed";
-  processedAt: string;
+  status: "requested";
+  requestedAt: string;
   balanceAfter: number;
   transactionId: string | null;
 };

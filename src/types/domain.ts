@@ -88,11 +88,17 @@ export type NegotiationStage =
 export type PaymentStatus = "pending" | "paid" | "failed" | "expired" | "cancelled";
 export type PaymentPurpose = "order" | "topup" | "campaign";
 export type EscrowStatus = "held" | "released" | "refunded";
-/** Withdrawal langsung processed — tanpa review admin (ADR-008) */
-export type WithdrawalStatus = "processed";
+/** Status canonical `withdrawals` untuk alur transfer manual oleh admin. */
+export type WithdrawalStatus =
+  | "requested"
+  | "processing"
+  | "succeeded"
+  | "failed"
+  | "reversed";
 export type TransactionType =
   | "deposit"
   | "withdrawal"
+  | "withdrawal_reversal"
   | "payment"
   | "refund"
   | "release"

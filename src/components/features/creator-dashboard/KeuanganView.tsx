@@ -12,7 +12,6 @@ import {
   ChevronRight,
   ArrowDownToLine,
   AlertTriangle,
-  CheckCircle2,
   Landmark,
   ReceiptText,
   CreditCard,
@@ -79,8 +78,8 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
   const [accountHolder, setAccountHolder] = useState("");
   const [amount, setAmount] = useState("");
 
-  // Step state for withdrawal flow: "form" | "confirm" | "success"
-  const [withdrawStep, setWithdrawStep] = useState<"form" | "confirm" | "success">("form");
+  // Request acceptance bukan bukti transfer final oleh admin.
+  const [withdrawStep, setWithdrawStep] = useState<"form" | "confirm" | "requested">("form");
   const [lastWithdrawalDetails, setLastWithdrawalDetails] = useState<{
     id: string;
     bank: string;
@@ -161,8 +160,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
 
     const receipt = res.data;
 
-    // Withdrawal langsung `processed` (ADR-008) — hanya balance yang turun,
-    // pendingPayouts TIDAK bertambah karena ini bukan payout tertunda.
+    // Saldo sesudah reserve hanya boleh berasal dari Function, bukan hitungan klien.
     setWalletMetrics((prev) => ({
       ...prev,
       balance: receipt.balanceAfter,
@@ -172,28 +170,28 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
     const newTx: CreatorTransaction = {
       id: receipt.transactionId ?? receipt.withdrawalId,
       type: "withdrawal",
-      amount: withdrawAmt,
+      amount: receipt.amount,
       // Nilai yang benar-benar ditulis Function ke transactions.status.
-      status: "completed",
-      description: `Penarikan saldo wallet ke ${providerLabel} (${accountNumber})`,
-      createdAt: receipt.processedAt,
+      status: "pending",
+      description: `Pengajuan penarikan saldo ke ${providerLabel} (${accountNumber})`,
+      createdAt: receipt.requestedAt,
       source: "Withdrawal",
-      notes: `Dana diteruskan ke ${providerLabel} (${accountNumber}).`
+      notes: "Menunggu diproses tim Marketiv.",
     };
 
-    setTransactions([newTx, ...transactions]);
+    setTransactions((current) => [newTx, ...current]);
 
     setLastWithdrawalDetails({
       id: receipt.withdrawalId,
       bank: bankName,
       number: accountNumber,
       holder: accountHolder,
-      amount: withdrawAmt,
+      amount: receipt.amount,
       fee: 0,
-      total: withdrawAmt,
+      total: receipt.amount,
     });
 
-    setWithdrawStep("success");
+    setWithdrawStep("requested");
   };
 
   const resetWithdrawForm = () => {
@@ -255,7 +253,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
   ];
 
   // Filter and sort transactions
-  const processedTransactions = (() => {
+  const filteredTransactions = (() => {
     let result = [...transactions];
 
     // Search query filter
@@ -439,7 +437,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                     Riwayat Transaksi Wallet
                   </h3>
                   <span className="inline-flex items-center justify-center min-w-[22px] h-[20px] rounded-full bg-neutral-100 text-neutral-500 text-[10px] font-extrabold px-1.5">
-                    {processedTransactions.length}
+                    {filteredTransactions.length}
                   </span>
                 </div>
 
@@ -454,7 +452,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                 />
               </div>
               {/* Ledger Table */}
-              {processedTransactions.length === 0 ? (
+              {filteredTransactions.length === 0 ? (
                 <CreatorEmptyState
                   title={isFilterActive ? "Transaksi tidak ditemukan" : "Belum Ada Transaksi"}
                   description={
@@ -489,7 +487,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-neutral-100">
-                        {processedTransactions.map((tx) => {
+                        {filteredTransactions.map((tx) => {
                           const isNegative = tx.type === "withdrawal";
                           return (
                             <tr
@@ -541,7 +539,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                   {/* Table footer info */}
                   <div className="flex items-center justify-between gap-3 pt-4 mt-1 border-t border-neutral-100">
                     <span className="text-[11px] font-bold text-neutral-400">
-                      Menampilkan {processedTransactions.length} dari {transactions.length} transaksi
+                      Menampilkan {filteredTransactions.length} dari {transactions.length} transaksi
                     </span>
                     <span className="text-[11px] font-semibold text-neutral-400 hidden sm:inline">
                       Klik baris untuk melihat rincian transaksi
@@ -590,12 +588,12 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                   <h3 className="font-display text-lg sm:text-xl font-black text-white leading-tight tracking-tight">
                     {withdrawStep === "form" && "Tarik Saldo Wallet"}
                     {withdrawStep === "confirm" && "Konfirmasi Penarikan"}
-                    {withdrawStep === "success" && "Penarikan Berhasil Diajukan"}
+                    {withdrawStep === "requested" && "Pengajuan Penarikan Terkirim"}
                   </h3>
                   <p className="text-xs text-white/75 font-medium mt-1">
                     {withdrawStep === "form" && "Pindahkan saldo hasil karya kreator ke rekening bank atau e-wallet."}
-                    {withdrawStep === "confirm" && "Periksa kembali rincian data penerima sebelum sistem memproses transfer."}
-                    {withdrawStep === "success" && "Permintaan pencairan dana telah berhasil diteruskan ke sistem bank."}
+                    {withdrawStep === "confirm" && "Periksa kembali rincian data penerima sebelum pengajuan dikirim ke admin."}
+                    {withdrawStep === "requested" && "Menunggu diproses admin Marketiv."}
                   </p>
                 </div>
               </div>
@@ -927,7 +925,7 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                   <div className="bg-amber-50/70 border border-amber-200/70 rounded-2xl p-3.5 text-[11px] text-amber-900/90 font-medium leading-relaxed flex gap-2.5">
                     <ShieldCheck size={16} className="text-amber-600 shrink-0 mt-0.5" />
                     <span>
-                      Pastikan data rekening sudah valid. Kesalahan penulisan nomor rekening di luar tanggung jawab sistem dan dana tidak dapat ditarik kembali jika sudah diproses bank.
+                      Pastikan data rekening sudah valid. Data tujuan tidak dapat diubah setelah pengajuan dikirim.
                     </span>
                   </div>
 
@@ -955,11 +953,11 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                       {isSubmittingWithdraw ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>Memproses…</span>
+                          <span>Mengirim pengajuan…</span>
                         </>
                       ) : (
                         <>
-                          <span>Konfirmasi &amp; Tarik</span>
+                          <span>Konfirmasi &amp; Ajukan</span>
                           <ArrowDownToLine size={14} />
                         </>
                       )}
@@ -968,18 +966,18 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                 </div>
               )}
 
-              {/* Success Step */}
-              {withdrawStep === "success" && lastWithdrawalDetails && (
+              {/* Request accepted step */}
+              {withdrawStep === "requested" && lastWithdrawalDetails && (
                 <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 sm:space-y-5 animate-in fade-in duration-300">
                   <div className="text-center my-2">
-                    <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200/80 grid place-items-center text-emerald-500 mx-auto mb-3.5 shadow-sm shadow-emerald-500/10">
-                      <CheckCircle2 size={32} />
+                    <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200/80 grid place-items-center text-amber-500 mx-auto mb-3.5 shadow-sm shadow-amber-500/10">
+                      <Clock size={32} />
                     </div>
                     <h3 className="font-display text-lg font-black text-neutral-900 leading-tight tracking-tight">
                       Pengajuan Penarikan Terkirim!
                     </h3>
                     <p className="text-xs text-neutral-500 font-medium mt-1.5 max-w-xs mx-auto leading-relaxed">
-                      Dana sebesar <span className="text-neutral-900 font-black">{formatCurrency(lastWithdrawalDetails.amount)}</span> berhasil diajukan dan sedang diteruskan ke rekening Anda.
+                      Pengajuan penarikan sebesar <span className="text-neutral-900 font-black">{formatCurrency(lastWithdrawalDetails.amount)}</span> telah diterima. Tim Marketiv umumnya memproses penarikan dalam 1–2 hari kerja.
                     </p>
                   </div>
 
@@ -1003,9 +1001,9 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
                     <div className="border-t border-dashed border-neutral-200 my-1"></div>
                     <div className="flex justify-between items-center gap-4">
                       <span className="font-medium text-neutral-400">Status Penarikan</span>
-                      <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60 uppercase tracking-wider">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                        Selesai
+                      <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/60 uppercase tracking-wider">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                        Menunggu Diproses
                       </span>
                     </div>
                   </div>

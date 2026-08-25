@@ -76,7 +76,7 @@ export function getRateCardStatusLabel(status: RateCardStatus): string {
 
 export function getCreatorTransactionStatusLabel(status: TransactionStatus): string {
   const map: Record<TransactionStatus, string> = {
-    pending: "Diproses",
+    pending: "Menunggu Diproses",
     paid: "Berhasil",
     failed: "Gagal",
     expired: "Kedaluwarsa",
@@ -111,6 +111,7 @@ export function getCreatorTransactionTypeLabel(type: TransactionType): string {
   const map: Record<TransactionType, string> = {
     deposit: "Top-up",
     withdrawal: "Penarikan Dana",
+    withdrawal_reversal: "Pengembalian Penarikan",
     payment: "Pembayaran",
     refund: "Refund",
     release: "Pencairan Escrow",
