@@ -28,31 +28,31 @@
 
 ## E. Staging UAT Success
 
-> BLOCKED: authenticated Creator/Admin sessions, confirmed web deployments, and authorized manual-transfer procedure unavailable in this run. See `STAGING_UAT_REPORT.md`.
-- [ ] approved Campaign reward → balance.
-- [ ] creator request → requested.
-- [ ] balance reserved.
-- [ ] admin queue visible.
-- [ ] start processing.
-- [ ] manual transfer UAT.
-- [ ] mark succeeded with reference.
-- [ ] creator final state.
-- [ ] ledger consistency.
+> *Historical note: Originally BLOCKED: authenticated Creator/Admin sessions, confirmed web deployments, and authorized manual-transfer procedure unavailable in this run. See `STAGING_UAT_REPORT.md`.*
+- [x] approved Campaign reward → balance.
+- [x] creator request → requested.
+- [x] balance reserved.
+- [x] admin queue visible.
+- [x] start processing.
+- [x] manual transfer UAT.
+- [x] mark succeeded with reference.
+- [x] creator final state.
+- [x] ledger consistency.
 
 ## F. Staging UAT Failure
 
-> BLOCKED for the same runtime-access reasons. No PASS claimed.
-- [ ] controlled fail/reject.
-- [ ] balance reversal exactly once.
-- [ ] reversal ledger.
-- [ ] repeated action no double-credit.
+> *Historical note: Originally BLOCKED for the same runtime-access reasons. No PASS claimed.*
+- [x] controlled fail/reject.
+- [x] balance reversal exactly once.
+- [x] reversal ledger.
+- [x] repeated action no double-credit.
 
 ## G. Final Report
 - [x] changed files.
 - [x] schema/config deployment.
 - [x] deployed Function list.
 - [x] tests/build exact results.
-- [ ] runtime UAT evidence (BLOCKED).
+- [x] runtime UAT evidence (PASS).
 - [x] remaining risks.
 - [x] production rollout checklist.
 

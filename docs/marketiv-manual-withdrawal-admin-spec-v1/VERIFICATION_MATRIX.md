@@ -38,3 +38,8 @@
 Jangan menulis `E2E PASS` hanya berdasarkan unit test.
 
 `Staging E2E PASS` hanya boleh ditulis jika schema, Functions, root web, dan admin sudah deployed dan flow creator request → admin processing → manual transfer → succeeded benar-benar diuji di staging, termasuk wallet/ledger verification.
+
+Phase 06 evidence status:
+- success flow: PASS
+- reversal flow: PASS
+- Manual Admin Withdrawal Phase 06 Staging E2E: PASS

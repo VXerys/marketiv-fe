@@ -2,11 +2,11 @@
 
 ## Status
 
-- Legacy retirement: **executed and verified on staging**.
-- Runtime success/failure UAT: **BLOCKED — NOT RUN**.
-- Staging-ready/E2E PASS: **not claimed**.
+- Legacy retirement: **PASS**.
+- Runtime success/failure UAT: **PASS**.
+- Manual Admin Withdrawal Phase 06 — Staging E2E: **PASS**.
 
-Runtime UAT needs authenticated staging Creator and active Admin sessions, proof that root/admin web deployments use the same revision, and an authorized manual-transfer test procedure. Current Codex access has Appwrite Admin API read/write access but none of those operator capabilities.
+*Historical note: Initial execution was blocked before manual staging UAT was completed. Runtime UAT originally needed authenticated staging Creator and active Admin sessions, proof that root/admin web deployments use the same revision, and an authorized manual-transfer test procedure. Final post-retirement staging UAT passed for both success and reversal paths.*
 
 ## Source and Environment
 
@@ -97,7 +97,7 @@ Appwrite deployment metadata does not prove which Git commit produced each deplo
 | Admin lint | PASS with 6 pre-existing warnings, 0 errors |
 | Admin tests | 77 passed |
 | Admin build | PASS |
-| Root build | BLOCKED: local env first lacked `NEXT_PUBLIC_ADMIN_APP_URL`; after using canonical staging URL, Turbopack could not fetch Google Fonts |
+| Root build | BLOCKED / NOT RE-VERIFIED |
 | Full backend legacy suite | 174 passed, 86 failed; failures are pre-existing stale service mock/export tests plus 3 unrelated integration failures |
 
 Root build retry command:
@@ -106,7 +106,8 @@ Root build retry command:
 NEXT_PUBLIC_ADMIN_APP_URL=https://admin-staging.marketiv.id npm run build
 ```
 
-Observed final blocker: `Failed to fetch Plus Jakarta Sans` and `Failed to fetch Sora` from Google Fonts. Run in deployment environment with outbound font access or existing font cache. Do not bypass by changing product font code in this phase.
+**Reason:** The previous verification environment failed fetching Google Fonts (Plus Jakarta Sans / Sora).
+This is a verification-environment/network blocker, not a code error. It is not a blocker against final withdrawal staging E2E because the deployed staging application was tested directly. Do not state root build is PASS until there is actual command exit 0 evidence.
 
 Global staging drift also remains outside Phase 06 scope:
 
@@ -177,4 +178,12 @@ Use controlled staging users and approved test-transfer rail. Never mark success
 
 ## Runtime Evidence
 
-No runtime withdrawal was created or mutated in this Phase 06 run. Success and failure evidence remain empty by design; UAT status stays **BLOCKED** until an authorized operator completes both checklists.
+No runtime withdrawal was created or mutated in the initial Phase 06 run. *Historical note: Success and failure evidence remained empty by design; UAT status stayed BLOCKED until an authorized operator completed both checklists.*
+
+Latest post-UAT audit evidence (2026-08-25T13:10:13.713Z):
+- Withdrawals: 8 total (4 succeeded, 4 reversed, 0 processing, 0 with Iris reference)
+- Wallets: 0 pendingPositive, 0 pendingAmount
+- Campaign Release: 4 total, 4 matured, 0 unmaturedAmount
+- Mature Ledger: 1 total, 1 completed, 0 pendingAmount
+
+Final post-retirement staging UAT passed for both success and reversal paths. UAT status is PASS.
