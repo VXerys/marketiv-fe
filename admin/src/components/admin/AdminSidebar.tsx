@@ -13,6 +13,7 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
+  Landmark,
 } from "lucide-react";
 import { MarketivLogo } from "@/components/ui/MarketivLogo";
 import { cn } from "@/lib/utils";
@@ -217,6 +218,32 @@ export function AdminSidebar({
                   {pendingCount}
                 </span>
               )}
+            </Link>
+
+            <Link
+              href="/withdrawals"
+              onClick={onClose}
+              title={isRail ? "Penarikan Dana" : undefined}
+              className={cn(
+                "group flex items-center rounded-xl transition-all relative overflow-hidden font-bold text-xs",
+                isRail ? "h-11 w-11 justify-center mx-auto" : "px-3.5 py-2.5 gap-3 w-full",
+                pathname.startsWith("/withdrawals")
+                  ? "bg-[#0c172b] text-white shadow-md shadow-[#0c172b]/15"
+                  : "text-stone-700 hover:bg-stone-100 hover:text-stone-900"
+              )}
+            >
+              {pathname.startsWith("/withdrawals") && !isRail && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-[#f97316]" />
+              )}
+              <Landmark
+                className={cn(
+                  "h-4 w-4 shrink-0 transition-transform group-hover:scale-110",
+                  pathname.startsWith("/withdrawals")
+                    ? "text-[#f97316]"
+                    : "text-stone-400 group-hover:text-stone-700"
+                )}
+              />
+              {!isRail && <span className="truncate">Penarikan Dana</span>}
             </Link>
           </div>
 

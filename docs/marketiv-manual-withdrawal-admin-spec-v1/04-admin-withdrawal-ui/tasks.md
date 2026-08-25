@@ -1,46 +1,46 @@
 # Phase 04 — Tasks
 
 ## A. Audit
-- [ ] Re-read admin submission feature structure.
-- [ ] Re-read admin Appwrite wrapper.
-- [ ] Re-read executeAdminFunction error handling.
-- [ ] Re-read sidebar responsive behavior.
-- [ ] Confirm Phase 03 Function contracts.
+- [x] Re-read admin submission feature structure.
+- [x] Re-read admin Appwrite wrapper.
+- [x] Re-read executeAdminFunction error handling.
+- [x] Re-read sidebar responsive behavior.
+- [x] Confirm Phase 03 Function contracts.
 
 ## B. Wiring
-- [ ] Add function identifiers.
-- [ ] Add withdrawal DTO types.
-- [ ] Add queue service.
-- [ ] Add review mutation service.
+- [x] Add function identifiers.
+- [x] Add withdrawal DTO types.
+- [x] Add queue service.
+- [x] Add review mutation service.
 
 ## C. UI
-- [ ] Add `/withdrawals`.
-- [ ] Add sidebar link.
-- [ ] List + status filter.
-- [ ] Mask account in list.
-- [ ] Detail full transfer data.
-- [ ] Requested → start processing.
-- [ ] Processing → success with transfer reference.
-- [ ] Failure action with reason.
-- [ ] Confirmation for financial actions.
-- [ ] Loading/error/empty/mutation states.
+- [x] Add `/withdrawals`.
+- [x] Add sidebar link.
+- [x] List + status filter.
+- [x] Mask account in list.
+- [x] Detail full transfer data.
+- [x] Requested → start processing.
+- [x] Processing → success with transfer reference.
+- [x] Failure action with reason.
+- [x] Confirmation for financial actions.
+- [x] Loading/error/empty/mutation states.
 
 ## D. Tests
-- [ ] DTO guard tests.
-- [ ] queue service success/error.
-- [ ] transfer reference validation.
-- [ ] failure reason validation.
-- [ ] action visibility by status.
-- [ ] account masking.
-- [ ] refresh after mutation.
-- [ ] stale conflict actionable error.
+- [x] DTO guard tests.
+- [x] queue service success/error.
+- [x] transfer reference validation.
+- [x] failure reason validation.
+- [x] action visibility by status.
+- [x] account masking.
+- [x] refresh after mutation.
+- [x] stale conflict actionable error.
 
 ## E. Verification
-- [ ] admin typecheck.
-- [ ] admin lint.
-- [ ] admin tests.
-- [ ] admin build.
-- [ ] exact output report.
+- [x] admin typecheck.
+- [x] admin lint.
+- [x] admin tests.
+- [x] admin build.
+- [x] exact output report.
 
 ## Acceptance Gate
 Do not continue until admin dapat mengoperasikan manual queue tanpa direct financial DB mutation dari browser.

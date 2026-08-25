@@ -78,8 +78,10 @@ export const COLLECTIONS = {
 
 export const FUNCTION_IDS = {
   getAdminSubmissionQueue: "get-admin-submission-queue",
+  getAdminWithdrawalQueue: "get-admin-withdrawal-queue",
   getAdminDashboardSummary: "get-admin-dashboard-summary",
   reviewSubmission: "review-submission",
+  reviewWithdrawal: "review-withdrawal",
   submitCampaignProof: "submit-campaign-proof",
   calculateCampaignReward: "calculate-campaign-reward",
   maturePendingBalance: "mature-pending-balance",
