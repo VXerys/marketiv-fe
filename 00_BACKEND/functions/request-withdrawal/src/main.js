@@ -1,38 +1,42 @@
 import { createHash } from "node:crypto";
-import { Client, Databases, ID, Permission, Query, Role } from "node-appwrite";
-import { decrementColumn, incrementColumn } from "./atomic.js";
+import { Client, Databases, Permission, Query, Role } from "node-appwrite";
+import { reserveWithdrawalAtomically } from "./withdrawal-transaction.js";
 
 /**
  * request-withdrawal — penarikan saldo kreator/UMKM (T-06, Pasal 11 & 15 T&C).
  *
- * Alur 4-state: `requested → processing → succeeded | failed | reversed`.
- * Disbursement via Midtrans Iris (B2B payout API, TERPISAH dari Snap — aktivasi
- * dan API key sendiri). Webhook `withdrawal-callback` menutup status final.
+ * Request baru berhenti di `requested` setelah saldo di-reserve dan ledger
+ * pending dibuat. Admin memproses transfer manual lewat Function fase admin.
+ * Legacy `withdrawal-callback` tetap menangani withdrawal Iris lama.
  *
  * MENGAPA Function, bukan SDK klien: `wallets` dan `transactions` punya
  * `$permissions: []` + rowSecurity, jadi browser TIDAK bisa mendebit saldo.
  *
- * Perubahan vs ADR-008 lama (withdrawal langsung `processed`):
- *   - `requested`  — audit row dibuat, saldo BELUM keluar.
- *   - `processing` — Iris menerima transfer (dana keluar dari wallet platform).
- *   - `succeeded`  — webhook Iris: dana sampai rekening penerima.
- *   - `failed`     — Iris menolak (rekening salah, saldo platform kurang, dsb);
- *                    saldo DIKREDIT BALIK via ledger `withdrawal_reversal`.
- *   - `reversed`   — kredit balik sudah dieksekusi (marker idempoten).
+ * Persistence stages:
+ *   - `failed` + internal marker — claim non-actionable selama reserve/ledger.
+ *   - `requested` — hanya setelah saldo reserved dan ledger pending tersedia.
+ *   - `processing`/`succeeded`/`reversed` — hanya jalur admin atau callback
+ *     legacy yang boleh mengubahnya.
  *
- * Debit wajib ATOMIK (`decrementColumn` min 0, Fix B) — Appwrite tidak punya
- * compare-and-set; baca-ubah-tulis lama membuat dua request yang tumpang tindih
- * bisa sama-sama membaca angka lama dan satu mutasi hilang.
+ * Reserve wajib satu transaksi database: debit wallet, ledger pending, dan
+ * transisi requested commit atau rollback bersama.
  *
- * Reversal = entry ledger BARU `withdrawal_reversal` (T-17 append-only), id
- * deterministik `tx` + sha256(`${withdrawalId}:reversal`) sehingga kredit balik
- * tidak pernah dobel. Rollback saat debit gagal TETAP delete baris withdrawal
- * (pola lama, dipertahankan sampai T-17 diganti jadi tanda `failed`).
+ * Rollback saat debit gagal TETAP delete baris withdrawal supaya request tanpa
+ * reserve tidak terlihat valid. Reversal request manual menjadi tanggung jawab
+ * jalur admin pada fase berikutnya.
  */
 
 const PAYOUT_METHODS = new Set(["bank", "ewallet"]);
 const UMKM_SOURCE_ORIGINS = new Set(["umkm_refund", "umkm_budget"]);
 const ACTIVE_STATUSES = new Set(["requested", "processing", "succeeded"]);
+const LEGACY_RESERVE_PENDING_REASON = "withdrawal_reserve_pending";
+const ATOMIC_RESERVE_PENDING_REASON = "withdrawal_atomic_reserve_pending";
+const LEDGER_RECOVERY_REASON = "withdrawal_ledger_pending";
+const INTERNAL_RECOVERY_REASONS = new Set([
+  LEGACY_RESERVE_PENDING_REASON,
+  ATOMIC_RESERVE_PENDING_REASON,
+  LEDGER_RECOVERY_REASON
+]);
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -114,70 +118,148 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Verifikasi KYC dulu melalui WhatsApp admin." }, 403);
     }
 
+    const documentId = deterministicId(userId, payload.requestKey);
+    const existingWithdrawal = await getDocumentOrNull(
+      databases, env.databaseId, env.withdrawalsCollectionId, documentId
+    );
+    let withdrawal = existingWithdrawal;
+    if (existingWithdrawal) {
+      if (!matchesWithdrawalRequest(existingWithdrawal, payload, amount)) {
+        return json(res, { error: "Permintaan penarikan ini sudah diproses." }, 409);
+      }
+
+      if (existingWithdrawal.status === "requested") {
+        const ledger = await getValidPendingLedger(
+          databases, env, existingWithdrawal, userId, amount
+        );
+        if (!ledger) {
+          error(`Withdrawal requested ${documentId} tidak punya ledger pending valid`);
+          return json(res, { error: "Data reserve penarikan tidak lengkap. Hubungi admin." }, 500);
+        }
+        return json(res, await buildRequestedReceipt(
+          databases, env, existingWithdrawal, userId, amount, ledger.$id, log
+        ));
+      }
+
+      if (
+        existingWithdrawal.status === "failed" &&
+        existingWithdrawal.failure_reason === LEDGER_RECOVERY_REASON
+      ) {
+        return recoverPendingLedger(
+          databases, env, existingWithdrawal, userId, amount, res, log, error
+        );
+      }
+
+      // Marker versi lama ambigu: dapat berarti debit belum terjadi atau debit
+      // sudah terjadi lalu marker berikutnya gagal. Jangan pernah menebak dan
+      // berisiko mendebit ulang; perlu rekonsiliasi manual.
+      if (
+        existingWithdrawal.status !== "failed" ||
+        existingWithdrawal.failure_reason !== ATOMIC_RESERVE_PENDING_REASON
+      ) {
+        return json(res, { error: "Permintaan penarikan ini perlu rekonsiliasi admin." }, 409);
+      }
+
+      const canonical = await findUnresolvedInternalWithdrawal(databases, env, userId);
+      if (canonical && canonical.$id !== documentId) {
+        return json(res, { error: "Selesaikan pengajuan penarikan sebelumnya dengan requestKey yang sama." }, 409);
+      }
+    } else {
+      const unresolved = await findUnresolvedInternalWithdrawal(databases, env, userId);
+      if (unresolved) {
+        return json(res, { error: "Selesaikan pengajuan penarikan sebelumnya dengan requestKey yang sama." }, 409);
+      }
+    }
+
     const wallet = await getWallet(databases, env, userId);
     if (!wallet) return json(res, { error: "Wallet tidak ditemukan" }, 404);
     if (Number(wallet.balance) < amount) {
       return json(res, { error: "Saldo tidak mencukupi" }, 409);
     }
 
-    // 3) Rate limit (T-18, Pasal 11): maks 3 withdrawal/hari (status != failed),
-    //    plus cooling 3 hari setelah ganti rekening (pola fraud: ganti → tarik).
-    const daily = await countTodayWithdrawals(databases, env, userId);
-    if (daily >= env.withdrawPerDayLimit) {
-      log(`Withdrawal ditolak untuk ${userId}: ${daily} hari ini`);
-      return json(res, { error: "Batas penarikan harian tercapai (3/hari)." }, 429);
-    }
-    if (await hasCoolingBlock(databases, env, userId, payload)) {
-      log(`Withdrawal ditolak untuk ${userId}: rekening baru dalam cooling 3 hari`);
-      return json(res, { error: "Akun penarikan baru perlu pending 3 hari." }, 429);
-    }
-
-    // Guard sekunder: tangkap klien yang me-regenerate requestKey lalu retry.
-    const duplicate = await findRecentDuplicate(databases, env, userId, amount);
-    if (duplicate) {
-      return json(res, { error: "Permintaan penarikan ini sudah diproses." }, 409);
-    }
-
-    const documentId = deterministicId(userId, payload.requestKey);
-
-    // 4) Audit dulu — id deterministik = idempotensi tanpa perubahan skema.
-    //    Panggilan ulang dengan requestKey sama gagal 409 di sini. Status awal
-    //    `requested`, `processedAt` dikosongkan (kolom kini optional) — diisi
-    //    hanya saat status final `succeeded`.
-    let withdrawal;
-    try {
-      withdrawal = await databases.createDocument(
-        env.databaseId,
-        env.withdrawalsCollectionId,
-        documentId,
-        {
-          userId,
-          amount,
-          payoutMethod: payload.payoutMethod,
-          providerName: String(payload.providerName).trim(),
-          accountNumber: String(payload.accountNumber).trim(),
-          accountName: String(payload.accountName).trim(),
-          status: "requested",
-          requester_role: role,
-          source_origin: sourceOrigin,
-          kyc_status: user?.kyc_status || "none"
-        },
-        [Permission.read(Role.user(userId))]
-      );
-    } catch (err) {
-      if (err?.code === 409) {
+    if (!existingWithdrawal) {
+      // 3) Rate limit + cooling tetap berlaku untuk klaim baru. Retry same-key
+      //    hanya melanjutkan klaim yang sudah lolos guard ini.
+      const daily = await countTodayWithdrawals(databases, env, userId);
+      if (daily >= env.withdrawPerDayLimit) {
+        log(`Withdrawal ditolak untuk ${userId}: ${daily} hari ini`);
+        return json(res, { error: "Batas penarikan harian tercapai (3/hari)." }, 429);
+      }
+      if (await hasCoolingBlock(databases, env, userId, payload)) {
+        log(`Withdrawal ditolak untuk ${userId}: rekening baru dalam cooling 3 hari`);
+        return json(res, { error: "Akun penarikan baru perlu pending 3 hari." }, 429);
+      }
+      if (await findRecentDuplicate(databases, env, userId, amount)) {
         return json(res, { error: "Permintaan penarikan ini sudah diproses." }, 409);
       }
-      throw err;
+
+      try {
+        withdrawal = await databases.createDocument(
+          env.databaseId,
+          env.withdrawalsCollectionId,
+          documentId,
+          {
+            userId,
+            amount,
+            payoutMethod: payload.payoutMethod,
+            providerName: String(payload.providerName).trim(),
+            accountNumber: String(payload.accountNumber).trim(),
+            accountName: String(payload.accountName).trim(),
+            status: "failed",
+            failure_reason: ATOMIC_RESERVE_PENDING_REASON,
+            requester_role: role,
+            source_origin: sourceOrigin,
+            kyc_status: user?.kyc_status || "none"
+          },
+          [Permission.read(Role.user(userId))]
+        );
+      } catch (err) {
+        if (err?.code === 409) {
+          return json(res, { error: "Permintaan penarikan ini sudah diproses." }, 409);
+        }
+        throw err;
+      }
+
+      // Tutup race dua requestKey yang sama-sama lolos pre-check sebelum claim
+      // lawannya terlihat. Hanya marker internal tertua/id terkecil lanjut.
+      const canonical = await findUnresolvedInternalWithdrawal(databases, env, userId);
+      if (canonical?.$id !== documentId) {
+        try {
+          await databases.deleteDocument(env.databaseId, env.withdrawalsCollectionId, documentId);
+        } catch (cleanupErr) {
+          error(`Cleanup claim kalah ${documentId} gagal: ${cleanupErr?.message || cleanupErr}`);
+        }
+        return json(res, { error: "Selesaikan pengajuan penarikan sebelumnya dengan requestKey yang sama." }, 409);
+      }
     }
 
-    // 5) Debit ATOMIK (Fix B) — min 0 ditegakkan server, bukan Math.max dari
-    //    bacaan yang mungkin basi. Gagal -> hapus baris audit (API key boleh
-    //    hapus walaupun user tidak) supaya tidak ada catatan tanpa perpindahan.
+    const transactionId = deterministicLedgerId(documentId, "withdrawal");
     try {
-      await decrementColumn(env, env.walletsCollectionId, wallet.$id, "balance", amount, 0);
-    } catch (err) {
-      error(`Debit gagal untuk withdrawal ${documentId}: ${err?.message || err}`);
+      await reserveWithdrawalAtomically(env, {
+        walletId: wallet.$id,
+        withdrawalId: documentId,
+        ledgerId: transactionId,
+        userId,
+        amount
+      });
+    } catch (reserveErr) {
+      error(`Atomic reserve ${documentId} gagal pada ${reserveErr?.transactionPhase || "create"}: ${reserveErr?.message || reserveErr}`);
+
+      // Network failure dan HTTP non-409 pada commit tidak membuktikan apakah
+      // server sudah commit. Hanya conflict 409 Appwrite yang menjamin commit
+      // ditolak; semua hasil lain wajib reconcile dan mempertahankan claim.
+      if (reserveErr?.transactionPhase === "commit" && reserveErr?.status !== 409) {
+        const committed = await getCommittedReservationOrNull(
+          databases, env, documentId, userId, amount
+        );
+        if (committed) {
+          return json(res, { error: "Konfirmasi reserve terputus. Ulangi dengan requestKey yang sama." }, 500);
+        }
+        // Hasil commit belum dapat dibuktikan. Biarkan claim internal tetap ada;
+        // same-key retry akan rekonsiliasi lagi tanpa membuka requestKey baru.
+        return json(res, { error: "Status reserve belum pasti. Ulangi dengan requestKey yang sama." }, 500);
+      }
+
       try {
         await databases.deleteDocument(env.databaseId, env.withdrawalsCollectionId, documentId);
       } catch (cleanupErr) {
@@ -186,96 +268,13 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Gagal memproses penarikan. Coba lagi." }, 500);
     }
 
-    // 6) Ledger. Gagal di sini TIDAK di-rollback — merekonstruksi dari
-    //    `withdrawals` jauh lebih aman daripada membatalkan debit yang selesai.
-    //    Permission baris WAJIB: transactions $permissions kosong, jadi row perm
-    //    satu-satunya jalur baca (sama seperti fix 17d5241).
-    let transactionId = null;
-    try {
-      const tx = await databases.createDocument(
-        env.databaseId,
-        env.transactionsCollectionId,
-        ID.unique(),
-        {
-          userId,
-          // Positif — arah uang berasal dari `type`. Semua Function terdeploy
-          // menulis positif, dan UI merender/mengurutkan formatCurrency(amount).
-          amount,
-          type: "withdrawal",
-          referenceId: documentId,
-          referenceType: "withdrawal",
-          status: "completed"
-        },
-        [Permission.read(Role.user(userId))]
-      );
-      transactionId = tx.$id;
-    } catch (err) {
-      error(`Baris transactions gagal untuk withdrawal ${documentId}: ${err?.message || err}`);
-    }
+    withdrawal = await databases.getDocument(
+      env.databaseId, env.withdrawalsCollectionId, documentId
+    );
 
-    // 7) Disbursement Midtrans Iris. `processedAt` diisi saat status final.
-    //    Sukses dipanggil (Iris menerima) → `processing` + iris_reference.
-    //    Iris menolak (rekening salah, saldo platform kurang, dsb) → `failed` +
-    //    failure_reason + KREDIT BALIK reversal SEKARANG (idempoten).
-    let irisReference = null;
-    let finalStatus = "processing";
-    let failureReason = null;
-    try {
-      const iris = await createIrisPayout(env, {
-        beneficiaryName: String(payload.accountName).trim(),
-        beneficiaryAccount: String(payload.accountNumber).trim(),
-        beneficiaryBank: String(payload.providerName).trim(),
-        amount,
-        notes: documentId,
-      });
-      irisReference = iris.reference_no || null;
-      await databases.updateDocument(env.databaseId, env.withdrawalsCollectionId, documentId, {
-        status: "processing",
-        iris_reference: irisReference
-      });
-    } catch (irisErr) {
-      failureReason = irisErr?.message || String(irisErr);
-      error(`Iris payout gagal untuk withdrawal ${documentId}: ${failureReason}`);
-      await databases.updateDocument(env.databaseId, env.withdrawalsCollectionId, documentId, {
-        status: "failed",
-        failure_reason: failureReason.slice(0, 500)
-      });
-      finalStatus = "failed";
-      await creditBackReversal(databases, env, withdrawal, amount, log);
-    }
-
-    const balanceAfter = await readBalance(databases, env, userId);
-
-    if (finalStatus === "processing") {
-      await notify(databases, env, {
-        sourceId: withdrawal.$id,
-        kind: "withdrawal",
-        userId,
-        title: "Penarikan Saldo Diproses",
-        message: `Penarikan Rp${amount.toLocaleString("id-ID")} ke ${String(payload.payoutMethod).toUpperCase()} sedang diproses. Dana diterima maksimal 1×24 jam kerja.`,
-        type: "keuangan",
-      }, log);
-    } else {
-      await notify(databases, env, {
-        sourceId: withdrawal.$id,
-        kind: "withdrawal_failed",
-        userId,
-        title: "Penarikan Saldo Gagal",
-        message: `Penarikan Rp${amount.toLocaleString("id-ID")} gagal dan saldo sudah dikembalikan. Hubungi admin bila perlu.`,
-        type: "keuangan",
-      }, log);
-    }
-
-    log(`Withdrawal ${withdrawal.$id} ${finalStatus} for ${userId}: ${amount}`);
-    return json(res, {
-      withdrawalId: withdrawal.$id,
-      amount,
-      status: finalStatus,
-      balanceAfter,
-      transactionId,
-      ...(irisReference ? { irisReference } : {}),
-      ...(failureReason ? { failureReason } : {})
-    });
+    return json(res, await buildRequestedReceipt(
+      databases, env, withdrawal, userId, amount, transactionId, log
+    ));
   } catch (err) {
     error(err?.stack || err?.message || String(err));
     if (err?.statusCode) return json(res, { error: err.message }, err.statusCode);
@@ -283,55 +282,118 @@ export default async ({ req, res, log, error }) => {
   }
 };
 
-/**
- * Kredit balik saldo + ledger `withdrawal_reversal` deterministik. Idempoten:
- * kalau ledger reversal sudah ada (409 / getDocument hit), tidak kredit dua kali.
- */
-async function creditBackReversal(databases, env, withdrawal, amount, log) {
-  const ledgerId = deterministicLedgerId(withdrawal.$id, "reversal");
+async function recoverPendingLedger(databases, env, withdrawal, userId, amount, res, log, error) {
+  let transactionId;
   try {
-    await databases.getDocument(env.databaseId, env.transactionsCollectionId, ledgerId);
-    log(`Reversal ${ledgerId} sudah ada untuk ${withdrawal.$id} — lewati kredit`);
-    return;
-  } catch (err) {
-    if (err?.code !== 404) throw err;
+    transactionId = await createWithdrawalTransaction(
+      databases, env, { userId, amount, withdrawalId: withdrawal.$id }
+    );
+  } catch (ledgerErr) {
+    error(`Recovery ledger ${withdrawal.$id} gagal: ${ledgerErr?.message || ledgerErr}`);
+    return json(res, { error: "Gagal mencatat penarikan. Ulangi dengan requestKey yang sama." }, 500);
   }
 
-  const wallet = await getWallet(databases, env, withdrawal.userId);
-  if (!wallet) throw new Error("Wallet tidak ditemukan saat reversal");
+  let recovered;
+  try {
+    recovered = await databases.updateDocument(
+      env.databaseId,
+      env.withdrawalsCollectionId,
+      withdrawal.$id,
+      { status: "requested", failure_reason: null }
+    );
+  } catch (updateErr) {
+    error(`Recovery status ${withdrawal.$id} gagal: ${updateErr?.message || updateErr}`);
+    return json(res, { error: "Gagal memulihkan pengajuan. Ulangi dengan requestKey yang sama." }, 500);
+  }
 
-  await incrementColumn(env, env.walletsCollectionId, wallet.$id, "balance", amount);
+  return json(res, await buildRequestedReceipt(
+    databases, env, recovered, userId, amount, transactionId, log
+  ));
+}
+
+async function createWithdrawalTransaction(databases, env, { userId, amount, withdrawalId }) {
+  const transactionId = deterministicLedgerId(withdrawalId, "withdrawal");
   try {
     await databases.createDocument(
       env.databaseId,
       env.transactionsCollectionId,
-      ledgerId,
+      transactionId,
       {
-        userId: withdrawal.userId,
+        userId,
+        // Positif — arah uang berasal dari `type`. Semua Function terdeploy
+        // menulis positif, dan UI merender/mengurutkan formatCurrency(amount).
         amount,
-        type: "withdrawal_reversal",
-        referenceId: withdrawal.$id,
+        type: "withdrawal",
+        referenceId: withdrawalId,
         referenceType: "withdrawal",
-        status: "completed"
+        status: "pending"
       },
-      [Permission.read(Role.user(withdrawal.userId))]
+      [Permission.read(Role.user(userId))]
     );
-  } catch (ledgerErr) {
-    // Kredit sudah jalan; ledger 409 berarti sudah ada dari jalur lain. Gagal
-    // lain di-log tanpa menggagalkan alur (rekonstruksi tetap bisa dari withdrawals).
-    if (ledgerErr?.code !== 409) {
-      log(`Ledger reversal ${ledgerId} gagal: ${ledgerErr?.message || String(ledgerErr)}`);
-    }
+  } catch (err) {
+    if (err?.code !== 409) throw err;
+    const existing = await databases.getDocument(
+      env.databaseId, env.transactionsCollectionId, transactionId
+    );
+    const matches = existing.userId === userId &&
+      Number(existing.amount) === amount &&
+      existing.type === "withdrawal" &&
+      existing.referenceId === withdrawalId &&
+      existing.referenceType === "withdrawal" &&
+      existing.status === "pending";
+    if (!matches) throw new Error(`Ledger conflict untuk withdrawal ${withdrawalId}`);
   }
+  return transactionId;
+}
 
+async function getValidPendingLedger(databases, env, withdrawal, userId, amount) {
+  const ledgerId = deterministicLedgerId(withdrawal.$id, "withdrawal");
+  const ledger = await getDocumentOrNull(
+    databases, env.databaseId, env.transactionsCollectionId, ledgerId
+  );
+  if (!ledger) return null;
+  const matches = ledger.userId === userId &&
+    Number(ledger.amount) === amount &&
+    ledger.type === "withdrawal" &&
+    ledger.referenceId === withdrawal.$id &&
+    ledger.referenceType === "withdrawal" &&
+    ledger.status === "pending";
+  return matches ? ledger : null;
+}
+
+async function getCommittedReservationOrNull(databases, env, withdrawalId, userId, amount) {
   try {
-    await databases.updateDocument(env.databaseId, env.withdrawalsCollectionId, withdrawal.$id, {
-      status: "reversed",
-      reversed_at: new Date().toISOString()
-    });
-  } catch (updateErr) {
-    log(`Tandai reversed ${withdrawal.$id} gagal: ${updateErr?.message || String(updateErr)}`);
+    const withdrawal = await getDocumentOrNull(
+      databases, env.databaseId, env.withdrawalsCollectionId, withdrawalId
+    );
+    if (!withdrawal || withdrawal.status !== "requested" || withdrawal.failure_reason) return null;
+    const ledger = await getValidPendingLedger(databases, env, withdrawal, userId, amount);
+    return ledger ? { withdrawal, ledger } : null;
+  } catch {
+    return null;
   }
+}
+
+async function buildRequestedReceipt(databases, env, withdrawal, userId, amount, transactionId, log) {
+  const balanceAfter = await readBalance(databases, env, userId);
+  await notify(databases, env, {
+    sourceId: withdrawal.$id,
+    kind: "withdrawal",
+    userId,
+    title: "Pengajuan Penarikan Diterima",
+    message: `Pengajuan penarikan Rp${amount.toLocaleString("id-ID")} diterima. Saldo sudah dialokasikan dan umumnya diproses dalam 1–2 hari kerja.`,
+    type: "keuangan",
+  }, log);
+
+  log(`Withdrawal ${withdrawal.$id} requested for ${userId}: ${amount}`);
+  return {
+    withdrawalId: withdrawal.$id,
+    amount,
+    status: "requested",
+    requestedAt: withdrawal.$createdAt,
+    balanceAfter,
+    transactionId
+  };
 }
 
 async function notify(databases, env, payload, log) {
@@ -354,7 +416,7 @@ function deterministicNotificationId(sourceId, kind) {
   return `ntf${digest.slice(0, 29)}`;
 }
 
-/** "tx" + 32 hex = 34 karakter — kunci idempotensi ledger (create-escrow). */
+/** "tx" + 32 hex = 34 karakter — kunci idempotensi ledger. */
 function deterministicLedgerId(sourceId, kind) {
   const digest = createHash("sha256").update(`${sourceId}:${kind}`).digest("hex");
   return `tx${digest.slice(0, 32)}`;
@@ -387,10 +449,6 @@ function getEnv(req) {
   env.kycThreshold = Number(process.env.KYC_THRESHOLD || 5000000);
   env.withdrawPerDayLimit = Number(process.env.WITHDRAW_PER_DAY_LIMIT || 3);
   env.coolingDays = Number(process.env.WITHDRAW_COOLING_DAYS || 3);
-  // Iris API key TERPISAH dari Snap (aktivasi terpisah). Fallback ke key Snap
-  // hanya supaya sandbox/test yang belum menyetel env Iris tetap jalan.
-  env.midtransIrisServerKey = process.env.MIDTRANS_IRIS_SERVER_KEY || process.env.MIDTRANS_SERVER_KEY || "";
-  env.midtransIrisEnv = process.env.MIDTRANS_IRIS_ENV || "sandbox";
   return env;
 }
 
@@ -473,6 +531,23 @@ async function readBalance(databases, env, userId) {
   return wallet ? Number(wallet.balance) : 0;
 }
 
+async function getDocumentOrNull(databases, databaseId, collectionId, documentId) {
+  try {
+    return await databases.getDocument(databaseId, collectionId, documentId);
+  } catch (err) {
+    if (err?.code === 404) return null;
+    throw err;
+  }
+}
+
+function matchesWithdrawalRequest(withdrawal, payload, amount) {
+  return Number(withdrawal.amount) === amount &&
+    withdrawal.payoutMethod === payload.payoutMethod &&
+    String(withdrawal.providerName) === String(payload.providerName).trim() &&
+    String(withdrawal.accountNumber) === String(payload.accountNumber).trim() &&
+    String(withdrawal.accountName) === String(payload.accountName).trim();
+}
+
 /** True jika user pernah punya baris withdrawal (untuk gate email penarikan pertama). */
 async function hasWithdrawal(databases, env, userId) {
   const res = await databases.listDocuments(env.databaseId, env.withdrawalsCollectionId, [
@@ -503,7 +578,7 @@ async function hasLedgerSource(databases, env, userId) {
   return campaignPayments.documents.length > 0;
 }
 
-/** Jumlah withdrawal user hari ini (status != failed). */
+/** Jumlah withdrawal hari ini. Marker recovery internal ikut dihitung/diblok. */
 async function countTodayWithdrawals(databases, env, userId) {
   const res = await databases.listDocuments(env.databaseId, env.withdrawalsCollectionId, [
     Query.equal("userId", userId)
@@ -511,10 +586,28 @@ async function countTodayWithdrawals(databases, env, userId) {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
   return res.documents.filter((d) => {
-    if (d.status === "failed") return false;
+    if (d.status === "failed" && !isInternalRecoveryState(d)) return false;
     const created = new Date(d.$createdAt || d.createdAt).getTime();
     return created >= startOfDay.getTime();
   }).length;
+}
+
+function isInternalRecoveryState(withdrawal) {
+  return withdrawal.status === "failed" &&
+    INTERNAL_RECOVERY_REASONS.has(withdrawal.failure_reason);
+}
+
+async function findUnresolvedInternalWithdrawal(databases, env, userId) {
+  const res = await databases.listDocuments(env.databaseId, env.withdrawalsCollectionId, [
+    Query.equal("userId", userId)
+  ]);
+  return res.documents
+    .filter(isInternalRecoveryState)
+    .sort((left, right) => {
+      const timeDelta = new Date(left.$createdAt || left.createdAt).getTime() -
+        new Date(right.$createdAt || right.createdAt).getTime();
+      return timeDelta || String(left.$id).localeCompare(String(right.$id));
+    })[0] || null;
 }
 
 /**
@@ -548,62 +641,9 @@ async function findRecentDuplicate(databases, env, userId, amount) {
   ]);
   const last = res.documents[0];
   if (!last) return null;
+  if (last.status === "failed" && !isInternalRecoveryState(last)) return null;
   const ageMs = Date.now() - new Date(last.$createdAt).getTime();
   return ageMs >= 0 && ageMs < 60_000 ? last : null;
-}
-
-/**
- * Midtrans Iris — B2B disbursement API (TERPISAH dari Snap, aktivasi terpisah).
- *
- * Endpoint & payload resmi:
- *   POST {base}/payouts
- *   base sandbox: https://app.sandbox.midtrans.com/iris
- *   base prod:    https://app.midtrans.com/iris
- *   Auth: Basic base64(`${serverKey}:`)
- *   Body: { payouts: [{ beneficiary_name, beneficiary_account, beneficiary_bank,
- *          amount (string), notes }] }
- *   Respon: { payouts: [{ reference_no, status }] }
- *
- * Referensi: https://docs.midtrans.com/reference/https-request dan SDK resmi
- * (midtrans-go iris/request.go, midtrans-java MidtransIrisApi).
- */
-async function createIrisPayout(env, params) {
-  if (!env.midtransIrisServerKey) {
-    throw new Error("MIDTRANS_IRIS_SERVER_KEY belum disetel");
-  }
-  const base = env.midtransIrisEnv === "production"
-    ? "https://app.midtrans.com/iris"
-    : "https://app.sandbox.midtrans.com/iris";
-  const auth = Buffer.from(`${env.midtransIrisServerKey}:`).toString("base64");
-
-  const response = await fetch(`${base}/payouts`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Basic ${auth}`
-    },
-    body: JSON.stringify({
-      payouts: [
-        {
-          beneficiary_name: params.beneficiaryName,
-          beneficiary_account: params.beneficiaryAccount,
-          beneficiary_bank: params.beneficiaryBank,
-          amount: String(params.amount),
-          notes: params.notes
-        }
-      ]
-    })
-  });
-
-  const body = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const messages = body?.error_messages || body?.errors || body?.error_message;
-    const detail = Array.isArray(messages) ? messages.join(", ") : (messages || `Iris HTTP ${response.status}`);
-    const err = new Error(String(detail).slice(0, 500));
-    err.statusCode = response.status;
-    throw err;
-  }
-  return body?.payouts?.[0] || body || {};
 }
 
 function json(res, body, statusCode = 200) {

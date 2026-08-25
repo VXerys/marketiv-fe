@@ -1544,33 +1544,153 @@ describe('calculate-campaign-reward function (FIX A: idempotency)', () => {
   });
 });
 
-describe('request-withdrawal function (FIX B: atomic debit, 4-state flow)', () => {
-  // Router fetch: TablesDB atomic ops update the in-memory store; Iris payouts
-  // can be forced to succeed or fail per test.
-  const mockFetch = (iris?: (url: string, init: any) => any) => (url: string, init: any) => {
+describe('request-withdrawal function (manual withdrawal request)', () => {
+  // TablesDB atomic ops update the in-memory store. Provider callback exists
+  // only to prove the new-request path never reaches an external payout API.
+  const mockFetch = (optionsOrProvider?: {
+    onProviderCall?: (url: string, init: any) => void;
+    failRequestedStageOnce?: boolean;
+    loseCommitResponseOnce?: boolean;
+    commitHttp500AfterApplyOnce?: boolean;
+  } | ((url: string, init: any) => void)) => {
+    const options = typeof optionsOrProvider === 'function'
+      ? { onProviderCall: optionsOrProvider }
+      : (optionsOrProvider || {});
+    const staged = new Map<string, any[]>();
+    let transactionSequence = 0;
+    let failRequestedStage = Boolean(options.failRequestedStageOnce);
+    let loseCommitResponse = Boolean(options.loseCommitResponseOnce);
+    let commitHttp500AfterApply = Boolean(options.commitHttp500AfterApplyOnce);
+    const response = (status: number, body: any = {}) => ({
+      ok: status >= 200 && status < 300,
+      status,
+      text: async () => typeof body === 'string' ? body : JSON.stringify(body),
+    });
+
+    return async (url: string, init: any) => {
+      const method = String(init?.method || 'GET').toUpperCase();
+      const body = init?.body ? JSON.parse(init.body) : {};
+
+      if (/\/tablesdb\/transactions$/.test(url) && method === 'POST') {
+        const transactionId = `dbtx-${++transactionSequence}`;
+        staged.set(transactionId, []);
+        return response(201, { $id: transactionId, status: 'pending' });
+      }
+
+      const transactionMatch = url.match(/\/tablesdb\/transactions\/([^/]+)$/);
+      if (transactionMatch && method === 'PATCH') {
+        const transactionId = transactionMatch[1];
+        const operations = staged.get(transactionId);
+        if (!operations) return response(404, 'transaction not found');
+        if (body.rollback) {
+          staged.delete(transactionId);
+          return response(200, { $id: transactionId, status: 'rolled_back' });
+        }
+        if (!body.commit) return response(400, 'commit or rollback required');
+
+        for (const operation of operations) {
+          const docs = store[operation.table] || [];
+          const current = docs.find((doc: any) => doc.$id === operation.rowId);
+          if (operation.type === 'decrement') {
+            if (!current) return response(404, 'row not found');
+            const next = Number(current[operation.column] || 0) - operation.value;
+            if (typeof operation.min === 'number' && next < operation.min) {
+              return response(409, 'min exceeded');
+            }
+          } else if (operation.type === 'create' && current) {
+            return response(409, 'row already exists');
+          } else if (operation.type === 'update' && !current) {
+            return response(404, 'row not found');
+          }
+        }
+
+        for (const operation of operations) {
+          if (!store[operation.table]) store[operation.table] = [];
+          const docs = store[operation.table];
+          const index = docs.findIndex((doc: any) => doc.$id === operation.rowId);
+          if (operation.type === 'decrement') {
+            docs[index][operation.column] = Number(docs[index][operation.column] || 0) - operation.value;
+            docs[index].$updatedAt = new Date().toISOString();
+          } else if (operation.type === 'create') {
+            docs.push({
+              $id: operation.rowId,
+              $createdAt: new Date().toISOString(),
+              $updatedAt: new Date().toISOString(),
+              ...operation.data,
+            });
+          } else {
+            docs[index] = { ...docs[index], ...operation.data, $updatedAt: new Date().toISOString() };
+          }
+        }
+        staged.delete(transactionId);
+        if (loseCommitResponse) {
+          loseCommitResponse = false;
+          throw new Error('forced commit response loss');
+        }
+        if (commitHttp500AfterApply) {
+          commitHttp500AfterApply = false;
+          return response(500, 'forced commit response failure after apply');
+        }
+        return response(200, { $id: transactionId, status: 'committed' });
+      }
+
+      const createRowMatch = url.match(/\/tablesdb\/[^/]+\/tables\/([^/]+)\/rows$/);
+      if (createRowMatch && method === 'POST' && body.transactionId) {
+        const operations = staged.get(body.transactionId);
+        if (!operations) return response(404, 'transaction not found');
+        operations.push({ type: 'create', table: createRowMatch[1], rowId: body.rowId, data: body.data });
+        return response(202, { $id: body.rowId });
+      }
+
+      const updateRowMatch = url.match(/\/tablesdb\/[^/]+\/tables\/([^/]+)\/rows\/([^/]+)$/);
+      if (updateRowMatch && method === 'PATCH' && body.transactionId) {
+        if (failRequestedStage && updateRowMatch[1] === 'withdrawals' && body.data?.status === 'requested') {
+          failRequestedStage = false;
+          return response(500, 'forced requested stage failure');
+        }
+        const operations = staged.get(body.transactionId);
+        if (!operations) return response(404, 'transaction not found');
+        operations.push({ type: 'update', table: updateRowMatch[1], rowId: updateRowMatch[2], data: body.data });
+        return response(202, { $id: updateRowMatch[2] });
+      }
+
     const m = url.match(/\/tablesdb\/[^/]+\/tables\/([^/]+)\/rows\/([^/]+)\/([^/]+)\/(increment|decrement)$/);
     if (m) {
       const [, table, rowId, column, op] = m;
       const doc = (store[table] || []).find((d: any) => d.$id === rowId);
+      if (body.transactionId) {
+        const operations = staged.get(body.transactionId);
+        if (!operations) return response(404, 'transaction not found');
+        operations.push({
+          type: op,
+          table,
+          rowId,
+          column,
+          value: Number(body.value),
+          min: body.min,
+        });
+        return response(202, { $id: rowId });
+      }
       if (doc) {
-        const body = JSON.parse(init.body);
         const value = Number(body.value);
         if (op === 'increment') {
           doc[column] = Number(doc[column] || 0) + value;
         } else {
           const next = Number(doc[column] || 0) - value;
           if (typeof body.min === 'number' && next < body.min) {
-            return { ok: false, status: 409, text: async () => 'min exceeded' };
+            return response(409, 'min exceeded');
           }
           doc[column] = next;
         }
       }
-      return { ok: true, status: 200, text: async () => '{}' };
+      return response(200);
     }
     if (url.includes('/iris/payouts')) {
-      return iris ? iris(url, init) : { ok: true, status: 201, json: async () => ({ payouts: [{ reference_no: 'REF-1', status: 'queued' }] }) };
+      options.onProviderCall?.(url, init);
+      throw new Error('Provider payout must not be called');
     }
-    return { ok: true, status: 200, text: async () => '{}' };
+    return response(200);
+    };
   };
 
   const envWithdrawal = () => {
@@ -1584,7 +1704,6 @@ describe('request-withdrawal function (FIX B: atomic debit, 4-state flow)', () =
     process.env.KYC_THRESHOLD = '5000000';
     process.env.WITHDRAW_PER_DAY_LIMIT = '3';
     process.env.WITHDRAW_COOLING_DAYS = '3';
-    process.env.MIDTRANS_IRIS_SERVER_KEY = 'iris_key';
   };
 
   const seedCreator = (uid: string, balance: number, over: any = {}) => {
@@ -1596,6 +1715,47 @@ describe('request-withdrawal function (FIX B: atomic debit, 4-state flow)', () =
     amount: 50000, payoutMethod: 'bank', providerName: 'BCA',
     accountNumber: '1234567890', accountName: 'Panji', requestKey,
     ...over,
+  });
+
+  // ===== Authentication, role, and account guards =====
+  it('rejects unauthenticated withdrawal requests', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ headers: {}, bodyJson: payload('req-key-auth') }), res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(401);
+    expect((store['withdrawals'] || [])).toHaveLength(0);
+  });
+
+  it('rejects users outside creator and eligible UMKM roles', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seed('users', [{ $id: 'u-admin', userId: 'user-admin', role: 'admin', status: 'active' }]);
+    seed('wallets', [{ $id: 'w-admin', userId: 'user-admin', balance: 100000 }]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ headers: { 'x-appwrite-user-id': 'user-admin' }, bodyJson: payload('req-key-role') }), res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(403);
+    expect((store['withdrawals'] || [])).toHaveLength(0);
+  });
+
+  it('rejects inactive creator accounts', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seedCreator('user-inactive', 100000, { status: 'suspended' });
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ headers: { 'x-appwrite-user-id': 'user-inactive' }, bodyJson: payload('req-key-status') }), res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].status).toBe(403);
+    expect(res.calls[0].body.error).toBe('Akun Anda sedang tidak aktif.');
+    expect((store['withdrawals'] || [])).toHaveLength(0);
   });
 
   // ===== T-14 / T-15 gates =====
@@ -1631,9 +1791,10 @@ describe('request-withdrawal function (FIX B: atomic debit, 4-state flow)', () =
     expect((store['withdrawals'] || [])).toHaveLength(0);
   });
 
-  // ===== 4-state flow: requested -> processing =====
-  it('allows withdrawal when TOS + email verified, moves to processing with iris reference', async () => {
-    (globalThis as any).fetch = mockFetch();
+  // ===== Manual queue: request stops at requested =====
+  it('reserves balance, creates a pending ledger, and stops at requested without provider payout', async () => {
+    const providerCall = vi.fn();
+    (globalThis as any).fetch = mockFetch(providerCall);
     envWithdrawal();
     seedCreator('user-Z', 100000);
 
@@ -1643,12 +1804,26 @@ describe('request-withdrawal function (FIX B: atomic debit, 4-state flow)', () =
     await main({ req, res, log: () => {}, error: () => {} });
 
     expect(res.calls[0].status).toBe(200);
-    expect(res.calls[0].body.status).toBe('processing');
-    expect(res.calls[0].body.irisReference).toBe('REF-1');
+    expect(res.calls[0].body).toMatchObject({
+      amount: 50000,
+      status: 'requested',
+      requestedAt: expect.any(String),
+      balanceAfter: 50000,
+      transactionId: expect.any(String),
+    });
+    expect(res.calls[0].body).not.toHaveProperty('irisReference');
+    expect(res.calls[0].body).not.toHaveProperty('failureReason');
     expect((store['withdrawals'] || [])).toHaveLength(1);
-    expect((store['withdrawals'] || [])[0].status).toBe('processing');
+    expect((store['withdrawals'] || [])[0].status).toBe('requested');
     const wallet = (store['wallets'] || []).find((w) => w.$id === 'w-user-Z');
     expect(wallet.balance).toBe(50000); // 100000 - 50000 atomic debit
+    const transaction = (store['transactions'] || []).find((tx) => tx.referenceId === res.calls[0].body.withdrawalId);
+    expect(transaction).toMatchObject({ type: 'withdrawal', amount: 50000, status: 'pending' });
+    const notification = (store['notifications'] || []).find((item) => item.userId === 'user-Z');
+    expect(notification).toMatchObject({ title: 'Pengajuan Penarikan Diterima' });
+    expect(notification.message).toContain('dialokasikan');
+    expect(notification.message).toContain('umumnya diproses dalam 1–2 hari kerja');
+    expect(providerCall).not.toHaveBeenCalled();
   });
 
   it('rejects withdrawal when balance is zero and leaves no withdrawals row', async () => {
@@ -1668,6 +1843,223 @@ describe('request-withdrawal function (FIX B: atomic debit, 4-state flow)', () =
     expect(wallet.balance).toBe(0);
   });
 
+  it('marks withdrawal failed when atomic debit and requested-row cleanup both fail', async () => {
+    const tablesFetch = mockFetch();
+    (globalThis as any).fetch = (url: string, init: any) => {
+      if (url.includes('/balance/decrement')) {
+        return { ok: false, status: 409, text: async () => 'min exceeded' };
+      }
+      return tablesFetch(url, init);
+    };
+    envWithdrawal();
+    seedCreator('user-debit-fail', 100000);
+    vi.spyOn(Databases.prototype, 'deleteDocument').mockRejectedValueOnce(new Error('forced cleanup failure'));
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const request = makeReq({ headers: { 'x-appwrite-user-id': 'user-debit-fail' }, bodyJson: payload('req-key-debit-fail') });
+    const res = makeRes();
+    await main({
+      req: request,
+      res,
+      log: () => {},
+      error: () => {},
+    });
+
+    expect(res.calls[0].status).toBe(500);
+    expect((store['withdrawals'] || [])).toHaveLength(1);
+    expect(store.withdrawals[0].status).toBe('failed');
+    expect(store.withdrawals[0].failure_reason).toContain('reserve');
+    expect(store.wallets[0].balance).toBe(100000);
+    expect((store.transactions || []).filter((tx) => tx.type === 'withdrawal')).toHaveLength(0);
+
+    (globalThis as any).fetch = mockFetch();
+    const retry = makeRes();
+    await main({ req: request, res: retry, log: () => {}, error: () => {} });
+
+    expect(retry.calls[0].status).toBe(200);
+    expect(store.wallets[0].balance).toBe(50000);
+    expect(store.withdrawals[0].status).toBe('requested');
+    expect((store.transactions || []).filter((tx) => tx.type === 'withdrawal' && tx.status === 'pending')).toHaveLength(1);
+  });
+
+  it('repairs a legacy pending-ledger marker on same-key retry without debiting twice', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seedCreator('user-ledger-retry', 50000);
+    seed('withdrawals', [{
+      $id: 'wd0880a746fdb8a4e0c68836ef0ee55da8',
+      $createdAt: new Date().toISOString(),
+      userId: 'user-ledger-retry',
+      amount: 50000,
+      payoutMethod: 'bank',
+      providerName: 'BCA',
+      accountNumber: '1234567890',
+      accountName: 'Panji',
+      status: 'failed',
+      failure_reason: 'withdrawal_ledger_pending',
+    }]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const request = makeReq({
+      headers: { 'x-appwrite-user-id': 'user-ledger-retry' },
+      bodyJson: payload('req-key-ledger-retry'),
+    });
+    const retry = makeRes();
+    await main({ req: request, res: retry, log: () => {}, error: () => {} });
+
+    expect(retry.calls[0].status).toBe(200);
+    expect(retry.calls[0].body).toMatchObject({ status: 'requested', balanceAfter: 50000 });
+    expect(store.wallets[0].balance).toBe(50000);
+    expect(store.withdrawals[0].status).toBe('requested');
+    expect((store.transactions || []).filter((tx) => tx.type === 'withdrawal' && tx.status === 'pending')).toHaveLength(1);
+  });
+
+  it('rolls back staged debit when requested transition fails, then same-key retry reserves once', async () => {
+    (globalThis as any).fetch = mockFetch({ failRequestedStageOnce: true });
+    envWithdrawal();
+    seedCreator('user-marker-fail', 100000);
+    vi.spyOn(Databases.prototype, 'deleteDocument').mockRejectedValueOnce(new Error('forced cleanup failure'));
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const request = makeReq({ headers: { 'x-appwrite-user-id': 'user-marker-fail' }, bodyJson: payload('req-key-marker-fail') });
+    const res = makeRes();
+    await main({
+      req: request,
+      res,
+      log: () => {},
+      error: () => {},
+    });
+
+    expect(res.calls[0].status).toBe(500);
+    expect(store.wallets[0].balance).toBe(100000);
+    expect(store.withdrawals[0]).toMatchObject({ status: 'failed', failure_reason: 'withdrawal_atomic_reserve_pending' });
+    expect((store.transactions || []).filter((tx) => tx.type === 'withdrawal')).toHaveLength(0);
+    expect(store.notifications || []).toHaveLength(0);
+
+    const retry = makeRes();
+    await main({ req: request, res: retry, log: () => {}, error: () => {} });
+
+    expect(retry.calls[0].status).toBe(200);
+    expect(retry.calls[0].body).toMatchObject({ status: 'requested', balanceAfter: 50000 });
+    expect(store.wallets[0].balance).toBe(50000);
+    expect(store.withdrawals[0].status).toBe('requested');
+    expect((store.transactions || []).filter((tx) => tx.type === 'withdrawal' && tx.status === 'pending')).toHaveLength(1);
+  });
+
+  it('recovers committed reservation after commit response loss without second debit', async () => {
+    (globalThis as any).fetch = mockFetch({ loseCommitResponseOnce: true });
+    envWithdrawal();
+    seedCreator('user-commit-loss', 100000);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const request = makeReq({ headers: { 'x-appwrite-user-id': 'user-commit-loss' }, bodyJson: payload('req-key-commit-loss') });
+    const first = makeRes();
+    await main({ req: request, res: first, log: () => {}, error: () => {} });
+
+    expect(first.calls[0].status).toBe(500);
+    expect(store.wallets[0].balance).toBe(50000);
+    expect(store.withdrawals[0].status).toBe('requested');
+    expect((store.transactions || []).filter((tx) => tx.type === 'withdrawal' && tx.status === 'pending')).toHaveLength(1);
+
+    const retry = makeRes();
+    await main({ req: request, res: retry, log: () => {}, error: () => {} });
+
+    expect(retry.calls[0].status).toBe(200);
+    expect(retry.calls[0].body).toMatchObject({ status: 'requested', balanceAfter: 50000 });
+    expect(store.wallets[0].balance).toBe(50000);
+    expect((store.transactions || []).filter((tx) => tx.type === 'withdrawal' && tx.status === 'pending')).toHaveLength(1);
+  });
+
+  it('recovers committed reservation after commit returns HTTP 500 without second debit', async () => {
+    (globalThis as any).fetch = mockFetch({ commitHttp500AfterApplyOnce: true });
+    envWithdrawal();
+    seedCreator('user-commit-500', 100000);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const request = makeReq({ headers: { 'x-appwrite-user-id': 'user-commit-500' }, bodyJson: payload('req-key-commit-500') });
+    const first = makeRes();
+    await main({ req: request, res: first, log: () => {}, error: () => {} });
+
+    expect(first.calls[0].status).toBe(500);
+    expect(store.wallets[0].balance).toBe(50000);
+    expect(store.withdrawals[0].status).toBe('requested');
+    expect((store.transactions || []).filter((tx) => tx.type === 'withdrawal' && tx.status === 'pending')).toHaveLength(1);
+
+    const retry = makeRes();
+    await main({ req: request, res: retry, log: () => {}, error: () => {} });
+
+    expect(retry.calls[0].status).toBe(200);
+    expect(retry.calls[0].body).toMatchObject({ status: 'requested', balanceAfter: 50000 });
+    expect(store.wallets[0].balance).toBe(50000);
+    expect(store.withdrawals[0].status).toBe('requested');
+    expect((store.transactions || []).filter((tx) => tx.type === 'withdrawal' && tx.status === 'pending')).toHaveLength(1);
+  });
+
+  it('blocks a new requestKey while an internal reserve marker is unresolved', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seedCreator('user-unresolved', 100000);
+    seed('withdrawals', [{
+      $id: 'wd-unresolved',
+      userId: 'user-unresolved',
+      amount: 50000,
+      status: 'failed',
+      failure_reason: 'withdrawal_reserve_pending',
+      accountNumber: '1234567890',
+      providerName: 'BCA',
+      $createdAt: new Date(Date.now() - 10 * 60_000).toISOString(),
+    }]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const res = makeRes();
+    await main({
+      req: makeReq({ headers: { 'x-appwrite-user-id': 'user-unresolved' }, bodyJson: payload('req-key-new', { amount: 60000 }) }),
+      res,
+      log: () => {},
+      error: () => {},
+    });
+
+    expect(res.calls[0].status).toBe(409);
+    expect(store.wallets[0].balance).toBe(100000);
+    expect(store.withdrawals).toHaveLength(1);
+    expect((store.transactions || []).filter((tx) => tx.type === 'withdrawal')).toHaveLength(0);
+  });
+
+  it('does not retry-debit an ambiguous legacy reserve marker with the same requestKey', async () => {
+    (globalThis as any).fetch = mockFetch();
+    envWithdrawal();
+    seedCreator('user-legacy-ambiguous', 50000);
+    seed('withdrawals', [{
+      $id: 'wd588e1f65d248e18b006779ffe6be215b',
+      $createdAt: new Date().toISOString(),
+      userId: 'user-legacy-ambiguous',
+      amount: 50000,
+      payoutMethod: 'bank',
+      providerName: 'BCA',
+      accountNumber: '1234567890',
+      accountName: 'Panji',
+      status: 'failed',
+      failure_reason: 'withdrawal_reserve_pending',
+    }]);
+
+    const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
+    const res = makeRes();
+    await main({
+      req: makeReq({
+        headers: { 'x-appwrite-user-id': 'user-legacy-ambiguous' },
+        bodyJson: payload('req-key-legacy-ambiguous'),
+      }),
+      res,
+      log: () => {},
+      error: () => {},
+    });
+
+    expect(res.calls[0].status).toBe(409);
+    expect(store.wallets[0].balance).toBe(50000);
+    expect((store.transactions || []).filter((tx) => tx.type === 'withdrawal')).toHaveLength(0);
+    expect(store.withdrawals[0].failure_reason).toBe('withdrawal_reserve_pending');
+  });
+
   it('allows only the first of two identical withdrawals (same amount, same requestKey)', async () => {
     (globalThis as any).fetch = mockFetch();
     envWithdrawal();
@@ -1679,16 +2071,18 @@ describe('request-withdrawal function (FIX B: atomic debit, 4-state flow)', () =
     // First withdrawal
     const res1 = makeRes();
     await main({ req: makeReq({ headers: { 'x-appwrite-user-id': 'user-1' }, bodyJson: body }), res: res1, log: () => {}, error: () => {} });
-    expect(res1.calls[0].body.status).toBe('processing');
+    expect(res1.calls[0].body.status).toBe('requested');
 
     // Second withdrawal with same requestKey (duplicate guard)
     const res2 = makeRes();
     await main({ req: makeReq({ headers: { 'x-appwrite-user-id': 'user-1' }, bodyJson: body }), res: res2, log: () => {}, error: () => {} });
-    expect(res2.calls[0].status).toBe(409);
+    expect(res2.calls[0].status).toBe(200);
+    expect(res2.calls[0].body.status).toBe('requested');
 
     // Balance should be 0 after first, second rejected
     const wallet = (store['wallets'] || []).find((w) => w.$id === 'w-user-1');
     expect(wallet.balance).toBe(0);
+    expect((store.transactions || []).filter((tx) => tx.type === 'withdrawal')).toHaveLength(1);
   });
 
   // ===== UMKM source validation =====
@@ -1735,7 +2129,7 @@ describe('request-withdrawal function (FIX B: atomic debit, 4-state flow)', () =
     await main({ req, res, log: () => {}, error: () => {} });
 
     expect(res.calls[0].status).toBe(200);
-    expect(res.calls[0].body.status).toBe('processing');
+    expect(res.calls[0].body.status).toBe('requested');
     const wd = (store['withdrawals'] || [])[0];
     expect(wd.source_origin).toBe('umkm_refund');
     expect(wd.requester_role).toBe('umkm');
@@ -1798,26 +2192,25 @@ describe('request-withdrawal function (FIX B: atomic debit, 4-state flow)', () =
     expect(res.calls[0].body.error).toBe('Akun penarikan baru perlu pending 3 hari.');
   });
 
-  // ===== Iris failure -> failed + reversal (idempotent) =====
-  it('credits balance back and marks reversed when Iris payout fails', async () => {
-    const irisFail = () => ({ ok: false, status: 400, json: async () => ({ error_messages: ['invalid beneficiary account'] }) });
-    (globalThis as any).fetch = mockFetch(irisFail);
+  // ===== Atomic contention =====
+  it('accepts only one concurrent request when combined amounts exceed balance', async () => {
+    (globalThis as any).fetch = mockFetch();
     envWithdrawal();
-    seedCreator('user-F', 100000);
+    seedCreator('user-F', 80000);
 
     const main = (await import('../../functions/request-withdrawal/src/main.js')).default;
-    const req = makeReq({ headers: { 'x-appwrite-user-id': 'user-F' }, bodyJson: payload('req-key-fail') });
-    const res = makeRes();
-    await main({ req, res, log: () => {}, error: () => {} });
+    const first = makeRes();
+    const second = makeRes();
+    await Promise.all([
+      main({ req: makeReq({ headers: { 'x-appwrite-user-id': 'user-F' }, bodyJson: payload('req-key-concurrent-a', { amount: 50000 }) }), res: first, log: () => {}, error: () => {} }),
+      main({ req: makeReq({ headers: { 'x-appwrite-user-id': 'user-F' }, bodyJson: payload('req-key-concurrent-b', { amount: 60000 }) }), res: second, log: () => {}, error: () => {} }),
+    ]);
 
-    expect(res.calls[0].body.status).toBe('failed');
-    expect(res.calls[0].body.failureReason).toBeDefined();
+    expect([first.calls[0].status, second.calls[0].status].sort()).toEqual([200, 409]);
     const wallet = (store['wallets'] || []).find((w) => w.$id === 'w-user-F');
-    expect(wallet.balance).toBe(100000); // debited then credited back
-    const wd = (store['withdrawals'] || []).find((d) => d.$id === res.calls[0].body.withdrawalId);
-    expect(wd.status).toBe('reversed');
-    const reversals = (store['transactions'] || []).filter((t) => t.type === 'withdrawal_reversal');
-    expect(reversals).toHaveLength(1);
+    expect([20000, 30000]).toContain(wallet.balance);
+    expect((store['withdrawals'] || [])).toHaveLength(1);
+    expect((store['transactions'] || []).filter((tx) => tx.type === 'withdrawal')).toHaveLength(1);
   });
 });
 

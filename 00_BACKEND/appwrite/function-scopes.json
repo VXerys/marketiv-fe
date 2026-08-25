@@ -145,7 +145,8 @@
   ],
   "request-withdrawal": [
     "documents.read",
-    "documents.write"
+    "documents.write",
+    "rows.write"
   ],
   "verify-kyc": [
     "documents.read",
