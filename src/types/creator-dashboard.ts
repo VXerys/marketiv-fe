@@ -17,6 +17,7 @@ import type {
   TransactionStatus,
   TransactionType,
 } from "./domain";
+import type { PackageContext } from "./umkm-dashboard.types";
 
 export type {
   ServiceResult,
@@ -224,6 +225,8 @@ export interface CreatorNegotiation {
   scope: string;
   deadline: string;
   revisionCount?: number;
+  /** Snapshot immutable paket yang menjadi acuan, bukan kontrak final. */
+  packageContext?: PackageContext;
 
   /** Terisi setelah kreator accept dan `create-order` selesai (asinkron). */
   orderId?: string;

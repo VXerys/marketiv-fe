@@ -161,8 +161,15 @@ export interface RateCardPackage {
   price: number;
   deliverable: string;
   estimatedDays: number;
+  revisionLimit?: number;
   /** rate_cards.status — bukan boolean isActive */
   status: RateCardStatus;
+}
+
+export interface PackageContext {
+  id: string;
+  name: string;
+  basePrice: number;
 }
 
 /**
@@ -199,6 +206,8 @@ export interface NegotiationOrder {
   scope: string;
   deadline: string;
   revisionCount?: number;
+  /** Snapshot immutable paket yang menjadi acuan, bukan kontrak final. */
+  packageContext?: PackageContext;
 
   /** Terisi setelah kreator accept dan `create-order` selesai (asinkron). */
   orderId?: string;

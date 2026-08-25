@@ -10,6 +10,7 @@ import {
   getMessagesByConversationId,
   sendMessage,
   createOffer,
+  getCreatorRateCards,
   createOrderPayment,
   cancelOrder,
   deleteOffer,
@@ -30,7 +31,7 @@ import {
   ResponsiveModalTitle,
 } from "@/components/ui/responsive-modal";
 import { toast } from "sonner";
-import { NegotiationOrder, ChatMessage } from "@/types/umkm-dashboard.types";
+import { NegotiationOrder, ChatMessage, RateCardPackage } from "@/types/umkm-dashboard.types";
 import { formatCurrency } from "@/lib/formatters";
 import { CollabPostWarningBanner } from "./CollabPostWarningBanner";
 import { ChatTimeline } from "./ChatTimeline";
@@ -82,6 +83,7 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const selectedPackageId = searchParams.get("packageId");
   const [order, setOrder] = useState<NegotiationOrder | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,6 +103,8 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   const [isRevisionOpen, setIsRevisionOpen] = useState(false);
   const [revisionMessage, setRevisionMessage] = useState("");
   const [reviewing, setReviewing] = useState(false);
+  const [packagePrefill, setPackagePrefill] = useState<RateCardPackage | null>(null);
+  const [packageContextWarning, setPackageContextWarning] = useState<string | null>(null);
   const loadInFlightRef = useRef(false);
 
   const loadData = useCallback(async (initial = false) => {
@@ -183,6 +187,25 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   }, [reloadAuthoritativeRoom, searchParams]);
 
   useEffect(() => {
+    // Query hanya konteks masuk sebelum membuat offer. Sesudah offer ada,
+    // provenance harus datang dari snapshot DTO, bukan URL lama yang mutable.
+    if (!selectedPackageId || !order?.creatorId || order.offerId) {
+      setPackagePrefill(null);
+      setPackageContextWarning(null);
+      return;
+    }
+    let active = true;
+    void (async () => {
+      const result = await getCreatorRateCards(order.creatorId);
+      if (!active) return;
+      const selected = result.data?.find((pkg) => pkg.id === selectedPackageId) ?? null;
+      setPackagePrefill(selected);
+      setPackageContextWarning(selected ? null : "Paket acuan tidak tersedia atau tidak lagi dipublikasikan. Kamu tetap dapat membuat penawaran tanpa paket.");
+    })();
+    return () => { active = false; };
+  }, [order?.creatorId, selectedPackageId]);
+
+  useEffect(() => {
     if (paymentVerification !== "verifying" || !isPaymentConfirmedStage(order?.stage)) return;
     setPaymentVerification("idle");
     setIsSuccessModalOpen(true);
@@ -216,6 +239,7 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
     scope: string;
     deadline: string;
     revisionCount: number;
+    packageId?: string;
   }) => {
     if (!order) return;
     const res = await createOffer({
@@ -226,6 +250,7 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
       price: offer.finalPrice,
       deadline: offer.deadline,
       revisionLimit: offer.revisionCount,
+      ...(offer.packageId ? { packageId: offer.packageId } : {}),
     });
     if (!res.success) {
       toast.error(res.error ?? "Gagal mengirim penawaran.");
@@ -409,6 +434,18 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
         </Link>
       )}
 
+      {!isChatFullscreen && (packagePrefill || order.packageContext || packageContextWarning) && (
+        <div className="rounded-[18px] border border-orange-200 bg-orange-50 px-4 py-3 text-xs">
+          {packageContextWarning ? (
+            <p className="font-semibold text-orange-800">{packageContextWarning}</p>
+          ) : order.packageContext ? (
+            <><p className="font-extrabold text-orange-950">Kesepakatan Final</p><p className="text-orange-800 mt-1">Berawal dari paket {order.packageContext.name} ({formatCurrency(order.packageContext.basePrice)}). Harga final tetap {formatCurrency(order.finalPrice)}.</p></>
+          ) : packagePrefill ? (
+            <><p className="font-extrabold text-orange-950">Paket Acuan: {packagePrefill.name}</p><p className="text-orange-800 mt-1">Harga paket {formatCurrency(packagePrefill.price)}. Rincian masih dapat dinegosiasikan sebelum penawaran dikirim.</p></>
+          ) : null}
+        </div>
+      )}
+
       {order.stage === "pending_payment" && !isChatFullscreen && (
         <div className="rounded-[18px] border border-orange-200 bg-orange-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="min-w-0 flex-1">
@@ -552,6 +589,14 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
           onClose={() => setIsOfferModalOpen(false)}
           onConfirm={handleConfirmCustomOffer}
           creatorName={order.creatorName}
+          packageContext={packagePrefill ? {
+            id: packagePrefill.id,
+            name: packagePrefill.name,
+            price: packagePrefill.price,
+            description: packagePrefill.description,
+            revisionLimit: packagePrefill.revisionLimit,
+            deliveryDays: packagePrefill.estimatedDays,
+          } : undefined}
         />
       )}
 

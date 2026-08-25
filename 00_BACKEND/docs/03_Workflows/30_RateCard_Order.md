@@ -89,7 +89,7 @@ UMKM buka `Creator Discovery` → profil creator → lihat rate card → pilih j
 7. **Offers** — Creator review offer → accept / reject.
 8. **Jika creator accept:**
    - **Event `offers.status (pending→accepted)`** memicu function **`create-order`**.
-9. **Orders** — Buat `orders`: `{ umkmId, creatorId, offerId, amount: offer.price, status: 'pending_payment' }`.
+9. **Orders** — Buat `orders`: `{ umkmId, creatorId, offerId, packageId?, packageNameSnapshot?, packagePriceSnapshot?, amount: offer.price, status: 'pending_payment' }`. Snapshot hanya provenance; `amount` selalu harga final offer, bukan harga paket mutable.
 10. **Notifications** — Notifikasi ke UMKM: "Offer diterima — lakukan pembayaran".
 11. **Jika creator reject:**
     - Offer status `rejected`.

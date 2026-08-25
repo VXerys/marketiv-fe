@@ -15,6 +15,7 @@ interface StartNegotiationModalProps {
   onClose: () => void;
   creatorId: string;
   creatorName: string;
+  packageId: string;
   packageName: string;
   packagePrice: string;
 }
@@ -24,6 +25,7 @@ export function StartNegotiationModal({
   onClose,
   creatorId,
   creatorName,
+  packageId,
   packageName,
   packagePrice,
 }: StartNegotiationModalProps) {
@@ -43,7 +45,7 @@ export function StartNegotiationModal({
         return;
       }
       onClose();
-      router.push(`/dashboard/umkm/negosiasi/${res.data}`);
+      router.push(`/dashboard/umkm/negosiasi/${res.data}?packageId=${encodeURIComponent(packageId)}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Gagal membuka ruang negosiasi.");
     } finally {

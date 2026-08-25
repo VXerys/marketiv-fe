@@ -156,6 +156,11 @@ function toNegotiation(conversation, ctx) {
   const offer = ctx.offerByConversationId.get(conversation.$id) || null;
   const order = offer ? ctx.orderByOfferId.get(offer.$id) || null : null;
   const pkg = order ? ctx.packageById.get(str(order.packageId)) : null;
+  const packageId = str(order?.packageId) || str(offer?.packageId);
+  const packageNameSnapshot = str(order?.packageNameSnapshot) || str(offer?.packageNameSnapshot);
+  const packagePriceSnapshot = number(
+    order?.packagePriceSnapshot ?? offer?.packagePriceSnapshot
+  );
   const umkm = ctx.umkmByUserId.get(str(conversation.umkm_id));
   const escrow = order ? ctx.escrowByOrderId.get(order.$id) : null;
   const deliverable = order ? ctx.latestDeliverableByOrderId.get(order.$id) : null;
@@ -189,11 +194,16 @@ function toNegotiation(conversation, ctx) {
     scope: str(offer?.description) || str(pkg?.description),
     deadline: str(offer?.deadline),
     revisionCount: offer?.revisionLimit ?? pkg?.revisionLimit ?? undefined,
+    packageContext:
+      packageId && packageNameSnapshot
+        ? { id: packageId, name: packageNameSnapshot, basePrice: packagePriceSnapshot }
+        : undefined,
 
     orderId: order?.$id || undefined,
     orderStatus: order ? str(order.status) : undefined,
     escrowStatus: escrow ? str(escrow.status) : undefined,
-    // Ringkasan output paket — `offers.description` sudah dipakai sebagai scope.
+    // Direct Order lama boleh masih dereference paket; provenance offer baru
+    // selalu memakai snapshot agar riwayat tidak berubah saat paket diedit.
     deliverables: str(pkg?.output) || undefined,
     submittedCollabUrl: str(deliverable?.fileUrl) || undefined,
 

@@ -142,6 +142,7 @@ export function CreatorDetailPage({ creatorId }: CreatorDetailPageProps) {
           onClose={() => setSelectedPackage(null)}
           creatorId={creator.id}
           creatorName={creator.name}
+          packageId={selectedPackage.id}
           packageName={selectedPackage.name}
           packagePrice={selectedPackage.price}
         />

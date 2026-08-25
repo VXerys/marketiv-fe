@@ -37,6 +37,7 @@ const MAX_REVISION_LIMIT = 10;
 export const createOfferSchema = z.object({
   conversationId: requiredStringMax("Percakapan", 255),
   creatorId: requiredStringMax("Kreator", 255),
+  packageId: optionalString(255, "Paket acuan"),
   title: requiredStringMax("Judul proyek", 255),
   description: optionalString(2000, "Deskripsi scope"),
   price: currencyAmountIDR(MINIMUM_OFFER_PRICE),

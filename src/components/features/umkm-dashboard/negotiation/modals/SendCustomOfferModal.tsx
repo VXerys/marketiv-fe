@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ResponsiveModal,
   ResponsiveModalContent,
@@ -10,11 +10,19 @@ import {
 interface SendCustomOfferModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (offer: { finalPrice: number; scope: string; deadline: string; revisionCount: number }) => Promise<void>;
+  onConfirm: (offer: { finalPrice: number; scope: string; deadline: string; revisionCount: number; packageId?: string }) => Promise<void>;
   creatorName: string;
+  packageContext?: {
+    id: string;
+    name: string;
+    price: number;
+    description: string;
+    revisionLimit?: number;
+    deliveryDays?: number;
+  };
 }
 
-export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }: SendCustomOfferModalProps) {
+export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName, packageContext }: SendCustomOfferModalProps) {
   const [scope, setScope] = useState("");
   const [price, setPrice] = useState(0);
   const [deadline, setDeadline] = useState("");
@@ -22,8 +30,24 @@ export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }
   const [agreed, setAgreed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const initializedPackageRef = useRef<string | null>(null);
 
   const todayStr = new Date().toISOString().split("T")[0];
+
+  useEffect(() => {
+    if (!isOpen || !packageContext || initializedPackageRef.current === packageContext.id) return;
+    const suggestedDeadline = new Date();
+    suggestedDeadline.setDate(suggestedDeadline.getDate() + (packageContext.deliveryDays ?? 0));
+    setPrice(packageContext.price);
+    setScope(packageContext.description);
+    setRevisions(packageContext.revisionLimit ?? 1);
+    if (packageContext.deliveryDays) setDeadline(suggestedDeadline.toISOString().split("T")[0]);
+    initializedPackageRef.current = packageContext.id;
+  }, [isOpen, packageContext]);
+
+  useEffect(() => {
+    if (!isOpen) initializedPackageRef.current = null;
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,6 +60,7 @@ export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }
         scope,
         deadline: new Date(deadline).toISOString(),
         revisionCount: revisions,
+        packageId: packageContext?.id,
       });
       onClose();
     } catch (err) {
@@ -61,6 +86,13 @@ export function SendCustomOfferModal({ isOpen, onClose, onConfirm, creatorName }
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           <ResponsiveModalDescription className="hidden" />
+
+          {packageContext && (
+            <div className="rounded-xl bg-orange-50/80 border border-orange-200/80 p-3 text-xs">
+              <p className="font-extrabold text-orange-950">Paket Acuan: {packageContext.name}</p>
+              <p className="text-orange-700 mt-1">Harga paket menjadi acuan. Harga, scope, deadline, dan revisi di bawah tetap dapat diubah.</p>
+            </div>
+          )}
 
           {/* Scope input */}
           <div className="space-y-1.5">

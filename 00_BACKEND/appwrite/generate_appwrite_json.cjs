@@ -562,11 +562,16 @@ const collections = [
       createIntAttr("price", true),
       createStringAttr("deadline", true, 255),
       createIntAttr("revisionLimit", true),
+      // Provenance paket opsional: final kontrak tetap field offer sendiri.
+      createStringAttr("packageId", false),
+      createStringAttr("packageNameSnapshot", false, 100),
+      createIntAttr("packagePriceSnapshot", false),
       createStringAttr("status", true, 50),
       createDatetimeAttr("createdAt", false),
     ],
     indexes: [
       createIndex("idx_conversationId", "key", ["conversationId"]),
+      createIndex("idx_packageId", "key", ["packageId"]),
       createIndex("idx_status", "key", ["status"]),
       createIndex("idx_createdAt", "key", ["createdAt"], ["DESC"]),
     ],
@@ -584,6 +589,8 @@ const collections = [
     attributes: [
       createStringAttr("offerId", false),
       createStringAttr("packageId", false),
+      createStringAttr("packageNameSnapshot", false, 100),
+      createIntAttr("packagePriceSnapshot", false),
       createStringAttr("creatorId", true),
       createStringAttr("umkmId", true),
       createIntAttr("amount", true),

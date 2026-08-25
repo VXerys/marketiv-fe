@@ -41,6 +41,7 @@ export default async ({ req, res, log, error }) => {
     const title = str(body.title).trim();
     const description = str(body.description).trim();
     const deadline = str(body.deadline).trim();
+    const packageId = str(body.packageId).trim();
     const price = Number(body.price);
     const revisionLimit = Number(body.revisionLimit);
 
@@ -106,6 +107,18 @@ export default async ({ req, res, log, error }) => {
       }, 409);
     }
 
+    // `packageId` hanyalah provenance opsional. Saat dikirim, validasinya
+    // sepenuhnya dari server: paket harus nyata, berada di rate card kreator
+    // lawan bicara, dan parent rate card masih published. Harga final tetap
+    // `price` dari offer yang dapat dinegosiasikan UMKM.
+    let packageSnapshot = null;
+    if (packageId) {
+      packageSnapshot = await resolvePackageContext(databases, env, packageId, creatorId);
+      if (!packageSnapshot) {
+        return json(res, { error: "Paket acuan tidak valid, bukan milik kreator ini, atau tidak lagi dipublikasikan." }, 422);
+      }
+    }
+
     const created = await databases.createDocument(
       env.databaseId,
       env.offersCollectionId,
@@ -119,6 +132,11 @@ export default async ({ req, res, log, error }) => {
         price,
         deadline,
         revisionLimit,
+        ...(packageSnapshot && {
+          packageId,
+          packageNameSnapshot: packageSnapshot.name,
+          packagePriceSnapshot: packageSnapshot.price,
+        }),
         status: "pending",
         createdAt: new Date().toISOString(),
       },
@@ -215,10 +233,35 @@ function getEnv(req) {
       "conversations",
     messagesCollectionId: process.env.MESSAGES_COLLECTION_ID || "messages",
     offersCollectionId: process.env.OFFERS_COLLECTION_ID || "offers",
+    rateCardsCollectionId: process.env.RATE_CARDS_COLLECTION_ID || "rate_cards",
+    rateCardPackagesCollectionId: process.env.RATE_CARD_PACKAGES_COLLECTION_ID || "rate_card_packages",
   };
   const missing = Object.entries(env).filter(([, value]) => !value).map(([key]) => key);
   if (missing.length > 0) throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
   return env;
+}
+
+async function resolvePackageContext(databases, env, packageId, creatorId) {
+  let pkg;
+  try {
+    pkg = await databases.getDocument(env.databaseId, env.rateCardPackagesCollectionId, packageId);
+  } catch (err) {
+    if (err?.code === 404) return null;
+    throw err;
+  }
+
+  const rateCardId = str(pkg.rateCardId);
+  if (!rateCardId) return null;
+  let rateCard;
+  try {
+    rateCard = await databases.getDocument(env.databaseId, env.rateCardsCollectionId, rateCardId);
+  } catch (err) {
+    if (err?.code === 404) return null;
+    throw err;
+  }
+  if (str(rateCard.creatorId) !== creatorId || str(rateCard.status) !== "published") return null;
+
+  return { name: str(pkg.name), price: Number(pkg.price) };
 }
 
 function createDatabasesClient(env) {

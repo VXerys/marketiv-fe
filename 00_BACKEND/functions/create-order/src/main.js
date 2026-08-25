@@ -101,6 +101,11 @@ export default async ({ req, res, log, error }) => {
           offerId: offer.$id,
           creatorId: offer.creatorId,
           umkmId: offer.umkmId,
+          ...(str(offer.packageId) && { packageId: str(offer.packageId) }),
+          ...(str(offer.packageNameSnapshot) && {
+            packageNameSnapshot: str(offer.packageNameSnapshot),
+            packagePriceSnapshot: Number(offer.packagePriceSnapshot),
+          }),
           amount: Number(offer.price),
           status: "pending_payment",
         },

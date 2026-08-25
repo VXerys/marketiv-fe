@@ -257,6 +257,28 @@ describe('create-order function', () => {
     ]);
   });
 
+  it('copies immutable package provenance but keeps negotiated offer price', async () => {
+    process.env.ORDERS_COLLECTION_ID = 'orders';
+    process.env.USERS_COLLECTION_ID = 'users';
+    process.env.NOTIFICATIONS_COLLECTION_ID = 'notifications';
+    process.env.CURRENT_TOS_VERSION = 'v3.1';
+    seed('users', [
+      { $id: 'user-umkm', userId: 'u1', role: 'umkm', status: 'active' },
+      { $id: 'user-creator', userId: 'c1', role: 'creator', status: 'active', tos_version: 'v3.1', tos_accepted_at: '2026-08-10T00:00:00.000Z' },
+    ]);
+    const main = (await import('../../functions/create-order/src/main.js')).default;
+    const res = makeRes();
+    await main({
+      req: makeReq({ bodyJson: {
+        $id: 'o-package', status: 'accepted', creatorId: 'c1', umkmId: 'u1',
+        price: 125000, packageId: 'pkg-1', packageNameSnapshot: 'Review Produk', packagePriceSnapshot: 200000,
+      } }),
+      res, log: () => {}, error: () => {},
+    });
+    const order = store.orders[0];
+    expect(order).toMatchObject({ packageId: 'pkg-1', packageNameSnapshot: 'Review Produk', packagePriceSnapshot: 200000, amount: 125000 });
+  });
+
   it('ignores non pending->accepted transitions', async () => {
     process.env.APPWRITE_DATABASE_ID = 'db';
     process.env.ORDERS_COLLECTION_ID = 'orders';
@@ -311,6 +333,46 @@ describe('create-conversation function', () => {
     expect(res.calls[0].body.conversationId).toBeDefined();
     const created = store.conversations[0];
     expect(created).toMatchObject({ umkm_id: 'umkm-1', creator_id: 'creator-1' });
+  });
+});
+
+describe('create-offer package provenance', () => {
+  const seedOfferContext = () => {
+    process.env.CONVERSATIONS_COLLECTION_ID = 'conversations';
+    process.env.OFFERS_COLLECTION_ID = 'offers';
+    process.env.MESSAGES_COLLECTION_ID = 'messages';
+    process.env.RATE_CARDS_COLLECTION_ID = 'rate_cards';
+    process.env.RATE_CARD_PACKAGES_COLLECTION_ID = 'rate_card_packages';
+    seed('users', [{ $id: 'umkm-user', userId: 'u1', role: 'umkm', status: 'active' }]);
+    seed('conversations', [{ $id: 'conv-1', umkm_id: 'u1', creator_id: 'c1' }]);
+  };
+
+  it('validates published creator package and snapshots it on editable offer', async () => {
+    seedOfferContext();
+    seed('rate_cards', [{ $id: 'rc-1', creatorId: 'c1', status: 'published' }]);
+    seed('rate_card_packages', [{ $id: 'pkg-1', rateCardId: 'rc-1', name: 'Review Produk', price: 200000 }]);
+    const main = (await import('../../functions/create-offer/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ headers: { 'x-appwrite-user-id': 'u1' }, bodyJson: {
+      conversationId: 'conv-1', creatorId: 'c1', packageId: 'pkg-1', title: 'Video review final', description: '1 video',
+      price: 125000, deadline: '2026-12-31T00:00:00.000Z', revisionLimit: 2,
+    } }), res, log: () => {}, error: () => {} });
+    expect(res.calls.at(-1).status).toBe(200);
+    expect(store.offers[0]).toMatchObject({ packageId: 'pkg-1', packageNameSnapshot: 'Review Produk', packagePriceSnapshot: 200000, price: 125000 });
+  });
+
+  it('rejects package owned by another creator', async () => {
+    seedOfferContext();
+    seed('rate_cards', [{ $id: 'rc-other', creatorId: 'c-other', status: 'published' }]);
+    seed('rate_card_packages', [{ $id: 'pkg-other', rateCardId: 'rc-other', name: 'Paket lain', price: 200000 }]);
+    const main = (await import('../../functions/create-offer/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ headers: { 'x-appwrite-user-id': 'u1' }, bodyJson: {
+      conversationId: 'conv-1', creatorId: 'c1', packageId: 'pkg-other', title: 'Video review final', description: '1 video',
+      price: 125000, deadline: '2026-12-31T00:00:00.000Z', revisionLimit: 2,
+    } }), res, log: () => {}, error: () => {} });
+    expect(res.calls.at(-1)).toMatchObject({ status: 422 });
+    expect(store.offers ?? []).toHaveLength(0);
   });
 });
 

@@ -2370,6 +2370,33 @@
           "max": 999999999
         },
         {
+          "key": "packageId",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 255,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "packageNameSnapshot",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 100,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "packagePriceSnapshot",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": null,
+          "min": 0,
+          "max": 999999999
+        },
+        {
           "key": "status",
           "type": "string",
           "required": true,
@@ -2396,6 +2423,17 @@
           ],
           "columns": [
             "conversationId"
+          ]
+        },
+        {
+          "key": "idx_packageId",
+          "type": "key",
+          "status": "available",
+          "orders": [
+            "ASC"
+          ],
+          "columns": [
+            "packageId"
           ]
         },
         {
@@ -2447,6 +2485,24 @@
           "size": 255,
           "default": null,
           "encrypt": false
+        },
+        {
+          "key": "packageNameSnapshot",
+          "type": "string",
+          "required": false,
+          "array": false,
+          "size": 100,
+          "default": null,
+          "encrypt": false
+        },
+        {
+          "key": "packagePriceSnapshot",
+          "type": "integer",
+          "required": false,
+          "array": false,
+          "default": null,
+          "min": 0,
+          "max": 999999999
         },
         {
           "key": "creatorId",

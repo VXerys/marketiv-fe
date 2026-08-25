@@ -591,6 +591,7 @@ export async function getCreatorRateCardsFromAppwrite(
         price: num(pd.price),
         deliverable: str(pd.output),
         estimatedDays: num(pd.deliveryDays),
+        revisionLimit: num(pd.revisionLimit),
         status: statusByCard.get(rateCardId) ?? "published",
       };
     });
@@ -667,6 +668,7 @@ export async function createOfferInAppwrite(
     const data = await executeFunction<{ offerId?: string }>(FUNCTION_IDS.createOffer, {
       conversationId: offer.conversationId,
       creatorId: offer.creatorId,
+      ...(offer.packageId ? { packageId: offer.packageId } : {}),
       title: offer.title,
       description: offer.description || "",
       price: offer.price,

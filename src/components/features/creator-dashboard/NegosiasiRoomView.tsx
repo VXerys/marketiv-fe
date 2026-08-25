@@ -795,9 +795,17 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
 
                 <div className="space-y-3">
                   <div>
-                    <span className="block text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Nama Paket</span>
+                    <span className="block text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Kesepakatan Final</span>
                     <span className="block font-extrabold text-kreator-ink text-sm leading-tight">{neg.projectTitle}</span>
                   </div>
+
+                  {neg.packageContext && (
+                    <div className="rounded-[12px] border border-violet-100 bg-violet-50/60 p-2.5">
+                      <span className="block text-[8px] font-black text-violet-500 uppercase tracking-widest mb-1">Paket Acuan</span>
+                      <p className="text-xs font-extrabold text-kreator-ink">{neg.packageContext.name}</p>
+                      <p className="text-[10px] font-semibold text-violet-700 mt-0.5">Harga paket {formatCurrency(neg.packageContext.basePrice)}. Harga final tetap dari kesepakatan.</p>
+                    </div>
+                  )}
 
                   <div>
                     <span className="block text-[8px] font-black text-neutral-400 uppercase tracking-widest mb-1">Ruang Lingkup</span>
@@ -829,7 +837,7 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
                   {/* Billing breakdown */}
                   <div className="bg-gradient-to-br from-violet-50/60 to-indigo-50/30 rounded-[14px] p-3 border border-violet-100/60 space-y-2">
                     <div className="flex justify-between text-xs font-semibold text-neutral-500">
-                      <span>Harga Rate Card</span>
+                      <span>Harga Kesepakatan</span>
                       <span>{formatCurrency(neg.finalPrice)}</span>
                     </div>
                     <div className="flex justify-between text-xs font-semibold text-neutral-500">

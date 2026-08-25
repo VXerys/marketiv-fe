@@ -6,6 +6,8 @@ Sumber kebenaran skema koleksi milik modul Offers. Satu fakta = satu lokasi.
 
 ## offers
 
+`packageId`, `packageNameSnapshot`, dan `packagePriceSnapshot` opsional. Dipakai sebagai provenance paket acuan; final contract tetap `title`, `description`, `price`, `deadline`, dan `revisionLimit` pada offer.
+
 Custom offer dalam sebuah percakapan. Relasi: Conversation (1) → Offers (N); merujuk UMKM pembuat offer dan creator penerima offer (FK → users).
 
 | Attribute      | Type    | Required | Catatan                          |

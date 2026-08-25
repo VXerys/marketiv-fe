@@ -46,7 +46,7 @@ export function toRateCardPackageView(pkg: RateCardPackage): RateCardPackageView
     price: formatCurrency(pkg.price),
     description: pkg.description,
     deliveryDays: pkg.estimatedDays,
-    revisionLimit: null,
+    revisionLimit: pkg.revisionLimit ?? null,
     deliverables: pkg.deliverable ? [pkg.deliverable] : [],
   };
 }
