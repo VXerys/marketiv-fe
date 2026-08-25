@@ -1,7 +1,7 @@
 import { Shield, Megaphone, MessageSquare } from "lucide-react";
 import { EscrowOverview } from "@/types/umkm-dashboard.types";
 import { formatCurrency } from "@/lib/formatters";
-import { PLATFORM_FEE_RATE } from "@/types/domain";
+import { formatPlatformFeePercent } from "@/types/domain";
 
 interface EscrowOverviewCardProps {
   overview: EscrowOverview;
@@ -15,7 +15,8 @@ const ESCROW_FLOW_STEPS = [
 ];
 
 export function EscrowOverviewCard({ overview }: EscrowOverviewCardProps) {
-  const feeLabel = `Biaya ${Math.round(PLATFORM_FEE_RATE * 100)}%`;
+  const feeLabel = `Biaya ${formatPlatformFeePercent()}`;
+  const feeDisclosure = `biaya layanan platform ${formatPlatformFeePercent()}`;
 
   return (
     <div className="border border-neutral-200/80 rounded-2xl sm:rounded-[22px] bg-gradient-to-b from-white to-neutral-50/30 shadow-3xs p-5 sm:p-6 space-y-6">
@@ -93,7 +94,7 @@ export function EscrowOverviewCard({ overview }: EscrowOverviewCardProps) {
               <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-orange-50 border border-orange-200/60 text-[10px] font-extrabold text-orange-700">{feeLabel}</span>
             </div>
             <p className="text-[.74rem] text-ink-400 leading-relaxed font-medium">
-              Bayar per tayangan. Anggaran kampanye disimpan di awal dan dikenakan biaya layanan platform 2% (buyer-side). Dana reward dirilis ke kreator sebanding dengan tayangan postingan yang valid.
+              Bayar per tayangan. Anggaran kampanye disimpan di awal dan dikenakan {feeDisclosure} (buyer-side). Dana reward dirilis ke kreator sebanding dengan tayangan postingan yang valid.
             </p>
             <div className="flex flex-col gap-1 pt-1 text-xs sm:flex-row sm:items-center sm:justify-between border-t border-dashed border-neutral-200/60 mt-1">
               <span className="text-ink-400 font-semibold">Dana Aman Kampanye</span>
@@ -113,7 +114,7 @@ export function EscrowOverviewCard({ overview }: EscrowOverviewCardProps) {
               <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200/60 text-[10px] font-extrabold text-blue-700">{feeLabel}</span>
             </div>
             <p className="text-[.74rem] text-ink-400 leading-relaxed font-medium">
-              Harga tetap dan negosiasi langsung. Dana pesanan disimpan 100% di Escrow (biaya platform 2% ditanggung kreator). Dana dicairkan setelah tautan Postingan Bersama (Collab Post) terverifikasi.
+              Harga tetap dan negosiasi langsung. Dana pesanan disimpan 100% di Escrow ({feeLabel.toLowerCase()} ditanggung kreator). Dana dicairkan setelah tautan Postingan Bersama (Collab Post) terverifikasi.
             </p>
             <div className="flex flex-col gap-1 pt-1 text-xs sm:flex-row sm:items-center sm:justify-between border-t border-dashed border-neutral-200/60 mt-1">
               <span className="text-ink-400 font-semibold">Dana Aman Paket Harga</span>

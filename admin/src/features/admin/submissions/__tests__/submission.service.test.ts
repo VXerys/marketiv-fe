@@ -38,6 +38,11 @@ describe("P4 authoritative Admin submission review", () => {
     expect(createExecution).not.toHaveBeenCalled();
   });
 
+  it("rejects unsafe views without Function call", async () => {
+    await expect(approveCampaignSubmission({ submissionId: "submission-1", verifiedViews: Number.MAX_SAFE_INTEGER + 1 })).rejects.toThrow("bilangan bulat");
+    expect(createExecution).not.toHaveBeenCalled();
+  });
+
   it("rejects empty rejection reason without Function call", async () => {
     await expect(rejectCampaignSubmission({ submissionId: "submission-1", rejectionReason: "  " })).rejects.toThrow("wajib");
     expect(createExecution).not.toHaveBeenCalled();

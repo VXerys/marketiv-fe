@@ -46,7 +46,7 @@ export async function getCampaignSubmissionById(id: string): Promise<CampaignSub
 }
 
 export async function approveCampaignSubmission(payload: ReviewApprovePayload): Promise<ReviewMutationResult> {
-  if (!Number.isInteger(payload.verifiedViews) || payload.verifiedViews < 0) {
+  if (!Number.isSafeInteger(payload.verifiedViews) || payload.verifiedViews < 0) {
     throw new Error("Jumlah views terverifikasi harus bilangan bulat nol atau lebih.");
   }
   return reviewAndRefresh({ submissionId: payload.submissionId, status: "approved", views: payload.verifiedViews });

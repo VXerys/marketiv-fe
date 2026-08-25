@@ -141,6 +141,8 @@ export interface ServiceResult<T> {
 // Mirror 00_BACKEND/src/services/wallet.service.ts — jangan hardcode ulang.
 // ---------------------------------------------------------------------------
 export const PLATFORM_FEE_RATE = 0.02;
+export const formatPlatformFeePercent = (rate: number = PLATFORM_FEE_RATE): string =>
+  new Intl.NumberFormat("id-ID", { style: "percent", maximumFractionDigits: 2 }).format(rate);
 export const MINIMUM_WITHDRAW = 50_000;
 export const MINIMUM_CAMPAIGN_BUDGET = 50_000;
 

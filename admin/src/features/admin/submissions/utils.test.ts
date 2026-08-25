@@ -15,6 +15,7 @@ async function importUtilsWithDelay(delay: string | undefined) {
 const {
   VIEW_VALIDATION_DELAY_HOURS,
   getViewValidationEligibility,
+  validateViewsInput,
 } = await importUtilsWithDelay(undefined);
 vi.unstubAllEnvs();
 vi.resetModules();
@@ -111,4 +112,18 @@ describe("getViewValidationEligibility", () => {
       expect(configured.VIEW_VALIDATION_DELAY_HOURS).toBe(72);
     }
   );
+});
+
+describe("validateViewsInput", () => {
+  it.each(["1.5", "1e3", " 100", "+100", "100,000", "100.000"])("rejects non-plain-digit input %s", (value) => {
+    expect(validateViewsInput(value)).toMatchObject({ isValid: false });
+  });
+
+  it("rejects unsafe integers without coercion", () => {
+    expect(validateViewsInput("9007199254740992")).toMatchObject({ isValid: false, numericValue: 0 });
+  });
+
+  it("accepts safe plain-digit integers", () => {
+    expect(validateViewsInput("9007199254740991")).toEqual({ isValid: true, numericValue: Number.MAX_SAFE_INTEGER });
+  });
 });

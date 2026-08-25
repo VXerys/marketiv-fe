@@ -115,13 +115,11 @@ export function validateViewsInput(inputVal: string): {
   numericValue: number;
   errorMessage?: string;
 } {
-  const cleaned = inputVal.replace(/\./g, "").replace(/,/g, "").trim();
-  
-  if (!cleaned) {
+  if (!inputVal) {
     return { isValid: false, numericValue: 0, errorMessage: "Jumlah views wajib diisi." };
   }
 
-  if (!/^\d+$/.test(cleaned)) {
+  if (!/^\d+$/.test(inputVal)) {
     return {
       isValid: false,
       numericValue: 0,
@@ -129,12 +127,12 @@ export function validateViewsInput(inputVal: string): {
     };
   }
 
-  const num = parseInt(cleaned, 10);
-  if (isNaN(num) || num < 0) {
+  const num = Number(inputVal);
+  if (!Number.isSafeInteger(num)) {
     return {
       isValid: false,
       numericValue: 0,
-      errorMessage: "Jumlah views tidak boleh bernilai negatif.",
+      errorMessage: "Jumlah views melebihi batas angka aman.",
     };
   }
 

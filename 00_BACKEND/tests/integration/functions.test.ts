@@ -1276,6 +1276,18 @@ describe('get-umkm-finance-summary function', () => {
 });
 
 describe('review-submission function', () => {
+  it('rejects unsafe verified views before mutating a pending submission', async () => {
+    process.env.APPWRITE_DATABASE_ID = 'db';
+    process.env.USERS_COLLECTION_ID = 'users';
+    process.env.CAMPAIGN_SUBMISSIONS_COLLECTION_ID = 'campaign_submissions';
+    seed('campaign_submissions', [{ $id: 'unsafe-views', status: 'pending' }]);
+    const main = (await import('../../functions/review-submission/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ bodyJson: { submissionId: 'unsafe-views', status: 'approved', views: Number.MAX_SAFE_INTEGER + 1 } }), res, log: () => {}, error: () => {} });
+    expect(res.calls[0]).toMatchObject({ status: 400, body: { error: 'Jumlah views tidak valid.' } });
+    expect(store['campaign_submissions'][0].status).toBe('pending');
+  });
+
   it('writes locked views data on approve and keeps it false on reject', async () => {
     process.env.APPWRITE_DATABASE_ID = 'db';
     process.env.USERS_COLLECTION_ID = 'users';

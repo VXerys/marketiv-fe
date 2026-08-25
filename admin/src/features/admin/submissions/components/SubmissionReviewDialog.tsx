@@ -69,7 +69,7 @@ export function SubmissionReviewDialog({
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reset local review form for selected submission.
       setViewsInputText(
         submission.verifiedViews !== undefined && submission.verifiedViews > 0
-          ? formatViews(submission.verifiedViews)
+          ? String(submission.verifiedViews)
           : ""
       );
       setInputErrorMsg(null);

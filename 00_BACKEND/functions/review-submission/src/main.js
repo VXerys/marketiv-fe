@@ -30,7 +30,7 @@ export default async ({ req, res, log, error }) => {
 
     if (!submissionId) return json(res, { error: "Submission tidak valid." }, 400);
     if (!VALID_STATUS.has(status)) return json(res, { error: "Status review tidak valid." }, 400);
-    if (status === "approved" && (!Number.isInteger(views) || views < 0)) {
+    if (status === "approved" && (!Number.isSafeInteger(views) || views < 0)) {
       return json(res, { error: "Jumlah views tidak valid." }, 400);
     }
 
