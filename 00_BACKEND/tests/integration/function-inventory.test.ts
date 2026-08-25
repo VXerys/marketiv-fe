@@ -35,4 +35,29 @@ describe("function inventory audit", () => {
     expect(functionScopes["reset-password-with-otp"]).toEqual(expectedScopes);
     expect(configFunction?.scopes).toEqual(expectedScopes);
   });
+
+  it("keeps retired legacy money functions disabled while Midtrans payments stay active", () => {
+    const appwriteConfig = JSON.parse(
+      fs.readFileSync(path.join(backendDir, "appwrite.config.json"), "utf8"),
+    );
+    const functionById = new Map(
+      appwriteConfig.functions.map((fn: { $id: string }) => [fn.$id, fn]),
+    );
+
+    expect(functionById.get("mature-pending-balance")).toMatchObject({
+      enabled: false,
+      schedule: "",
+      execute: [],
+    });
+    expect(functionById.get("withdrawal-callback")).toMatchObject({
+      enabled: false,
+      schedule: "",
+      execute: [],
+    });
+    expect(functionById.get("midtrans-webhook")).toMatchObject({
+      enabled: true,
+      schedule: "",
+      execute: ["any"],
+    });
+  });
 });

@@ -41,7 +41,7 @@
 - `getWallet()` → return `Wallet` (balance, pendingBalance); tidak ada → throw `not_found`.
 - `getTransactions()` → list `transactions` urut terbaru, filter `type` opsional.
 - `getWithdrawals()` → list `withdrawals` urut terbaru, filter `status` opsional.
-- `requestWithdraw()` valid (amount ≥ 50000, balance cukup, payout lengkap) → dokumen `withdrawals` status `processed`, balance berkurang, transaksi tercatat.
+- `requestWithdraw()` valid (amount ≥ 50000, balance cukup, payout lengkap) → withdrawal `requested`, balance berkurang sekali, transaction `pending`, receipt memuat authoritative `balanceAfter`.
 - `requestWithdraw()` amount <50000 → throw `WalletServiceError('validation', 'Minimum penarikan Rp50.000')`.
 - `requestWithdraw()` balance < amount → throw `WalletServiceError('validation', 'Saldo tidak mencukupi')`.
 - `requestWithdraw()` payout method invalid → throw `WalletServiceError('validation', 'Metode penarikan tidak valid')`.
@@ -75,10 +75,13 @@
 - Refund escrow → balance UMKM kembali.
 - Escrow tidak bisa diubah oleh user (admin/system only).
 
-## Withdrawal (`requestWithdraw`)
+## Withdrawal (`requestWithdraw`, `get-admin-withdrawal-queue`, `review-withdrawal`)
 
-- Withdrawal valid (balance cukup, min amount terpenuhi) → balance langsung berkurang, status `processed`, transaksi tercatat.
+- Withdrawal valid (balance cukup, min amount terpenuhi) → balance langsung di-reserve, status `requested`, transaction `pending`.
 - Withdrawal invalid (balance kurang) → error.
 - Withdrawal invalid (payout method tidak valid atau data tujuan pencairan tidak lengkap) → error.
 - Withdrawal bank dan e-wallet menyimpan `payoutMethod`, `providerName`, `accountNumber`, dan `accountName`.
-- Withdrawal langsung diproses tanpa review admin.
+- Request path tidak memanggil Iris/payout provider.
+- Active Admin saja dapat membaca queue atau menjalankan mutation.
+- `requested → processing → succeeded` wajib urut dan success wajib transfer reference.
+- `fail` dari requested/processing mengembalikan balance tepat sekali, membuat reversal ledger, dan aman di-retry.

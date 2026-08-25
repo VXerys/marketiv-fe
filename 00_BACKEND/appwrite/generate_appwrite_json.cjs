@@ -1321,9 +1321,11 @@ const functions = [
     runtime: "node-22",
     execute: [],
     events: [],
-    schedule: "0 2 * * *",
+    // Retired 2026-08-25 after staging inventory confirmed zero pending wallet
+    // balance and zero unmatured campaign reward ledger. Keep source for audit.
+    schedule: "",
     timeout: 60,
-    enabled: true,
+    enabled: false,
     logging: true,
     entrypoint: "src/main.js",
     commands: "npm install",
@@ -1375,11 +1377,13 @@ const functions = [
     $id: "withdrawal-callback",
     name: "Withdrawal Callback",
     runtime: "node-22",
-    execute: ["any"],
+    // Retired 2026-08-25 after staging inventory confirmed zero processing
+    // Iris withdrawals and zero rows with iris_reference. Keep historical code.
+    execute: [],
     events: [],
     schedule: "",
     timeout: 30,
-    enabled: true,
+    enabled: false,
     logging: true,
     entrypoint: "src/main.js",
     commands: "npm install",

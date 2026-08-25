@@ -29,10 +29,12 @@ Pilih metode: bank atau e-wallet
 ↓
 Input: amount, provider name, account number/phone, account name
 ↓
-Submit → status pending (tunggu admin review)
+Submit → balance reserved + status requested
 ↓
-Admin approve → dana ditransfer manual → status processed
-   atau Admin reject → status rejected
+Admin mulai proses → status processing
+↓
+Admin transfer manual → isi transfer reference → status succeeded
+   atau Admin fail/reject → reversal balance tepat sekali → status reversed
 ```
 
 ## Alur Top Up (UMKM)

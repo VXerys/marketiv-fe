@@ -29,7 +29,7 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 
 - **Trigger**: `campaign_submissions.status` `pending → approved`.
 - **Aksi**: hitung reward, tambah `wallet.balance`, buat transaksi Campaign `release`, lalu update `spentAmount` & `remainingBudget`.
-- **Legacy**: `pendingBalance` tidak ditambah untuk reward baru. Ledger baru ditandai `matured` agar cron `mature-pending-balance` hanya memproses reward legacy.
+- **Legacy**: `pendingBalance` tidak ditambah untuk reward baru. Ledger baru ditandai `matured`. Setelah audit staging 2026-08-25 membuktikan zero pending dependency, `mature-pending-balance` dinonaktifkan dan source dipertahankan untuk audit.
 - **Catatan**: Fee platform sudah dipotong di awal saat top-up — tidak ada potongan lagi di sini. Creator menerima full reward sesuai rumus.
 
 ### expire-stale-claims

@@ -291,22 +291,25 @@ Menyimpan permintaan penarikan saldo kreator.
 ### Attributes
 | Attribute | Type | Required | Default | Description |
 |---|---:|:---:|---|---|
-| `kreator_user_id` | string | Yes | - | Kreator pemilik saldo |
-| `nominal` | integer | Yes | - | Nominal tarik dana |
-| `bank_name` | string | Yes | - | Nama bank/e-wallet |
-| `bank_account_number` | string | Yes | - | Nomor rekening |
-| `bank_account_holder` | string | Yes | - | Nama pemilik rekening |
-| `status` | enum | Yes | `Pending` | Status withdrawal |
-| `provider` | enum | No | null | Provider disbursement |
-| `provider_disbursement_id` | string | No | null | ID provider |
-| `requested_at` | datetime | Yes | now | Waktu request |
-| `processed_at` | datetime | No | null | Waktu proses |
-| `completed_at` | datetime | No | null | Waktu selesai |
-| `rejection_reason` | string | No | null | Alasan reject |
+| `userId` | string | Yes | - | User pemilik saldo |
+| `amount` | integer | Yes | - | Nominal tarik dana |
+| `payoutMethod` | enum | Yes | - | `bank` atau `ewallet` |
+| `providerName` | string | Yes | - | Nama bank/e-wallet |
+| `accountNumber` | string | Yes | - | Nomor rekening/akun |
+| `accountName` | string | Yes | - | Nama pemilik rekening/akun |
+| `status` | enum | Yes | `requested` | Status withdrawal |
+| `processing_at` | datetime | No | null | Waktu Admin mulai proses |
+| `processedAt` | datetime | No | null | Waktu success |
+| `processed_by` | string | No | null | Active Admin pemroses |
+| `transfer_reference` | string | No | null | Referensi transfer manual |
+| `admin_note` | string | No | null | Catatan Admin optional |
+| `failure_reason` | string | No | null | Alasan gagal/tolak |
+| `reversed_at` | datetime | No | null | Waktu saldo dikembalikan |
+| `iris_reference` | string | No | null | Legacy historical only |
 ### Enums
 ```txt
-status = Pending | Processing | Success | Failed | Rejected | Cancelled
-provider = Manual | Xendit | MidtransIris | Internal
+status = requested | processing | succeeded | failed | reversed
+payoutMethod = bank | ewallet
 ```
 ---
 ## 12. `disputes`

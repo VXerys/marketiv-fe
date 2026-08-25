@@ -15,7 +15,7 @@ Folder ini mendokumentasikan **kolaborasi lintas-modul** (end-to-end). Aturan in
 | 20 | [Campaign PPV](20_Campaign_PPV.md) | Siklus campaign Pay-Per-View dari pembuatan, publish, claim, submission, fraud check, hingga reward. | Campaigns, AI, Users, Payments, Notifications |
 | 30 | [RateCard Order](30_RateCard_Order.md) | Pesanan rate card dengan escrow: Direct Order (paket) dan Custom Offer (negosiasi) dari discovery sampai release escrow. | RateCards, Chat, Offers, Orders, Users, Payments, Notifications |
 | 40 | [Submission Fraud](40_Submission_Fraud.md) | Pemeriksaan fraud submission campaign via AI & routing berdasarkan risk score: auto-approve, manual review admin, auto-reject. | Campaigns, AI, Notifications, Admin |
-| 50 | [Withdrawal](50_Withdrawal.md) | Penarikan saldo creator dari wallet ke bank/e-wallet — langsung cair tanpa review admin. | Payments, Notifications |
+| 50 | [Withdrawal](50_Withdrawal.md) | Reserve saldo saat request, lalu transfer manual dan finalisasi oleh Admin. | Payments, Notifications |
 | 60 | [Dispute](60_Dispute.md) | Sengketa/aju banding — hubungi admin via WhatsApp. Tidak ada sistem review di platform. | Orders, Users |
 
 ## Relasi Antar Workflow

@@ -26,9 +26,9 @@ Mendefinisikan deposit, escrow ledger, fee platform, payout, wallet kreator, wit
 4. Backend validasi signature/status.
 5. Transaction berubah Success/Escrow.
 6. Campaign/order aktif.
-7. Setelah pekerjaan valid, payout dibuat.
-8. Kreator meminta withdrawal.
-9. Admin/backend memproses withdrawal.
+7. Setelah pekerjaan Campaign valid, reward langsung masuk available balance; Rate Card release tetap mengikuti escrow.
+8. Kreator meminta withdrawal; backend langsung me-reserve balance dan membuat status `requested`.
+9. Admin memulai proses, melakukan transfer manual di luar Marketiv, lalu mencatat `succeeded` atau menjalankan reversal.
 
 ## 6. Permission Rules
 - Gunakan Bahasa Indonesia yang sederhana, tegas, dan mudah dipahami oleh UMKM.
@@ -58,8 +58,8 @@ Mendefinisikan deposit, escrow ledger, fee platform, payout, wallet kreator, wit
 - Withdrawal tidak boleh melebihi saldo tersedia.
 - Semua refund/payout wajib punya transaction record.
 - Semua nominal pakai integer minor unit atau decimal konsisten.
-- Withdrawal: kreator wajib setujui T&C terbaru (`tos_version` = "v3.1" & `tos_accepted_at` terisi) → 403 "Setujui T&C terbaru terlebih dahulu." (T-14).
-- Withdrawal pertama: email wajib diverifikasi (`email_verified_at` terisi) → 403 "Verifikasi email sebelum penarikan pertama." (T-15). Penarikan berikutnya tidak dicek ulang.
+- Withdrawal wajib melalui auth, eligible role/provenance, active account, T&C terbaru, minimum amount, payout destination valid, sufficient balance, deterministic idempotency, atomic reserve, recent duplicate protection, dan no-negative-balance.
+- First-withdraw email verification, KYC threshold, daily limit, dan changed-account cooling hanya hard-block jika `WITHDRAWAL_ADVANCED_GUARDS_ENABLED=true`; default manual-admin MVP menonaktifkannya.
 - Order/claim: kreator wajib setujui T&C terbaru → diblokir jika belum (T-14).
 
 ## 9. Backend Responsibilities
@@ -68,8 +68,10 @@ Mendefinisikan deposit, escrow ledger, fee platform, payout, wallet kreator, wit
 - Update transaction ledger.
 - Update escrow status.
 - Update wallet balance secara trusted.
-- Membuat withdrawal request dan audit log.
-- Fungsi `request-withdrawal` mengecek TOS (`tos_version`/`tos_accepted_at`) + email verification (`email_verified_at` untuk penarikan pertama) sebelum debit saldo.
+- `request-withdrawal` membuat row `requested`, reserve balance atomik, dan transaction `pending`; tidak memanggil payout provider.
+- `get-admin-withdrawal-queue` dan `review-withdrawal` memverifikasi active Admin server-side.
+- `review-withdrawal` menegakkan urutan `requested → processing → succeeded` atau reversal idempoten ke `reversed`.
+- Success wajib `transfer_reference`; failure wajib `failure_reason`.
 - Fungsi `create-order` mengecek TOS kreator sebelum membuat order.
 
 ## 10. Frontend Responsibilities
@@ -90,11 +92,12 @@ Mendefinisikan deposit, escrow ledger, fee platform, payout, wallet kreator, wit
 ## 12. Edge Cases
 - Webhook double delivery.
 - Payment expired.
-- Withdrawal ditolak bank.
+- Transfer manual gagal atau ditolak.
 - Refund partial.
 - Admin override saldo tanpa audit tidak boleh terjadi.
-- Kreator belum setujui T&C v3.1 mencoba withdrawal/order/claim → diblokir 403.
-- Penarikan pertama kreator: email belum diverifikasi → diblokir 403.
+- Kreator belum setujui T&C terbaru mencoba withdrawal/order/claim → diblokir 403.
+- Repeated failure/retry tidak boleh double-credit balance.
+- Browser tidak boleh menandai withdrawal sukses atau menulis wallet.
 
 ## 13. Error Handling
 - 401: arahkan user ke login dan hapus session lokal jika token tidak valid.
@@ -116,6 +119,9 @@ Mendefinisikan deposit, escrow ledger, fee platform, payout, wallet kreator, wit
 - [ ] Frontend tidak bisa update saldo/payment status.
 - [ ] Withdrawal mengikuti saldo tersedia.
 - [ ] Refund/payout tercatat dan bisa diaudit.
+- [ ] Creator copy membedakan request diterima dari uang berhasil ditransfer.
+- [ ] Manual transfer sukses mencatat processor, timestamps, dan transfer reference.
+- [ ] Failure menghasilkan reversal ledger tepat sekali.
 
 ## 16. Out of Scope
 - Tidak membuat fitur di luar MVP tanpa feature flag.

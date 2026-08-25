@@ -19,7 +19,7 @@
 
 ## Status Withdrawal
 
-`pending → processed | rejected`
+`requested → processing → succeeded` atau `requested|processing → reversed`
 
 ## Konsep
 
@@ -29,4 +29,5 @@
 - Payment dianggap sukses hanya setelah webhook Midtrans tervalidasi dan status internal berubah menjadi `paid`.
 - Escrow & transactions dipisah secara skema (domain sensitif vs ledger).
 - User tidak bisa mengubah saldo sendiri; mutasi hanya oleh sistem/admin.
-- Withdrawal perlu persetujuan admin (admin gate).
+- Withdrawal reserve balance saat request. Admin menjalankan transfer manual dan mencatat final state melalui trusted Function.
+- Midtrans tetap payment gateway UMKM; withdrawal tidak memakai Iris/automated payout.

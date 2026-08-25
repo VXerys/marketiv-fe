@@ -82,7 +82,12 @@ export type OrderStatus =
 export type PaymentStatus = "pending" | "paid" | "failed" | "expired" | "cancelled";
 export type PaymentPurpose = "order" | "topup" | "campaign";
 export type EscrowStatus = "held" | "released" | "refunded";
-export type WithdrawalStatus = "processed";
+export type WithdrawalStatus =
+  | "requested"
+  | "processing"
+  | "succeeded"
+  | "failed"
+  | "reversed";
 export type TransactionType =
   | "deposit"
   | "withdrawal"
@@ -527,21 +532,43 @@ export interface EscrowOverview {
 ## 21. Withdrawal DTO
 
 Collection: `withdrawals`  
-**Mutation:** Langsung via service layer (ADR-008: tanpa review admin).
+**Mutation:** Appwrite Functions only. Browser mengirim intent; backend dan Admin Function menentukan financial state.
 
 ```ts
 export interface WithdrawalDTO {
   $id: string;
   userId: string;
   amount: number;
-  payoutMethod: string;    // "bank_transfer"
+  payoutMethod: "bank" | "ewallet";
   providerName: string;
   accountNumber: string;
   accountName: string;
-  status: WithdrawalStatus; // selalu "processed"
-  processedAt: string;
+  status: WithdrawalStatus;
+  requestedAt: string;
+  processingAt?: string;
+  processedAt?: string;
+  processedBy?: string;
+  transferReference?: string;
+  adminNote?: string;
+  failureReason?: string;
+  reversedAt?: string;
 }
 ```
+
+Response `request-withdrawal`:
+
+```ts
+export interface WithdrawalReceipt {
+  success: true;
+  withdrawalId: string;
+  status: "requested";
+  requestedAt: string;
+  balanceAfter: number;
+  transactionId: string;
+}
+```
+
+UI wajib memakai `balanceAfter` authoritative dan menampilkan request sebagai pending, bukan transfer sukses.
 
 Frontend form:
 - `amount` (min Rp 50.000)
@@ -655,7 +682,9 @@ Status badge colors:
 | Send offer | SDK direct create `offers` |
 | Accept offer | SDK direct update `offers` |
 | Create payment | `create-payment` Function |
-| Request withdrawal | SDK direct create `withdrawals` |
+| Request withdrawal | Function `request-withdrawal` |
+| Read admin withdrawal queue | Function `get-admin-withdrawal-queue` |
+| Process/finalize withdrawal | Function `review-withdrawal` |
 
 **Auto-trigger Functions (events):**
 - `create-user-profile` → on `users.*.create`

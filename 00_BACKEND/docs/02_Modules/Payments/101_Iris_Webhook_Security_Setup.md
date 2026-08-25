@@ -1,4 +1,6 @@
-# Pengaturan Keamanan Webhook Iris (withdrawal-callback)
+# Pengaturan Keamanan Webhook Iris (withdrawal-callback) — Superseded
+
+> **Superseded 2026-08-25.** Withdrawal baru memakai transfer manual Admin dan tidak memanggil Iris. Staging inventory menunjukkan zero withdrawal `processing` dan zero `iris_reference`; `withdrawal-callback` kini disabled dengan `execute: []`. Dokumen ini dipertahankan untuk historical audit. Jangan menerapkan langkah berikut untuk flow baru.
 
 **Untuk:** Tim Backend  
 **Konteks:** Fix SEC-H2 (2026-08-08) — Function `withdrawal-callback` sekarang memvalidasi shared secret sebelum memproses payload apapun.

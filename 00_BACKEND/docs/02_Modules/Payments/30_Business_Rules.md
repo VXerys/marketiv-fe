@@ -23,13 +23,13 @@
 - `pendingBalance` — saldo belum cair (mis. reward submission yang menunggu, atau dana dalam proses).
 - Saat escrow dirilis untuk order, saldo masuk ke wallet creator (lihat `90_Events.md`).
 
-### Pematangan pendingBalance
+### Reward Campaign dan legacy pendingBalance
 
-- Reward campaign (`calculate-campaign-reward`) masuk ke `pendingBalance`, **bukan** `balance`.
-- **Masa tunggu 7 hari** sejak baris `transactions` reward dibuat. Jeda ini memberi jendela koreksi kalau fraud baru ketahuan setelah UMKM menyetujui submission.
-- Function terjadwal `mature-pending-balance` (harian, 02:00) memindahkan reward yang sudah lewat masa tunggu: `pendingBalance -= amount`, `balance += amount`.
-- Baris `transactions` sumber ditandai `status: "matured"` agar tidak diproses dua kali; pemindahannya sendiri dicatat sebagai baris ledger baru bertipe `mature`.
-- Rilis escrow order (`release-escrow`) **tidak** lewat jalur ini — dana order langsung masuk `balance`.
+- Reward Campaign baru (`calculate-campaign-reward`) langsung masuk `balance` setelah submission di-approve Admin dan reward event selesai.
+- Ledger reward baru memakai `status: "matured"` agar tidak pernah masuk jalur maturation legacy.
+- `pendingBalance` dipertahankan untuk historical compatibility/reconciliation, bukan untuk reward Campaign baru.
+- Audit staging 2026-08-25 menemukan zero `pendingBalance > 0` dan zero campaign release belum matured. Schedule `mature-pending-balance` dinonaktifkan; source tetap disimpan untuk audit.
+- Rilis escrow order (`release-escrow`) juga langsung masuk `balance`.
 
 ## Tipe Transaksi
 
@@ -119,26 +119,26 @@ Permintaan withdraw valid bila:
 - `providerName`, `accountNumber`, dan `accountName` wajib terisi untuk bank maupun e-wallet.
 - Wajib setuju T&C terbaru (T-14) dan email terverifikasi untuk penarikan pertama (T-15).
 
-### Alur 4-state (Pasal 11 T&C)
+### Alur manual Admin
 
-- `requested` — audit row dibuat, saldo BELUM keluar.
-- `processing` — Midtrans Iris menerima transfer (dana keluar wallet platform).
-- `succeeded` — callback Iris: dana sampai rekening penerima.
-- `failed` — Iris menolak; saldo DIKREDIT BALIK via ledger `withdrawal_reversal`.
-- `reversed` — kredit balik sudah dieksekusi (marker idempoten).
+- `requested` — request diterima, saldo sudah di-reserve atomik, transaction awal `pending`.
+- `processing` — Admin mulai memproses transfer manual.
+- `succeeded` — Admin sudah memastikan transfer berhasil dan mengisi `transfer_reference`; transaction awal `completed`.
+- `reversed` — Admin menolak/transfer gagal, balance dikredit balik tepat sekali, transaction awal `failed`, dan ledger `withdrawal_reversal` dibuat.
+- `requested → succeeded` langsung ditolak. Finalitas transfer hanya boleh ditetapkan trusted Admin Function.
 
-SLA pencairan maksimal **1×24 jam kerja** sejak `requested`. Reversal maksimal **3 hari kerja**.
+Copy user-facing: **“umumnya diproses dalam 1–2 hari kerja”**. Jangan menjanjikan SLA keras.
 
-### KYC (Pasal 11.8)
+### Advanced Guards
 
-- Nominal ≥ `KYC_THRESHOLD` (Rp5.000.000) wajib `users.kyc_status = verified`.
-- Dokumen diverifikasi admin via WhatsApp; sistem hanya mencatat status (`verify-kyc`).
-- Saat ditolak, `kyc_status` di-set `pending_wa` sebagai penanda dokumen menunggu verifikasi.
+- Email verification first-withdraw, KYC threshold, daily limit, dan changed-account cooling hanya hard-block bila `WITHDRAWAL_ADVANCED_GUARDS_ENABLED=true`.
+- Default manual-admin MVP: env absent/bukan `true` berarti advanced guards disabled dan request tidak mengubah `kyc_status` menjadi `pending_wa`.
+- Auth, eligible role/provenance, active account, T&C, minimum amount, payout destination, sufficient balance, idempotency, atomic reserve, recent duplicate protection, dan no-negative-balance tetap wajib.
 
-### Rate Limit & Cooling (Pasal 11, anti-fraud)
+### Rate Limit & Cooling
 
-- Maks **3 withdrawal/hari** per user (status `failed` tidak dihitung).
-- Ganti akun rekening → pending **3 hari** sebelum bisa tarik (anti pola ganti-rekening-lalu-tarik).
+- Recent 60-second duplicate protection selalu aktif.
+- Daily limit dan changed-account cooling mengikuti advanced-guard flag di atas.
 
 ### UMKM (Pasal 15.1.c)
 

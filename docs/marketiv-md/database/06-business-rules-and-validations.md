@@ -300,7 +300,7 @@ Rules:
 
 1. `dompet_saldo` bertambah setelah campaign submission valid.
 2. `dompet_saldo` bertambah setelah Rate Card order selesai.
-3. `dompet_saldo` berkurang saat withdrawal diproses sesuai policy.
+3. `wallet.balance` berkurang atomik saat withdrawal request di-reserve.
 4. Saldo tidak boleh negatif.
 5. Semua perubahan saldo harus punya `transactions`.
 6. Semua perubahan saldo harus punya `audit_logs`.
@@ -310,23 +310,23 @@ Rules:
 
 ## 15. Withdrawal Rules
 
-Withdrawal hanya untuk Kreator.
-Withdrawal membutuhkan saldo cukup.
+Withdrawal untuk eligible Creator atau UMKM dengan ledger provenance refund/budget.
+Withdrawal membutuhkan available balance cukup.
 Withdrawal tidak boleh diproses jika ada dispute finansial kritis.
 
 Validation:
 
-1. User role harus `KREATOR`.
-2. Nominal minimal Rp 10.000.
+1. User harus authenticated, active, dan role/source provenance eligible.
+2. Nominal minimal Rp50.000.
 3. Nominal tidak boleh melebihi saldo tersedia.
 4. Nama bank wajib.
 5. Nomor rekening wajib.
 6. Nama pemilik rekening wajib.
-7. Create withdrawal status `Pending`.
-8. Create transaction status `Pending`.
+7. Create withdrawal status `requested`.
+8. Reserve/debit balance atomik dan create transaction status `pending`.
 9. Admin finance memproses.
-10. Success mengurangi saldo jika belum dikurangi saat request.
-11. Failed/rejected harus rollback/restore sesuai model saldo.
+10. `processing → succeeded` wajib transfer reference setelah transfer manual selesai; tidak ada debit kedua.
+11. Failed/rejected harus restore saldo tepat sekali dan membuat append-only reversal ledger.
 12. Semua action masuk audit log.
 
 ---

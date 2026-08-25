@@ -231,14 +231,14 @@ Flow:
 
 1. Kreator request withdrawal via Function.
 2. Function cek saldo.
-3. Function create withdrawal `Pending`.
-4. Function create transaction `Pending`.
+3. Function reserve balance atomik dan create withdrawal `requested`.
+4. Function create transaction `pending`.
 5. Admin finance melihat queue.
 6. Admin finance process withdrawal.
 7. Backend update status `Processing`.
-8. Provider/manual transfer selesai.
-9. Backend update status `Success` atau `Failed`.
-10. Backend update saldo sesuai model.
+8. Admin melakukan transfer manual di luar Marketiv.
+9. Backend update status `succeeded` dengan transfer reference atau `reversed` dengan failure reason.
+10. Failure mengembalikan saldo tepat sekali dan membuat `withdrawal_reversal` ledger.
 11. Backend create notification.
 12. Backend create audit log.
 13. Realtime update UI kreator.
@@ -423,7 +423,7 @@ Audit required:
 2. Payment status changed.
 3. Submission validated.
 4. Balance changed.
-5. Withdrawal processed.
+5. Withdrawal state changed by trusted Admin Function.
 6. Dispute resolved.
 7. Admin override.
 8. Role changed.

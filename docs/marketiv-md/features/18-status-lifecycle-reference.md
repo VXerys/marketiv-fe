@@ -209,29 +209,44 @@ Jangan membuat status baru tanpa update dokumen ini, database schema, backend va
 
 ### Allowed Values
 
-- `Pending`
-- `Processing`
-- `Success`
-- `Failed`
-- `Rejected`
-- `Cancelled`
+- `requested`
+- `processing`
+- `succeeded`
+- `failed` (legacy state atau internal/recovery marker; bukan current admin rejection state)
+- `reversed`
 
 ### Transition Rules
 
-- `Pending` may transition to `Processing` only through documented flow or backend/admin operation.
-- `Processing` may transition to `Success` only through documented flow or backend/admin operation.
-- `Success` may transition to `Failed` only through documented flow or backend/admin operation.
-- `Failed` may transition to `Rejected` only through documented flow or backend/admin operation.
-- `Rejected` may transition to `Cancelled` only through documented flow or backend/admin operation.
+- `requested → processing` hanya melalui active Admin Function.
+- `processing → succeeded` wajib transfer reference setelah transfer manual berhasil.
+- `requested → succeeded` langsung dilarang.
+- Action fail/reject melakukan `requested | processing → reversed` langsung dan mengembalikan saldo tepat sekali.
+- `succeeded` dan `reversed` terminal; repeated action tidak boleh memutasi saldo lagi.
+
+### State Effects
+
+Success path:
+
+- withdrawal: `processing → succeeded`.
+- primary withdrawal transaction: `pending → completed`.
+- wallet: tidak berubah lagi saat `succeeded`.
+
+Failure/reversal path:
+
+- withdrawal: `requested | processing → reversed` langsung.
+- primary withdrawal transaction: `pending → failed`.
+- deterministic `withdrawal_reversal` transaction: `completed`.
+- wallet: dikredit kembali tepat satu kali.
+
+`failed` tetap bagian schema/status vocabulary untuk legacy state atau internal/recovery marker, serta tetap valid sebagai transaction status. Current manual-admin rejection tidak menulis `withdrawal.status = failed` sebelum `reversed`; action fail/reject langsung menghasilkan `withdrawal.status = reversed`.
 
 ### UI Badge Rules
 
-- `Pending`: render with consistent badge label, color, and helper text in all screens.
-- `Processing`: render with consistent badge label, color, and helper text in all screens.
-- `Success`: render with consistent badge label, color, and helper text in all screens.
-- `Failed`: render with consistent badge label, color, and helper text in all screens.
-- `Rejected`: render with consistent badge label, color, and helper text in all screens.
-- `Cancelled`: render with consistent badge label, color, and helper text in all screens.
+- `requested`: “Diajukan”; uang belum dinyatakan terkirim.
+- `processing`: “Diproses”.
+- `succeeded`: “Berhasil”; transfer manual sudah dikonfirmasi Admin.
+- `failed`: legacy/internal/recovery only; bukan intermediate current admin rejection path.
+- `reversed`: “Dikembalikan”; saldo sudah kembali.
 
 ### Backend Rules
 

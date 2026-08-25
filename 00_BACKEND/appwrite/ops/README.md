@@ -10,6 +10,7 @@ Kredensial diambil dari env (`APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`,
 | Script | Tulis? | Perintah |
 | --- | --- | --- |
 | `audit-live.mjs` | tidak | `node appwrite/ops/audit-live.mjs` |
+| `audit-legacy-money-state.mjs` | tidak | `node appwrite/ops/audit-legacy-money-state.mjs` |
 | `drift.mjs` | tidak | `npm run fn:drift` |
 | `check-deployments.mjs` | tidak | `node appwrite/ops/check-deployments.mjs` |
 | `audit-google-oauth.mjs` | tidak | `node appwrite/ops/audit-google-oauth.mjs` |

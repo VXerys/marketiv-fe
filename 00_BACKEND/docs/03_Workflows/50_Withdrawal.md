@@ -2,90 +2,105 @@
 
 ## Purpose
 
-Creator menarik saldo available dari wallet ke bank/e-wallet. Proses langsung cair tanpa review admin.
+Creator atau UMKM yang memiliki saldo eligible mengajukan withdrawal. Saldo langsung di-reserve, lalu Admin Marketiv mencatat hasil transfer manual.
 
-## Modules Involved
-
-- [Payments](../02_Modules/Payments/00_Index.md) — wallet, withdrawal, transaksi.
-- [Notifications](../02_Modules/Notifications/00_Index.md) — notifikasi status penarikan.
-
-## Trigger
-
-Creator submit form `Tarik Dana` dari halaman Wallet (input: payoutMethod, providerName, accountNumber, accountName, amount).
-
-## Data Model — Collection yang Terlibat
-
-| Collection | Modul | Aksi |
-|---|---|---|
-| `wallets` | Payments | kurangi balance |
-| `withdrawals` | Payments | insert record |
-| `transactions` | Payments | insert transaksi |
-| `notifications` | Notifications | insert notifikasi |
-
-## Step-by-step Flow
-
-### Tahap 1: Request & Process Withdrawal
-
-1. **Payments** — Creator buka halaman Wallet → klik "Tarik Dana".
-2. **Payments** — Tampilkan saldo available (`wallet.balance`), minimum withdraw amount (**Rp50.000**, konstanta sistem — lihat [ADR-007](../04_Decisions/ADR-007.md)).
-3. **Payments** — Creator isi form: `{ payoutMethod, providerName, accountNumber, accountName, amount }`.
-4. **Payments** — `requestWithdraw()` menjalankan validasi:
-   - `wallet.balance >= amount`
-   - `amount >= MINIMUM_WITHDRAW` (konstanta sistem = `Rp50.000` / `50.000`, lihat [ADR-007](../04_Decisions/ADR-007.md))
-   - `amount > 0`
-   - `payoutMethod` adalah `bank` atau `ewallet`
-   - `providerName`, `accountNumber`, dan `accountName` terisi
-5. **Jika validasi gagal** — tampilkan error: "Saldo tidak mencukupi" / "Minimum penarikan Rp50.000".
-6. **Jika validasi lolos** — Proses langsung:
-   - Kurangi `wallet.balance -= amount`.
-   - Buat `withdrawals`: `{ userId, amount, payoutMethod, providerName, accountNumber, accountName, status: 'processed', processedAt: now }`.
-   - Buat `transactions`: `{ userId, amount: -amount, type: 'withdrawal', referenceType: 'withdrawal', referenceId: withdrawalId, status: 'completed' }`.
-7. **Notifications** — Notifikasi ke creator: "Penarikan Rp{amount} berhasil — cek rekeningmu".
-
-## State Transitions
+## Current Flow
 
 ```text
-WITHDRAWAL:  (langsung processed)
-WALLET:      balance -= amount
+Campaign submission approved
+→ reward langsung masuk wallet.balance
+→ user membuat withdrawal request
+→ request-withdrawal melakukan reserve/debit atomik
+→ withdrawal requested + transaction pending
+→ Admin mulai proses
+→ withdrawal processing
+→ Admin transfer manual di luar Marketiv
+→ succeeded + transaction completed
 ```
 
-## Events / Functions
+Jika request ditolak atau transfer gagal:
 
-| Trigger | Function | Aksi |
+```text
+requested|processing
+→ Admin memilih fail
+→ balance dikredit balik tepat sekali
+→ withdrawal reversed
+→ withdrawal_reversal ledger dibuat
+→ transaction withdrawal awal menjadi failed
+```
+
+## Functions
+
+| Caller | Function | Responsibility |
 |---|---|---|
-| Dipanggil frontend (`executeFunction`) | `request-withdrawal` | Validasi peran & saldo, buat `withdrawals`, debit `wallets.balance`, catat `transactions` |
-| Scheduled (harian, 02:00) | `mature-pending-balance` | Memindahkan reward campaign ≥ 7 hari dari `pendingBalance` ke `balance` sehingga bisa ditarik |
+| Creator/UMKM | `request-withdrawal` | Validasi policy/provenance, buat row `requested`, reserve balance atomik, buat ledger `pending` |
+| Admin | `get-admin-withdrawal-queue` | List queue operasional dengan active-admin authorization |
+| Admin | `review-withdrawal` | `start_processing`, `mark_succeeded`, atau `fail`; reversal idempoten |
 
-`wallets` dan `transactions` punya `$permissions: []` + rowSecurity, jadi browser tidak bisa mendebit saldo — debit wajib lewat Function.
+Browser tidak boleh mengubah `wallets`, `withdrawals.status`, atau final transaction state secara langsung.
 
-## Validation Rules per Langkah
+## State Machine
 
-| Langkah | Validasi | Gagal → |
-|---|---|---|
-| Request withdrawal | `users.role === "creator"` | `403` "Hanya kreator yang dapat menarik saldo." |
-| Request withdrawal | `wallet.balance >= amount` | Error "Saldo tidak mencukupi" |
-| Request withdrawal | `amount >= MINIMUM_WITHDRAW` | Error "Minimum withdraw Rp50.000" |
-| Request withdrawal | `amount > 0` | Error "Jumlah tidak valid" |
-| Request withdrawal | `payoutMethod` valid (`bank` atau `ewallet`) | Error "Metode penarikan tidak valid" |
-| Request withdrawal | Data tujuan pencairan lengkap | Error "Lengkapi data penarikan" |
+```text
+requested
+   ├── start_processing → processing
+   │                       ├── mark_succeeded → succeeded
+   │                       └── fail/reject → reversed
+   │
+   └── fail/reject → reversed
+```
 
-## Notifikasi
+Terminal state: `succeeded`, `reversed`.
 
-| Titik | Notifikasi | Penerima |
-|---|---|---|
-| Withdrawal processed | "Penarikan Rp{amount} berhasil — cek rekeningmu" | Creator |
+- `requested`: saldo sudah di-reserve; transfer belum dilakukan.
+- `processing`: Admin sedang menjalankan transfer manual.
+- `succeeded`: Admin telah memastikan transfer berhasil dan mengisi `transfer_reference`.
+- `reversed`: withdrawal gagal/ditolak dan balance sudah dikembalikan tepat sekali.
+- `requested → succeeded` langsung tidak diizinkan.
 
-## Edge Cases
+Success path:
 
-- **Saldo kurang dari amount** — ditolak saat validasi awal.
-- **Amount di bawah minimum withdraw** — ditolak.
-- **Hanya saldo available yang bisa ditarik** — `pendingBalance` dan `escrowBalance` tidak bisa ditarik. Reward campaign masuk ke `pendingBalance` lebih dulu dan baru bisa ditarik setelah dimatangkan `mature-pending-balance` (H+7).
-- **UMKM mengajukan withdrawal** — ditolak `403`. Saldo UMKM diisi untuk membayar campaign/order, bukan untuk dicairkan.
-- **Withdrawal diakses saat wallet dibekukan** — jika user `status: suspended`, withdrawal tidak bisa diajukan.
-- **Transfer gagal di sisi bank/e-wallet** — di luar tanggung jawab platform. Dana sudah keluar dari wallet sistem.
+- withdrawal: `processing → succeeded`.
+- primary withdrawal transaction: `pending → completed`.
+- wallet: tidak berubah lagi saat `succeeded`.
+
+Failure/reversal path:
+
+- withdrawal: `requested | processing → reversed` langsung.
+- primary withdrawal transaction: `pending → failed`.
+- deterministic `withdrawal_reversal` transaction: `completed`.
+- wallet: dikredit kembali tepat satu kali.
+
+`failed` tetap dapat ada dalam schema/status vocabulary sebagai legacy state atau internal/recovery marker, dan tetap dipakai sebagai transaction status. Namun, `failed` bukan intermediate authoritative withdrawal state pada current manual-admin rejection path; action `fail` langsung menulis `withdrawal.status = reversed`.
+
+## Validation and Audit Rules
+
+- Minimum withdrawal Rp50.000.
+- Payout destination wajib lengkap dan valid.
+- `wallet.balance` tidak boleh negatif.
+- `requestKey` deterministik mencegah double debit saat retry.
+- Admin authority diverifikasi server-side; role dari payload tidak dipercaya.
+- `mark_succeeded` wajib memiliki `transfer_reference`.
+- `fail` wajib memiliki `failure_reason`.
+- Reversal memakai ledger append-only `withdrawal_reversal` dengan ID deterministik.
+- Successful transfer dapat ditelusuri lewat withdrawal ID, amount, destination, `processed_by`, timestamps, `transfer_reference`, dan optional `admin_note`.
+- Copy operasional: “umumnya diproses dalam 1–2 hari kerja”; bukan SLA keras.
+
+## Reward Availability and Legacy State
+
+- Reward Campaign baru langsung masuk `wallet.balance` setelah admin approval dan reward Function selesai.
+- `pendingBalance` tetap ada untuk kompatibilitas/historical reconciliation, tetapi tidak dipakai reward Campaign baru.
+- Audit staging 2026-08-25 menemukan zero wallet dengan `pendingBalance > 0` dan zero campaign release berstatus `completed`; schedule `mature-pending-balance` kemudian dinonaktifkan.
+- Source `mature-pending-balance` dipertahankan untuk audit. Jangan jalankan ulang tanpa inventory dan reconciliation baru.
+
+## Provider Boundaries
+
+- Withdrawal baru tidak memanggil Midtrans Iris atau payout provider lain.
+- `withdrawal-callback` adalah legacy Iris callback. Audit staging 2026-08-25 menemukan zero withdrawal `processing` dan zero row dengan `iris_reference`; Function dinonaktifkan dan public execute dicabut.
+- `midtrans-webhook` tetap aktif untuk payment/Snap UMKM. Retirement withdrawal tidak boleh mengubah Function tersebut.
 
 ## Links
 
-- [Payments](../02_Modules/Payments/00_Index.md)
-- [Notifications](../02_Modules/Notifications/00_Index.md)
-- [Dispute workflow](60_Dispute.md)
+- [Payments business rules](../02_Modules/Payments/30_Business_Rules.md)
+- [Payments backend](../02_Modules/Payments/70_Backend.md)
+- [Payments database](../02_Modules/Payments/50_Database.md)

@@ -35,7 +35,7 @@ System: write
 **Tidak ada `delete` — disengaja.** Sembilan Function penulis notifikasi
 (`create-order`, `create-escrow`, `release-escrow`, `notify-order-activity`,
 `send-chat-notification`, `campaign-claimed`, `campaign-published`,
-`calculate-campaign-reward`, `expire-stale-claims`, `mature-pending-balance`)
+`calculate-campaign-reward`, `expire-stale-claims`; `mature-pending-balance` hanya legacy source yang retired)
 seragam memasang `[Permission.read(owner), Permission.update(owner)]`. Pemilik
 bisa menandai sudah dibaca, tidak bisa menghapus.
 

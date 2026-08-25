@@ -28,13 +28,20 @@ Dimiliki pemilik wallet.
 - **Proses**: ambil daftar withdrawal creator dari `withdrawals`, bisa difilter status.
 - **Akses**: Owner read · Admin.
 
-#### `requestWithdraw()` — [Client SDK]
+#### `requestWithdraw()` — [Appwrite Function callable]
 
 - **Input**: `{ amount, payoutMethod, providerName, accountNumber, accountName }`
 - **payoutMethod**: `bank | ewallet`.
 - **Validasi**: `amount ≥ MINIMUM_WITHDRAW` (`Rp50.000` — konstanta sistem, lihat [ADR-007](../../04_Decisions/ADR-007.md)), `balance ≥ amount`, dan data tujuan pencairan lengkap.
-- **Proses**: buat dokumen `withdrawals` (`status = processed`); langsung cair tanpa review admin.
-- **Akses**: Owner (user).
+- **Proses**: panggil `request-withdrawal`; Function membuat row `requested`, reserve/debit balance atomik, dan membuat transaction `pending`. Tidak ada payout-provider call.
+- **Output**: `{ success, withdrawalId, status: 'requested', requestedAt, balanceAfter, transactionId }`.
+- **Akses**: authenticated eligible owner. Browser tidak mendapat izin write langsung ke wallet/status.
+
+#### Admin withdrawal Functions
+
+- `get-admin-withdrawal-queue`: list queue setelah active-admin authorization server-side.
+- `review-withdrawal`: `start_processing`, `mark_succeeded`, atau `fail` dengan transition validation dan audit fields.
+- `mark_succeeded` wajib `transfer_reference`; `fail` wajib `failure_reason` dan mengembalikan saldo tepat sekali.
 
 ### Payment Service
 

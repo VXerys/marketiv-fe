@@ -96,14 +96,18 @@ Riwayat pencairan dana. Alur 4-state: `requested → processing → succeeded | 
 | accountName   | string   | yes      | nama pemilik rekening atau akun e-wallet     |
 | status        | enum     | yes      | `requested\|processing\|succeeded\|failed\|reversed` |
 | processedAt   | datetime | no       | waktu status final `succeeded`               |
+| processing_at | datetime | no       | waktu Admin mulai memproses                  |
+| processed_by  | string   | no       | user ID active Admin pemroses                 |
+| transfer_reference | string | no    | referensi transfer manual; wajib saat success |
+| admin_note    | string   | no       | catatan operasional optional                  |
 | requester_role| string   | no       | `creator\|umkm` — siapa pemohon              |
 | source_origin | enum     | no       | `creator\|umkm_refund\|umkm_budget` — sumber saldo UMKM |
 | kyc_status    | enum     | no       | snapshot `none\|pending_wa\|verified` saat request |
-| iris_reference| string   | no       | `reference_no` payout Midtrans Iris          |
-| failure_reason| string   | no       | pesan kegagalan (Iris/penolakan)             |
+| iris_reference| string   | no       | legacy `reference_no` Iris; retained untuk historical audit |
+| failure_reason| string   | no       | alasan penolakan/kegagalan transfer manual   |
 | reversed_at   | datetime | no       | waktu kredit balik (status `reversed`)       |
 
-**Index**: `userId`, `iris_reference`, `createdAt DESC`.
+**Index**: `userId`, `status`, `iris_reference`, `createdAt DESC`.
 
 **Permission**: User create · User read · System write.
 

@@ -69,34 +69,41 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 
 ### mature-pending-balance
 
-- **Trigger**: terjadwal, `0 2 * * *` (harian pukul 02:00).
-- **Aksi**: cari `transactions` bertipe `release` dengan `referenceType: "campaign_submission"`, `status: "completed"`, dan berumur ≥ 7 hari. Untuk tiap baris: pindahkan `pendingBalance → balance` di wallet pemiliknya, tandai baris sumber `status: "matured"`, dan kirim notifikasi ke creator.
-- **Idempotensi**: memakai pola `create-escrow` — baris ledger `mature` dengan id deterministik dibuat sebagai `pending` sebelum dana dipindah, lalu ditandai `completed`. Eksekusi yang terputus di tengah diselesaikan cron berikutnya, bukan diulang dari nol.
-- **Catatan**: tanpa Function ini reward campaign mengendap permanen — `request-withdrawal` hanya membaca `balance`.
+- **Status**: legacy-retired 2026-08-25; `enabled: false`, `schedule: ""`, `execute: []`.
+- **Retirement evidence**: staging memiliki zero wallet `pendingBalance > 0`, zero campaign release `status: "completed"`, dan zero mature ledger `status: "pending"`.
+- **Source retention**: folder dan ledger type tetap disimpan untuk audit/history. Jangan aktifkan ulang atau hapus source tanpa inventory dan reconciliation baru.
+- **Current reward path**: `calculate-campaign-reward` mengkredit `wallet.balance` langsung dan membuat release ledger `status: "matured"`.
 
 ### request-withdrawal
 
 - **Trigger**: callable dari frontend (creator atau UMKM) — `execute: ["users"]`, identitas dari header `x-appwrite-user-id`.
-- **Alur 4-state**: `requested → processing → succeeded | failed | reversed`. Perubahan vs ADR-008 lama (withdrawal langsung `processed`): audit row dibuat segera (`requested`, saldo belum keluar), debit atomik, lalu async disbursement via Midtrans Iris.
-- **Disbursement**: Midtrans **Iris** (B2B payout API, TERPISAH dari Snap — aktivasi + server key sendiri). POST `{base}/payouts`, body `{ payouts: [{ beneficiary_name, beneficiary_account, beneficiary_bank, amount (string), notes }] }`. Base sandbox `https://app.sandbox.midtrans.com/iris`, prod `https://app.midtrans.com/iris`. Auth Basic `base64(${serverKey}:)`. Iris menerima → `processing` + `iris_reference`; Iris menolak sync → `failed` + reversal.
+- **Current result**: row `requested`, balance di-reserve/debit atomik, primary withdrawal ledger `pending`, lalu Function berhenti. Tidak ada network call ke Iris/payout provider.
+- **Receipt**: `{ success, withdrawalId, status: "requested", requestedAt, balanceAfter, transactionId }`.
 - **Debit ATOMIK (Fix B)**: `decrementColumn(balance, amount, 0)` dari `src/atomic.js` — Appwrite tak punya compare-and-set; baca-ubah-tulis bisa kehilangan mutasi saat dua request tumpang tindih. Min 0 ditegakkan server, bukan `Math.max` dari bacaan basi.
 - **Reversal**: entry ledger BARU `withdrawal_reversal` id deterministik `tx` + sha256(`${withdrawalId}:reversal`) (T-17 append-only) + `wallets.balance` di-`incrementColumn`, withdrawal ditandai `reversed` + `reversed_at`. Gagal debit → hapus baris audit (pola lama, dipertahankan sampai T-17).
 - **UMKM**: boleh withdraw — wajib `sourceOrigin` ∈ `{umkm_refund, umkm_budget}` DAN terbukti di ledger (`refund` batch ATAU pembayaran campaign lunas). Bukan cek role buta: validasi SUMBER SALDO. Kreator bebas.
-- **Gate berurutan**: role → T-14 TOS (`tos_version === CURRENT_TOS_VERSION` + `tos_accepted_at`) → T-15 email (khusus penarikan pertama) → KYC (nominal ≥ `KYC_THRESHOLD` wajib `verified`) → saldo cukup → rate limit → cooling akun → dup 60 dtk. Audit row dibuat PENGALING terakhir sebelum debit.
-- **Rate limit (T-18, Pasal 11)**: maks `WITHDRAW_PER_DAY_LIMIT` (default 3)/hari dengan status ≠ `failed`, plus `WITHDRAW_COOLING_DAYS` (default 3) hari pending saat akun rekening baru/berubah (anti pola ganti-rekening-lalu-tarik). Dihitung di Function dari `listDocuments` (query ignore di mock/test).
-- **KYC (Pasal 11.8)**: nominal ≥ `KYC_THRESHOLD` (default Rp5.000.000) dan `users.kyc_status ≠ verified` → 403 + `kyc_status` di-`pending_wa` (dokumen diverifikasi admin via WhatsApp, sistem cuma catat hasil).
+- **Advanced guards**: first-withdraw email verification, KYC threshold, daily limit, dan account cooling hanya hard-block saat `WITHDRAWAL_ADVANCED_GUARDS_ENABLED=true`; default manual-admin MVP menonaktifkannya.
 - **Idempotensi**: document id deterministik `wd` + sha256(`${userId}:${requestKey}`) — panggilan ulang requestKey sama → 409 sebelum mutasi. Ledger/notifikasi memakai id deterministik (`tx`/`ntf`).
-- **Env**: `MINIMUM_WITHDRAW`, `CURRENT_TOS_VERSION`, `KYC_THRESHOLD`, `WITHDRAW_PER_DAY_LIMIT`, `WITHDRAW_COOLING_DAYS`, `MIDTRANS_IRIS_SERVER_KEY`, `MIDTRANS_IRIS_ENV`.
-- **Catatan**: Iris API key TERPISAH dari Snap; fallback ke `MIDTRANS_SERVER_KEY` hanya supaya sandbox/test tanpa env Iris tetap jalan.
+- **Env policy**: `MINIMUM_WITHDRAW`, `CURRENT_TOS_VERSION`, dan `WITHDRAWAL_ADVANCED_GUARDS_ENABLED`; advanced-guard env lain dibaca hanya saat flag aktif.
+
+### get-admin-withdrawal-queue
+
+- **Trigger**: callable Admin — `execute: ["users"]`.
+- **Aksi**: verifikasi active Admin server-side, validasi filter status/pagination, lalu kembalikan DTO operasional tanpa log data rekening sensitif.
+
+### review-withdrawal
+
+- **Trigger**: callable Admin — `execute: ["users"]`.
+- **Actions**: `start_processing`, `mark_succeeded`, `fail`.
+- **Success**: hanya `processing → succeeded`, wajib `transfer_reference`, update primary ledger ke `completed`, simpan processor/timestamps/note.
+- **Failure**: `requested|processing → reversed`, wajib `failure_reason`, update primary ledger ke `failed`, buat deterministic `withdrawal_reversal`, dan kredit balance tepat sekali dalam Appwrite transaction.
+- **Idempotency**: retry/lost commit response direkonsiliasi terhadap canonical rows; terminal transition tidak melakukan mutasi kedua.
 
 ### withdrawal-callback
 
-- **Trigger**: HTTP notification dari Midtrans Iris (callable tanpa sesi) — `execute: ["any"]`, ala `midtrans-webhook`.
-- **Aksi**: lookup withdrawal via `iris_reference`, tutup status final. Iris `completed`/`settled` → `succeeded` + `processedAt`; Iris `failed` → `failed` + `failure_reason` + reversal (kredit balik idempoten).
-- **Reversal** out-of-band (Iris terima dulu `processing`, lalu gagal belakangan): sama seperti `request-withdrawal` — ledger `withdrawal_reversal` deterministik + `reversed`.
-- **Idempotensi DOUBLE-SOURCE**: (1) status terminal (`succeeded`/`failed`/`reversed`) → 200 tanpa mutasi; (2) ledger reversal id deterministik — callback terkirim ulang tidak pernah kredit dobel.
-- **Auth**: shared secret via header `x-iris-callback-token` — Function membandingkan dengan env var `IRIS_CALLBACK_SECRET`. Request tanpa token yang cocok → `401`, tidak ada mutasi. Backward-compatible: jika env tidak di-set, semua request diizinkan (tidak boleh dibiarkan di production). Panduan setup lengkap (generate token, set Appwrite env var, konfigurasi Midtrans Iris): [101_Iris_Webhook_Security_Setup.md](101_Iris_Webhook_Security_Setup.md).
-- **Env**: `WITHDRAWALS_COLLECTION_ID`, `WALLETS_COLLECTION_ID`, `TRANSACTIONS_COLLECTION_ID`, `NOTIFICATIONS_COLLECTION_ID`, `IRIS_CALLBACK_SECRET`.
+- **Status**: legacy-retired 2026-08-25; `enabled: false`, `execute: []`.
+- **Retirement evidence**: staging memiliki zero withdrawal `processing` dan zero row dengan `iris_reference`.
+- **Source/history**: source dan nullable `iris_reference` dipertahankan untuk historical audit. Setup callback lama ditandai superseded di [101_Iris_Webhook_Security_Setup.md](101_Iris_Webhook_Security_Setup.md).
 
 ### verify-kyc
 
@@ -133,8 +140,8 @@ Pemetaan angka:
 ## Aturan Backend
 
 - `MINIMUM_WITHDRAW = 50000` (Rp50.000) — **konstanta sistem** di service layer (`wallet.service.ts`). Lihat [ADR-007](../../04_Decisions/ADR-007.md).
-- Withdrawal mengikuti alur 4-state (`requested → processing → succeeded | failed | reversed`) — disbursement async via Midtrans Iris, status final ditutup `withdrawal-callback`.
-- Secret key Midtrans hanya disimpan sebagai environment variable Appwrite Function. Iris memakai server key sendiri (`MIDTRANS_IRIS_SERVER_KEY`).
+- Withdrawal mengikuti manual Admin flow `requested → processing → succeeded|reversed`; Marketiv tidak memanggil automated payout provider.
+- `mark_succeeded` berarti Admin sudah melakukan transfer manual dan wajib mencatat `transfer_reference`.
 - Webhook Midtrans wajib valid signature dan nominal sebelum mengubah status payment.
 - Handler webhook wajib idempotent terhadap notifikasi berulang.
 - Payment yang sudah berstatus final (`paid`, `failed`, `expired`, `cancelled`) tidak boleh diturunkan statusnya oleh webhook berikutnya.

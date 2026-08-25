@@ -52,6 +52,8 @@ Automasi finansial berjalan event-driven via Appwrite Functions. Service yang me
 
 ## Withdraw Requested → Admin Review
 
-- **Trigger**: `withdrawals.create`.
-- **Aksi**: validasi saldo, kurangi balance, masuk antrian **admin review**; setelah approve, dana ditransfer & status `processed`.
+- **Trigger**: creator/UMKM memanggil `request-withdrawal`.
+- **Aksi**: validasi policy/provenance, reserve balance atomik, buat withdrawal `requested` dan ledger `pending`.
+- **Admin**: `review-withdrawal` menjalankan `requested → processing`, lalu mencatat transfer manual sebagai `succeeded` atau menjalankan reversal idempoten menjadi `reversed`.
+- **Provider boundary**: tidak ada Iris/payout-provider call. `midtrans-webhook` tetap khusus payment UMKM.
 - **Link**: aturan withdraw → `30_Business_Rules.md`.
