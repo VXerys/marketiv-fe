@@ -9,7 +9,7 @@
     "api-staging.marketiv.id",
     "api-admin-staging.marketiv.id"
   ],
-  "file_count": 24,
+  "file_count": 25,
   "files": [
     "00-README.md",
     "01-context/current-state.md",
@@ -34,6 +34,7 @@
     "06-verification/rollback-plan.md",
     "06-verification/verification-plan.md",
     "07-agent-handoff/codex-claude-prompt.md",
+    "07-agent-handoff/completion-report.md",
     "07-agent-handoff/completion-report-template.md"
   ]
 }
