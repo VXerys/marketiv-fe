@@ -1,0 +1,39 @@
+{
+  "name": "marketiv-appwrite-session-isolation-spec",
+  "prepared": "2026-08-29",
+  "target_branch": "staging",
+  "repository": "marketiv-id/marketiv-web",
+  "scope": [
+    "staging.marketiv.id",
+    "admin-staging.marketiv.id",
+    "api-staging.marketiv.id",
+    "api-admin-staging.marketiv.id"
+  ],
+  "file_count": 24,
+  "files": [
+    "00-README.md",
+    "01-context/current-state.md",
+    "01-context/goals-and-non-goals.md",
+    "01-context/problem-statement.md",
+    "01-context/source-map.md",
+    "02-diagnosis/constraints-and-assumptions.md",
+    "02-diagnosis/findings.md",
+    "02-diagnosis/root-cause.md",
+    "03-solution/approach.md",
+    "03-solution/architecture.md",
+    "03-solution/implementation-notes.md",
+    "03-solution/risks-and-alternatives.md",
+    "04-tasks/00-preflight.md",
+    "04-tasks/01-runtime-confirmation.md",
+    "04-tasks/02-session-isolation.md",
+    "04-tasks/03-auth-hardening.md",
+    "04-tasks/04-regression-tests.md",
+    "04-tasks/05-deployment-and-verification.md",
+    "05-acceptance/acceptance-criteria.md",
+    "05-acceptance/test-matrix.md",
+    "06-verification/rollback-plan.md",
+    "06-verification/verification-plan.md",
+    "07-agent-handoff/codex-claude-prompt.md",
+    "07-agent-handoff/completion-report-template.md"
+  ]
+}
