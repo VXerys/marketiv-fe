@@ -1,11 +1,77 @@
 import { describe, expect, it } from "vitest";
 import { spawnSync } from "node:child_process";
+import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
 
 const backendDir = path.resolve(import.meta.dirname, "../..");
 
 describe("function inventory audit", () => {
+  it("loads shared ESM from Appwrite's CommonJS runtime package scope", () => {
+    const appwriteConfig = JSON.parse(
+      fs.readFileSync(path.join(backendDir, "appwrite.config.json"), "utf8"),
+    );
+    const runtimeDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "marketiv-appwrite-runtime-"),
+    );
+
+    try {
+      fs.writeFileSync(
+        path.join(runtimeDir, "package.json"),
+        JSON.stringify({ type: "commonjs" }),
+      );
+
+      const functionRoot = path.join(runtimeDir, "src/function");
+      fs.mkdirSync(functionRoot, { recursive: true });
+      fs.cpSync(
+        path.join(backendDir, "functions/_shared"),
+        path.join(functionRoot, "_shared"),
+        { recursive: true },
+      );
+
+      for (const functionId of ["create-conversation", "create-offer"]) {
+        const configFunction = appwriteConfig.functions.find(
+          (fn: { $id: string }) => fn.$id === functionId,
+        );
+        if (!configFunction) throw new Error(`Missing ${functionId} config`);
+        expect(configFunction).toMatchObject({
+          runtime: "node-22",
+          path: "functions",
+          entrypoint: `${functionId}/src/main.js`,
+          commands: `cd ${functionId} && npm install`,
+        });
+
+        const deployedFunctionDir = path.join(functionRoot, functionId);
+        fs.mkdirSync(deployedFunctionDir, { recursive: true });
+        fs.copyFileSync(
+          path.join(backendDir, "functions", functionId, "package.json"),
+          path.join(deployedFunctionDir, "package.json"),
+        );
+        fs.cpSync(
+          path.join(backendDir, "functions", functionId, "src"),
+          path.join(deployedFunctionDir, "src"),
+          { recursive: true },
+        );
+        fs.symlinkSync(
+          path.join(backendDir, "node_modules"),
+          path.join(deployedFunctionDir, "node_modules"),
+          "dir",
+        );
+
+        const entrypoint = path.join(functionRoot, configFunction.entrypoint);
+        const result = spawnSync(
+          process.execPath,
+          ["-e", `require(${JSON.stringify(entrypoint)})`],
+          { encoding: "utf8" },
+        );
+
+        expect(result.status, result.stderr).toBe(0);
+      }
+    } finally {
+      fs.rmSync(runtimeDir, { recursive: true, force: true });
+    }
+  });
+
   it("passes when functions directory, generator, scopes, and config stay in sync", () => {
     const result = spawnSync(
       process.execPath,
