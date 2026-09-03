@@ -37,6 +37,10 @@ export interface SessionUser {
    * onboarding.
    */
   emailVerified: boolean;
+  /** Versi T&C yang tercatat pada baris users; absen bila belum menyetujui. */
+  tosVersion?: string;
+  /** Waktu persetujuan T&C; absen bila belum menyetujui. */
+  tosAcceptedAt?: string;
   /**
    * Onboarding sudah diselesaikan.
    *
@@ -117,6 +121,9 @@ const MOCK_ROLE_KEY = "marketiv.mock.role";
 
 const isRole = (v: unknown): v is UserRole =>
   v === "umkm" || v === "creator" || v === "admin";
+
+const nonEmptyString = (v: unknown): string | undefined =>
+  typeof v === "string" && v.trim() ? v : undefined;
 
 /**
  * Guard `typeof window` wajib: getSession() terjangkau dari
@@ -211,6 +218,8 @@ export async function getSession(): Promise<ServiceResult<SessionUser>> {
     }
 
     const role = doc.role as UserRole;
+    const tosVersion = nonEmptyString(doc.tos_version);
+    const tosAcceptedAt = nonEmptyString(doc.tos_accepted_at);
 
     // `users` hanya menyimpan userId/role/status/email/phone/createdAt — tidak
     // ada `name` maupun `avatarUrl` di sana. Nama tampilan datang dari akun Auth;
@@ -225,6 +234,8 @@ export async function getSession(): Promise<ServiceResult<SessionUser>> {
         name: authUser.name || undefined,
         phone: (doc.phone as string) || undefined,
         emailVerified: authUser.emailVerification,
+        ...(tosVersion ? { tosVersion } : {}),
+        ...(tosAcceptedAt ? { tosAcceptedAt } : {}),
         isProfileCompleted: await readProfileCompleted(authUser.$id, role),
       },
     };

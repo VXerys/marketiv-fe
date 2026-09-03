@@ -77,6 +77,7 @@ export const FUNCTION_IDS = {
    * backend bertindak. Kegagalannya sengaja tidak menggagalkan register.
    */
   createUserProfile: "create-user-profile",
+  acceptTos: "accept-tos",
   requestPasswordOtp: "request-password-otp",
   resetPasswordWithOtp: "reset-password-with-otp",
 } as const;
