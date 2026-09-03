@@ -25,6 +25,10 @@ const MAX_LAST_MESSAGE_LENGTH = 1000;
 const MAX_TITLE_LENGTH = 255;
 const MAX_DESCRIPTION_LENGTH = 2000;
 const MAX_PRICE = 999999999;
+const PAGE_SIZE = 100;
+const MAX_DOCS = 5000;
+const IN_CHUNK = 100;
+const TERMINAL_ORDER_STATUSES = new Set(["completed", "cancelled"]);
 
 export default async ({ req, res, log, error }) => {
   try {
@@ -104,6 +108,24 @@ export default async ({ req, res, log, error }) => {
     if (pending.total > 0) {
       return json(res, {
         error: "Masih ada penawaran yang menunggu jawaban kreator. Tarik penawaran tersebut dulu sebelum mengirim yang baru.",
+      }, 409);
+    }
+
+    // UI hanya membantu menyembunyikan aksi. Otoritas akhir tetap Function:
+    // telusuri conversation → offers → orders supaya payload frontend tidak
+    // dapat memalsukan stage dan membuka deal paralel.
+    const dealState = await loadConversationDealState(databases, env, conversationId);
+    const latestOrderStatus = str(dealState.latestOrder?.status);
+    const latestAcceptedOfferStillAwaitingOrder =
+      str(dealState.latestOffer?.status) === "accepted" &&
+      !dealState.orderOfferIds.has(str(dealState.latestOffer?.$id));
+
+    if (
+      latestAcceptedOfferStillAwaitingOrder ||
+      (latestOrderStatus && !TERMINAL_ORDER_STATUSES.has(latestOrderStatus))
+    ) {
+      return json(res, {
+        error: "Masih ada kerja sama aktif dengan kreator ini. Selesaikan atau batalkan pesanan sebelumnya sebelum membuat penawaran baru.",
       }, 409);
     }
 
@@ -233,6 +255,7 @@ function getEnv(req) {
       "conversations",
     messagesCollectionId: process.env.MESSAGES_COLLECTION_ID || "messages",
     offersCollectionId: process.env.OFFERS_COLLECTION_ID || "offers",
+    ordersCollectionId: process.env.ORDERS_COLLECTION_ID || process.env.NEXT_PUBLIC_ORDER_COLLECTION || "orders",
     rateCardsCollectionId: process.env.RATE_CARDS_COLLECTION_ID || "rate_cards",
     rateCardPackagesCollectionId: process.env.RATE_CARD_PACKAGES_COLLECTION_ID || "rate_card_packages",
   };
@@ -262,6 +285,62 @@ async function resolvePackageContext(databases, env, packageId, creatorId) {
   if (str(rateCard.creatorId) !== creatorId || str(rateCard.status) !== "published") return null;
 
   return { name: str(pkg.name), price: Number(pkg.price) };
+}
+
+async function loadConversationDealState(databases, env, conversationId) {
+  const offers = await listAll(databases, env.databaseId, env.offersCollectionId, [
+    Query.equal("conversationId", conversationId),
+  ]);
+  const offerIds = offers.map((offer) => str(offer.$id)).filter(Boolean);
+  const orders = await listByIds(
+    databases,
+    env.databaseId,
+    env.ordersCollectionId,
+    "offerId",
+    offerIds,
+  );
+
+  return {
+    latestOffer: pickLatest(offers),
+    latestOrder: pickLatest(orders),
+    orderOfferIds: new Set(orders.map((order) => str(order.offerId)).filter(Boolean)),
+  };
+}
+
+function pickLatest(documents) {
+  return documents.reduce((latest, document) => {
+    if (!latest || str(document.$createdAt) > str(latest.$createdAt)) return document;
+    return latest;
+  }, null);
+}
+
+async function listAll(databases, databaseId, collectionId, queries = []) {
+  const documents = [];
+  let cursor = null;
+
+  for (;;) {
+    const paged = [...queries, Query.limit(PAGE_SIZE)];
+    if (cursor) paged.push(Query.cursorAfter(cursor));
+    const page = await databases.listDocuments(databaseId, collectionId, paged);
+    documents.push(...page.documents);
+    if (page.documents.length < PAGE_SIZE || documents.length >= MAX_DOCS) break;
+    cursor = page.documents[page.documents.length - 1].$id;
+  }
+
+  return documents;
+}
+
+async function listByIds(databases, databaseId, collectionId, field, ids) {
+  if (ids.length === 0) return [];
+  const batches = [];
+  for (let index = 0; index < ids.length; index += IN_CHUNK) {
+    batches.push(
+      listAll(databases, databaseId, collectionId, [
+        Query.equal(field, ids.slice(index, index + IN_CHUNK)),
+      ])
+    );
+  }
+  return (await Promise.all(batches)).flat();
 }
 
 function createDatabasesClient(env) {

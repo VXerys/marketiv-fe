@@ -43,6 +43,7 @@ export const FUNCTION_IDS = {
    * sendiri>, ...)`, yang di UI tampil sebagai "Gagal menyimpan data".
    */
   createConversation: "create-conversation",
+  patchConversationArchive: "patch-conversation-archive",
   sendMessage: "send-message",
   createOffer: "create-offer",
   submitCampaignProof: "submit-campaign-proof",

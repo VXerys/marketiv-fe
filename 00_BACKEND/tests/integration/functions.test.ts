@@ -333,18 +333,68 @@ describe('create-conversation function', () => {
     expect(res.calls[0].body.conversationId).toBeDefined();
     const created = store.conversations[0];
     expect(created).toMatchObject({ umkm_id: 'umkm-1', creator_id: 'creator-1' });
+    const createConversationCall = createCalls.find((call) => call.collection === 'conversations');
+    expect(createConversationCall?.permissions).toEqual([
+      Permission.read(Role.user('umkm-1')),
+      Permission.read(Role.user('creator-1')),
+    ]);
+    expect(createConversationCall?.permissions).not.toContainEqual(
+      Permission.update(Role.user('umkm-1')),
+    );
+    expect(createConversationCall?.permissions).not.toContainEqual(
+      Permission.update(Role.user('creator-1')),
+    );
   });
 });
 
-describe('create-offer package provenance', () => {
+describe('create-offer function', () => {
   const seedOfferContext = () => {
     process.env.CONVERSATIONS_COLLECTION_ID = 'conversations';
     process.env.OFFERS_COLLECTION_ID = 'offers';
+    process.env.ORDERS_COLLECTION_ID = 'orders';
     process.env.MESSAGES_COLLECTION_ID = 'messages';
     process.env.RATE_CARDS_COLLECTION_ID = 'rate_cards';
     process.env.RATE_CARD_PACKAGES_COLLECTION_ID = 'rate_card_packages';
-    seed('users', [{ $id: 'umkm-user', userId: 'u1', role: 'umkm', status: 'active' }]);
+    seed('users', [
+      { $id: 'umkm-user', userId: 'u1', role: 'umkm', status: 'active' },
+      { $id: 'creator-user', userId: 'c1', role: 'creator', status: 'active', tos_version: 'v3.1', tos_accepted_at: '2026-08-10T00:00:00.000Z' },
+    ]);
     seed('conversations', [{ $id: 'conv-1', umkm_id: 'u1', creator_id: 'c1' }]);
+  };
+
+  const offerBody = {
+    conversationId: 'conv-1',
+    creatorId: 'c1',
+    title: 'Video review baru',
+    description: '1 video baru',
+    price: 150000,
+    deadline: '2026-12-31T00:00:00.000Z',
+    revisionLimit: 2,
+  };
+
+  const seedPreviousDeal = (status: string) => {
+    seed('offers', [{
+      $id: 'offer-old',
+      $createdAt: '2026-08-01T00:00:00.000Z',
+      conversationId: 'conv-1',
+      umkmId: 'u1',
+      creatorId: 'c1',
+      title: 'Video lama',
+      description: 'Order lama',
+      price: 100000,
+      deadline: '2026-08-20T00:00:00.000Z',
+      revisionLimit: 1,
+      status: 'accepted',
+    }]);
+    seed('orders', [{
+      $id: 'order-old',
+      $createdAt: '2026-08-02T00:00:00.000Z',
+      offerId: 'offer-old',
+      creatorId: 'c1',
+      umkmId: 'u1',
+      amount: 100000,
+      status,
+    }]);
   };
 
   it('validates published creator package and snapshots it on editable offer', async () => {
@@ -373,6 +423,145 @@ describe('create-offer package provenance', () => {
     } }), res, log: () => {}, error: () => {} });
     expect(res.calls.at(-1)).toMatchObject({ status: 422 });
     expect(store.offers ?? []).toHaveLength(0);
+  });
+
+  it.each(['pending_payment', 'escrow', 'in_progress', 'revision', 'approved'])(
+    'rejects direct invocation with 409 while latest order is %s',
+    async (status) => {
+      seedOfferContext();
+      seedPreviousDeal(status);
+      const main = (await import('../../functions/create-offer/src/main.js')).default;
+      const res = makeRes();
+
+      await main({
+        req: makeReq({ headers: { 'x-appwrite-user-id': 'u1' }, bodyJson: offerBody }),
+        res,
+        log: () => {},
+        error: () => {},
+      });
+
+      expect(res.calls.at(-1)).toMatchObject({
+        status: 409,
+        body: {
+          error: 'Masih ada kerja sama aktif dengan kreator ini. Selesaikan atau batalkan pesanan sebelumnya sebelum membuat penawaran baru.',
+        },
+      });
+      expect(store.offers).toHaveLength(1);
+      expect(store.orders).toHaveLength(1);
+    },
+  );
+
+  it.each([
+    ['pending', 'Masih ada penawaran yang menunggu jawaban kreator.'],
+    ['accepted', 'Masih ada kerja sama aktif dengan kreator ini.'],
+  ])('rejects latest %s offer without an order', async (offerStatus, expectedMessage) => {
+    seedOfferContext();
+    seed('offers', [{
+      $id: 'offer-existing',
+      $createdAt: '2026-09-01T00:00:00.000Z',
+      conversationId: 'conv-1',
+      umkmId: 'u1',
+      creatorId: 'c1',
+      status: offerStatus,
+    }]);
+    const main = (await import('../../functions/create-offer/src/main.js')).default;
+    const res = makeRes();
+
+    await main({
+      req: makeReq({ headers: { 'x-appwrite-user-id': 'u1' }, bodyJson: offerBody }),
+      res,
+      log: () => {},
+      error: () => {},
+    });
+
+    expect(res.calls.at(-1).status).toBe(409);
+    expect(res.calls.at(-1).body.error).toContain(expectedMessage);
+    expect(store.offers).toHaveLength(1);
+  });
+
+  it.each(['completed', 'cancelled'])(
+    'allows a new pending offer after %s order without mutating previous order',
+    async (status) => {
+      seedOfferContext();
+      seedPreviousDeal(status);
+      const previousOrder = structuredClone(store.orders[0]);
+      const main = (await import('../../functions/create-offer/src/main.js')).default;
+      const res = makeRes();
+
+      await main({
+        req: makeReq({ headers: { 'x-appwrite-user-id': 'u1' }, bodyJson: offerBody }),
+        res,
+        log: () => {},
+        error: () => {},
+      });
+
+      expect(res.calls.at(-1).status).toBe(200);
+      expect(store.offers).toHaveLength(2);
+      expect(store.offers.at(-1)).toMatchObject({ conversationId: 'conv-1', status: 'pending' });
+      expect(store.orders).toEqual([previousOrder]);
+    },
+  );
+
+  it('returns Offer #2 as offer_pending then creates separate Order #2 while Order #1 stays completed', async () => {
+    seedOfferContext();
+    seedPreviousDeal('completed');
+    seed('escrows', [{ $id: 'escrow-old', orderId: 'order-old', amount: 100000, status: 'released' }]);
+    seed('payments', [{ $id: 'payment-old', orderId: 'order-old', amount: 100000, status: 'paid' }]);
+    const previousOrder = structuredClone(store.orders[0]);
+    const previousEscrow = structuredClone(store.escrows[0]);
+    const previousPayment = structuredClone(store.payments[0]);
+    const createOfferMain = (await import('../../functions/create-offer/src/main.js')).default;
+    const createOfferRes = makeRes();
+
+    await createOfferMain({
+      req: makeReq({ headers: { 'x-appwrite-user-id': 'u1' }, bodyJson: offerBody }),
+      res: createOfferRes,
+      log: () => {},
+      error: () => {},
+    });
+
+    const newOffer = store.offers.at(-1);
+    expect(newOffer.$id).not.toBe('offer-old');
+    expect(store.orders).toEqual([previousOrder]);
+    expect(store.escrows).toEqual([previousEscrow]);
+    expect(store.payments).toEqual([previousPayment]);
+
+    seed('creator_profiles', [{ $id: 'creator-profile', userId: 'c1', displayName: 'Ayu', avatarUrl: '' }]);
+    const getNegotiationsMain = (await import('../../functions/get-umkm-negotiations/src/main.js')).default;
+    const getNegotiationsRes = makeRes();
+    await getNegotiationsMain({
+      req: makeReq({ headers: { 'x-appwrite-user-id': 'u1' }, bodyJson: { conversationId: 'conv-1' } }),
+      res: getNegotiationsRes,
+      log: () => {},
+      error: () => {},
+    });
+
+    expect(getNegotiationsRes.calls.at(-1).body).toMatchObject({
+      conversationId: 'conv-1',
+      stage: 'offer_pending',
+      offerId: newOffer.$id,
+    });
+    expect(getNegotiationsRes.calls.at(-1).body.orderId).toBeUndefined();
+
+    const createOrderMain = (await import('../../functions/create-order/src/main.js')).default;
+    const createOrderRes = makeRes();
+    await createOrderMain({
+      req: makeReq({ bodyJson: { ...newOffer, status: 'accepted' } }),
+      res: createOrderRes,
+      log: () => {},
+      error: () => {},
+    });
+
+    expect(createOrderRes.calls.at(-1).status).toBe(200);
+    expect(store.orders).toHaveLength(2);
+    expect(store.orders[0]).toEqual(previousOrder);
+    expect(store.orders[1]).toMatchObject({
+      offerId: newOffer.$id,
+      status: 'pending_payment',
+      amount: 150000,
+    });
+    expect(store.escrows).toEqual([previousEscrow]);
+    expect(store.payments).toEqual([previousPayment]);
   });
 });
 
@@ -421,20 +610,43 @@ describe('mark-conversation-read function', () => {
 });
 
 describe('patch-conversation-archive function', () => {
-  it('archives conversation for participant request', async () => {
+  it.each([
+    [true, 'umkm-1'],
+    [false, 'creator-1'],
+  ] as const)('sets archive=%s for participant %s', async (isArchived, userId) => {
     process.env.CONVERSATIONS_COLLECTION_ID = 'conversations';
-    seed('conversations', [{ $id: 'conv-1', umkm_id: 'umkm-1', creator_id: 'creator-1', is_archived: false }]);
+    seed('conversations', [{ $id: 'conv-1', umkm_id: 'umkm-1', creator_id: 'creator-1', is_archived: !isArchived }]);
     const main = (await import('../../functions/patch-conversation-archive/src/main.js')).default;
     const req = makeReq({
-      headers: { 'x-appwrite-user-id': 'umkm-1' },
-      bodyJson: { conversationId: 'conv-1', isArchived: true },
+      headers: { 'x-appwrite-user-id': userId },
+      bodyJson: { conversationId: 'conv-1', isArchived },
     });
     const res = makeRes();
 
     await main({ req, res, log: () => {}, error: () => {} });
 
     expect(res.calls[0].body.ok).toBe(true);
-    expect(store.conversations[0].is_archived).toBe(true);
+    expect(store.conversations[0].is_archived).toBe(isArchived);
+  });
+
+  it('rejects non-participant without changing archive state', async () => {
+    process.env.CONVERSATIONS_COLLECTION_ID = 'conversations';
+    seed('conversations', [{ $id: 'conv-1', umkm_id: 'umkm-1', creator_id: 'creator-1', is_archived: false }]);
+    const main = (await import('../../functions/patch-conversation-archive/src/main.js')).default;
+    const res = makeRes();
+
+    await main({
+      req: makeReq({
+        headers: { 'x-appwrite-user-id': 'outsider-1' },
+        bodyJson: { conversationId: 'conv-1', isArchived: true },
+      }),
+      res,
+      log: () => {},
+      error: () => {},
+    });
+
+    expect(res.calls.at(-1).status).toBe(404);
+    expect(store.conversations[0].is_archived).toBe(false);
   });
 });
 

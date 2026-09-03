@@ -45,8 +45,8 @@ import {
  * yang di UI tampil sebagai "Gagal menyimpan data. Coba lagi." Karena itu SEMUA
  * tulis di file ini lewat Function (`create-conversation`, `send-message`,
  * `create-offer`) yang berjalan dengan API key. Yang tersisa di klien hanya
- * baca, dan update baris yang pemiliknya memang sudah punya izin —
- * `markConversationRead` dan `setConversationArchived`.
+ * baca, dan update pesan yang pemiliknya memang sudah punya izin lewat
+ * `markConversationRead`. Arsip percakapan tetap lewat Function tepercaya.
  *
  * Jangan mengembalikan `databases.createDocument` ke sini.
  */
@@ -370,11 +370,9 @@ export async function setConversationArchivedInAppwrite(
   const auth = await requireUserId<null>(null);
   if (!auth.ok) return auth.result;
   try {
-    const participation = await loadParticipation(conversationId, auth.userId);
-    if (!participation) return fail("Percakapan tidak ditemukan.", "not_found", null);
-
-    await databases.updateDocument(DB, CONVERSATIONS, conversationId, {
-      is_archived: archived,
+    await executeFunction(FUNCTION_IDS.patchConversationArchive, {
+      conversationId,
+      isArchived: archived,
     });
     return ok(null);
   } catch (err) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { canStartNewDeal } from "@/lib/negotiation/deal-stage";
 import type { NegotiationStage } from "@/types/domain";
 
 interface MessageComposerProps {
@@ -60,11 +61,9 @@ export function MessageComposer({
   const buildQuickActions = (): QuickAction[] => {
     const actions: QuickAction[] = [];
 
-    // Custom Offer boleh dikirim selama belum ada offer yang menunggu jawaban:
-    // saat masih ngobrol, atau setelah tawaran sebelumnya ditolak. Versi lama
-    // hanya memunculkannya di `pending_payment` — tahap yang justru sudah
-    // TERLAMBAT untuk menawar, karena ordernya sudah terbentuk.
-    if ((stage === "chatting" || stage === "offer_rejected") && onSendOffer) {
+    // Custom Offer hanya muncul saat tidak ada deal aktif: percakapan baru,
+    // offer ditolak, atau order sebelumnya sudah terminal.
+    if (canStartNewDeal(stage) && onSendOffer) {
       actions.push({
         icon: "💰",
         label: "Kirim Penawaran Khusus",

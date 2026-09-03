@@ -50,6 +50,7 @@ import {
   buildPaymentReturnUrl,
   isPaymentConfirmedStage,
 } from "@/lib/negotiation/room-sync";
+import { canStartNewDeal } from "@/lib/negotiation/deal-stage";
 import { useNegotiationRoomSync } from "@/lib/negotiation/use-negotiation-room-sync";
 
 import { SendCustomOfferModal } from "../modals/SendCustomOfferModal";
@@ -187,9 +188,9 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   }, [reloadAuthoritativeRoom, searchParams]);
 
   useEffect(() => {
-    // Query hanya konteks masuk sebelum membuat offer. Sesudah offer ada,
-    // provenance harus datang dari snapshot DTO, bukan URL lama yang mutable.
-    if (!selectedPackageId || !order?.creatorId || order.offerId) {
+    // URL packageId menjadi kandidat offer baru hanya saat tidak ada deal aktif.
+    // Provenance deal aktif/lama tetap datang dari snapshot DTO immutable.
+    if (!selectedPackageId || !order?.creatorId || !canStartNewDeal(order.stage)) {
       setPackagePrefill(null);
       setPackageContextWarning(null);
       return;
@@ -203,7 +204,7 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
       setPackageContextWarning(selected ? null : "Paket acuan tidak tersedia atau tidak lagi dipublikasikan. Kamu tetap dapat membuat penawaran tanpa paket.");
     })();
     return () => { active = false; };
-  }, [order?.creatorId, selectedPackageId]);
+  }, [order?.creatorId, order?.stage, selectedPackageId]);
 
   useEffect(() => {
     if (paymentVerification !== "verifying" || !isPaymentConfirmedStage(order?.stage)) return;
@@ -382,6 +383,9 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   if (!order) return <div className="p-4 sm:p-6 lg:p-8"><NegotiationNotFoundState /></div>;
 
   const statusCfg = STATUS_CFG[order.stage] ?? STATUS_CFG.chatting;
+  const hasNewDealPackageCandidate = Boolean(
+    selectedPackageId && canStartNewDeal(order.stage)
+  );
 
   const renderHeaderCTA = () => {
     const cls =
@@ -431,14 +435,18 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
         </Link>
       )}
 
-      {!isChatFullscreen && (packagePrefill || order.packageContext || packageContextWarning) && (
+      {!isChatFullscreen && (
+        packagePrefill ||
+        (!hasNewDealPackageCandidate && order.packageContext) ||
+        packageContextWarning
+      ) && (
         <div className="rounded-[18px] border border-orange-200 bg-orange-50 px-4 py-3 text-xs">
           {packageContextWarning ? (
             <p className="font-semibold text-orange-800">{packageContextWarning}</p>
-          ) : order.packageContext ? (
-            <><p className="font-extrabold text-orange-950">Kesepakatan Final</p><p className="text-orange-800 mt-1">Berawal dari paket {order.packageContext.name} ({formatCurrency(order.packageContext.basePrice)}). Harga final tetap {formatCurrency(order.finalPrice)}.</p></>
           ) : packagePrefill ? (
             <><p className="font-extrabold text-orange-950">Paket Acuan: {packagePrefill.name}</p><p className="text-orange-800 mt-1">Harga paket {formatCurrency(packagePrefill.price)}. Rincian masih dapat dinegosiasikan sebelum penawaran dikirim.</p></>
+          ) : order.packageContext ? (
+            <><p className="font-extrabold text-orange-950">Kesepakatan Final</p><p className="text-orange-800 mt-1">Berawal dari paket {order.packageContext.name} ({formatCurrency(order.packageContext.basePrice)}). Harga final tetap {formatCurrency(order.finalPrice)}.</p></>
           ) : null}
         </div>
       )}
