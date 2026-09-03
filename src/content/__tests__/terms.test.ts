@@ -1,0 +1,105 @@
+import { createHash } from "node:crypto";
+import { describe, expect, it } from "vitest";
+import { TERMS_CHAPTERS } from "../terms";
+
+describe("canonical terms and conditions", () => {
+  it("exports approved v3.1 legal chapters", () => {
+    expect(TERMS_CHAPTERS.map((chapter) => chapter.id)).toEqual([
+      "bab-1",
+      "bab-2",
+      "bab-3",
+      "bab-4",
+      "bab-5",
+    ]);
+    expect(TERMS_CHAPTERS.flatMap((chapter) => chapter.pasalList)).toHaveLength(22);
+    expect(JSON.stringify(TERMS_CHAPTERS)).toContain("Biaya Platform Resmi (2%)");
+    expect(JSON.stringify(TERMS_CHAPTERS)).not.toContain("Biaya Platform Resmi (5%)");
+  });
+
+  it("preserves approved chapter and article structure", () => {
+    expect(
+      TERMS_CHAPTERS.map((chapter) => ({
+        id: chapter.id,
+        bab: chapter.bab,
+        title: chapter.title,
+        pasalList: chapter.pasalList.map(({ pasalNumber, title }) => ({ pasalNumber, title })),
+      }))
+    ).toEqual([
+      {
+        id: "bab-1",
+        bab: "BAB I",
+        title: "Ketentuan Umum & Peran Platform",
+        pasalList: [
+          { pasalNumber: "Pasal 1", title: "Ketentuan Penggunaan" },
+          { pasalNumber: "Pasal 2", title: "Gambaran Umum Layanan" },
+          { pasalNumber: "Pasal 3", title: "Perubahan Layanan dan Syarat Ketentuan" },
+          { pasalNumber: "Pasal 4", title: "Definisi Istilah Resmi Platform" },
+          { pasalNumber: "Pasal 5", title: "Pendaftaran, Akun, dan Verifikasi" },
+          { pasalNumber: "Pasal 6", title: "Komunikasi Elektronik" },
+        ],
+      },
+      {
+        id: "bab-2",
+        bab: "BAB II",
+        title: "Mekanisme Transaksi & Escrow",
+        pasalList: [
+          { pasalNumber: "Pasal 7", title: "Deskripsi Layanan & Jenis Transaksi" },
+          { pasalNumber: "Pasal 8", title: "Pembayaran & Pengamanan Escrow" },
+        ],
+      },
+      {
+        id: "bab-3",
+        bab: "BAB III",
+        title: "Biaya Platform, Wallet & Penarikan Dana",
+        pasalList: [
+          { pasalNumber: "Pasal 9", title: "Biaya Platform Resmi (2%)" },
+          { pasalNumber: "Pasal 10", title: "Wallet (Dompet Digital)" },
+          { pasalNumber: "Pasal 11", title: "Penarikan Dana (Withdrawal)" },
+          { pasalNumber: "Pasal 15", title: "Pembatalan & Pengembalian Dana (Refund)" },
+        ],
+      },
+      {
+        id: "bab-4",
+        bab: "BAB IV",
+        title: "Larangan, Fraud & Penanganan Sengketa",
+        pasalList: [
+          { pasalNumber: "Pasal 12", title: "Kewajiban & Larangan Pengguna" },
+          { pasalNumber: "Pasal 13", title: "Deteksi Kecurangan (Fraud)" },
+          { pasalNumber: "Pasal 14", title: "Penanganan Sengketa (Dispute SLA)" },
+          { pasalNumber: "Pasal 18", title: "Penangguhan & Penghentian Akun" },
+        ],
+      },
+      {
+        id: "bab-5",
+        bab: "BAB V",
+        title: "Hak Cipta, Privasi & Ketentuan Hukum",
+        pasalList: [
+          { pasalNumber: "Pasal 16", title: "Hak Kekayaan Intelektual" },
+          { pasalNumber: "Pasal 17", title: "Privasi & Pelindungan Data (UU PDP)" },
+          { pasalNumber: "Pasal 19", title: "Ganti Rugi & Batasan Tanggung Jawab" },
+          { pasalNumber: "Pasal 20", title: "Hukum yang Berlaku & Penyelesaian Perselisihan" },
+          { pasalNumber: "Pasal 21", title: "Ketentuan Lain-lain" },
+          { pasalNumber: "Pasal 22", title: "Pertanyaan & Layanan Bantuan Resmi" },
+        ],
+      },
+    ]);
+  });
+
+  it("keeps approved v3.1 fee and escrow clauses verbatim", () => {
+    const document = JSON.stringify(TERMS_CHAPTERS);
+
+    expect(document).toContain("Tarif resmi biaya platform Marketiv adalah 2% (dua persen) per transaksi bersifat tetap per snapshot transaksi:");
+    expect(document).toContain("b. Rate Card Mode: Biaya 2% dibebankan ke UMKM di awal saat pembayaran. Kreator menerima pendapatan flat netto penuh (0% potongan) saat pelepasan escrow.");
+    expect(document).toContain("Status escrow (Held, Released, Refunded) hanya diubah oleh sistem/admin Marketiv berdasarkan Notifikasi Webhook resmi Midtrans yang terverifikasi.");
+  });
+
+  it("matches approved UMKM v3.1 text exactly", () => {
+    const canonicalDocumentHash = createHash("sha256")
+      .update(JSON.stringify(TERMS_CHAPTERS))
+      .digest("hex");
+
+    expect(canonicalDocumentHash).toBe(
+      "997c2960c10febf2246808406c08fa26896579b176a0c83cb65c61dd4774682c"
+    );
+  });
+});
