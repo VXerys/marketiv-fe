@@ -1,6 +1,6 @@
 # T&C Consent and Re-consent Flow Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add authoritative T&C status, blocking dashboard consent, and fail-closed preflight before currently guarded Rate Card acceptance and withdrawal mutations.
 
@@ -31,7 +31,7 @@
 - Consumes: authenticated request headers and server `CURRENT_TOS_VERSION`.
 - Produces: status JSON and backward-compatible accept JSON.
 
-- [ ] **Step 1: Write failing backend tests**
+- [x] **Step 1: Write failing backend tests**
 
 Add absent/current/outdated/missing-timestamp status cases. Assert status never increments `updateCalls`. Add legacy accept, explicit accept, same-version idempotency, stale-version, and unknown-action cases.
 
@@ -55,13 +55,13 @@ it('returns read-only outdated TOS status', async () => {
 });
 ```
 
-- [ ] **Step 2: Run test and verify RED**
+- [x] **Step 2: Run test and verify RED**
 
 Run: `npm --prefix 00_BACKEND run test:integration`
 
 Expected: status cases fail with missing `tos_version`.
 
-- [ ] **Step 3: Implement minimal routing**
+- [x] **Step 3: Implement minimal routing**
 
 ```js
 const action = typeof body.action === "string" ? body.action.trim() : "accept";
@@ -82,13 +82,13 @@ if (action === "status") {
 }
 ```
 
-- [ ] **Step 4: Run backend integration tests**
+- [x] **Step 4: Run backend integration tests**
 
 Run: `npm --prefix 00_BACKEND run test:integration`
 
 Expected: all tests pass; status cases record zero mutations.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add 00_BACKEND/functions/accept-tos/src/main.js 00_BACKEND/tests/integration/functions.test.ts
@@ -107,7 +107,7 @@ git commit -m "feat(tos): expose authoritative consent status"
 **Interfaces:**
 - Produces: `TosStatus`, `TosAcceptResult`, `getTosStatus()`, `acceptCurrentTos()`, `SessionUser.tosVersion`, and `SessionUser.tosAcceptedAt`.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```ts
 it('requests status from accept-tos', async () => {
@@ -126,13 +126,13 @@ it('accepts backend-returned version', async () => {
 
 Session test asserts mappings from `doc.tos_version` and `doc.tos_accepted_at`.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `npm test -- src/services/auth/__tests__/tos.service.test.ts src/services/auth/__tests__/session-tos.integration.test.ts`
 
 Expected: module and session fields missing.
 
-- [ ] **Step 3: Implement service and session mapping**
+- [x] **Step 3: Implement service and session mapping**
 
 ```ts
 export interface TosStatus {
@@ -161,13 +161,13 @@ export async function acceptCurrentTos(version: string): Promise<ServiceResult<T
 
 Add `acceptTos: "accept-tos"`; map only non-empty session strings. Mock version stays mock-only.
 
-- [ ] **Step 4: Run tests and verify GREEN**
+- [x] **Step 4: Run tests and verify GREEN**
 
 Run: `npm test -- src/services/auth/__tests__/tos.service.test.ts src/services/auth/__tests__/session-tos.integration.test.ts`
 
 Expected: both files pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/appwrite/functions.ts src/services/auth/session.service.ts src/services/auth/tos.service.ts src/services/auth/__tests__/tos.service.test.ts src/services/auth/__tests__/session-tos.integration.test.ts
@@ -186,7 +186,7 @@ git commit -m "feat(tos): add frontend consent service"
 - Consumes: T&C service and `useAuth().refresh`.
 - Produces: `TosConsentGate` and `useTosConsent().ensureCurrentConsent()`.
 
-- [ ] **Step 1: Write failing component tests**
+- [x] **Step 1: Write failing component tests**
 
 Cover new/outdated user dialog, unchecked button, successful accept plus refresh, already-current pass-through, status retry, accept retry, and stale refresh.
 
@@ -198,13 +198,13 @@ expect(mocks.acceptCurrentTos).toHaveBeenCalledWith('v3.1');
 expect(mocks.refresh).toHaveBeenCalledOnce();
 ```
 
-- [ ] **Step 2: Run test and verify RED**
+- [x] **Step 2: Run test and verify RED**
 
 Run: `npm test -- src/components/features/legal/__tests__/tos-consent-flow.integration.test.tsx`
 
 Expected: provider/dialog modules missing.
 
-- [ ] **Step 3: Implement controlled dialog**
+- [x] **Step 3: Implement controlled dialog**
 
 ```ts
 export interface TosConsentDialogProps {
@@ -221,7 +221,7 @@ export interface TosConsentDialogProps {
 
 Use `ResponsiveModal`, `Checkbox`, `/syarat-ketentuan` target `_blank`, no close button, controlled open state, and disabled submit until checked/version-ready/not-submitting.
 
-- [ ] **Step 4: Implement provider and RoleGuard wrapping**
+- [x] **Step 4: Implement provider and RoleGuard wrapping**
 
 ```ts
 interface TosConsentContextValue {
@@ -241,13 +241,13 @@ Initial status loading/error blocks children. Ready status renders children plus
 return <TosConsentGate>{children}</TosConsentGate>;
 ```
 
-- [ ] **Step 5: Run component tests**
+- [x] **Step 5: Run component tests**
 
 Run: `npm test -- src/components/features/legal/__tests__/tos-consent-flow.integration.test.tsx`
 
 Expected: all gate scenarios pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/components/features/legal/TosConsentDialog.tsx src/components/providers/TosConsentProvider.tsx src/components/auth/RoleGuard.tsx src/components/features/legal/__tests__/tos-consent-flow.integration.test.tsx
@@ -266,7 +266,7 @@ git commit -m "feat(tos): gate dashboards on explicit consent"
 - Consumes: `ensureCurrentConsent(): Promise<boolean>`.
 - Produces: no offer or withdrawal mutation until preflight succeeds.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```tsx
 mocks.ensureCurrentConsent.mockResolvedValue(false);
@@ -280,13 +280,13 @@ expect(mocks.acceptOffer).toHaveBeenCalledWith('offer-1');
 
 Withdrawal false preflight must keep confirmation intact and skip `requestWithdrawal`; true preflight must retain existing request-key behavior.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run: `npm test -- src/components/features/creator-dashboard/__tests__/rate-card-tos-preflight.integration.test.tsx src/components/features/creator-dashboard/__tests__/creator-finance-withdrawal.integration.test.tsx`
 
 Expected: mutations run without preflight.
 
-- [ ] **Step 3: Add minimal wiring**
+- [x] **Step 3: Add minimal wiring**
 
 ```ts
 const { ensureCurrentConsent } = useTosConsent();
@@ -298,11 +298,11 @@ if (accept && !(await ensureCurrentConsent())) {
 
 Withdrawal performs same check after local validation but before `requestWithdrawal`. Leave mutation services and backend logic unchanged.
 
-- [ ] **Step 4: Run tests and verify GREEN**
+- [x] **Step 4: Run tests and verify GREEN**
 
 Run same focused command. Expected: both suites pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/features/creator-dashboard/NegosiasiRoomView.tsx src/components/features/creator-dashboard/KeuanganView.tsx src/components/features/creator-dashboard/__tests__/rate-card-tos-preflight.integration.test.tsx src/components/features/creator-dashboard/__tests__/creator-finance-withdrawal.integration.test.tsx
@@ -322,7 +322,7 @@ git commit -m "fix(tos): preflight guarded financial actions"
 - Consumes: exact approved UMKM v3.1 `CHAPTERS_DATA` wording from commit `f2b6b935`.
 - Produces: `TERMS_CHAPTERS` shared by public and role pages.
 
-- [ ] **Step 1: Write failing content test**
+- [x] **Step 1: Write failing content test**
 
 ```ts
 it('exports approved v3.1 legal chapters', () => {
@@ -333,27 +333,27 @@ it('exports approved v3.1 legal chapters', () => {
 });
 ```
 
-- [ ] **Step 2: Run test and verify RED**
+- [x] **Step 2: Run test and verify RED**
 
 Run: `npm test -- src/content/__tests__/terms.test.ts`
 
 Expected: shared module missing.
 
-- [ ] **Step 3: Extract without wording changes**
+- [x] **Step 3: Extract without wording changes**
 
 Move UMKM `ChapterGroup` and `CHAPTERS_DATA` to `src/content/terms.ts`. Import `TERMS_CHAPTERS` in both guides. Keep role-specific rules and FAQs untouched.
 
-- [ ] **Step 4: Render public terms**
+- [x] **Step 4: Render public terms**
 
 Render shared chapters with semantic headings and lists inside existing Navbar/Footer. Label artifact “Versi 3.1 (Agustus 2026)” but do not use that label as runtime consent source.
 
-- [ ] **Step 5: Run content test**
+- [x] **Step 5: Run content test**
 
 Run: `npm test -- src/content/__tests__/terms.test.ts`
 
 Expected: five chapters and 22 articles match canonical data.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/content/terms.ts src/content/__tests__/terms.test.ts src/app/syarat-ketentuan/page.tsx src/app/dashboard/umkm/panduan/page.tsx src/app/dashboard/kreator/panduan/page.tsx
@@ -368,14 +368,14 @@ git commit -m "fix(legal): publish canonical T&C document"
 **Interfaces:**
 - Produces: verified implementation and deployment/UAT report.
 
-- [ ] **Step 1: Run relevant tests**
+- [x] **Step 1: Run relevant tests**
 
 ```bash
 npm --prefix 00_BACKEND run test:integration
 npm test -- src/services/auth/__tests__/tos.service.test.ts src/services/auth/__tests__/session-tos.integration.test.ts src/components/features/legal/__tests__/tos-consent-flow.integration.test.tsx src/components/features/creator-dashboard/__tests__/rate-card-tos-preflight.integration.test.tsx src/components/features/creator-dashboard/__tests__/creator-finance-withdrawal.integration.test.tsx src/content/__tests__/terms.test.ts
 ```
 
-- [ ] **Step 2: Run required project checks**
+- [x] **Step 2: Run required project checks**
 
 ```bash
 npm run typecheck
@@ -385,14 +385,14 @@ npm run build
 git diff --check 108a402^..HEAD
 ```
 
-- [ ] **Step 3: Audit scope and security**
+- [x] **Step 3: Audit scope and security**
 
 Confirm no frontend `updateDocument` on `users`, no permission edits, no payment/escrow/settlement/Campaign changes, and unchanged financial guards.
 
-- [ ] **Step 4: Request code review**
+- [x] **Step 4: Request code review**
 
 Dispatch reviewer against design spec and full diff. Fix Critical/Important findings; rerun affected and full verification.
 
-- [ ] **Step 5: Prepare handoff**
+- [x] **Step 5: Prepare handoff**
 
 Report diagnosis, architecture, changed files, legal conflict, staging redeploy needs, manual UAT, verification results, and remaining risks. Do not deploy.
