@@ -55,7 +55,7 @@ export const TERMS_CHAPTERS: TermsChapter[] = [
           "Rate Card — Etalase layanan Kreator berisi paket jasa, deskripsi, deliverable, harga, dan batas revisi (max 3 paket).",
           "Custom Offer — Penawaran resmi berisi lingkup kerja, harga final, dan tenggat waktu yang dikirim UMKM di ruang chat Rate Card.",
           "Collab Post — Konten dipublikasikan menggunakan fitur kolaborasi sosmed sehingga tampil di akun Kreator DAN akun UMKM sekaligus.",
-          "Escrow — Mekanisme penahanan dana oleh sistem Marketiv sejak pembayaran diterima hingga hasil pekerjaan dinyatakan valid.",
+          "Escrow — Mekanisme penahanan dana oleh sistem Marketiv untuk pembayaran order Rate Card sejak disetujui hingga hasil pekerjaan dinyatakan valid.",
           "Bukti Tayang (Submission) — Tautan URL publik konten pada sosial media (TikTok/Instagram) yang dikirim Kreator sebagai bukti tayang.",
           "Claim & Job Pool — Tindakan Kreator mengambil campaign aktif di daftar Job Pool dengan prinsip first come, first served.",
           "Wallet & Withdrawal — Dompet digital internal mencatat saldo tersedia/tertunda dan fasilitas penarikan dana ke rekening bank.",
@@ -90,19 +90,19 @@ export const TERMS_CHAPTERS: TermsChapter[] = [
         pasalNumber: "Pasal 7",
         title: "Deskripsi Layanan & Jenis Transaksi",
         items: [
-          "Campaign Mode (Pay-Per-View): Budget minimal Rp 50.000 + 2% biaya platform dibayar di muka ke escrow. First come first served. Strictly ZERO-CHAT (dilarang meminta/mencantumkan nomor WA atau kontak luar). Kreator submit URL publik HTTPS dalam 24 jam. Tanpa revisi & tanpa download video.",
-          "Rate Card Mode (Harga Tetap): Maksimal 3 paket aktif per Kreator. Pesanan via Direct Order atau Chat Nego. Kesepakatan diikat Custom Offer. Auto-Approve 3 hari kalender jika UMKM tidak memberikan tanggapan review. Wajib diposting sebagai Collab Post.",
+          "Campaign Mode (Pay-Per-View): Budget minimal Rp 50.000 + 2% biaya platform dialokasikan ke budget campaign (remainingBudget) di muka tanpa per-order Rate Card escrow. First come first served. Strictly ZERO-CHAT (dilarang meminta/mencantumkan nomor WA atau kontak luar). Kreator submit URL publik HTTPS dalam 24 jam. Tanpa revisi & tanpa download video.",
+          "Rate Card Mode (Harga Tetap): Maksimal 3 paket aktif per Kreator. Pesanan via Direct Order atau Chat Nego. Kesepakatan diikat Custom Offer. Pembayaran order menghasilkan escrow (Held) yang dirilis setelah disetujui manual / auto-approve 3 hari kalender jika UMKM tidak memberikan tanggapan review. Wajib diposting sebagai Collab Post.",
           "Custom Offer: Mengikat lingkup kerja & harga final secara mengunci setelah diterima Kreator.",
         ],
       },
       {
         pasalNumber: "Pasal 8",
-        title: "Pembayaran & Pengamanan Escrow",
+        title: "Pembayaran & Pengamanan Dana Transaksi",
         items: [
           "Seluruh pembayaran diproses otomatis via Midtrans. Marketiv tidak menerima pembayaran tunai atau transfer luar platform.",
-          "Escrow bersifat wajib untuk seluruh transaksi. Dana ditahan oleh sistem dan tidak diteruskan langsung ke Kreator di awal.",
-          "Status escrow (Held, Released, Refunded) hanya diubah oleh sistem/admin Marketiv berdasarkan Notifikasi Webhook resmi Midtrans yang terverifikasi.",
-          "Escrow dirilis jika: (a) Campaign Submission tervalidasi & disetujui; (b) Rate Card disetujui manual / auto-approve 3 hari; (c) Putusan dispute.",
+          "Mekanisme Pengamanan Dana: Pada Rate Card Mode, pembayaran order wajib ditahan di sistem Escrow (Held) dan tidak diteruskan langsung ke Kreator di awal. Pada Campaign Mode, pembayaran deposit dialokasikan ke budget campaign (remainingBudget) tanpa per-order Rate Card escrow.",
+          "Status escrow Rate Card (Held, Released, Refunded) hanya diubah oleh sistem/admin Marketiv berdasarkan Notifikasi Webhook resmi Midtrans atau verifikasi penyelesaian pekerjaan.",
+          "Pelepasan Dana & Payout: (a) Campaign Mode: reward submission dirilis langsung dari remainingBudget campaign ke Wallet Kreator setelah tervalidasi; (b) Rate Card Mode: dana Escrow dirilis ke Wallet Kreator setelah disetujui manual / auto-approve 3 hari atau putusan dispute.",
           "Saldo Wallet & Escrow tidak dapat bernilai negatif dan tercatat dalam audit log transaksi.",
         ],
       },
@@ -209,7 +209,7 @@ export const TERMS_CHAPTERS: TermsChapter[] = [
         items: [
           "Merek, logo, desain, dan kode Marketiv adalah milik sah pengelola Platform Marketiv.",
           "Aset UMKM dilisensikan terbatas kepada Kreator semata-mata untuk pengerjaan kampanye.",
-          "Hak cipta penuh atas konten beralih ke UMKM saat dana Escrow dirilis, dengan hak kreditasi merujuk username Kreator.",
+          "Hak cipta penuh atas konten beralih ke UMKM saat dana Escrow dirilis (Rate Card) atau hasil submission dinyatakan valid (Campaign), dengan hak kreditasi merujuk username Kreator.",
         ],
       },
       {
