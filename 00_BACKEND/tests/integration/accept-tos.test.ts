@@ -143,6 +143,17 @@ describe('accept-tos function', () => {
     expect(updateCalls).toHaveLength(0);
   });
 
+  it('backfills missing timestamp for same-version acceptance', async () => {
+    seed('users', [{ $id: 'u-c1', userId: 'c1', tos_version: 'v3.1' }]);
+
+    const response = await invoke({ action: 'accept', tos_version: 'v3.1' });
+
+    expect(response).toMatchObject({ status: 200, body: { success: true, alreadyAccepted: false, tos_version: 'v3.1' } });
+    expect(updateCalls).toHaveLength(1);
+    expect(updateCalls[0]).toMatchObject({ collection: 'users', docId: 'u-c1', data: { tos_accepted_at: expect.any(String) } });
+    expect(updateCalls[0].data).not.toHaveProperty('tos_version');
+  });
+
   it('rejects stale version without updating user', async () => {
     seed('users', [{ $id: 'u-c1', userId: 'c1', tos_version: 'v3.0' }]);
 

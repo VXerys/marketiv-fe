@@ -54,13 +54,12 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Versi T&C tidak sesuai dengan versi aktif." }, 400);
     }
 
-    if (user.tos_version === tosVersion) {
+    if (user.tos_version === tosVersion && user.tos_accepted_at) {
       return json(res, { success: true, alreadyAccepted: true, tos_version: tosVersion });
     }
-    await databases.updateDocument(env.databaseId, env.usersCollectionId, user.$id, {
-      tos_version: tosVersion,
-      tos_accepted_at: new Date().toISOString(),
-    });
+    const acceptanceData = { tos_accepted_at: new Date().toISOString() };
+    if (user.tos_version !== tosVersion) acceptanceData.tos_version = tosVersion;
+    await databases.updateDocument(env.databaseId, env.usersCollectionId, user.$id, acceptanceData);
     log(`T&C ${tosVersion} diterima oleh ${userId}`);
     return json(res, { success: true, alreadyAccepted: false, tos_version: tosVersion });
   } catch (err) {
