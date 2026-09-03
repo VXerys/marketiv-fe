@@ -21,29 +21,38 @@ export function TosConsentGate({ children }: { children: React.ReactNode }) {
   const [checked, setChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const statusRequest = useRef<Promise<TosStatus | null> | null>(null);
+  const initialLoaded = useRef(false);
 
   const verifyStatus = useCallback(async (): Promise<TosStatus | null> => {
     if (statusRequest.current) return statusRequest.current;
 
-    setPhase("loading");
+    const isInitial = !initialLoaded.current;
+    if (isInitial) {
+      setPhase("loading");
+    }
     setError(null);
     const request = (async () => {
       try {
         const result = await getTosStatus();
         if (!result.success || !result.data) {
-          setStatus(null);
-          setPhase("error");
+          if (isInitial) {
+            setStatus(null);
+            setPhase("error");
+          }
           setError(result.error ?? "Status persetujuan belum dapat diverifikasi. Coba lagi.");
           return null;
         }
 
+        initialLoaded.current = true;
         setStatus(result.data);
         setChecked(false);
         setPhase("ready");
         return result.data;
       } catch {
-        setStatus(null);
-        setPhase("error");
+        if (isInitial) {
+          setStatus(null);
+          setPhase("error");
+        }
         setError("Status persetujuan belum dapat diverifikasi. Coba lagi.");
         return null;
       } finally {

@@ -163,4 +163,87 @@ describe("TosConsentGate", () => {
     expect(document.querySelector('[data-testid="dashboard"]')).toBeNull();
     expect(document.querySelector('[role="dialog"]')?.textContent).toContain("belum bisa memverifikasi");
   });
+
+  it("keeps children mounted during ensureCurrentConsent preflight", async () => {
+    mocks.getTosStatus
+      .mockResolvedValueOnce({
+        success: true,
+        data: { currentVersion: "v3.1", acceptedVersion: "v3.1", acceptedAt: "2026-09-01T00:00:00.000Z", needsConsent: false },
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: { currentVersion: "v3.1", acceptedVersion: "v3.1", acceptedAt: "2026-09-01T00:00:00.000Z", needsConsent: false },
+      });
+    const { TosConsentGate, useTosConsent } = await import("@/components/providers/TosConsentProvider");
+
+    let preflightResult: boolean | null = null;
+    function PreflightTrigger() {
+      const { ensureCurrentConsent } = useTosConsent();
+      return (
+        <button
+          data-testid="preflight"
+          onClick={async () => {
+            preflightResult = await ensureCurrentConsent();
+          }}
+        >
+          Preflight
+        </button>
+      );
+    }
+
+    await render(
+      <TosConsentGate>
+        <p data-testid="dashboard">Dashboard</p>
+        <PreflightTrigger />
+      </TosConsentGate>,
+    );
+
+    expect(document.querySelector('[data-testid="dashboard"]')).not.toBeNull();
+
+    await click(document.querySelector('[data-testid="preflight"]') as HTMLElement);
+
+    expect(document.querySelector('[data-testid="dashboard"]')).not.toBeNull();
+    expect(preflightResult).toBe(true);
+  });
+
+  it("keeps children mounted when preflight errors after initial success", async () => {
+    mocks.getTosStatus
+      .mockResolvedValueOnce({
+        success: true,
+        data: { currentVersion: "v3.1", acceptedVersion: "v3.1", acceptedAt: "2026-09-01T00:00:00.000Z", needsConsent: false },
+      })
+      .mockResolvedValueOnce({
+        success: false, data: null, error: "Network error",
+      });
+    const { TosConsentGate, useTosConsent } = await import("@/components/providers/TosConsentProvider");
+
+    let preflightResult: boolean | null = null;
+    function PreflightTrigger() {
+      const { ensureCurrentConsent } = useTosConsent();
+      return (
+        <button
+          data-testid="preflight"
+          onClick={async () => {
+            preflightResult = await ensureCurrentConsent();
+          }}
+        >
+          Preflight
+        </button>
+      );
+    }
+
+    await render(
+      <TosConsentGate>
+        <p data-testid="dashboard">Dashboard</p>
+        <PreflightTrigger />
+      </TosConsentGate>,
+    );
+
+    expect(document.querySelector('[data-testid="dashboard"]')).not.toBeNull();
+
+    await click(document.querySelector('[data-testid="preflight"]') as HTMLElement);
+
+    expect(document.querySelector('[data-testid="dashboard"]')).not.toBeNull();
+    expect(preflightResult).toBe(false);
+  });
 });
