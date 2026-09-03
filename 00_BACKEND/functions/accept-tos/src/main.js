@@ -25,8 +25,28 @@ export default async ({ req, res, log, error }) => {
     if (!userId) return json(res, { error: "Unauthorized" }, 401);
 
     const body = parseBody(req);
-    const tosVersion = typeof body.tos_version === "string" ? body.tos_version.trim() : "";
+    const action = typeof body.action === "string" ? body.action.trim() : "accept";
+    if (action !== "status" && action !== "accept") {
+      return json(res, { error: "Action tidak didukung." }, 400);
+    }
 
+    const databases = createDatabasesClient(env);
+    const user = await findByUserId(databases, env.databaseId, env.usersCollectionId, userId);
+
+    if (!user) return json(res, { error: "Profil pengguna tidak ditemukan." }, 404);
+
+    if (action === "status") {
+      const acceptedVersion = user.tos_version || null;
+      const acceptedAt = user.tos_accepted_at || null;
+      return json(res, {
+        currentVersion: env.currentTosVersion,
+        acceptedVersion,
+        acceptedAt,
+        needsConsent: acceptedVersion !== env.currentTosVersion || !acceptedAt,
+      });
+    }
+
+    const tosVersion = typeof body.tos_version === "string" ? body.tos_version.trim() : "";
     if (!tosVersion) {
       return json(res, { error: "tos_version wajib diisi." }, 400);
     }
@@ -34,23 +54,15 @@ export default async ({ req, res, log, error }) => {
       return json(res, { error: "Versi T&C tidak sesuai dengan versi aktif." }, 400);
     }
 
-    const databases = createDatabasesClient(env);
-
-    const user = await findByUserId(databases, env.databaseId, env.usersCollectionId, userId);
-
-    if (user) {
-      if (user.tos_version === tosVersion) {
-        return json(res, { success: true, alreadyAccepted: true, tos_version: tosVersion });
-      }
-      await databases.updateDocument(env.databaseId, env.usersCollectionId, user.$id, {
-        tos_version: tosVersion,
-        tos_accepted_at: new Date().toISOString(),
-      });
-      log(`T&C ${tosVersion} diterima oleh ${userId}`);
-      return json(res, { success: true, alreadyAccepted: false, tos_version: tosVersion });
+    if (user.tos_version === tosVersion) {
+      return json(res, { success: true, alreadyAccepted: true, tos_version: tosVersion });
     }
-
-    return json(res, { error: "Profil pengguna tidak ditemukan." }, 404);
+    await databases.updateDocument(env.databaseId, env.usersCollectionId, user.$id, {
+      tos_version: tosVersion,
+      tos_accepted_at: new Date().toISOString(),
+    });
+    log(`T&C ${tosVersion} diterima oleh ${userId}`);
+    return json(res, { success: true, alreadyAccepted: false, tos_version: tosVersion });
   } catch (err) {
     error(err?.stack || err?.message || String(err));
     return json(res, { error: "Internal server error" }, 500);
