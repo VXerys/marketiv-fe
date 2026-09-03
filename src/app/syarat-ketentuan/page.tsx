@@ -1,4 +1,4 @@
-import { TERMS_CHAPTERS } from "@/content/terms";
+import { TERMS_CHAPTERS, TERMS_VERSION } from "@/content/terms";
 import { Footer } from "@/components/layouts/Footer";
 import { Navbar } from "@/components/layouts/Navbar";
 
@@ -9,7 +9,7 @@ export default function SyaratKetentuanPage() {
       <article className="mx-auto w-full max-w-4xl flex-1 px-6 py-16 sm:py-20">
         <header className="mb-12 border-b border-neutral-200 pb-8">
           <p className="mb-3 text-sm font-bold uppercase tracking-wider text-orange-600">
-            Versi 3.1 (Agustus 2026)
+            Versi {TERMS_VERSION} (Agustus 2026)
           </p>
           <h1 className="text-heading-2 font-bold text-neutral-900">Syarat &amp; Ketentuan</h1>
           <p className="mt-3 max-w-2xl text-body-base text-neutral-600">

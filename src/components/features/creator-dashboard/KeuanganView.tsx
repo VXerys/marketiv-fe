@@ -147,8 +147,12 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
     }
 
     try {
-      if (!(await ensureCurrentConsent())) return;
+      if (!(await ensureCurrentConsent())) {
+        setWithdrawError("Gagal memverifikasi status persetujuan Syarat & Ketentuan. Coba lagi.");
+        return;
+      }
     } catch {
+      setWithdrawError("Gagal memverifikasi status persetujuan Syarat & Ketentuan. Coba lagi.");
       return;
     }
 

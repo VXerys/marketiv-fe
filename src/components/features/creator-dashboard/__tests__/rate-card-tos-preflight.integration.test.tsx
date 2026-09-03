@@ -101,6 +101,7 @@ afterEach(async () => {
 
 describe("creator offer ToS preflight", () => {
   it("does not mutate an offer when consent preflight rejects", async () => {
+    const { toast } = await import("sonner");
     mocks.ensureCurrentConsent.mockResolvedValue(false);
     await renderRoom();
 
@@ -109,9 +110,13 @@ describe("creator offer ToS preflight", () => {
     expect(mocks.acceptOffer).not.toHaveBeenCalled();
     expect(mocks.rejectOffer).not.toHaveBeenCalled();
     expect(button("Terima Penawaran").disabled).toBe(false);
+    expect(toast.error).toHaveBeenCalledWith(
+      "Gagal memverifikasi status persetujuan Syarat & Ketentuan. Coba lagi."
+    );
   });
 
   it("does not mutate an offer when consent preflight errors", async () => {
+    const { toast } = await import("sonner");
     mocks.ensureCurrentConsent.mockRejectedValue(new Error("ToS unavailable"));
     await renderRoom();
 
@@ -119,6 +124,9 @@ describe("creator offer ToS preflight", () => {
 
     expect(mocks.acceptOffer).not.toHaveBeenCalled();
     expect(button("Terima Penawaran").disabled).toBe(false);
+    expect(toast.error).toHaveBeenCalledWith(
+      "Gagal memverifikasi status persetujuan Syarat & Ketentuan. Coba lagi."
+    );
   });
 
   it("accepts only after consent preflight succeeds", async () => {

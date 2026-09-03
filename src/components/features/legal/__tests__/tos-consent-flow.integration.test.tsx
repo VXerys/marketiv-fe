@@ -25,8 +25,8 @@ vi.mock("@/components/ui/responsive-modal", () => ({
   ResponsiveModalFooter: ({ children }: { children: React.ReactNode }) => <footer>{children}</footer>,
 }));
 vi.mock("@/components/ui/checkbox", () => ({
-  Checkbox: ({ checked, onCheckedChange }: { checked: boolean; onCheckedChange: (checked: boolean) => void }) => (
-    <button role="checkbox" aria-checked={checked} onClick={() => onCheckedChange(!checked)} />
+  Checkbox: ({ checked, onCheckedChange, disabled }: { checked: boolean; onCheckedChange: (checked: boolean) => void; disabled?: boolean }) => (
+    <button role="checkbox" aria-checked={checked} disabled={disabled} onClick={() => onCheckedChange(!checked)} />
   ),
 }));
 
@@ -245,5 +245,47 @@ describe("TosConsentGate", () => {
 
     expect(document.querySelector('[data-testid="dashboard"]')).not.toBeNull();
     expect(preflightResult).toBe(false);
+  });
+
+  it("blocks consent when server requires a version differing from local document metadata", async () => {
+    mocks.getTosStatus.mockResolvedValueOnce({
+      success: true,
+      data: { currentVersion: "v3.2", acceptedVersion: null, acceptedAt: null, needsConsent: true },
+    });
+    const { TosConsentGate } = await import("@/components/providers/TosConsentProvider");
+
+    await render(<TosConsentGate><p data-testid="dashboard">Dashboard</p></TosConsentGate>);
+
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(document.querySelector('[data-testid="dashboard"]')).toBeNull();
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+      "Dokumen Syarat & Ketentuan versi terbaru belum tersedia. Silakan coba kembali nanti."
+    );
+    expect(button("Setujui & Lanjutkan").disabled).toBe(true);
+
+    const checkbox = document.querySelector('[role="checkbox"]') as HTMLElement;
+    expect(checkbox.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("allows consent when server version matches local document metadata", async () => {
+    mocks.getTosStatus.mockResolvedValueOnce({
+      success: true,
+      data: { currentVersion: "v3.1", acceptedVersion: null, acceptedAt: null, needsConsent: true },
+    });
+    const { TosConsentGate } = await import("@/components/providers/TosConsentProvider");
+
+    await render(<TosConsentGate><p data-testid="dashboard">Dashboard</p></TosConsentGate>);
+
+    expect(document.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(button("Setujui & Lanjutkan").disabled).toBe(true);
+
+    const checkbox = document.querySelector('[role="checkbox"]') as HTMLElement;
+    expect(checkbox.hasAttribute("disabled")).toBe(false);
+
+    await click(checkbox);
+    expect(button("Setujui & Lanjutkan").disabled).toBe(false);
+
+    await click(button("Setujui & Lanjutkan"));
+    expect(mocks.acceptCurrentTos).toHaveBeenCalledWith("v3.1");
   });
 });

@@ -9,6 +9,8 @@ export interface TermsChapter {
   }[];
 }
 
+export const TERMS_VERSION = "v3.1";
+
 export const TERMS_CHAPTERS: TermsChapter[] = [
   {
     id: "bab-1",
@@ -117,7 +119,7 @@ export const TERMS_CHAPTERS: TermsChapter[] = [
         items: [
           "Tarif resmi biaya platform Marketiv adalah 2% (dua persen) per transaksi bersifat tetap per snapshot transaksi:",
           "a. Campaign Mode: Biaya 2% dibebankan ke UMKM di awal dan ditambahkan saat pembayaran deposit budget. Kreator menerima reward 100% penuh tanpa potongan.",
-          "b. Rate Card Mode: Biaya 2% dibebankan ke UMKM di awal saat pembayaran. Kreator menerima pendapatan flat netto penuh (0% potongan) saat pelepasan escrow.",
+          "b. Rate Card Mode: UMKM membayar tepat sesuai harga paket/Custom Offer tanpa biaya tambahan. Biaya platform 2% dipotong dari pendapatan Kreator saat pelepasan escrow.",
           "Rincian biaya dicatat secara transparan pada riwayat transaksi.",
         ],
       },

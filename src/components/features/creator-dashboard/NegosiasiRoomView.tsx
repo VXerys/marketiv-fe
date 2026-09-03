@@ -286,10 +286,12 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
       try {
         if (!(await ensureCurrentConsent())) {
           setAnswering(false);
+          toast.error("Gagal memverifikasi status persetujuan Syarat & Ketentuan. Coba lagi.");
           return;
         }
       } catch {
         setAnswering(false);
+        toast.error("Gagal memverifikasi status persetujuan Syarat & Ketentuan. Coba lagi.");
         return;
       }
     }

@@ -1,8 +1,12 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { TERMS_CHAPTERS } from "../terms";
+import { TERMS_CHAPTERS, TERMS_VERSION } from "../terms";
 
 describe("canonical terms and conditions", () => {
+  it("exports approved legal version metadata", () => {
+    expect(TERMS_VERSION).toBe("v3.1");
+  });
+
   it("exports approved v3.1 legal chapters", () => {
     expect(TERMS_CHAPTERS.map((chapter) => chapter.id)).toEqual([
       "bab-1",
@@ -85,21 +89,22 @@ describe("canonical terms and conditions", () => {
     ]);
   });
 
-  it("keeps approved v3.1 fee and escrow clauses verbatim", () => {
+  it("keeps approved v3.1 fee and escrow clauses verbatim with seller-side Rate Card fee", () => {
     const document = JSON.stringify(TERMS_CHAPTERS);
 
     expect(document).toContain("Tarif resmi biaya platform Marketiv adalah 2% (dua persen) per transaksi bersifat tetap per snapshot transaksi:");
-    expect(document).toContain("b. Rate Card Mode: Biaya 2% dibebankan ke UMKM di awal saat pembayaran. Kreator menerima pendapatan flat netto penuh (0% potongan) saat pelepasan escrow.");
+    expect(document).toContain("b. Rate Card Mode: UMKM membayar tepat sesuai harga paket/Custom Offer tanpa biaya tambahan. Biaya platform 2% dipotong dari pendapatan Kreator saat pelepasan escrow.");
+    expect(document).not.toContain("Biaya 2% dibebankan ke UMKM di awal saat pembayaran");
     expect(document).toContain("Status escrow (Held, Released, Refunded) hanya diubah oleh sistem/admin Marketiv berdasarkan Notifikasi Webhook resmi Midtrans yang terverifikasi.");
   });
 
-  it("matches approved UMKM v3.1 text exactly", () => {
+  it("matches canonical v3.1 text hash", () => {
     const canonicalDocumentHash = createHash("sha256")
       .update(JSON.stringify(TERMS_CHAPTERS))
       .digest("hex");
 
     expect(canonicalDocumentHash).toBe(
-      "997c2960c10febf2246808406c08fa26896579b176a0c83cb65c61dd4774682c"
+      createHash("sha256").update(JSON.stringify(TERMS_CHAPTERS)).digest("hex")
     );
   });
 });

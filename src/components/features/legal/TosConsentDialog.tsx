@@ -19,6 +19,7 @@ export interface TosConsentDialogProps {
   onCheckedChange: (checked: boolean) => void;
   onAccept: () => void;
   onRetryStatus: () => void;
+  acceptDisabled?: boolean;
 }
 
 export function TosConsentDialog({
@@ -30,9 +31,10 @@ export function TosConsentDialog({
   onCheckedChange,
   onAccept,
   onRetryStatus,
+  acceptDisabled: externalDisabled,
 }: TosConsentDialogProps) {
   const statusUnavailable = currentVersion == null;
-  const acceptDisabled = statusUnavailable || !checked || submitting;
+  const acceptDisabled = statusUnavailable || !checked || submitting || externalDisabled;
 
   return (
     <ResponsiveModal open={open} onOpenChange={() => undefined}>
@@ -61,7 +63,7 @@ export function TosConsentDialog({
                 checked={checked}
                 onCheckedChange={(next) => onCheckedChange(next === true)}
                 aria-label="Saya menyetujui Syarat dan Ketentuan"
-                disabled={submitting}
+                disabled={submitting || externalDisabled}
               />
               <span>
                 Saya sudah membaca dan menyetujui{" "}

@@ -3,15 +3,21 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { TosConsentDialog } from "@/components/features/legal/TosConsentDialog";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { TERMS_VERSION } from "@/content/terms";
 import { acceptCurrentTos, getTosStatus, type TosStatus } from "@/services/auth/tos.service";
 
 interface TosConsentContextValue {
   ensureCurrentConsent: () => Promise<boolean>;
+  preflightError: string | null;
+  clearPreflightError: () => void;
 }
 
 const TosConsentContext = createContext<TosConsentContextValue | null>(null);
 
 type ConsentPhase = "loading" | "ready" | "error";
+
+const DOCUMENT_MISMATCH_MESSAGE =
+  "Dokumen Syarat & Ketentuan versi terbaru belum tersedia. Silakan coba kembali nanti.";
 
 export function TosConsentGate({ children }: { children: React.ReactNode }) {
   const { refresh } = useAuth();
@@ -20,6 +26,7 @@ export function TosConsentGate({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [preflightError, setPreflightError] = useState<string | null>(null);
   const statusRequest = useRef<Promise<TosStatus | null> | null>(null);
   const initialLoaded = useRef(false);
 
@@ -46,6 +53,11 @@ export function TosConsentGate({ children }: { children: React.ReactNode }) {
         initialLoaded.current = true;
         setStatus(result.data);
         setChecked(false);
+
+        if (result.data.needsConsent && result.data.currentVersion !== TERMS_VERSION) {
+          setError(DOCUMENT_MISMATCH_MESSAGE);
+        }
+
         setPhase("ready");
         return result.data;
       } catch {
@@ -68,13 +80,38 @@ export function TosConsentGate({ children }: { children: React.ReactNode }) {
   }, [verifyStatus]);
 
   const ensureCurrentConsent = useCallback(async () => {
-    const latestStatus = await verifyStatus();
-    return latestStatus?.needsConsent === false;
+    setPreflightError(null);
+    try {
+      const latestStatus = await verifyStatus();
+      if (!latestStatus) {
+        setPreflightError("Status persetujuan belum dapat diverifikasi. Coba lagi nanti.");
+        return false;
+      }
+      if (latestStatus.needsConsent) {
+        if (latestStatus.currentVersion !== TERMS_VERSION) {
+          setPreflightError(DOCUMENT_MISMATCH_MESSAGE);
+        }
+        return false;
+      }
+      return true;
+    } catch {
+      setPreflightError("Status persetujuan belum dapat diverifikasi. Coba lagi nanti.");
+      return false;
+    }
   }, [verifyStatus]);
+
+  const clearPreflightError = useCallback(() => {
+    setPreflightError(null);
+  }, []);
 
   const accept = useCallback(async () => {
     const version = status?.currentVersion;
     if (!version || !checked || submitting) return;
+
+    if (version !== TERMS_VERSION) {
+      setError(DOCUMENT_MISMATCH_MESSAGE);
+      return;
+    }
 
     setSubmitting(true);
     setError(null);
@@ -102,8 +139,9 @@ export function TosConsentGate({ children }: { children: React.ReactNode }) {
     }
   }, [checked, refresh, status, submitting]);
 
+  const documentMismatch = phase === "ready" && status?.needsConsent === true && status.currentVersion !== TERMS_VERSION;
   const dialogOpen = phase === "error" || (phase === "ready" && status?.needsConsent === true);
-  const contextValue = { ensureCurrentConsent };
+  const contextValue = { ensureCurrentConsent, preflightError, clearPreflightError };
 
   return (
     <TosConsentContext.Provider value={contextValue}>
@@ -114,9 +152,10 @@ export function TosConsentGate({ children }: { children: React.ReactNode }) {
         error={error}
         submitting={submitting}
         checked={checked}
-        onCheckedChange={setChecked}
+        onCheckedChange={documentMismatch ? () => {} : setChecked}
         onAccept={accept}
         onRetryStatus={() => { void verifyStatus(); }}
+        acceptDisabled={documentMismatch}
       />
     </TosConsentContext.Provider>
   );

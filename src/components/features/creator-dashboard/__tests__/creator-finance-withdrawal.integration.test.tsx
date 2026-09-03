@@ -117,6 +117,9 @@ describe("creator manual withdrawal request", () => {
 
     expect(mocks.requestWithdrawal).not.toHaveBeenCalled();
     expect(document.body.textContent).toContain("Konfirmasi Penarikan Saldo");
+    expect(document.body.textContent).toContain(
+      "Gagal memverifikasi status persetujuan Syarat & Ketentuan. Coba lagi."
+    );
 
     mocks.ensureCurrentConsent.mockResolvedValue(true);
     mocks.requestWithdrawal.mockResolvedValue({
@@ -145,6 +148,9 @@ describe("creator manual withdrawal request", () => {
 
     expect(mocks.requestWithdrawal).not.toHaveBeenCalled();
     expect(document.body.textContent).toContain("Konfirmasi Penarikan Saldo");
+    expect(document.body.textContent).toContain(
+      "Gagal memverifikasi status persetujuan Syarat & Ketentuan. Coba lagi."
+    );
     expect(button("Konfirmasi & Ajukan").disabled).toBe(false);
   });
 
