@@ -2132,6 +2132,20 @@
           "default": null
         },
         {
+          "key": "umkm_archived",
+          "type": "boolean",
+          "required": false,
+          "array": false,
+          "default": false
+        },
+        {
+          "key": "creator_archived",
+          "type": "boolean",
+          "required": false,
+          "array": false,
+          "default": false
+        },
+        {
           "key": "is_archived",
           "type": "boolean",
           "required": false,

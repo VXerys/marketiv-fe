@@ -16,12 +16,17 @@ export default async ({ req, res, log, error }) => {
     const databases = createDatabasesClient(env);
     const conversation = await loadConversation(databases, env, conversationId);
     if (!conversation) return json(res, { error: "Percakapan tidak ditemukan." }, 404);
-    if (conversation.umkmId !== userId && conversation.creatorId !== userId) {
+    let archiveField;
+    if (conversation.umkmId === userId) {
+      archiveField = "umkm_archived";
+    } else if (conversation.creatorId === userId) {
+      archiveField = "creator_archived";
+    } else {
       return json(res, { error: "Percakapan tidak ditemukan." }, 404);
     }
 
     await databases.updateDocument(env.databaseId, env.conversationsCollectionId, conversationId, {
-      is_archived: body.isArchived,
+      [archiveField]: body.isArchived,
     });
 
     log(`Conversation ${conversationId} archive set to ${body.isArchived} by ${userId}`);

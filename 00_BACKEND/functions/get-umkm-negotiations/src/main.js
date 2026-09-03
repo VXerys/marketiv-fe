@@ -166,9 +166,8 @@ function toNegotiation(conversation, ctx) {
     lastMessage: str(conversation.last_message),
     lastMessageAt: str(conversation.last_message_at),
     unreadCount: ctx.unreadByConversationId.get(conversation.$id) ?? 0,
-    // Diambil dari kolomnya sendiri, bukan diturunkan dari status order —
-    // mengarsipkan adalah keputusan pengguna, bukan konsekuensi status.
-    isArchived: Boolean(conversation.is_archived),
+    // DTO publik tetap role-agnostic; field internal dipilih oleh Function ini.
+    isArchived: Boolean(conversation.umkm_archived),
 
     offerId: offer?.$id || undefined,
     offerStatus: offer ? str(offer.status) : undefined,

@@ -27,11 +27,15 @@
 ## Archive
 
 - Participant dapat mengarsipkan percakapan untuk menyembunyikannya dari inbox utama.
-- Archive bersifat soft: hanya mengubah `is_archived = true`, tidak menghapus data.
+- Archive bersifat per-participant: UMKM hanya mengubah `umkm_archived`, Creator hanya mengubah `creator_archived`.
+- Archive bersifat soft: tidak menghapus conversation, messages, offers, atau orders, dan tidak mengubah state bisnis/order.
 - Percakapan yang diarsipkan tetap dapat diakses melalui tab/filter Arsip.
-- Unarchive mengembalikan percakapan ke inbox utama (`is_archived = false`).
-- Archive tidak memengaruhi participant lain — setiap participant memiliki status archive sendiri (opsi masa depan: per-user flag).
-- Inbox default (daftar negosiasi) hanya menampilkan percakapan dengan `is_archived = false`.
+- Unarchive hanya mengembalikan percakapan ke inbox participant yang melakukan aksi.
+- Archive atau unarchive satu participant tidak boleh mengubah status archive participant lain.
+- `is_archived` deprecated dan dipertahankan sementara hanya untuk kompatibilitas skema; field ini bukan sumber status archive.
+- Nilai legacy `is_archived = true` tidak dapat dimigrasikan secara akurat karena actor awal tidak tersimpan. Jangan menebak actor atau menyalin nilai ke kedua participant.
+- Field per-participant baru selalu mulai dari default `false`, termasuk untuk conversation lama.
+- Mutasi archive hanya melalui `patch-conversation-archive`; Function menentukan participant dari caller Appwrite authoritative, bukan role dari payload browser.
 
 ## Realtime & Akses
 

@@ -23,6 +23,19 @@
 - Tidak menandai pesan milik sendiri.
 - `conversationId` kosong → throw `ChatServiceError('validation', ...)`.
 
+### Archive per Participant
+
+- UMKM archive hanya mengubah `umkm_archived` menjadi `true`.
+- Creator archive hanya mengubah `creator_archived` menjadi `true`.
+- UMKM unarchive tidak mengubah `creator_archived`.
+- Creator unarchive tidak mengubah `umkm_archived`.
+- Non-participant mendapat `404` dan tidak mengubah conversation.
+- Role tambahan dari payload browser diabaikan; caller Appwrite menentukan field.
+- DTO UMKM hanya membaca `umkm_archived`; DTO Creator hanya membaca `creator_archived`.
+- `is_archived = true` tidak otomatis membuat salah satu atau kedua participant archived.
+- Browser tidak menjalankan `updateDocument` untuk `conversations`.
+- Row conversation hanya memiliki participant `Permission.read`, tanpa participant `Permission.update`.
+
 ## Offer dari Chat
 
 - UMKM membuat offer (via `offer.service.ts` `createOffer`) → pesan tipe `offer` terkirim + dokumen `offers` terbuat.

@@ -513,6 +513,9 @@ const collections = [
       createStringAttr("offer_id", false, 255),
       createStringAttr("last_message", false, 1000),
       createDatetimeAttr("last_message_at", false),
+      createBoolAttr("umkm_archived", false, false),
+      createBoolAttr("creator_archived", false, false),
+      // Deprecated compatibility field. Per-participant columns are authoritative.
       createBoolAttr("is_archived", false, false),
     ],
     indexes: [

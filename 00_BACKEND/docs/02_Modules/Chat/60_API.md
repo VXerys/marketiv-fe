@@ -1,41 +1,44 @@
 # Chat — API
 
-## Service Layer (Client SDK)
+## Frontend-facing Contracts
 
-Fungsi-fungsi berikut dipanggil langsung dari frontend Next.js via **Appwrite Client SDK (Database, Realtime)**. Berjalan di browser user.
+Service frontend mempertahankan public DTO, sementara mutasi sensitif dijalankan melalui Appwrite Function tepercaya.
 
 ---
 
-### `createConversation()` — [Client SDK]
+### `createConversation()` — [Appwrite Function]
 
 - **Input**: `{ umkmId, creatorId }`
 - **Proses**: cek apakah pasangan sudah punya conversation; jika belum, buat dokumen `conversations` baru. Mengembalikan conversation yang ada/baru.
 - **Akses**: Participant (UMKM / Creator).
 
-### `sendMessage()` — [Client SDK]
+### `sendMessage()` — [Appwrite Function]
 
 - **Input**: `{ conversationId, type?, content?, offerId? }` — `type` default `text`.
 - **Proses**: validasi participant, tipe pesan; buat dokumen `messages`; update `last_message` & `last_message_at` pada conversation induk.
 - **Akses**: Participant.
 
-### `getConversations()` — [Client SDK]
+### `getConversations()` — [Legacy Client SDK]
 
 - **Input**: `{ limit?, includeArchived? }` — `includeArchived` default `false`.
-- **Proses**: query semua percakapan milik user. Jika `includeArchived = false`, filter `is_archived = false`.
+- **Proses**: kontrak legacy. Layar negosiasi aktif membaca status archive dari Function DTO role-specific di bawah, bukan `is_archived`.
 - **Output**: `Conversation[]` — tiap objek mencakup `id`, `umkmId`, `creatorId`, `lastMessage`, `lastMessageAt`, `isArchived`.
 - **Akses**: Participant.
 
-### `archiveConversation()` — [Client SDK]
+### `patch-conversation-archive` — [Appwrite Function]
 
-- **Input**: `{ conversationId }`
-- **Proses**: set `is_archived = true`, sembunyikan dari inbox default. Pesan tetap utuh.
-- **Akses**: Participant (UMKM / Creator).
+- **Input frontend**: `{ conversationId: string, isArchived: boolean }`.
+- **Caller**: `x-appwrite-user-id` dari Appwrite Function context/header authoritative.
+- **Proses**: load conversation, verifikasi caller participant, lalu update hanya `umkm_archived` atau `creator_archived` sesuai ID caller.
+- **Larangan**: tidak menerima role frontend dan tidak mengubah `is_archived`.
+- **Akses**: participant; non-participant menerima `404` agar keberadaan conversation tidak bocor.
 
-### `unarchiveConversation()` — [Client SDK]
+### DTO Negosiasi Archive
 
-- **Input**: `{ conversationId }`
-- **Proses**: set `is_archived = false`, kembalikan ke inbox utama.
-- **Akses**: Participant (UMKM / Creator).
+- `get-umkm-negotiations`: `isArchived = Boolean(conversation.umkm_archived)`.
+- `get-creator-negotiations`: `isArchived = Boolean(conversation.creator_archived)`.
+- Public DTO tetap memakai `isArchived: boolean`; frontend tidak menerima nama field internal per-participant.
+- Legacy `is_archived` tidak digunakan sebagai fallback, termasuk saat nilainya `true`.
 
 ### `markConversationAsRead()` — [Client SDK]
 

@@ -610,28 +610,113 @@ describe('mark-conversation-read function', () => {
 });
 
 describe('patch-conversation-archive function', () => {
-  it.each([
-    [true, 'umkm-1'],
-    [false, 'creator-1'],
-  ] as const)('sets archive=%s for participant %s', async (isArchived, userId) => {
+  async function patchArchive(userId: string, isArchived: boolean, body = {}) {
     process.env.CONVERSATIONS_COLLECTION_ID = 'conversations';
-    seed('conversations', [{ $id: 'conv-1', umkm_id: 'umkm-1', creator_id: 'creator-1', is_archived: !isArchived }]);
     const main = (await import('../../functions/patch-conversation-archive/src/main.js')).default;
-    const req = makeReq({
-      headers: { 'x-appwrite-user-id': userId },
-      bodyJson: { conversationId: 'conv-1', isArchived },
-    });
     const res = makeRes();
 
-    await main({ req, res, log: () => {}, error: () => {} });
+    await main({
+      req: makeReq({
+        headers: { 'x-appwrite-user-id': userId },
+        bodyJson: { conversationId: 'conv-1', isArchived, ...body },
+      }),
+      res,
+      log: () => {},
+      error: () => {},
+    });
 
-    expect(res.calls[0].body.ok).toBe(true);
-    expect(store.conversations[0].is_archived).toBe(isArchived);
+    return res;
+  }
+
+  it('archives only UMKM state and ignores a frontend role', async () => {
+    seed('conversations', [{
+      $id: 'conv-1',
+      umkm_id: 'umkm-1',
+      creator_id: 'creator-1',
+      umkm_archived: false,
+      creator_archived: false,
+      is_archived: false,
+    }]);
+
+    const res = await patchArchive('umkm-1', true, { role: 'creator' });
+
+    expect(res.calls.at(-1).body.ok).toBe(true);
+    expect(store.conversations[0]).toMatchObject({
+      umkm_archived: true,
+      creator_archived: false,
+      is_archived: false,
+    });
+    expect(updateCalls.at(-1)?.data).toEqual({ umkm_archived: true });
   });
 
-  it('rejects non-participant without changing archive state', async () => {
+  it('archives only Creator state', async () => {
+    seed('conversations', [{
+      $id: 'conv-1',
+      umkm_id: 'umkm-1',
+      creator_id: 'creator-1',
+      umkm_archived: false,
+      creator_archived: false,
+      is_archived: false,
+    }]);
+
+    const res = await patchArchive('creator-1', true);
+
+    expect(res.calls.at(-1).body.ok).toBe(true);
+    expect(store.conversations[0]).toMatchObject({
+      umkm_archived: false,
+      creator_archived: true,
+      is_archived: false,
+    });
+    expect(updateCalls.at(-1)?.data).toEqual({ creator_archived: true });
+  });
+
+  it('UMKM unarchive does not change Creator state', async () => {
+    seed('conversations', [{
+      $id: 'conv-1',
+      umkm_id: 'umkm-1',
+      creator_id: 'creator-1',
+      umkm_archived: true,
+      creator_archived: true,
+    }]);
+
+    await patchArchive('umkm-1', false);
+
+    expect(store.conversations[0]).toMatchObject({
+      umkm_archived: false,
+      creator_archived: true,
+    });
+    expect(updateCalls.at(-1)?.data).toEqual({ umkm_archived: false });
+  });
+
+  it('Creator unarchive does not change UMKM state', async () => {
+    seed('conversations', [{
+      $id: 'conv-1',
+      umkm_id: 'umkm-1',
+      creator_id: 'creator-1',
+      umkm_archived: true,
+      creator_archived: true,
+    }]);
+
+    await patchArchive('creator-1', false);
+
+    expect(store.conversations[0]).toMatchObject({
+      umkm_archived: true,
+      creator_archived: false,
+    });
+    expect(updateCalls.at(-1)?.data).toEqual({ creator_archived: false });
+  });
+
+  it('rejects non-participant without changing either archive state', async () => {
     process.env.CONVERSATIONS_COLLECTION_ID = 'conversations';
-    seed('conversations', [{ $id: 'conv-1', umkm_id: 'umkm-1', creator_id: 'creator-1', is_archived: false }]);
+    seed('conversations', [{
+      $id: 'conv-1',
+      umkm_id: 'umkm-1',
+      creator_id: 'creator-1',
+      umkm_archived: false,
+      creator_archived: true,
+      is_archived: true,
+    }]);
+    const before = structuredClone(store.conversations[0]);
     const main = (await import('../../functions/patch-conversation-archive/src/main.js')).default;
     const res = makeRes();
 
@@ -646,7 +731,62 @@ describe('patch-conversation-archive function', () => {
     });
 
     expect(res.calls.at(-1).status).toBe(404);
-    expect(store.conversations[0].is_archived).toBe(false);
+    expect(store.conversations[0]).toEqual(before);
+    expect(updateCalls).toHaveLength(0);
+  });
+});
+
+describe('negotiation archive DTOs', () => {
+  it('UMKM DTO reads only umkm_archived and ignores legacy shared archive', async () => {
+    seed('conversations', [{
+      $id: 'conv-1',
+      umkm_id: 'umkm-1',
+      creator_id: 'creator-1',
+      umkm_archived: false,
+      creator_archived: true,
+      is_archived: true,
+    }]);
+    const main = (await import('../../functions/get-umkm-negotiations/src/main.js')).default;
+    const res = makeRes();
+
+    await main({
+      req: makeReq({
+        headers: { 'x-appwrite-user-id': 'umkm-1' },
+        bodyJson: { conversationId: 'conv-1' },
+      }),
+      res,
+      log: () => {},
+      error: () => {},
+    });
+
+    expect(res.calls.at(-1).status).toBe(200);
+    expect(res.calls.at(-1).body.isArchived).toBe(false);
+  });
+
+  it('Creator DTO reads only creator_archived and ignores legacy shared archive', async () => {
+    seed('conversations', [{
+      $id: 'conv-1',
+      umkm_id: 'umkm-1',
+      creator_id: 'creator-1',
+      umkm_archived: true,
+      creator_archived: false,
+      is_archived: true,
+    }]);
+    const main = (await import('../../functions/get-creator-negotiations/src/main.js')).default;
+    const res = makeRes();
+
+    await main({
+      req: makeReq({
+        headers: { 'x-appwrite-user-id': 'creator-1' },
+        bodyJson: { conversationId: 'conv-1' },
+      }),
+      res,
+      log: () => {},
+      error: () => {},
+    });
+
+    expect(res.calls.at(-1).status).toBe(200);
+    expect(res.calls.at(-1).body.isArchived).toBe(false);
   });
 });
 

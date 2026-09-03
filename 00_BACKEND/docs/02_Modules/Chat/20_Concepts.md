@@ -16,5 +16,5 @@
 - Denormalisasi `lastMessage` pada conversation untuk performa daftar chat.
 - Read receipt diupdate otomatis saat penerima membuka chat room.
 - Arsip bersifat per-user: participant dapat mengarsipkan percakapan tanpa memengaruhi participant lain.
-- Inbox default hanya menampilkan percakapan yang tidak diarsipkan (`is_archived = false`).
+- Inbox default hanya menampilkan percakapan yang tidak diarsipkan oleh participant aktif.
 - Percakapan yang diarsipkan dapat dikembalikan ke inbox utama kapan saja.

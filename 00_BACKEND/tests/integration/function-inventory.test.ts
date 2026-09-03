@@ -7,6 +7,41 @@ import fs from "node:fs";
 const backendDir = path.resolve(import.meta.dirname, "../..");
 
 describe("function inventory audit", () => {
+  it("keeps participant archive columns and legacy compatibility in generated schema", () => {
+    const generator = fs.readFileSync(
+      path.join(backendDir, "appwrite/generate_appwrite_json.cjs"),
+      "utf8",
+    );
+    const appwriteConfig = JSON.parse(
+      fs.readFileSync(path.join(backendDir, "appwrite.config.json"), "utf8"),
+    );
+    const conversations = appwriteConfig.tables.find(
+      (table: { $id: string }) => table.$id === "conversations",
+    );
+    const columns = new Map(
+      conversations?.columns.map((column: { key: string }) => [column.key, column]),
+    );
+
+    expect(conversations?.$permissions).toEqual(['create("users")']);
+    expect(generator).toContain('createBoolAttr("umkm_archived", false, false)');
+    expect(generator).toContain('createBoolAttr("creator_archived", false, false)');
+    expect(columns.get("umkm_archived")).toMatchObject({
+      type: "boolean",
+      required: false,
+      default: false,
+    });
+    expect(columns.get("creator_archived")).toMatchObject({
+      type: "boolean",
+      required: false,
+      default: false,
+    });
+    expect(columns.get("is_archived")).toMatchObject({
+      type: "boolean",
+      required: false,
+      default: false,
+    });
+  });
+
   it("loads shared ESM from Appwrite's CommonJS runtime package scope", () => {
     const appwriteConfig = JSON.parse(
       fs.readFileSync(path.join(backendDir, "appwrite.config.json"), "utf8"),
