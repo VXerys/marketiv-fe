@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { DATA_SOURCE_CONFIG } from "@/config/data-source.config";
 import { realtimeClient, tableChannels } from "@/lib/appwrite/realtime";
 import { useNegotiationRoomSync } from "@/lib/negotiation/use-negotiation-room-sync";
+import { useTosConsent } from "@/components/providers/TosConsentProvider";
 import {
   ArrowLeft,
   Send,
@@ -115,6 +116,7 @@ function StatusPill({ status }: { status: string }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
+  const { ensureCurrentConsent } = useTosConsent();
   const [neg, setNeg] = useState<CreatorNegotiation | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -279,6 +281,18 @@ export function NegosiasiRoomView({ conversationId }: NegosiasiRoomViewProps) {
   const answerOffer = async (accept: boolean) => {
     if (!neg?.offerId || answering) return;
     setAnswering(true);
+
+    if (accept) {
+      try {
+        if (!(await ensureCurrentConsent())) {
+          setAnswering(false);
+          return;
+        }
+      } catch {
+        setAnswering(false);
+        return;
+      }
+    }
 
     const res = accept ? await acceptOffer(neg.offerId) : await rejectOffer(neg.offerId);
     if (!res.success) {

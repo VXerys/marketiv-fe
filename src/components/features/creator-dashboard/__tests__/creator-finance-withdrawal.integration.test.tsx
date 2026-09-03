@@ -6,10 +6,15 @@ import type { CreatorMetric } from "@/types/creator-dashboard";
 
 const mocks = vi.hoisted(() => ({
   requestWithdrawal: vi.fn(),
+  ensureCurrentConsent: vi.fn(),
 }));
 
 vi.mock("@/services/creator/creator-dashboard.service", () => ({
   requestWithdrawal: mocks.requestWithdrawal,
+}));
+
+vi.mock("@/components/providers/TosConsentProvider", () => ({
+  useTosConsent: () => ({ ensureCurrentConsent: mocks.ensureCurrentConsent }),
 }));
 
 vi.mock("@/components/ui/responsive-modal", () => ({
@@ -93,6 +98,7 @@ async function confirmWithdrawal() {
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
+  mocks.ensureCurrentConsent.mockResolvedValue(true);
   vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValue("11111111-1111-4111-8111-111111111111");
 });
 
@@ -103,6 +109,45 @@ afterEach(async () => {
 });
 
 describe("creator manual withdrawal request", () => {
+  it("keeps confirmation and request key when consent preflight rejects", async () => {
+    mocks.ensureCurrentConsent.mockResolvedValue(false);
+    await renderFinance();
+    await enterConfirmation();
+    await confirmWithdrawal();
+
+    expect(mocks.requestWithdrawal).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain("Konfirmasi Penarikan Saldo");
+
+    mocks.ensureCurrentConsent.mockResolvedValue(true);
+    mocks.requestWithdrawal.mockResolvedValue({
+      success: true,
+      data: {
+        withdrawalId: "wd-preflight",
+        amount: 100_000,
+        status: "requested",
+        requestedAt: "2026-08-25T07:00:00.000Z",
+        balanceAfter: 400_000,
+        transactionId: "tx-preflight",
+      },
+    });
+    await confirmWithdrawal();
+
+    expect(mocks.requestWithdrawal).toHaveBeenCalledWith(expect.objectContaining({
+      requestKey: "11111111-1111-4111-8111-111111111111",
+    }));
+  });
+
+  it("keeps confirmation retryable when consent preflight errors", async () => {
+    mocks.ensureCurrentConsent.mockRejectedValue(new Error("ToS unavailable"));
+    await renderFinance();
+    await enterConfirmation();
+    await confirmWithdrawal();
+
+    expect(mocks.requestWithdrawal).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain("Konfirmasi Penarikan Saldo");
+    expect(button("Konfirmasi & Ajukan").disabled).toBe(false);
+  });
+
   it("uses authoritative balanceAfter and shows a pending request, not payout success", async () => {
     mocks.requestWithdrawal.mockResolvedValue({
       success: true,

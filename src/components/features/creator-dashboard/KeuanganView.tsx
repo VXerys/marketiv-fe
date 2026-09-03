@@ -53,6 +53,7 @@ import {
 } from "@/lib/validations/withdrawal.schema";
 import { parseOrErrors } from "@/lib/validations/to-field-errors";
 import { requestWithdrawal } from "@/services/creator/creator-dashboard.service";
+import { useTosConsent } from "@/components/providers/TosConsentProvider";
 
 interface KeuanganViewProps {
   metrics: CreatorMetric;
@@ -60,6 +61,7 @@ interface KeuanganViewProps {
 }
 
 export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps) {
+  const { ensureCurrentConsent } = useTosConsent();
   // Fallback 0, bukan angka contoh: ini nominal uang yang dibaca kreator.
   const [walletMetrics, setWalletMetrics] = useState<CreatorMetric>({
     ...metrics,
@@ -141,6 +143,12 @@ export function KeuanganView({ metrics, initialTransactions }: KeuanganViewProps
     });
     if (!parsed.ok) {
       setWithdrawError(Object.values(parsed.errors)[0] ?? "Periksa kembali data penarikan.");
+      return;
+    }
+
+    try {
+      if (!(await ensureCurrentConsent())) return;
+    } catch {
       return;
     }
 
