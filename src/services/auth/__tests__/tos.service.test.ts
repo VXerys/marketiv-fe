@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   executeFunction: vi.fn(),
+  mockDelay: vi.fn(),
+  useMockData: false,
 }));
 
 vi.mock("@/lib/appwrite/functions", () => ({
@@ -9,8 +11,21 @@ vi.mock("@/lib/appwrite/functions", () => ({
   executeFunction: mocks.executeFunction,
 }));
 
+vi.mock("@/config/data-source.config", () => ({
+  DATA_SOURCE_CONFIG: {
+    get useMockData() {
+      return mocks.useMockData;
+    },
+  },
+}));
+
+vi.mock("@/lib/mock-delay", () => ({ mockDelay: mocks.mockDelay }));
+
 describe("T&C service", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mocks.useMockData = false;
+  });
 
   it("requests status from accept-tos", async () => {
     mocks.executeFunction.mockResolvedValue({
@@ -41,5 +56,36 @@ describe("T&C service", () => {
       action: "accept",
       tos_version: "v3.1",
     });
+  });
+
+  it("returns accepted mock T&C status without calling Function", async () => {
+    mocks.useMockData = true;
+    const { getTosStatus } = await import("../tos.service");
+
+    const result = await getTosStatus();
+
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        acceptedVersion: result.data?.currentVersion,
+        acceptedAt: expect.any(String),
+        needsConsent: false,
+      },
+    });
+    expect(mocks.executeFunction).not.toHaveBeenCalled();
+  });
+
+  it("accepts current mock T&C without calling Function", async () => {
+    mocks.useMockData = true;
+    const { acceptCurrentTos, getTosStatus } = await import("../tos.service");
+    const status = await getTosStatus();
+
+    const result = await acceptCurrentTos(status.data?.currentVersion ?? "");
+
+    expect(result).toMatchObject({
+      success: true,
+      data: { alreadyAccepted: true, tos_version: status.data?.currentVersion },
+    });
+    expect(mocks.executeFunction).not.toHaveBeenCalled();
   });
 });
