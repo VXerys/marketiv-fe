@@ -1,0 +1,12 @@
+{
+  "name": "submit-ratecard-deliverable",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "test": "node --test src/main.test.js"
+  },
+  "dependencies": {
+    "node-appwrite": "^14.1.0"
+  }
+}

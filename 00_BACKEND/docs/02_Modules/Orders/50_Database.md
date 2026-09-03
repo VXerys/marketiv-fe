@@ -41,7 +41,7 @@ Draft/hasil kerja creator, berversi. Relasi: Order (1) → Deliverables (N). Fil
 
 **Index**: `orderId`, `createdAt DESC`.
 
-**Permission**: Buyer · Seller · Admin.
+**Permission dokumen**: Creator `read`; UMKM order `read` + `update`; server/Admin via API key. Collection tidak memberi `create/read/update` kepada browser.
 
 > **Catatan Hukum (T&C)**: Titik peralihan kepemilikan konten (transfer lisensi) dari Kreator ke UMKM secara sah terjadi pada saat escrow dirilis (`release-escrow`), **bukan** saat deliverable dikirim/disubmit.
 

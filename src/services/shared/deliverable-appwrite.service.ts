@@ -1,6 +1,7 @@
 import { ID, Permission, Query, Role } from "appwrite";
 import { databases } from "@/lib/appwrite/databases";
 import { appwriteConfig } from "@/lib/appwrite/config";
+import { executeFunction, FUNCTION_IDS } from "@/lib/appwrite/functions";
 import type { ServiceResult } from "@/types/domain";
 import type {
   Deliverable,
@@ -163,52 +164,11 @@ export async function uploadDeliverableInAppwrite(
   const payload = parsed.data;
 
   try {
-    const participation = await loadOrderParticipation(payload.orderId, auth.userId);
-    if (!participation) return fail("Pesanan tidak ditemukan.", "not_found", empty);
-
-    if (participation.role !== "creator") {
-      return fail("Hanya kreator pengerja yang dapat mengirim deliverable.", "forbidden", empty);
-    }
-    if (participation.status !== "in_progress" && participation.status !== "revision") {
-      return fail(
-        "Deliverable hanya bisa dikirim saat pesanan sedang dikerjakan atau direvisi.",
-        "validation",
-        empty
-      );
-    }
-
-    const existing = await databases.listDocuments(DB, DELIVERABLES, [
-      Query.equal("orderId", payload.orderId),
-      Query.orderDesc("version"),
-      Query.limit(1),
-    ]);
-    const currentVersion = num((existing.documents[0] as unknown as Doc)?.version);
-
-    const created = await databases.createDocument(
-      DB,
-      DELIVERABLES,
-      ID.unique(),
-      {
-        orderId: payload.orderId,
-        source: payload.source,
-        fileUrl: payload.fileUrl,
-        // Hanya jalur storage yang punya baris `user_files` untuk ditautkan.
-        fileId: payload.source === "storage" ? payload.fileId || null : null,
-        notes: payload.notes || null,
-        version: currentVersion + 1,
-        status: "submitted",
-        createdAt: new Date().toISOString(),
-      },
-      // Kedua pihak membaca; HANYA UMKM yang boleh update. Lihat catatan jalur
-      // uang di header file ini.
-      [
-        Permission.read(Role.user(participation.umkmId)),
-        Permission.read(Role.user(participation.creatorId)),
-        Permission.update(Role.user(participation.umkmId)),
-      ]
+    const created = await executeFunction<Deliverable>(
+      FUNCTION_IDS.submitRatecardDeliverable,
+      payload
     );
-
-    return ok(mapDeliverable(created as unknown as Doc));
+    return ok(created);
   } catch (err) {
     return failFromWriteError<Deliverable>(err, empty, "Data deliverable tidak valid.");
   }

@@ -104,10 +104,11 @@ UMKM buka `Creator Discovery` → profil creator → lihat rate card → pilih j
 
 ## Tahap Bersama: Deliverable & Review
 
-14. **Orders** — Creator `uploadDeliverable()`:
+14. **Orders** — Creator `uploadDeliverable()` memanggil Function `submit-ratecard-deliverable`:
     - **Internal (storage)**: upload via Function `validate-and-upload` dengan `shareWithOrderId` — Function menurunkan pihak lawan dari baris `orders` dan memberinya `Permission.read`. **Tanpa parameter itu UMKM tidak akan bisa membuka berkasnya.** Relasi ke order dicatat di `deliverables.fileId`. Terikat kuota creator.
     - **External URL**: link Google Drive/Dropbox/CDN (`https` saja). Bebas kuota.
-    - Deliverable tersimpan: `{ orderId, source, fileUrl, version: n+1, status: 'submitted' }`.
+    - Function memverifikasi caller sebagai `orders.creatorId` dan order berstatus `in_progress`/`revision`.
+    - Deliverable tersimpan server-side: `{ orderId, source, fileUrl, version: n+1, status: 'submitted' }`; Creator read-only, UMKM mendapat read + update.
 15. **Event `deliverables.rows.*.create`** memicu function **`notify-order-activity`**.
 16. **Notifications** — Notifikasi ke UMKM: "Deliverable sudah diupload — review sekarang".
 17. **Admin Marketiv** — review manual bukti kolaborasi. MVP ini tidak memakai verifikasi otomatis Instagram/TikTok atau klaim API platform.

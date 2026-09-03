@@ -2,7 +2,7 @@
 
 ## Service Layer (Client SDK)
 
-Fungsi-fungsi berikut dipanggil langsung dari frontend Next.js via **Appwrite Client SDK (Database)**. Berjalan di browser user.
+Read dan mutation non-cross-user berikut memakai service frontend. Create deliverable menjadi pengecualian: service memanggil Appwrite Function karena row permission lintas-user tidak boleh dipasang sesi browser.
 
 ---
 
@@ -12,13 +12,16 @@ Fungsi-fungsi berikut dipanggil langsung dari frontend Next.js via **Appwrite Cl
 - **Proses**: list order milik user terkait.
 - **Akses**: Buyer / Seller (own) · Admin.
 
-### `uploadDeliverable()` — [Client SDK]
+### `uploadDeliverable()` — [Appwrite Function]
 
 - **Input**: `{ orderId, source, fileUrl, fileId?, notes? }`
 - **Proses**:
-  - Jika `source = storage`, file sudah diupload via File Manager; validasi `fileId` milik creator.
+  - Jika `source = storage`, file sudah diupload via File Manager; validasi `fileId` aktif, milik creator, dan metadata memberi UMKM order izin read.
   - Jika `source = external_url`, simpan URL eksternal langsung.
-  - Buat dokumen `deliverables` dengan versi berikutnya (`status = submitted`); set order `in_progress`. Notify UMKM untuk review.
+  - Frontend memanggil Function `submit-ratecard-deliverable`; browser tidak membuat dokumen langsung.
+  - Function mengambil caller dari execution header, memuat order, dan hanya menerima Creator owner saat status `in_progress`/`revision`.
+  - Function membuat dokumen `deliverables` dengan versi berikutnya dan `status = submitted` memakai API key. ID deterministik dari `(orderId, version)` membuat submit paralel versi sama berakhir HTTP 409, bukan duplikat versi.
+  - Permission dokumen: Creator `read`; UMKM order `read` + `update`; Creator tidak mendapat `update`.
 - **Akses**: Creator (seller).
 
 ### `approveDeliverable()` — [Client SDK] *(memicu Appwrite Function `release-escrow`)*
@@ -45,7 +48,13 @@ Fungsi-fungsi berikut dipanggil langsung dari frontend Next.js via **Appwrite Cl
 
 ## Appwrite Functions (Server-side)
 
-Fungsi-fungsi berikut di-deploy ke **Appwrite Cloud** dan dipicu oleh **event database**. Tidak dipanggil langsung dari frontend.
+Fungsi berikut di-deploy ke **Appwrite Cloud**. Trigger dapat berupa eksekusi sinkron frontend atau event database sesuai tiap kontrak.
+
+### `submit-ratecard-deliverable` — [Appwrite Function]
+
+- **Trigger**: eksekusi sinkron dari frontend oleh authenticated user.
+- **Aksi**: authorization owner Creator, validasi state/input/file, hitung `latestVersion + 1`, lalu create deliverable dengan least-privilege row permissions.
+- **Tidak melakukan**: approve deliverable, update order, release escrow, wallet, atau payment.
 
 ### `create-order` — [Appwrite Function]
 

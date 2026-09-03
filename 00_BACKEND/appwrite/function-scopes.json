@@ -251,5 +251,9 @@
   "submit-campaign-proof": [
     "documents.read",
     "documents.write"
+  ],
+  "submit-ratecard-deliverable": [
+    "documents.read",
+    "documents.write"
   ]
 }

@@ -2659,9 +2659,7 @@
     {
       "$id": "deliverables",
       "name": "Deliverables",
-      "$permissions": [
-        "create(\"users\")"
-      ],
+      "$permissions": [],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
       "rowSecurity": true,
@@ -4835,6 +4833,26 @@
       "entrypoint": "src/main.js",
       "commands": "npm install",
       "path": "functions/submit-campaign-proof",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
+      "$id": "submit-ratecard-deliverable",
+      "name": "Submit Rate Card Deliverable",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/submit-ratecard-deliverable",
       "scopes": [
         "documents.read",
         "documents.write"

@@ -12,8 +12,9 @@
 // dari datanya sendiri.
 //
 // Gelombang 3 (2026-07-28, prasyarat Sprint 4 Alur B): deliverables, revisions.
-// Row perm keduanya sudah dipasang order.service.ts dan sudah ter-deploy lewat
-// push tim backend 2026-07-27 — pengecualian gelombang 2 tidak berlaku lagi.
+// Row perm revisions dipasang order.service.ts. Create deliverables kini hanya
+// lewat submit-ratecard-deliverable agar permission lintas-user dan authorization
+// order selalu berasal dari server.
 //
 // Gelombang 4 (2026-07-28): bucket `user-files`. Bukan tabel — endpoint dan
 // bentuk payloadnya berbeda, jadi ditangani blok BUCKET_TARGETS terpisah di
@@ -100,11 +101,11 @@ const TARGETS = [
   // ── Gelombang 3 ────────────────────────────────────────────────────────
   {
     id: "deliverables",
-    permissions: ['create("users")'],
+    permissions: [],
     rowSecurity: true,
     why:
-      'update("users") level koleksi = SIAPA PUN yang login bisa menyetujui deliverable siapa pun, ' +
-      "dan update itulah yang memicu release-escrow mencairkan dana; row perm dipasang order.service.ts:240",
+      'create/update("users") melewati trusted submit dan bisa memalsukan status/order; ' +
+      "row perm dipasang submit-ratecard-deliverable, approval tetap hanya UMKM order",
   },
   {
     id: "revisions",

@@ -10,16 +10,22 @@ Catatan: Order **tidak dibuat** oleh service frontend. Order dibuat oleh Appwrit
 - Filter `status` → `Query.equal('status', ...)`.
 - Default urut `Query.orderDesc('$createdAt')`, limit 50.
 
-### Deliverable (`uploadDeliverable`)
+### Deliverable (`submit-ratecard-deliverable`)
 
-- `orderId` kosong → throw `OrderServiceError('validation', 'Order ID wajib diisi.')`.
+- Caller tanpa sesi → HTTP 401.
+- Method selain POST → HTTP 405.
+- `orderId` kosong/tidak valid → HTTP 400; order tidak ditemukan → HTTP 404.
 - Creator (owner order) upload deliverable → version auto-increment (`currentVersion + 1`), status `submitted`.
 - Upload berulang → version bertambah.
-- Bukan owner order → throw `OrderServiceError('forbidden', 'Hanya creator pemilik order yang dapat mengunggah deliverable.')`.
-- `source === 'storage'` tanpa `fileId` → throw `OrderServiceError('validation', 'fileId wajib diisi untuk source storage.')`.
-- `source === 'storage'` dengan `fileId` milik user lain → throw `OrderServiceError('forbidden', 'File harus milik kamu.')`.
-- `source === 'external_url'` tanpa `https://` → throw `OrderServiceError('validation', 'External URL harus menggunakan protokol HTTPS.')`.
-- Order status berubah ke `in_progress` jika belum.
+- UMKM order atau Creator lain memanggil Function → HTTP 403.
+- Order bukan `in_progress`/`revision` → HTTP 409.
+- `source === 'storage'` tanpa `fileId` → HTTP 400; metadata tidak ditemukan → HTTP 404.
+- `source === 'storage'` dengan `fileId` milik user lain → HTTP 403; file non-active atau belum memberi UMKM read → HTTP 409.
+- Semua `fileUrl`, termasuk source storage, wajib URL HTTPS valid → HTTP 400.
+- Submit paralel untuk versi sama memakai document ID sama; satu create berhasil, lainnya HTTP 409.
+- Submit tidak mengubah status order, escrow, wallet, atau payment.
+- Dokumen memberi `read` ke Creator + UMKM, `update` hanya ke UMKM.
+- Collection `deliverables` tidak memberi browser `create/read/update`; direct Creator `updateDocument(..., { status: 'approved' })` ditolak Appwrite.
 
 ### Approve Deliverable (`approveDeliverable`)
 

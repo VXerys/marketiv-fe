@@ -36,6 +36,39 @@ describe("function inventory audit", () => {
     expect(configFunction?.scopes).toEqual(expectedScopes);
   });
 
+  it("registers trusted Rate Card deliverable submission and closes browser create", () => {
+    const functionScopes = JSON.parse(
+      fs.readFileSync(path.join(backendDir, "appwrite/function-scopes.json"), "utf8"),
+    );
+    const appwriteConfig = JSON.parse(
+      fs.readFileSync(path.join(backendDir, "appwrite.config.json"), "utf8"),
+    );
+    const permissionHardener = fs.readFileSync(
+      path.join(backendDir, "appwrite/ops/harden-permissions.mjs"),
+      "utf8",
+    );
+    const submitFunction = appwriteConfig.functions.find(
+      (fn: { $id: string }) => fn.$id === "submit-ratecard-deliverable",
+    );
+    const deliverables = appwriteConfig.tables.find(
+      (table: { $id: string }) => table.$id === "deliverables",
+    );
+
+    expect(functionScopes["submit-ratecard-deliverable"]).toEqual([
+      "documents.read",
+      "documents.write",
+    ]);
+    expect(submitFunction).toMatchObject({
+      execute: ["users"],
+      path: "functions/submit-ratecard-deliverable",
+      scopes: ["documents.read", "documents.write"],
+    });
+    expect(deliverables?.$permissions).toEqual([]);
+    expect(permissionHardener).toMatch(
+      /id:\s*"deliverables",\s*permissions:\s*\[\]/,
+    );
+  });
+
   it("keeps retired legacy money functions disabled while Midtrans payments stay active", () => {
     const appwriteConfig = JSON.parse(
       fs.readFileSync(path.join(backendDir, "appwrite.config.json"), "utf8"),

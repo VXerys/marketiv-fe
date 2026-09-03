@@ -618,10 +618,12 @@ const collections = [
     // jadi update("users") di sini membuat setiap user login bisa mengubah
     // baris deliverable siapa pun — termasuk menyetujuinya, dan approve
     // itulah yang memicu release-escrow mencairkan dana ke wallet kreator.
-    // Akses hanya lewat permission baris yang dipasang order.service.ts
-    // (read: kedua pihak, update: UMKM saja).
-    // JANGAN kembalikan read/update("users") di sini.
-    $permissions: ['create("users")'],
+    // Akses hanya lewat permission baris yang dipasang Function
+    // submit-ratecard-deliverable (read: kedua pihak, update: UMKM saja).
+    // Create browser juga ditutup: selain tidak bisa memberi izin ke UMKM,
+    // jalur itu melewati authorization order dan validasi file server-side.
+    // JANGAN kembalikan create/read/update("users") di sini.
+    $permissions: [],
     documentSecurity: true,
     enabled: true,
     attributes: [
@@ -1464,11 +1466,12 @@ const functions = [
   },
   // ── Tulis lintas-user (Sprint 8) ──────────────────────────────────────────
   //
-  // Keempatnya ada di server BUKAN karena agregasi, tapi karena Appwrite
+  // Mutation berikut ada di server BUKAN karena agregasi, tapi karena Appwrite
   // melarang klien memasang permission untuk user LAIN: dari sesi browser
   // `permissions` hanya boleh menyebut `any`, `users`, dan role diri sendiri.
   // Sementara `conversations`, `messages`, `offers`, `campaign_submissions`,
-  // dan `campaign_claims` tidak punya izin baca/tulis di level koleksi, jadi
+  // `campaign_claims`, dan `deliverables` tidak punya izin baca/tulis yang
+  // dibutuhkan di level koleksi, jadi
   // lawan bicara HANYA bisa mengaksesnya lewat permission per-baris.
   //
   // Dua syarat itu tidak bisa dipenuhi bersamaan dari browser. Jangan
@@ -1644,6 +1647,20 @@ const functions = [
     entrypoint: "src/main.js",
     commands: "npm install",
     path: "../functions/submit-campaign-proof",
+  },
+  {
+    $id: "submit-ratecard-deliverable",
+    name: "Submit Rate Card Deliverable",
+    runtime: "node-22",
+    execute: ["users"],
+    events: [],
+    schedule: "",
+    timeout: 15,
+    enabled: true,
+    logging: true,
+    entrypoint: "src/main.js",
+    commands: "npm install",
+    path: "../functions/submit-ratecard-deliverable",
   },
   // ── Admin read DTO (P3 campaign/admin bugfix) ─────────────────────────────
   // Browser hanya mengeksekusi Function. Authorization + database join tetap

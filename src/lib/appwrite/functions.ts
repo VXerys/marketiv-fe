@@ -30,12 +30,13 @@ export const FUNCTION_IDS = {
   umkmNegotiations: "get-umkm-negotiations",
   // ── Tulis lintas-user (Sprint 8) ─────────────────────────────────────────
   /**
-   * Empat aksi tulis yang HARUS lewat server, bukan karena agregasi tapi karena
+   * Aksi tulis berikut HARUS lewat server, bukan karena agregasi tapi karena
    * Appwrite melarang klien memasang permission untuk user lain — dari sesi
    * browser `permissions` hanya boleh menyebut `any`, `users`, dan role diri
    * sendiri. Sementara `conversations`/`messages`/`offers`/`campaign_*` tidak
    * punya izin di level koleksi, jadi lawan bicara cuma bisa mengaksesnya lewat
-   * permission per-baris.
+   * permission per-baris. `deliverables` juga harus memberi READ ke Creator +
+   * UMKM dan UPDATE hanya ke UMKM pemilik order.
    *
    * Gejalanya kalau ada yang memindahkannya kembali ke klien:
    * `AppwriteException: Permissions must be one of: (any, users, user:<diri
@@ -45,6 +46,7 @@ export const FUNCTION_IDS = {
   sendMessage: "send-message",
   createOffer: "create-offer",
   submitCampaignProof: "submit-campaign-proof",
+  submitRatecardDeliverable: "submit-ratecard-deliverable",
   reviewSubmission: "review-submission",
   unclaimCampaign: "unclaim-campaign",
   markNotificationsRead: "mark-notifications-read",
