@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { TosConsentGate } from "@/components/providers/TosConsentProvider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { routes, dashboardByRole } from "@/lib/constants/routes";
 import { provisionUserProfile } from "@/services/auth/auth.service";
@@ -101,7 +102,7 @@ export function RoleGuard({
     );
   }
 
-  return <>{children}</>;
+  return <TosConsentGate>{children}</TosConsentGate>;
 }
 
 /** Sesi hidup, profil belum terbentuk. Beri jalan keluar, bukan redirect. */
