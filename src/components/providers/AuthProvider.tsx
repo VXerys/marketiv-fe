@@ -8,13 +8,20 @@ import {
 } from "@/services/auth/session.service";
 import type { ServiceErrorCode, ServiceResult } from "@/types/domain";
 
+export interface RefreshOptions {
+  /** Jangan menyalakan loading global untuk refresh yang tidak boleh melepas guard aktif. */
+  background?: boolean;
+  /** Pertahankan sesi terakhir bila pembacaan ulang gagal. */
+  preserveUserOnError?: boolean;
+}
+
 interface AuthContextValue {
   user: SessionUser | null;
   loading: boolean;
   /** Kode error terakhir — UI memetakan code, bukan teks pesan (R3). */
   errorCode: ServiceErrorCode | null;
   error: string | null;
-  refresh: () => Promise<ServiceResult<SessionUser>>;
+  refresh: (options?: RefreshOptions) => Promise<ServiceResult<SessionUser>>;
   logout: () => Promise<ServiceResult<null>>;
 }
 
@@ -27,26 +34,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const applySession = useCallback(
-    (res: Awaited<ReturnType<typeof getSession>>) => {
+    (res: Awaited<ReturnType<typeof getSession>>, options?: RefreshOptions) => {
       if (res.success && res.data) {
         setUser(res.data);
         setErrorCode(null);
         setError(null);
       } else {
-        setUser(null);
+        if (!options?.preserveUserOnError) setUser(null);
         setErrorCode(res.code ?? "unknown");
         setError(res.error ?? null);
       }
-      setLoading(false);
+      if (!options?.background) setLoading(false);
     },
     []
   );
 
   /** Refresh manual (dipanggil dari event handler, bukan dari body effect). */
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  const refresh = useCallback(async (options?: RefreshOptions) => {
+    if (!options?.background) setLoading(true);
     const res = await getSession();
-    applySession(res);
+    applySession(res, options);
     return res;
   }, [applySession]);
 

@@ -76,7 +76,7 @@ export function TosConsentGate({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const refreshed = await refresh();
+      const refreshed = await refresh({ background: true, preserveUserOnError: true });
       const refreshedUser = refreshed.success ? refreshed.data : null;
       const verifiedAcceptedAt = refreshedUser?.tosAcceptedAt;
       if (refreshedUser?.tosVersion !== version || !verifiedAcceptedAt) {
