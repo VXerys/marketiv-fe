@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createRequestRatecardRevisionHandler } from "./main.js";
+import { createRequestRatecardRevisionHandler, revisionDocumentId } from "./main.js";
 
 const NOW = "2026-09-04T03:00:00.000Z";
 
@@ -44,6 +44,7 @@ function makeDatabases({
     fileUrl: "https://drive.example.test/v1",
   }],
   revisions = [],
+  failures = {},
 } = {}) {
   const state = {
     caller,
@@ -52,6 +53,7 @@ function makeDatabases({
     revisions: revisions.map((item) => ({ ...item })),
     createCalls: [],
     updateCalls: [],
+    failures: { ...failures },
   };
 
   return {
@@ -86,6 +88,10 @@ function makeDatabases({
     },
     async updateDocument(_databaseId, collectionId, documentId, data) {
       state.updateCalls.push({ collectionId, documentId, data });
+      if (state.failures[collectionId] > 0) {
+        state.failures[collectionId] -= 1;
+        throw new Error(`Injected ${collectionId} update failure`);
+      }
       if (collectionId === "orders") {
         state.order = { ...state.order, ...data };
         return state.order;
@@ -103,7 +109,6 @@ function makeDatabases({
 async function run(databases, req) {
   const handler = createRequestRatecardRevisionHandler({
     createDatabases: () => databases,
-    createRevisionId: (_orderId, count) => `revision_${count}`,
     getEnvironment: () => ({
       databaseId: "database_1",
       usersCollectionId: "users",
@@ -113,11 +118,25 @@ async function run(databases, req) {
       offersCollectionId: "offers",
       packagesCollectionId: "rate_card_packages",
     }),
-    now: () => new Date(NOW),
   });
   const res = responseRecorder();
   await handler({ req, res, log() {}, error() {} });
   return res.value;
+}
+
+function addConcurrentCreateBarrier(databases) {
+  let createCount = 0;
+  let release;
+  const barrier = new Promise((resolve) => {
+    release = resolve;
+  });
+  const createDocument = databases.createDocument.bind(databases);
+  databases.createDocument = async (...args) => {
+    createCount += 1;
+    if (createCount === 2) release();
+    await barrier;
+    return createDocument(...args);
+  };
 }
 
 test("active UMKM owner requests revision and resets review timer without financial writes", async () => {
@@ -150,6 +169,7 @@ test("active UMKM owner requests revision and resets review timer without financ
   assert.equal(databases.state.order.reminder_sent_at, null);
   assert.equal(databases.state.deliverables[0].status, "revision_requested");
   assert.equal(databases.state.revisions.length, 1);
+  assert.equal(databases.state.revisions[0].$id, revisionDocumentId("order_1", "deliverable_1"));
   assert.deepEqual(databases.state.createCalls.map((call) => call.collectionId), ["revisions"]);
   assert.deepEqual(databases.state.createCalls[0].data, {
     orderId: "order_1",
@@ -237,4 +257,83 @@ test("invalid message and ineligible order are rejected before writes", async ()
   const stateResult = await run(invalidState, request({ orderId: "order_1", message: "too late" }));
   assert.equal(stateResult.statusCode, 409);
   assert.equal(invalidState.state.revisions.length, 0);
+});
+
+test("retry after revision create succeeds and deliverable update fails resumes without second revision", async () => {
+  const databases = makeDatabases({ failures: { deliverables: 1 } });
+  const first = await run(databases, request({ orderId: "order_1", message: "retry me" }));
+
+  assert.equal(first.statusCode, 500);
+  assert.equal(databases.state.revisions.length, 1);
+  assert.equal(databases.state.deliverables[0].status, "submitted");
+
+  const retry = await run(databases, request({ orderId: "order_1", message: "retry me" }));
+
+  assert.equal(retry.statusCode, 200);
+  assert.equal(databases.state.revisions.length, 1);
+  assert.equal(databases.state.deliverables[0].status, "revision_requested");
+  assert.equal(databases.state.order.status, "revision");
+  assert.equal(databases.state.order.review_deadline_at, null);
+  assert.equal(databases.state.order.reminder_sent_at, null);
+});
+
+test("retry after deliverable succeeds and order update fails resumes order side effect", async () => {
+  const databases = makeDatabases({ failures: { orders: 1 } });
+  const first = await run(databases, request({ orderId: "order_1", message: "retry order" }));
+
+  assert.equal(first.statusCode, 500);
+  assert.equal(databases.state.revisions.length, 1);
+  assert.equal(databases.state.deliverables[0].status, "revision_requested");
+  assert.equal(databases.state.order.status, "in_progress");
+
+  const retry = await run(databases, request({ orderId: "order_1", message: "retry order" }));
+
+  assert.equal(retry.statusCode, 200);
+  assert.equal(databases.state.revisions.length, 1);
+  assert.equal(databases.state.deliverables[0].status, "revision_requested");
+  assert.equal(databases.state.order.status, "revision");
+  assert.equal(databases.state.order.review_deadline_at, null);
+  assert.equal(databases.state.order.reminder_sent_at, null);
+});
+
+test("concurrent requests for same submitted deliverable create one logical revision", async () => {
+  const databases = makeDatabases();
+  addConcurrentCreateBarrier(databases);
+
+  const results = await Promise.all([
+    run(databases, request({ orderId: "order_1", message: "double click" })),
+    run(databases, request({ orderId: "order_1", message: "double click" })),
+  ]);
+
+  assert.deepEqual(results.map((result) => result.statusCode).sort(), [200, 200]);
+  assert.equal(databases.state.revisions.length, 1);
+  assert.equal(databases.state.createCalls.length, 1);
+  assert.equal(databases.state.deliverables[0].status, "revision_requested");
+  assert.equal(databases.state.order.status, "revision");
+});
+
+test("retry recovery does not consume revision limit twice and second cycle remains available", async () => {
+  const databases = makeDatabases({
+    order: { ...makeDatabases().state.order, revision_limit: 2 },
+    failures: { deliverables: 1 },
+  });
+  const first = await run(databases, request({ orderId: "order_1", message: "first cycle" }));
+  assert.equal(first.statusCode, 500);
+
+  const retry = await run(databases, request({ orderId: "order_1", message: "first cycle" }));
+  assert.equal(retry.statusCode, 200);
+  assert.equal(databases.state.revisions.length, 1);
+
+  databases.state.deliverables.unshift({
+    $id: "deliverable_2",
+    orderId: "order_1",
+    version: 2,
+    status: "submitted",
+  });
+  const secondCycle = await run(databases, request({ orderId: "order_1", message: "second cycle" }));
+
+  assert.equal(secondCycle.statusCode, 200);
+  assert.equal(databases.state.revisions.length, 2);
+  assert.equal(databases.state.createCalls.length, 2);
+  assert.equal(databases.state.order.status, "revision");
 });

@@ -29,8 +29,10 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 
 - **Trigger**: POST sinkron dari frontend; executable `users`.
 - **Authorization**: caller hanya dari `x-appwrite-user-id`; profile harus UMKM aktif dan `orders.umkmId` harus sama dengan caller. UMKM lain menerima 404 anti-enumeration; Creator menerima 403.
-- **State**: order harus `in_progress` atau `revision`, dan latest deliverable harus `submitted`. Guard ini menolak double-click setelah latest menjadi `revision_requested`, tetapi membuka siklus baru setelah Creator mengirim versi berikutnya.
-- **Aksi**: hitung total revision rows terhadap limit dari order/offer/package, create revision server-side dengan `read` UMKM + Creator, set latest deliverable `revision_requested`, set order `revision`, reset `review_deadline_at` dan `reminder_sent_at`.
+- **State**: order harus `in_progress` atau `revision`, dan logical request baru harus latest deliverable `submitted`. Guard menolak duplicate tanpa matching row; matching deterministic row dengan latest `revision_requested` dipakai untuk recovery. Siklus baru terbuka setelah Creator mengirim versi berikutnya.
+- **Aksi**: key satu logical request dari `(orderId, latestDeliverableId)`, hitung total revision rows terhadap limit dari order/offer/package hanya saat row baru dibuat, create revision server-side dengan `read` UMKM + Creator, set latest deliverable `revision_requested`, set order `revision`, reset `review_deadline_at` dan `reminder_sent_at`.
+- **Retry/concurrency**: deterministic row lookup mendahului status/limit guard. Jika row sudah ada, command melanjutkan side effect yang hilang; `submitted` diubah menjadi `revision_requested`, `revision_requested` dianggap selesai, dan order/timer selalu direkonsiliasi. Create conflict diperlakukan sebagai concurrent winner, bukan 409 final.
+- **Atomicity decision**: `node-appwrite` 14.2.0 yang dipakai Function tidak menyediakan transaction pada `Databases` document API. Appwrite transaction endpoint yang tersedia berlaku pada TablesDB rows, sedangkan collections ini masih memakai document API; command memakai deterministic idempotent recovery.
 - **Invariant**: tidak menulis `revision_count`, validation, escrow, wallet, atau payment. `revision_count` tetap dihitung `track-order-review` saat deliverable baru dibuat.
 - **Scope**: `documents.read`, `documents.write`.
 
@@ -54,7 +56,7 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 ## Aturan Backend
 
 - Deliverable version di-auto-increment per upload.
-- Revision hanya dapat diminta jika `jumlah revisi < revisionLimit` dan latest deliverable berstatus `submitted`.
+- Revision baru hanya dapat diminta jika `jumlah revisi < revisionLimit` dan latest deliverable berstatus `submitted`; retry matching row boleh berjalan saat latest sudah `revision_requested`.
 - Validasi kepemilikan: hanya UMKM terkait yang dapat approve/reject.
 - Deliverable `source = storage` wajib memiliki `fileId` yang valid dan milik creator seller.
 - Deliverable `source = external_url` wajib protokol `https`.

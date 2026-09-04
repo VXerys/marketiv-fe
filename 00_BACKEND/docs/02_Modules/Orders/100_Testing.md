@@ -43,10 +43,13 @@ Catatan: Order **tidak dibuat** oleh service frontend. Order dibuat oleh Appwrit
 - Caller tanpa execution identity → HTTP 401.
 - Creator caller → HTTP 403; UMKM lain pada order → HTTP 404 anti-enumeration.
 - UMKM owner pada order `in_progress` atau `revision` dengan latest deliverable `submitted` → revision `open`, latest deliverable `revision_requested`, order `revision`.
-- Latest deliverable selain `submitted` → HTTP 409; ini menolak double-click tanpa memblokir siklus berikutnya setelah Creator submit v2.
+- Latest deliverable selain `submitted` → HTTP 409 untuk logical request baru; matching deterministic row pada `revision_requested` harus recovery 200. Ini menolak double-click tanpa memblokir siklus berikutnya setelah Creator submit v2.
 - Jumlah revision rows ≥ `revisionLimit` authoritative → HTTP 409; status `open`/`resolved` sama-sama dihitung.
 - Revision row hanya memberi `read` ke UMKM + Creator; tidak ada browser create/update permission.
 - Timer review di order di-reset: `review_deadline_at = null`, `reminder_sent_at = null`.
+- Retry setelah revision create/deliverable/order partial failure menyelesaikan missing side effect tanpa row kedua.
+- Concurrent request pada latest deliverable yang sama menghasilkan satu logical revision dan satu pemakaian limit.
+- Revision ID deterministik dari `orderId + latestDeliverableId`; matching row yang sedang direcover bukan duplicate error.
 - `revision_count`, validation, escrow, wallet, dan payment tidak berubah; `revision_count` tetap dihitung `track-order-review` saat deliverable baru dibuat.
 - v1 validation tidak berlaku untuk v2: release hanya menerima validation yang cocok dengan latest deliverable ID, order ID, version, source, dan evidence URL.
 - `sync-order-revision` retired: event `revisions.rows.*.create` dilepas dan Function disabled.

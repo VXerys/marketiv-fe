@@ -69,7 +69,7 @@ export function createRequestRatecardRevisionHandler(dependencies = {}) {
       }
 
       const latest = await findLatestDeliverable(databases, env, orderId);
-      if (!latest || str(latest.status) !== "submitted") {
+      if (!latest) {
         return json(
           res,
           { error: "Deliverable terbaru belum siap untuk diminta revisi." },
@@ -77,49 +77,83 @@ export function createRequestRatecardRevisionHandler(dependencies = {}) {
         );
       }
 
-      const revisions = await databases.listDocuments(
+      const revisionId = createRevisionId(orderId, latest.$id);
+      let revision = await getDocumentOrNull(
+        databases,
         env.databaseId,
         env.revisionsCollectionId,
-        [Query.equal("orderId", orderId), Query.limit(1)]
+        revisionId
       );
-      const revisionCount = Number(revisions.total || 0);
-      const revisionLimit = await resolveRevisionLimit(databases, env, order);
-      if (!Number.isInteger(revisionLimit) || revisionCount >= revisionLimit) {
+
+      if (revision && !isMatchingRevision(revision, orderId, callerId)) {
+        return json(res, { error: "Data permintaan revisi tidak konsisten." }, 409);
+      }
+
+      if (!revision) {
+        if (str(latest.status) !== "submitted") {
+          return json(
+            res,
+            { error: "Deliverable terbaru belum siap untuk diminta revisi." },
+            409
+          );
+        }
+
+        const revisions = await databases.listDocuments(
+          env.databaseId,
+          env.revisionsCollectionId,
+          [Query.equal("orderId", orderId), Query.limit(1)]
+        );
+        const revisionCount = Number(revisions.total || 0);
+        const revisionLimit = await resolveRevisionLimit(databases, env, order);
+        if (!Number.isInteger(revisionLimit) || revisionCount >= revisionLimit) {
+          return json(
+            res,
+            { error: `Batas revisi (${revisionLimit}) sudah tercapai. Setujui apa adanya atau buka sengketa.` },
+            409
+          );
+        }
+
+        try {
+          revision = await databases.createDocument(
+            env.databaseId,
+            env.revisionsCollectionId,
+            revisionId,
+            {
+              orderId,
+              requestedBy: callerId,
+              message: input.message.trim(),
+              status: "open",
+            },
+            revisionPermissions(callerId, creatorId)
+          );
+        } catch (err) {
+          if (err?.code !== 409) throw err;
+          revision = await getDocumentOrNull(
+            databases,
+            env.databaseId,
+            env.revisionsCollectionId,
+            revisionId
+          );
+          if (!revision || !isMatchingRevision(revision, orderId, callerId)) throw err;
+        }
+      }
+
+      if (!["submitted", "revision_requested"].includes(str(latest.status))) {
         return json(
           res,
-          { error: `Batas revisi (${revisionLimit}) sudah tercapai. Setujui apa adanya atau buka sengketa.` },
+          { error: "Deliverable terbaru belum siap untuk diminta revisi." },
           409
         );
       }
 
-      const revisionData = {
-        orderId,
-        requestedBy: callerId,
-        message: input.message.trim(),
-        status: "open",
-      };
-      let revision;
-      try {
-        revision = await databases.createDocument(
+      if (str(latest.status) === "submitted") {
+        await databases.updateDocument(
           env.databaseId,
-          env.revisionsCollectionId,
-          createRevisionId(orderId, revisionCount + 1),
-          revisionData,
-          revisionPermissions(callerId, creatorId)
+          env.deliverablesCollectionId,
+          latest.$id,
+          { status: "revision_requested" }
         );
-      } catch (err) {
-        if (err?.code === 409) {
-          return json(res, { error: "Permintaan revisi sudah diproses. Muat ulang pesanan." }, 409);
-        }
-        throw err;
       }
-
-      await databases.updateDocument(
-        env.databaseId,
-        env.deliverablesCollectionId,
-        latest.$id,
-        { status: "revision_requested" }
-      );
       await databases.updateDocument(
         env.databaseId,
         env.ordersCollectionId,
@@ -210,9 +244,13 @@ function revisionPermissions(umkmId, creatorId) {
   ];
 }
 
-export function revisionDocumentId(orderId, revisionNumber) {
-  const digest = createHash("sha256").update(`${orderId}:${revisionNumber}`).digest("hex");
+export function revisionDocumentId(orderId, latestDeliverableId) {
+  const digest = createHash("sha256").update(`${orderId}:${latestDeliverableId}`).digest("hex");
   return `rev${digest.slice(0, 29)}`;
+}
+
+function isMatchingRevision(revision, orderId, callerId) {
+  return str(revision.orderId) === orderId && str(revision.requestedBy) === callerId;
 }
 
 function mapRevision(document) {
