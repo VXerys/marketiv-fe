@@ -1,4 +1,4 @@
-import { ID, Permission, Query, Role } from "appwrite";
+import { Query } from "appwrite";
 import { databases } from "@/lib/appwrite/databases";
 import { appwriteConfig } from "@/lib/appwrite/config";
 import { executeFunction, FUNCTION_IDS } from "@/lib/appwrite/functions";
@@ -46,19 +46,14 @@ import {
  *   hak itu sama dengan mengizinkannya menyetujui pekerjaannya sendiri lalu
  *   menarik dananya tanpa UMKM. Guard peran di fungsi-fungsi bawah TIDAK cukup
  *   sendirian — penyerang cukup memanggil `updateDocument` langsung.
- * - `revisions` beda: kedua pihak boleh update, karena menutup revisi tidak
- *   memindahkan uang.
+ * - `revisions` dibuat oleh trusted Function dan dibaca kedua pihak. Tidak ada
+ *   browser update permission; status lifecycle harus tetap server-owned.
  */
 
 const DB = appwriteConfig.databaseId;
 const ORDERS = "orders";
-const OFFERS = "offers";
 const DELIVERABLES = "deliverables";
 const REVISIONS = "revisions";
-const RATE_CARD_PACKAGES = "rate_card_packages";
-
-/** Dipakai kalau order tidak punya offer maupun paket — sejajar order.service.ts:281. */
-const DEFAULT_REVISION_LIMIT = 3;
 
 const mapDeliverable = (d: Doc): Deliverable => ({
   id: str(d.$id),
@@ -221,14 +216,9 @@ export async function approveDeliverableInAppwrite(
 /**
  * Minta revisi. UMKM-ONLY.
  *
- * Tiga tulisan sekaligus, dan urutannya disengaja: baris `revisions` dibuat
- * lebih dulu (itu buktinya), lalu deliverable ditandai `revision_requested`,
- * baru order pindah ke `revision`.
- *
- * Penandaan deliverable itu SEBELUMNYA TIDAK PERNAH TERJADI — mirror
- * `order.service.ts:325-360` hanya membuat baris revisi dan memindahkan status
- * order, sehingga deliverable yang ditolak tetap tampil `submitted` selamanya.
- * Dicatat sebagai §E-3 di handoff 2026-07-28.
+ * Trusted Function command. Browser must not create a revision or update
+ * deliverables/orders: it cannot assign Creator row permission and orders has
+ * no browser update permission.
  */
 export async function requestRevisionInAppwrite(
   input: RequestRevisionInput
@@ -247,96 +237,12 @@ export async function requestRevisionInAppwrite(
   const payload = parsed.data;
 
   try {
-    const participation = await loadOrderParticipation(payload.orderId, auth.userId);
-    if (!participation) return fail("Pesanan tidak ditemukan.", "not_found", empty);
-
-    if (participation.role !== "umkm") {
-      return fail("Hanya UMKM pemilik pesanan yang dapat meminta revisi.", "forbidden", empty);
-    }
-    if (participation.status !== "in_progress" && participation.status !== "revision") {
-      return fail("Pesanan tidak dalam status yang dapat direvisi.", "validation", empty);
-    }
-
-    const revisionLimit = await resolveRevisionLimit(participation.order);
-    const used = await databases.listDocuments(DB, REVISIONS, [
-      Query.equal("orderId", payload.orderId),
-      Query.limit(1),
-    ]);
-    if (used.total >= revisionLimit) {
-      return fail(
-        `Batas revisi (${revisionLimit}) sudah tercapai. Setujui apa adanya atau buka sengketa.`,
-        "validation",
-        empty
-      );
-    }
-
-    const created = await databases.createDocument(
-      DB,
-      REVISIONS,
-      ID.unique(),
-      {
-        orderId: payload.orderId,
-        requestedBy: auth.userId,
-        message: payload.message,
-        status: "open",
-      },
-      // Berbeda dari deliverables: kedua pihak boleh update, karena menutup
-      // revisi tidak memindahkan uang.
-      [
-        Permission.read(Role.user(participation.umkmId)),
-        Permission.read(Role.user(participation.creatorId)),
-        Permission.update(Role.user(participation.umkmId)),
-        Permission.update(Role.user(participation.creatorId)),
-      ]
+    const created = await executeFunction<Revision>(
+      FUNCTION_IDS.requestRatecardRevision,
+      payload
     );
-
-    // Tandai deliverable terbaru sebagai ditolak, supaya kreator tahu versi mana
-    // yang harus diperbaiki dan UI tidak lagi menawarkan tombol "Setujui".
-    const latest = await databases.listDocuments(DB, DELIVERABLES, [
-      Query.equal("orderId", payload.orderId),
-      Query.orderDesc("version"),
-      Query.limit(1),
-    ]);
-    const latestDoc = latest.documents[0] as unknown as Doc | undefined;
-    if (latestDoc && str(latestDoc.status) === "submitted") {
-      await databases.updateDocument(DB, DELIVERABLES, str(latestDoc.$id), {
-        status: "revision_requested",
-      });
-    }
-
-    await databases.updateDocument(DB, ORDERS, payload.orderId, { status: "revision" });
-
-    return ok(mapRevision(created as unknown as Doc));
+    return ok(created);
   } catch (err) {
     return failFromWriteError<Revision>(err, empty, "Alasan revisi tidak valid.");
   }
-}
-
-/**
- * Batas revisi diambil dari offer (Jalur B) atau paket rate card (Jalur A).
- * Keduanya tidak ada = pakai default, jangan menolak permintaan revisi hanya
- * karena tautannya hilang.
- */
-async function resolveRevisionLimit(order: Doc): Promise<number> {
-  try {
-    if (str(order.offerId)) {
-      const offer = (await databases.getDocument(
-        DB,
-        OFFERS,
-        str(order.offerId)
-      )) as unknown as Doc;
-      return num(offer.revisionLimit) || DEFAULT_REVISION_LIMIT;
-    }
-    if (str(order.packageId)) {
-      const pkg = (await databases.getDocument(
-        DB,
-        RATE_CARD_PACKAGES,
-        str(order.packageId)
-      )) as unknown as Doc;
-      return num(pkg.revisionLimit) || DEFAULT_REVISION_LIMIT;
-    }
-  } catch {
-    // Offer/paket terhapus atau tidak terbaca — jatuh ke default.
-  }
-  return DEFAULT_REVISION_LIMIT;
 }

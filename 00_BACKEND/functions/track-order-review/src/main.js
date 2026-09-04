@@ -1,6 +1,6 @@
 import { Client, Databases, Query } from "node-appwrite";
 
-export default async ({ req, res, log, error }) => {
+const trackOrderReview = async ({ req, res, log, error }) => {
   try {
     const env = {
       appwriteEndpoint: process.env.APPWRITE_FUNCTION_API_ENDPOINT || process.env.APPWRITE_ENDPOINT,
@@ -8,6 +8,7 @@ export default async ({ req, res, log, error }) => {
       appwriteApiKey: req.headers["x-appwrite-key"] || process.env.APPWRITE_API_KEY,
       databaseId: process.env.APPWRITE_DATABASE_ID || process.env.NEXT_PUBLIC_DB_ID || "6a4c8598001da3b0d7f0",
       ordersCollectionId: "orders",
+      deliverablesCollectionId: process.env.DELIVERABLES_COLLECTION_ID || "deliverables",
       offersCollectionId: "offers",
       packagesCollectionId: "rate_card_packages",
     };
@@ -25,6 +26,18 @@ export default async ({ req, res, log, error }) => {
     const order = await databases.getDocument(env.databaseId, env.ordersCollectionId, orderId);
     if (!["in_progress", "revision"].includes(order.status)) {
       return res.json({ status: "ignored", reason: "order status not eligible" });
+    }
+
+    // This event is asynchronous while request-ratecard-revision is
+    // synchronous. Re-read latest state so a late create event cannot
+    // overwrite revision_requested or restart its review timer.
+    const latest = await databases.listDocuments(env.databaseId, env.deliverablesCollectionId, [
+      Query.equal("orderId", orderId),
+      Query.orderDesc("version"),
+      Query.limit(1),
+    ]);
+    if (latest.documents[0] && latest.documents[0].status !== "submitted") {
+      return res.json({ status: "ignored", reason: "latest deliverable is not submitted" });
     }
 
     const version = deliverable.version || 1;
@@ -46,12 +59,12 @@ export default async ({ req, res, log, error }) => {
           try {
              const offer = await databases.getDocument(env.databaseId, env.offersCollectionId, order.offerId);
              revLimit = offer.revisionLimit || 0;
-          } catch(e) {}
+          } catch {}
        } else if (order.packageId) {
           try {
              const pkg = await databases.getDocument(env.databaseId, env.packagesCollectionId, order.packageId);
              revLimit = pkg.revisionLimit || 0;
-          } catch(e) {}
+          } catch {}
        }
     }
     
@@ -73,3 +86,5 @@ export default async ({ req, res, log, error }) => {
     return res.json({ error: err.message }, 500);
   }
 };
+
+export default trackOrderReview;

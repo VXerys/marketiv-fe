@@ -25,6 +25,21 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 - **Scope**: `documents.read`, `documents.write`.
 - **Tidak menyentuh**: approval, order status, escrow, wallet, payment.
 
+### request-ratecard-revision
+
+- **Trigger**: POST sinkron dari frontend; executable `users`.
+- **Authorization**: caller hanya dari `x-appwrite-user-id`; profile harus UMKM aktif dan `orders.umkmId` harus sama dengan caller. UMKM lain menerima 404 anti-enumeration; Creator menerima 403.
+- **State**: order harus `in_progress` atau `revision`, dan latest deliverable harus `submitted`. Guard ini menolak double-click setelah latest menjadi `revision_requested`, tetapi membuka siklus baru setelah Creator mengirim versi berikutnya.
+- **Aksi**: hitung total revision rows terhadap limit dari order/offer/package, create revision server-side dengan `read` UMKM + Creator, set latest deliverable `revision_requested`, set order `revision`, reset `review_deadline_at` dan `reminder_sent_at`.
+- **Invariant**: tidak menulis `revision_count`, validation, escrow, wallet, atau payment. `revision_count` tetap dihitung `track-order-review` saat deliverable baru dibuat.
+- **Scope**: `documents.read`, `documents.write`.
+
+### sync-order-revision (retired)
+
+- Tidak lagi dipicu `revisions.rows.*.create`.
+- Function disabled; source dipertahankan sebagai historical audit.
+- Tidak boleh menjadi writer transition revision.
+
 ## Backend Helpers
 
 ### uploadDeliverable
@@ -39,12 +54,12 @@ Dokumen ini khusus untuk Appwrite Functions dan aturan backend. Kontrak pemanggi
 ## Aturan Backend
 
 - Deliverable version di-auto-increment per upload.
-- Revision hanya dapat diminta jika `jumlah revisi < revisionLimit`.
+- Revision hanya dapat diminta jika `jumlah revisi < revisionLimit` dan latest deliverable berstatus `submitted`.
 - Validasi kepemilikan: hanya UMKM terkait yang dapat approve/reject.
 - Deliverable `source = storage` wajib memiliki `fileId` yang valid dan milik creator seller.
 - Deliverable `source = external_url` wajib protokol `https`.
 - **Metadata Transparansi AI & Kreditasi**: Field `creatorCredit` dan `aiGenerated` pada `deliverables` merupakan metadata murni yang diisi oleh klien. Tidak ada validasi server maupun *guard* yang memblokir alur berdasarkan field ini.
 
 ## Functions
-- `track-order-review`: Tracks deliverables and sets review_deadline_at.
+- `track-order-review`: Tracks deliverables and sets `review_deadline_at`; re-reads latest deliverable and no-ops when a synchronous revision request already marked it `revision_requested`, preventing a late event from overwriting order state or restarting the timer.
 - `auto-approve-orders`: Cron function to auto-approve orders past deadline.

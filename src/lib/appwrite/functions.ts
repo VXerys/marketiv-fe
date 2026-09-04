@@ -48,6 +48,7 @@ export const FUNCTION_IDS = {
   createOffer: "create-offer",
   submitCampaignProof: "submit-campaign-proof",
   submitRatecardDeliverable: "submit-ratecard-deliverable",
+  requestRatecardRevision: "request-ratecard-revision",
   reviewSubmission: "review-submission",
   unclaimCampaign: "unclaim-campaign",
   markNotificationsRead: "mark-notifications-read",

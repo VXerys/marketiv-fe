@@ -255,5 +255,9 @@
   "submit-ratecard-deliverable": [
     "documents.read",
     "documents.write"
+  ],
+  "request-ratecard-revision": [
+    "documents.read",
+    "documents.write"
   ]
 }

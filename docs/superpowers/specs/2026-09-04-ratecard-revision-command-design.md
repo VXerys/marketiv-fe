@@ -14,6 +14,8 @@ Function resets `review_deadline_at` and `reminder_sent_at`, but never writes es
 
 `sync-order-revision` is retired from event execution: its revision-create event is removed and Function disabled. Source remains for historical audit. This leaves `request-ratecard-revision` as sole revision transition writer.
 
+`track-order-review` remains active for deliverable-create review timers, but re-reads latest deliverable and no-ops when it is already `revision_requested`. This prevents its asynchronous event from undoing the synchronous revision command; its existing `revision_count` calculation remains unchanged.
+
 ## Version and money safety
 
 Admin validation remains bound to deliverable ID, order ID, version, source, and evidence URL. Therefore validation for v1 cannot authorize v2. Existing `release-escrow` checks latest deliverable plus matching valid validation; no revision command changes financial state.

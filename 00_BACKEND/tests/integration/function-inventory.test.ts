@@ -170,6 +170,46 @@ describe("function inventory audit", () => {
     );
   });
 
+  it("registers synchronous revision command and retires revision event writer", () => {
+    const functionScopes = JSON.parse(
+      fs.readFileSync(path.join(backendDir, "appwrite/function-scopes.json"), "utf8"),
+    );
+    const appwriteConfig = JSON.parse(
+      fs.readFileSync(path.join(backendDir, "appwrite.config.json"), "utf8"),
+    );
+    const permissionHardener = fs.readFileSync(
+      path.join(backendDir, "appwrite/ops/harden-permissions.mjs"),
+      "utf8",
+    );
+    const functionById = new Map(
+      appwriteConfig.functions.map((fn: { $id: string }) => [fn.$id, fn]),
+    );
+    const revisions = appwriteConfig.tables.find(
+      (table: { $id: string }) => table.$id === "revisions",
+    );
+
+    expect(functionScopes["request-ratecard-revision"]).toEqual([
+      "documents.read",
+      "documents.write",
+    ]);
+    expect(functionById.get("request-ratecard-revision")).toMatchObject({
+      enabled: true,
+      execute: ["users"],
+      events: [],
+      path: "functions/request-ratecard-revision",
+      scopes: ["documents.read", "documents.write"],
+    });
+    expect(functionById.get("sync-order-revision")).toMatchObject({
+      enabled: false,
+      execute: [],
+      events: [],
+    });
+    expect(revisions?.$permissions).toEqual([]);
+    expect(permissionHardener).toMatch(
+      /id:\s*"revisions",\s*permissions:\s*\[\]/,
+    );
+  });
+
   it("keeps retired legacy money functions disabled while Midtrans payments stay active", () => {
     const appwriteConfig = JSON.parse(
       fs.readFileSync(path.join(backendDir, "appwrite.config.json"), "utf8"),

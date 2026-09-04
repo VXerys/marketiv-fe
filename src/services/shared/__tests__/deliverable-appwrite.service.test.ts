@@ -33,6 +33,7 @@ vi.mock("@/lib/appwrite/functions", async () => {
     FUNCTION_IDS: {
       ...actual.FUNCTION_IDS,
       submitRatecardDeliverable: "submit-ratecard-deliverable",
+      requestRatecardRevision: "request-ratecard-revision",
     },
   };
 });
@@ -42,7 +43,10 @@ vi.mock("@/services/auth/session.service", () => ({
 }));
 
 import { FunctionExecutionError } from "@/lib/appwrite/functions";
-import { uploadDeliverableInAppwrite } from "../deliverable-appwrite.service";
+import {
+  requestRevisionInAppwrite,
+  uploadDeliverableInAppwrite,
+} from "../deliverable-appwrite.service";
 
 const input = {
   orderId: "order_1",
@@ -97,5 +101,61 @@ describe("uploadDeliverableInAppwrite", () => {
       error: "Hanya kreator pengerja yang dapat mengirim deliverable.",
     });
     expect(createDocumentMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("requestRevisionInAppwrite", () => {
+  const revisionInput = {
+    orderId: "order_1",
+    message: "Perbaiki hook pembuka.",
+  };
+  const revisionResponse = {
+    id: "revision_1",
+    orderId: "order_1",
+    requestedBy: "umkm_1",
+    message: revisionInput.message,
+    status: "open" as const,
+    createdAt: "2026-09-04T03:00:00.000Z",
+  };
+
+  it("delegates complete mutation to trusted Function", async () => {
+    executeFunctionMock.mockResolvedValue(revisionResponse);
+
+    const result = await requestRevisionInAppwrite({
+      ...revisionInput,
+      umkmId: "forged_umkm",
+      creatorId: "forged_creator",
+      role: "creator",
+    } as typeof revisionInput);
+
+    expect(result).toEqual({ success: true, data: revisionResponse });
+    expect(executeFunctionMock).toHaveBeenCalledWith(
+      "request-ratecard-revision",
+      revisionInput
+    );
+    expect(getDocumentMock).not.toHaveBeenCalled();
+    expect(listDocumentsMock).not.toHaveBeenCalled();
+    expect(createDocumentMock).not.toHaveBeenCalled();
+  });
+
+  it("preserves Function authorization errors and performs no browser writes", async () => {
+    executeFunctionMock.mockRejectedValue(
+      new FunctionExecutionError(
+        "Pesanan tidak ditemukan.",
+        404,
+        "not_found"
+      )
+    );
+
+    const result = await requestRevisionInAppwrite(revisionInput);
+
+    expect(result).toMatchObject({
+      success: false,
+      code: "not_found",
+      error: "Pesanan tidak ditemukan.",
+    });
+    expect(createDocumentMock).not.toHaveBeenCalled();
+    expect(getDocumentMock).not.toHaveBeenCalled();
+    expect(listDocumentsMock).not.toHaveBeenCalled();
   });
 });

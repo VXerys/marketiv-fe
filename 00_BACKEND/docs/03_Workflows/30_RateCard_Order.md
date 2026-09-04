@@ -20,7 +20,7 @@ UMKM buka `Creator Discovery` → profil creator → lihat rate card → pilih j
 
 ## Data Model — Collection yang Terlibat
 
-> **Permission `deliverables` & `revisions`** — keduanya `create("users")` + `rowSecurity`, **tanpa** `read`/`update("users")` level koleksi. Permission Appwrite bersifat union, jadi `update("users")` di sana akan membuat setiap user login bisa menyetujui deliverable siapa pun — dan approve itulah yang mencairkan escrow. Akses hanya lewat permission baris: `deliverables` → read kedua pihak, **update UMKM saja**; `revisions` → read + update kedua pihak.
+> **Permission `deliverables` & `revisions`** — keduanya tanpa browser collection permission dan memakai `rowSecurity`. Permission Appwrite bersifat union, jadi `update("users")` di `deliverables` akan membuat setiap user login bisa menyetujui deliverable siapa pun — dan approve itulah yang mencairkan escrow. Akses row: `deliverables` → read kedua pihak, update UMKM saja; `revisions` → read UMKM + Creator saja. Create revision hanya melalui trusted Function.
 
 | Collection | Modul | Aksi |
 |---|---|---|
@@ -116,9 +116,9 @@ UMKM buka `Creator Discovery` → profil creator → lihat rate card → pilih j
     - `invalid` wajib punya catatan; kreator mengunggah versi baru setelah perbaikan.
 18. **Orders** — UMKM review deliverable yang sudah berstatus validation `valid`:
     - **Approve**: `deliverables.status: submitted → approved`. Persetujuan browser sendiri tidak cukup untuk pencairan.
-    - **Request Revision**: `deliverables.status: submitted → revision_requested`, buat `revisions` record.
+    - **Request Revision**: frontend memanggil `request-ratecard-revision` dengan `{ orderId, message }`; Function memverifikasi caller/order/state/limit, membuat `revisions` record read-only untuk kedua pihak, lalu `deliverables.status: submitted → revision_requested`.
 18. **Jika Request Revision:**
-    - Order status: `in_progress → revision`.
+    - Order status: `in_progress|revision → revision`; reset `review_deadline_at` dan `reminder_sent_at`.
     - Notifikasi ke creator: "UMKM minta revisi — {message}".
     - Creator reupload deliverable (version++) → review lagi.
     - Jumlah revisi dibatasi `revisionLimit` (dari package/offer).
@@ -166,6 +166,7 @@ DELIVERABLE STATUS: submitted → approved | revision_requested
 | `payments.rows.*.update` (status `paid`) | `create-escrow` | Buat escrow, hold dana | ✅ live |
 | `deliverables.rows.*.create` | `notify-order-activity` | Notifikasi UMKM: hasil kerja masuk | ✅ live |
 | `revisions.rows.*.create` | `notify-order-activity` | Notifikasi Kreator: UMKM minta revisi | ✅ live |
+| frontend POST `{ orderId, message }` | `request-ratecard-revision` | Create revision + mark latest deliverable/order synchronously | ✅ source/config |
 | `deliverables.rows.*.update`, `ratecard_deliverable_validations.rows.*.create` | `release-escrow` | Re-evaluate release setelah UMKM approve + Admin valid | perlu deploy |
 
 Event Appwrite **tidak mengirim `$previous`**, jadi Function tidak bisa memagari transisi (`pending→accepted`); yang diperiksa hanya status akhir. Perlindungan terhadap eksekusi ganda datang dari tempat lain: unique index `orders.idx_offerId` untuk `create-order`, dan guard `escrow.status = held` untuk `release-escrow`.

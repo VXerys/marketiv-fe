@@ -2793,9 +2793,7 @@
     {
       "$id": "revisions",
       "name": "Revisions",
-      "$permissions": [
-        "create(\"users\")"
-      ],
+      "$permissions": [],
       "enabled": true,
       "databaseId": "6a4c8598001da3b0d7f0",
       "rowSecurity": true,
@@ -4873,6 +4871,26 @@
       ]
     },
     {
+      "$id": "request-ratecard-revision",
+      "name": "Request Rate Card Revision",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/request-ratecard-revision",
+      "scopes": [
+        "documents.read",
+        "documents.write"
+      ]
+    },
+    {
       "$id": "get-admin-submission-queue",
       "name": "Get Admin Submission Queue",
       "runtime": "node-22",
@@ -5265,12 +5283,10 @@
       "name": "Sync Order Revision",
       "runtime": "node-22",
       "execute": [],
-      "events": [
-        "databases.6a4c8598001da3b0d7f0.tables.revisions.rows.*.create"
-      ],
+      "events": [],
       "schedule": "",
       "timeout": 15,
-      "enabled": true,
+      "enabled": false,
       "logging": true,
       "entrypoint": "src/main.js",
       "commands": "npm install",

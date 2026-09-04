@@ -109,9 +109,9 @@ const TARGETS = [
   },
   {
     id: "revisions",
-    permissions: ['create("users")'],
+    permissions: [],
     rowSecurity: true,
-    why: "isi & riwayat revisi semua order terbaca dan bisa diubah siapa pun; row perm dipasang order.service.ts:337",
+    why: "browser create/update ditutup; row read permission dipasang request-ratecard-revision untuk kedua participant",
   },
 
   // ── Gelombang 5 ────────────────────────────────────────────────────────

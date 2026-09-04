@@ -649,10 +649,10 @@ const collections = [
   {
     $id: "revisions",
     name: "Revisions",
-    // Sejajar deliverables: isi & riwayat revisi order lain tidak boleh
-    // terbaca, apalagi diubah. Row perm dipasang order.service.ts
-    // (read + update: kedua pihak order).
-    $permissions: ['create("users")'],
+    // Browser tidak boleh membuat atau mengubah revision. Function
+    // request-ratecard-revision memasang read permission per baris untuk
+    // UMKM + Creator yang terlibat.
+    $permissions: [],
     documentSecurity: true,
     enabled: true,
     attributes: [
@@ -1665,6 +1665,20 @@ const functions = [
     commands: "npm install",
     path: "../functions/submit-ratecard-deliverable",
   },
+  {
+    $id: "request-ratecard-revision",
+    name: "Request Rate Card Revision",
+    runtime: "node-22",
+    execute: ["users"],
+    events: [],
+    schedule: "",
+    timeout: 15,
+    enabled: true,
+    logging: true,
+    entrypoint: "src/main.js",
+    commands: "npm install",
+    path: "../functions/request-ratecard-revision",
+  },
   // ── Admin read DTO (P3 campaign/admin bugfix) ─────────────────────────────
   // Browser hanya mengeksekusi Function. Authorization + database join tetap
   // di server agar collection permission tidak perlu diperlebar.
@@ -1969,10 +1983,11 @@ const functions = [
     name: "Sync Order Revision",
     runtime: "node-22",
     execute: [],
-    events: [`databases.${databaseId}.tables.revisions.rows.*.create`],
+    // Retired: request-ratecard-revision is sole writer for revision state.
+    events: [],
     schedule: "",
     timeout: 15,
-    enabled: true,
+    enabled: false,
     logging: true,
     entrypoint: "src/main.js",
     commands: "npm install",

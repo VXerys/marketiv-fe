@@ -801,6 +801,12 @@ describe('track-order-review function', () => {
       revision_limit: 2,
       reminder_sent_at: '2026-08-14T00:00:00.000Z',
     }]);
+    seed('deliverables', [{
+      $id: 'd2',
+      orderId: 'order-1',
+      version: 2,
+      status: 'submitted',
+    }]);
     const main = (await import('../../functions/track-order-review/src/main.js')).default;
     const req = makeReq({
       bodyJson: {
@@ -818,6 +824,49 @@ describe('track-order-review function', () => {
     expect(store.orders[0].revision_count).toBe(1);
     expect(store.orders[0].reminder_sent_at).toBeNull();
     expect(store.orders[0].review_deadline_at).toBe('2026-08-13T00:00:00.000Z');
+  });
+
+  it('does not overwrite a synchronous revision request when create event arrives late', async () => {
+    process.env.APPWRITE_DATABASE_ID = 'db';
+    process.env.ORDERS_COLLECTION_ID = 'orders';
+    seed('orders', [{
+      $id: 'order-late',
+      status: 'revision',
+      revision_count: 1,
+      revision_limit: 2,
+      review_deadline_at: null,
+      reminder_sent_at: null,
+    }]);
+    seed('deliverables', [{
+      $id: 'd-late',
+      orderId: 'order-late',
+      version: 2,
+      status: 'revision_requested',
+    }]);
+
+    const main = (await import('../../functions/track-order-review/src/main.js')).default;
+    const res = makeRes();
+    await main({
+      req: makeReq({
+        bodyJson: {
+          $id: 'd-late',
+          orderId: 'order-late',
+          version: 2,
+          $createdAt: '2026-08-10T00:00:00.000Z',
+        },
+      }),
+      res,
+      log: () => {},
+      error: () => {},
+    });
+
+    expect(res.calls[0].body).toMatchObject({ status: 'ignored', reason: 'latest deliverable is not submitted' });
+    expect(store.orders[0]).toMatchObject({
+      status: 'revision',
+      revision_count: 1,
+      review_deadline_at: null,
+      reminder_sent_at: null,
+    });
   });
 });
 
@@ -1424,6 +1473,39 @@ describe('release-escrow function', () => {
     await main({ req: makeReq({ bodyJson: { $id: 'd3' } }), res, log: () => {}, error: () => {} });
     expect(res.calls[0].body).toMatchObject({ status: 'ignored', reason: 'trusted validation is missing or mismatched' });
     expect(store.escrows[0].status).toBe('held');
+  });
+
+  it('does not let v1 validation authorize approved v2', async () => {
+    process.env.APPWRITE_DATABASE_ID = 'db';
+    seed('escrows', [{ $id: 'e-version', orderId: 'o-version', amount: 100000, status: 'held' }]);
+    seed('orders', [{ $id: 'o-version', umkmId: 'u-version', creatorId: 'c-version', status: 'in_progress' }]);
+    seed('deliverables', [
+      { $id: 'd-v2', orderId: 'o-version', source: 'instagram', fileUrl: 'https://instagram.com/p/v2', version: 2, status: 'approved' },
+      { $id: 'd-v1', orderId: 'o-version', source: 'instagram', fileUrl: 'https://instagram.com/p/v1', version: 1, status: 'revision_requested' },
+    ]);
+    seed('ratecard_deliverable_validations', [{
+      $id: 'validation-v1',
+      deliverableId: 'd-v1',
+      orderId: 'o-version',
+      deliverableVersion: 1,
+      sourceSnapshot: 'instagram',
+      evidenceUrlSnapshot: 'https://instagram.com/p/v1',
+      status: 'valid',
+    }]);
+    seed('wallets', [{ $id: 'wallet-version', userId: 'c-version', balance: 0 }]);
+
+    const main = (await import('../../functions/release-escrow/src/main.js')).default;
+    const res = makeRes();
+    await main({ req: makeReq({ bodyJson: { $id: 'd-v2' } }), res, log: () => {}, error: () => {} });
+
+    expect(res.calls[0].body).toMatchObject({
+      status: 'ignored',
+      reason: 'trusted validation is missing or mismatched',
+    });
+    expect(store.escrows[0].status).toBe('held');
+    expect(store.wallets[0].balance).toBe(0);
+    expect(updateCalls).toHaveLength(0);
+    expect(createCalls).toHaveLength(0);
   });
 });
 

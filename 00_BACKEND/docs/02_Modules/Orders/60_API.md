@@ -38,10 +38,12 @@ Read dan mutation non-cross-user berikut memakai service frontend. Create delive
 - **Proses**: update `status: pending_payment → cancelled`.
 - **Akses**: UMKM (owner).
 
-### `requestRevision()` — [Client SDK]
+### `requestRevision()` — [Appwrite Function]
 
 - **Input**: `{ orderId, message }`
-- **Proses**: buat dokumen `revisions` (`status = open`); set order `revision`. Creator mengunggah deliverable versi berikutnya.
+- **Proses**: frontend hanya memanggil Function `request-ratecard-revision`. Function mengambil caller dari execution header, memverifikasi UMKM pemilik order, status `in_progress|revision`, latest deliverable `submitted`, batas revisi, dan message; lalu membuat revision read-only untuk UMKM + Creator, menandai latest deliverable `revision_requested`, mengubah order menjadi `revision`, serta mereset `review_deadline_at` dan `reminder_sent_at`.
+- **Siklus berikutnya**: setelah Creator mengunggah v2, latest kembali `submitted`; UMKM dapat meminta revisi lagi selama total revision rows belum mencapai limit.
+- **Tidak dilakukan**: tidak mengubah `revision_count`, escrow, wallet, payment, atau validation.
 - **Akses**: UMKM (buyer).
 
 ---

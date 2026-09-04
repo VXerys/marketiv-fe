@@ -37,14 +37,19 @@ Catatan: Order **tidak dibuat** oleh service frontend. Order dibuat oleh Appwrit
 - Deliverable sudah `approved` → throw `OrderServiceError('validation', 'Deliverable sudah disetujui.')`.
 - Memicu event → Appwrite Function `release-escrow` → balance creator + transaksi `release` → order `completed`.
 
-### Revision (`requestRevision`)
+### Revision (`request-ratecard-revision`)
 
 - `orderId` kosong → throw `OrderServiceError('validation', 'Order ID wajib diisi.')`.
-- UMKM (owner order) request revision → dokumen `revisions` status `open`, order `revision`.
-- Bukan owner → throw `OrderServiceError('forbidden', 'Hanya UMKM pemilik order yang dapat meminta revisi.')`.
-- Order tidak dalam status `in_progress`/`revision` → throw `OrderServiceError('validation', 'Order tidak dalam status yang dapat direvisi.')`.
-- Jumlah revision ≥ `revisionLimit` (dari offer atau package) → throw `OrderServiceError('validation', 'Batas revisi ... telah tercapai.')`.
-- `revisionLimit` default 3 jika tidak ada offer/package.
+- Caller tanpa execution identity → HTTP 401.
+- Creator caller → HTTP 403; UMKM lain pada order → HTTP 404 anti-enumeration.
+- UMKM owner pada order `in_progress` atau `revision` dengan latest deliverable `submitted` → revision `open`, latest deliverable `revision_requested`, order `revision`.
+- Latest deliverable selain `submitted` → HTTP 409; ini menolak double-click tanpa memblokir siklus berikutnya setelah Creator submit v2.
+- Jumlah revision rows ≥ `revisionLimit` authoritative → HTTP 409; status `open`/`resolved` sama-sama dihitung.
+- Revision row hanya memberi `read` ke UMKM + Creator; tidak ada browser create/update permission.
+- Timer review di order di-reset: `review_deadline_at = null`, `reminder_sent_at = null`.
+- `revision_count`, validation, escrow, wallet, dan payment tidak berubah; `revision_count` tetap dihitung `track-order-review` saat deliverable baru dibuat.
+- v1 validation tidak berlaku untuk v2: release hanya menerima validation yang cocok dengan latest deliverable ID, order ID, version, source, dan evidence URL.
+- `sync-order-revision` retired: event `revisions.rows.*.create` dilepas dan Function disabled.
 
 ## Status Flow
 
