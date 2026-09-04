@@ -19,10 +19,10 @@ import { Skeleton } from "@/components/ui/skeleton";
  * Precedence guard:
  *   1. loading                    → render skeleton sampai sesi selesai dibaca
  *      belum ada user             → render children (form login/register)
- *   2. user ada tapi email belum  → render children (layar OTP masih di sini)
- *      terverifikasi
- *   3. user ada + email verified + profile incomplete → redirect ke /onboarding
- *   4. user ada + email verified + profile complete → redirect ke dashboard
+ *   2. preserveUnverifiedSession + email belum terverifikasi
+ *                                → render children (layar OTP masih di sini)
+ *   3. user ada + profile incomplete → redirect ke /onboarding
+ *   4. user ada + profile complete → redirect ke dashboard
  *
  * Ini memastikan layar OTP (EmailVerificationPending) tetap ditampilkan
  * meskipun Appwrite session sudah aktif setelah register, dan setelah OTP verified,
@@ -30,9 +30,12 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export function RedirectIfAuthenticated({
   next,
+  preserveUnverifiedSession = false,
   children,
 }: {
   next?: string;
+  /** Register OTP flow needs to remain mounted for an unverified session. */
+  preserveUnverifiedSession?: boolean;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -40,8 +43,8 @@ export function RedirectIfAuthenticated({
 
   useEffect(() => {
     if (loading || !user) return;
-    // User belum verifikasi email → jangan redirect, biarkan layar OTP render.
-    if (!user.emailVerified) return;
+    // Hanya register yang boleh menahan sesi unverified untuk layar OTP.
+    if (preserveUnverifiedSession && !user.emailVerified) return;
 
     if (!isUserPortalRole(user.role)) return;
 
@@ -52,15 +55,15 @@ export function RedirectIfAuthenticated({
     } else {
       router.replace(resolveSafePostLoginDestination(user.role));
     }
-  }, [loading, user, next, router]);
+  }, [loading, user, next, preserveUnverifiedSession, router]);
 
   // errorCode "not_found" = akun & sesi ada, tapi baris `users` belum terbentuk
   // (blocker A-1). JANGAN diperlakukan sebagai "sudah login": mengarahkannya ke
   // dashboard membuat RoleGuard memantulkannya balik ke sini — loop tak berujung.
   // Halaman auth tetap dirender supaya user punya jalan keluar.
   //
-  // User belum verifikasi email juga harus tetap bisa melihat halaman auth
-  // (layar OTP di-render sebagai children dari register form).
+  // `preserveUnverifiedSession` menjaga layar OTP yang dirender sebagai children
+  // dari register form; login tetap masuk ke redirect di bawah.
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white" aria-label="Memuat sesi">
@@ -69,7 +72,15 @@ export function RedirectIfAuthenticated({
     );
   }
 
-  if (!loading && user && isUserPortalRole(user.role) && user.emailVerified && errorCode !== "not_found") return null;
+  if (
+    !loading &&
+    user &&
+    isUserPortalRole(user.role) &&
+    (!preserveUnverifiedSession || user.emailVerified) &&
+    errorCode !== "not_found"
+  ) {
+    return null;
+  }
 
   return <>{children}</>;
 }

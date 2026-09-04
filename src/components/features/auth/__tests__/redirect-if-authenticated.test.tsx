@@ -73,9 +73,72 @@ describe("RedirectIfAuthenticated", () => {
     expect(mocks.replace).toHaveBeenCalledWith("/dashboard/kreator");
   });
 
+  it("redirects unverified UMKM session from login", async () => {
+    const { RedirectIfAuthenticated } = await import("@/components/auth/RedirectIfAuthenticated");
+    mockAuth({ user: { ...baseUser, role: "umkm", emailVerified: false }, loading: false, errorCode: null });
+    await render(<RedirectIfAuthenticated><div>login form</div></RedirectIfAuthenticated>);
+
+    expect(mocks.replace).toHaveBeenCalledWith("/dashboard/umkm");
+    expect(document.body.textContent).not.toContain("login form");
+  });
+
+  it("redirects unverified Creator session from login", async () => {
+    const { RedirectIfAuthenticated } = await import("@/components/auth/RedirectIfAuthenticated");
+    mockAuth({ user: { ...baseUser, role: "creator", emailVerified: false }, loading: false, errorCode: null });
+    await render(<RedirectIfAuthenticated><div>login form</div></RedirectIfAuthenticated>);
+
+    expect(mocks.replace).toHaveBeenCalledWith("/dashboard/kreator");
+  });
+
+  it("preserves unverified registration OTP flow when explicitly requested", async () => {
+    const { RedirectIfAuthenticated } = await import("@/components/auth/RedirectIfAuthenticated");
+    mockAuth({ user: { ...baseUser, role: "umkm", emailVerified: false }, loading: false, errorCode: null });
+    await render(
+      <RedirectIfAuthenticated preserveUnverifiedSession>
+        <div>verification flow</div>
+      </RedirectIfAuthenticated>,
+    );
+
+    expect(document.body.textContent).toContain("verification flow");
+    expect(mocks.replace).not.toHaveBeenCalled();
+  });
+
+  it("redirects verified UMKM registration session to dashboard", async () => {
+    const { RedirectIfAuthenticated } = await import("@/components/auth/RedirectIfAuthenticated");
+    mockAuth({ user: { ...baseUser, role: "umkm" }, loading: false, errorCode: null });
+    await render(
+      <RedirectIfAuthenticated preserveUnverifiedSession>
+        <div>registration form</div>
+      </RedirectIfAuthenticated>,
+    );
+
+    expect(mocks.replace).toHaveBeenCalledWith("/dashboard/umkm");
+  });
+
+  it("redirects verified Creator registration session to dashboard", async () => {
+    const { RedirectIfAuthenticated } = await import("@/components/auth/RedirectIfAuthenticated");
+    mockAuth({ user: { ...baseUser, role: "creator" }, loading: false, errorCode: null });
+    await render(
+      <RedirectIfAuthenticated preserveUnverifiedSession>
+        <div>registration form</div>
+      </RedirectIfAuthenticated>,
+    );
+
+    expect(mocks.replace).toHaveBeenCalledWith("/dashboard/kreator");
+  });
+
   it("redirects profile-incomplete user to onboarding", async () => {
     const { RedirectIfAuthenticated } = await import("@/components/auth/RedirectIfAuthenticated");
     mockAuth({ user: { ...baseUser, role: "umkm", isProfileCompleted: false }, loading: false, errorCode: null });
+    await render(<RedirectIfAuthenticated><div>login form</div></RedirectIfAuthenticated>);
+
+    expect(mocks.replace).toHaveBeenCalledWith("/onboarding");
+    expect(document.body.textContent).not.toContain("login form");
+  });
+
+  it("keeps onboarding precedence for unverified login session", async () => {
+    const { RedirectIfAuthenticated } = await import("@/components/auth/RedirectIfAuthenticated");
+    mockAuth({ user: { ...baseUser, role: "umkm", emailVerified: false, isProfileCompleted: false }, loading: false, errorCode: null });
     await render(<RedirectIfAuthenticated><div>login form</div></RedirectIfAuthenticated>);
 
     expect(mocks.replace).toHaveBeenCalledWith("/onboarding");
@@ -97,15 +160,6 @@ describe("RedirectIfAuthenticated", () => {
     await render(<RedirectIfAuthenticated><div>login form</div></RedirectIfAuthenticated>);
 
     expect(document.body.textContent).toContain("login form");
-    expect(mocks.replace).not.toHaveBeenCalled();
-  });
-
-  it("keeps unverified user on existing verification flow", async () => {
-    const { RedirectIfAuthenticated } = await import("@/components/auth/RedirectIfAuthenticated");
-    mockAuth({ user: { ...baseUser, role: "umkm", emailVerified: false }, loading: false, errorCode: null });
-    await render(<RedirectIfAuthenticated><div>verification flow</div></RedirectIfAuthenticated>);
-
-    expect(document.body.textContent).toContain("verification flow");
     expect(mocks.replace).not.toHaveBeenCalled();
   });
 

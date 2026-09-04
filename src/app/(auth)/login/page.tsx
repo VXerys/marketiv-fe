@@ -43,7 +43,7 @@ export default async function LoginPage({
       : undefined;
 
   return (
-    <RedirectIfAuthenticated next={safeNext}>
+    <RedirectIfAuthenticated next={safeNext} preserveUnverifiedSession={false}>
       <LoginForm next={safeNext} role={selectedRole} initialBanner={initialBanner} />
     </RedirectIfAuthenticated>
   );

@@ -19,7 +19,7 @@ export default async function RegisterPage({
   const parsed = registrableRoleSchema.safeParse(role);
 
   return (
-    <RedirectIfAuthenticated>
+    <RedirectIfAuthenticated preserveUnverifiedSession>
       {!parsed.success ? (
         <RoleChooser />
       ) : parsed.data === "umkm" ? (
