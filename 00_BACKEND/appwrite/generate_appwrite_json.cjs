@@ -1874,6 +1874,22 @@ const functions = [
     path: "../functions/get-umkm-negotiations",
   },
   {
+    // Read model khusus review Rate Card. Order adalah aggregate root karena satu
+    // conversation dapat mempunyai beberapa offer dan beberapa order.
+    $id: "get-umkm-ratecard-reviews",
+    name: "Get Umkm Ratecard Reviews",
+    runtime: "node-22",
+    execute: ["users"],
+    events: [],
+    schedule: "",
+    timeout: 15,
+    enabled: true,
+    logging: true,
+    entrypoint: "src/main.js",
+    commands: "npm install",
+    path: "../functions/get-umkm-ratecard-reviews",
+  },
+  {
     // Satu Function, dua event: keduanya butuh join yang sama (baris →
     // orders → pihak lawan) dan menulis ke tabel yang sama. Memecahnya jadi
     // dua Function berarti dua deployment dan dua tempat yang harus diingat

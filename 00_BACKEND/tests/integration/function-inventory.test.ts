@@ -210,6 +210,27 @@ describe("function inventory audit", () => {
     );
   });
 
+  it("registers UMKM order-centric Rate Card review reader", () => {
+    const functionScopes = JSON.parse(
+      fs.readFileSync(path.join(backendDir, "appwrite/function-scopes.json"), "utf8"),
+    );
+    const appwriteConfig = JSON.parse(
+      fs.readFileSync(path.join(backendDir, "appwrite.config.json"), "utf8"),
+    );
+    const reviewFunction = appwriteConfig.functions.find(
+      (fn: { $id: string }) => fn.$id === "get-umkm-ratecard-reviews",
+    );
+
+    expect(functionScopes["get-umkm-ratecard-reviews"]).toEqual(["documents.read"]);
+    expect(reviewFunction).toMatchObject({
+      enabled: true,
+      execute: ["users"],
+      events: [],
+      path: "functions/get-umkm-ratecard-reviews",
+      scopes: ["documents.read"],
+    });
+  });
+
   it("keeps retired legacy money functions disabled while Midtrans payments stay active", () => {
     const appwriteConfig = JSON.parse(
       fs.readFileSync(path.join(backendDir, "appwrite.config.json"), "utf8"),

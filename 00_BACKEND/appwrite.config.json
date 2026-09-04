@@ -5142,6 +5142,25 @@
       ]
     },
     {
+      "$id": "get-umkm-ratecard-reviews",
+      "name": "Get Umkm Ratecard Reviews",
+      "runtime": "node-22",
+      "execute": [
+        "users"
+      ],
+      "events": [],
+      "schedule": "",
+      "timeout": 15,
+      "enabled": true,
+      "logging": true,
+      "entrypoint": "src/main.js",
+      "commands": "npm install",
+      "path": "functions/get-umkm-ratecard-reviews",
+      "scopes": [
+        "documents.read"
+      ]
+    },
+    {
       "$id": "notify-order-activity",
       "name": "Notify Order Activity",
       "runtime": "node-22",

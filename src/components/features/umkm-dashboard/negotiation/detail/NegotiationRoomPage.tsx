@@ -15,21 +15,10 @@ import {
   cancelOrder,
   deleteOffer,
 } from "@/services/umkm/umkm-dashboard.service";
-import {
-  getDeliverables,
-  approveDeliverable,
-  requestRevision,
-} from "@/services/shared/deliverable.service";
+import { getDeliverables } from "@/services/shared/deliverable.service";
 import { markConversationRead } from "@/services/shared/conversation.service";
 import type { Deliverable } from "@/types/umkm-dashboard.types";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import {
-  ResponsiveModal,
-  ResponsiveModalContent,
-  ResponsiveModalDescription,
-  ResponsiveModalHeader,
-  ResponsiveModalTitle,
-} from "@/components/ui/responsive-modal";
 import { toast } from "sonner";
 import { NegotiationOrder, ChatMessage, RateCardPackage } from "@/types/umkm-dashboard.types";
 import { formatCurrency } from "@/lib/formatters";
@@ -100,10 +89,6 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   const [isChatFullscreen, setIsChatFullscreen] = useState(false);
 
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
-  const [isApproveOpen, setIsApproveOpen] = useState(false);
-  const [isRevisionOpen, setIsRevisionOpen] = useState(false);
-  const [revisionMessage, setRevisionMessage] = useState("");
-  const [reviewing, setReviewing] = useState(false);
   const [packagePrefill, setPackagePrefill] = useState<RateCardPackage | null>(null);
   const [packageContextWarning, setPackageContextWarning] = useState<string | null>(null);
   const loadInFlightRef = useRef(false);
@@ -315,53 +300,6 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
     await loadData();
   };
 
-  /** UMKM baru dapat menyetujui setelah validasi manual Admin bernilai valid. */
-  const handleApproveDeliverable = async () => {
-    const latest = deliverables[deliverables.length - 1];
-    if (!order?.orderId || !latest || reviewing) return;
-    if (order.deliverableValidation?.status !== "valid") {
-      toast.error("Menunggu validasi manual Admin Marketiv sebelum persetujuan UMKM.");
-      return;
-    }
-
-    setReviewing(true);
-    const res = await approveDeliverable(order.orderId, latest.id);
-    setReviewing(false);
-
-    if (!res.success) {
-      toast.error(res.error ?? "Gagal menyetujui deliverable.");
-      throw new Error(res.error ?? "Gagal menyetujui deliverable.");
-    }
-    setIsApproveOpen(false);
-    toast.success("Deliverable disetujui. Sistem sedang memeriksa syarat pelepasan escrow.");
-    await loadData();
-  };
-
-  /** Minta revisi. Jumlahnya dibatasi `revisionLimit` dari offer. */
-  const handleRequestRevision = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!order?.orderId || reviewing) return;
-
-    const message = revisionMessage.trim();
-    if (!message) {
-      toast.error("Jelaskan dulu apa yang perlu diperbaiki.");
-      return;
-    }
-
-    setReviewing(true);
-    const res = await requestRevision({ orderId: order.orderId, message });
-    setReviewing(false);
-
-    if (!res.success) {
-      toast.error(res.error ?? "Gagal meminta revisi.");
-      return;
-    }
-    setIsRevisionOpen(false);
-    setRevisionMessage("");
-    toast.success("Permintaan revisi terkirim ke kreator.");
-    await loadData();
-  };
-
   /**
    * Batalkan pesanan yang belum dibayar. Muat ulang, bukan set status lokal —
    * `cancelOrder` bisa ditolak backend dan status lokal akan berbohong.
@@ -383,6 +321,16 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
   if (!order) return <div className="p-4 sm:p-6 lg:p-8"><NegotiationNotFoundState /></div>;
 
   const statusCfg = STATUS_CFG[order.stage] ?? STATUS_CFG.chatting;
+  const latestDeliverable = deliverables[deliverables.length - 1];
+  const contextualReviewState = order.stage === "completed" || order.stage === "approved"
+    ? "completed"
+    : latestDeliverable?.status === "revision_requested"
+      ? "revision"
+      : order.deliverableValidation?.status === "valid"
+        ? "valid"
+        : order.deliverableValidation?.status === "invalid"
+          ? "invalid"
+          : "pending";
   const hasNewDealPackageCandidate = Boolean(
     selectedPackageId && canStartNewDeal(order.stage)
   );
@@ -573,15 +521,9 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
             className="flex flex-col gap-3 overflow-y-auto scrollbar-thin min-h-0"
           >
             <OrderSummaryCard order={order} onCancelOrder={() => setIsCancelOrderOpen(true)} />
-            <DeliverableReviewCard
-              deliverables={deliverables}
-              canReview={(order.stage === "in_progress" || order.stage === "revision") && order.deliverableValidation?.status === "valid"}
-              validationStatus={order.deliverableValidation?.status}
-              validationNotes={order.deliverableValidation?.reviewNotes}
-              busy={reviewing}
-              onApprove={() => setIsApproveOpen(true)}
-              onRequestRevision={() => setIsRevisionOpen(true)}
-            />
+            {order.orderId && latestDeliverable ? (
+              <DeliverableReviewCard orderId={order.orderId} state={contextualReviewState} />
+            ) : null}
             <EscrowStatusCard orderStatus={order.stage} />
             <CreatorMiniProfileCard order={order} />
             <DealChecklistCard stage={order.stage} />
@@ -645,95 +587,6 @@ export function NegotiationRoomPage({ conversationId }: NegotiationRoomPageProps
         />
       )}
 
-      {isApproveOpen && (
-        <ConfirmDialog
-          open={isApproveOpen}
-          onClose={() => setIsApproveOpen(false)}
-          title="Setujui Hasil Kerja Ini?"
-          description={
-            <>
-              Versi {deliverables[deliverables.length - 1]?.version} dari{" "}
-              <span className="font-semibold text-text-primary">{order.creatorName}</span> akan
-              ditandai disetujui.
-            </>
-          }
-          note={`Dana escrow ${formatCurrency(order.finalPrice)} akan dilepaskan ke kreator dan pesanan ditandai selesai. Langkah ini TIDAK bisa dibatalkan — setelah dana pindah, pengembaliannya hanya lewat sengketa.`}
-          acknowledgement="Saya sudah memeriksa hasil kerjanya dan setuju dana dilepaskan."
-          confirmLabel="Setujui & Lepaskan Dana"
-          tone="warning"
-          onConfirm={handleApproveDeliverable}
-        />
-      )}
-
-      {isRevisionOpen && (
-        <ResponsiveModal open={isRevisionOpen} onOpenChange={(open) => !open && setIsRevisionOpen(false)}>
-          <ResponsiveModalContent className="max-w-md w-full rounded-[24px] border border-neutral-200/50 p-6">
-            <ResponsiveModalHeader className="sr-only">
-              <ResponsiveModalTitle>Minta Revisi</ResponsiveModalTitle>
-              <ResponsiveModalDescription>
-                Kirim permintaan revisi hasil kerja kreator.
-              </ResponsiveModalDescription>
-            </ResponsiveModalHeader>
-            <div className="flex justify-between items-start gap-4 mb-4">
-              <div>
-                <h3 className="text-base font-black text-[#182033]">Minta Revisi</h3>
-                <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider mt-0.5">
-                  {order.projectTitle}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsRevisionOpen(false)}
-                className="p-1.5 rounded-[10px] text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors cursor-pointer"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <form onSubmit={handleRequestRevision} className="space-y-4">
-              <div>
-                <label htmlFor="revision-message" className="block text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-1.5">
-                  Apa yang perlu diperbaiki?
-                </label>
-                <textarea
-                  id="revision-message"
-                  rows={4}
-                  required
-                  placeholder="Contoh: Logo brand belum terlihat jelas di bagian akhir video. Mohon diperbesar."
-                  value={revisionMessage}
-                  onChange={(e) => setRevisionMessage(e.target.value)}
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-[14px] text-xs focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 transition-all font-semibold text-neutral-800 placeholder-neutral-400 resize-none leading-relaxed"
-                />
-                <p className="text-[9px] text-neutral-400 font-bold mt-1.5 leading-relaxed">
-                  Sespesifik mungkin — jumlah revisi dibatasi kesepakatan awal
-                  {order.revisionCount ? ` (maksimal ${order.revisionCount}×)` : ""}.
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsRevisionOpen(false)}
-                  disabled={reviewing}
-                  className="flex-1 py-3 border border-neutral-200 text-neutral-600 hover:bg-neutral-50 font-extrabold text-xs rounded-full transition-all cursor-pointer disabled:opacity-50"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={reviewing}
-                  className="flex-1 py-3 text-white font-extrabold text-xs rounded-full transition-all cursor-pointer hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ background: "linear-gradient(180deg,#f97316,#ea580c)", boxShadow: "0 4px 14px rgba(249,115,22,.28)" }}
-                >
-                  {reviewing ? "Mengirim…" : "Kirim Permintaan"}
-                </button>
-              </div>
-            </form>
-          </ResponsiveModalContent>
-        </ResponsiveModal>
-      )}
     </div>
   );
 }

@@ -118,6 +118,9 @@
   "get-umkm-negotiations": [
     "documents.read"
   ],
+  "get-umkm-ratecard-reviews": [
+    "documents.read"
+  ],
   "get-umkm-profile": [
     "documents.read",
     "users.read"

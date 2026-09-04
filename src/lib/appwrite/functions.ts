@@ -28,6 +28,7 @@ export const FUNCTION_IDS = {
   // (seller-side, ADR-008). Lihat header masing-masing Function.
   creatorNegotiations: "get-creator-negotiations",
   umkmNegotiations: "get-umkm-negotiations",
+  umkmRatecardReviews: "get-umkm-ratecard-reviews",
   // ── Tulis lintas-user (Sprint 8) ─────────────────────────────────────────
   /**
    * Aksi tulis berikut HARUS lewat server, bukan karena agregasi tapi karena

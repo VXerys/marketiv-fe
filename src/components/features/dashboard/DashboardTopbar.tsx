@@ -32,6 +32,7 @@ function getPageMeta(pathname: string): PageMeta {
     [`${BASE}/campaign/buat`]:   { title: "Buat Kampanye", subtitle: "Panduan pembuatan kampanye" },
     [`${BASE}/kreator`]:         { title: "Kreator",      subtitle: "Temukan & kelola kreator" },
     [`${BASE}/negosiasi`]:       { title: "Negosiasi",    subtitle: "Kelola penawaran & diskusi" },
+    [`${BASE}/review-rate-card`]: { title: "Review Pekerjaan", subtitle: "Tinjau hasil kerja Rate Card" },
     [`${BASE}/keuangan`]:        { title: "Keuangan",     subtitle: "Transaksi & Dana Aman" },
     [`${BASE}/analitik`]:        { title: "Analitik",     subtitle: "Performa & Laporan" },
     [`${BASE}/pengaturan`]:      { title: "Pengaturan",   subtitle: "Profil & Pengaturan Akun" },
@@ -45,6 +46,8 @@ function getPageMeta(pathname: string): PageMeta {
     return { title: "Profil Kreator", subtitle: "Detail informasi kreator" };
   if (new RegExp(`^${BASE}/negosiasi/[^/]+$`).test(pathname))
     return { title: "Ruang Negosiasi", subtitle: "Detail sesi negosiasi" };
+  if (new RegExp(`^${BASE}/review-rate-card/[^/]+$`).test(pathname))
+    return { title: "Detail Review", subtitle: "Tinjau hasil kerja Rate Card" };
   return { title: "Marketiv", subtitle: "" };
 }
 
@@ -66,6 +69,7 @@ function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
     campaign: "Kampanye",
     kreator: "Direktori Kreator",
     negosiasi: "Negosiasi",
+    "review-rate-card": "Review Pekerjaan",
     keuangan: "Keuangan",
     analitik: "Analitik",
     pengaturan: "Pengaturan",

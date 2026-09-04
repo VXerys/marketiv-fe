@@ -10,6 +10,7 @@ import {
   Megaphone,
   Users,
   MessageCircle,
+  ClipboardCheck,
   Wallet,
   TrendingUp,
   Settings,
@@ -60,11 +61,12 @@ interface SidebarNavItem {
   exact?: boolean;
 }
 
-const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
+export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
   { label: "Dashboard",  href: "/dashboard/umkm",            icon: LayoutDashboard, exact: true },
   { label: "Kampanye",   href: "/dashboard/umkm/campaign",   icon: Megaphone },
   { label: "Kreator",    href: "/dashboard/umkm/kreator",    icon: Users },
   { label: "Negosiasi",  href: "/dashboard/umkm/negosiasi",  icon: MessageCircle },
+  { label: "Review Pekerjaan", href: "/dashboard/umkm/review-rate-card", icon: ClipboardCheck },
   { label: "Keuangan",   href: "/dashboard/umkm/keuangan",   icon: Wallet },
   { label: "Analitik",   href: "/dashboard/umkm/analitik",   icon: TrendingUp },
 ];
