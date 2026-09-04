@@ -1,9 +1,8 @@
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
 import landingPageBg from "@/assets/images/landing-page.png";
 import heroMobileBg from "@/assets/images/hero-mobile.png";
 import { LANDING_CONTENT } from "@/data/content";
-import { routes } from "@/lib/constants/routes";
+import { LandingHeroActions } from "./LandingHeroActions";
 
 export function HeroSection() {
   const { hero } = LANDING_CONTENT;
@@ -33,12 +32,7 @@ export function HeroSection() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 mt-12 sm:mt-16 md:mt-20 lg:mt-24">
-          <Button variant="primary" size="xl" href={routes.registerWithRole("umkm")}>
-            {hero.ctaUmkm}
-          </Button>
-          <Button variant="outline" size="xl" href={routes.registerWithRole("creator")} className="!bg-white/20 !backdrop-blur-md !border-white/40 !text-white font-semibold hover:!bg-white/40 hover:!border-white/70 transition-all duration-300">
-            {hero.ctaCreator}
-          </Button>
+          <LandingHeroActions ctaUmkm={hero.ctaUmkm} ctaCreator={hero.ctaCreator} />
         </div>
 
         {/* Trust Line */}

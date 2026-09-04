@@ -5,11 +5,15 @@ import { useState, useEffect } from "react";
 import { Logo } from "@/assets/images";
 import { cn } from "@/lib/utils";
 import { NAVBAR_CONTENT } from "@/data/content";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { dashboardByRole, isUserPortalRole } from "@/lib/constants/routes";
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const { user, loading } = useAuth();
   const navLinks = NAVBAR_CONTENT.links;
+  const dashboardHref = user && isUserPortalRole(user.role) ? dashboardByRole[user.role] : null;
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 32);
@@ -56,22 +60,7 @@ export function Navbar() {
           </ul>
 
           {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center gap-3 flex-1 justify-end">
-            <Link
-              href="/login"
-              id="navbar-login"
-              className="text-sm font-semibold text-neutral-600 hover:text-primary-600 transition-colors duration-200 px-4 py-2 rounded-lg hover:bg-primary-50 cursor-pointer"
-            >
-              Masuk
-            </Link>
-            <Link
-              href="/register"
-              id="navbar-register"
-              className="inline-flex items-center justify-center rounded-full bg-primary-500 px-6 py-2 text-sm font-bold text-white shadow-sm shadow-primary-500/30 transition-all duration-200 hover:bg-primary-600 hover:scale-105 cursor-pointer"
-            >
-              Daftar
-            </Link>
-          </div>
+          <DesktopAuthActions loading={loading} dashboardHref={dashboardHref} />
 
           {/* Mobile Hamburger */}
           <button
@@ -121,25 +110,99 @@ export function Navbar() {
               </Link>
             </li>
           ))}
-          <li className="w-full px-6 flex flex-col gap-3 mt-2 pt-3 border-t border-neutral-100">
-            <Link
-              href="/login"
-              className="flex w-full items-center justify-center rounded-xl border border-neutral-200 bg-white py-3 text-sm font-bold text-neutral-700 hover:border-primary-300 hover:text-primary-600 transition-all cursor-pointer"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Masuk
-            </Link>
-            <Link
-              href="/register"
-              className="flex w-full items-center justify-center rounded-xl bg-primary-500 py-3 text-sm font-bold text-white shadow shadow-primary-200 hover:bg-primary-600 transition-colors cursor-pointer"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Daftar Sekarang
-            </Link>
-          </li>
+          <MobileAuthActions
+            loading={loading}
+            dashboardHref={dashboardHref}
+            onNavigate={() => setIsMobileMenuOpen(false)}
+          />
         </ul>
       </div>
       </nav>
     </div>
   );
-}
+}
+
+function DesktopAuthActions({
+  loading,
+  dashboardHref,
+}: {
+  loading: boolean;
+  dashboardHref: string | null;
+}) {
+  return (
+    <div className="hidden md:flex items-center gap-3 flex-1 justify-end">
+      {loading ? (
+        <div aria-hidden="true" className="h-10 w-32 rounded-full bg-neutral-200/50" />
+      ) : dashboardHref ? (
+        <Link
+          href={dashboardHref}
+          id="navbar-dashboard"
+          className="inline-flex items-center justify-center rounded-full bg-primary-500 px-6 py-2 text-sm font-bold text-white shadow-sm shadow-primary-500/30 transition-all duration-200 hover:bg-primary-600 hover:scale-105 cursor-pointer"
+        >
+          Dashboard
+        </Link>
+      ) : (
+        <>
+          <Link
+            href="/login"
+            id="navbar-login"
+            className="text-sm font-semibold text-neutral-600 hover:text-primary-600 transition-colors duration-200 px-4 py-2 rounded-lg hover:bg-primary-50 cursor-pointer"
+          >
+            Masuk
+          </Link>
+          <Link
+            href="/register"
+            id="navbar-register"
+            className="inline-flex items-center justify-center rounded-full bg-primary-500 px-6 py-2 text-sm font-bold text-white shadow-sm shadow-primary-500/30 transition-all duration-200 hover:bg-primary-600 hover:scale-105 cursor-pointer"
+          >
+            Daftar
+          </Link>
+        </>
+      )}
+    </div>
+  );
+}
+
+function MobileAuthActions({
+  loading,
+  dashboardHref,
+  onNavigate,
+}: {
+  loading: boolean;
+  dashboardHref: string | null;
+  onNavigate: () => void;
+}) {
+  return (
+    <li className="w-full px-6 flex flex-col gap-3 mt-2 pt-3 border-t border-neutral-100">
+      {loading ? (
+        <div aria-hidden="true" className="h-12 w-full rounded-xl bg-neutral-100" />
+      ) : dashboardHref ? (
+        <Link
+          href={dashboardHref}
+          id="navbar-dashboard-mobile"
+          className="flex w-full items-center justify-center rounded-xl bg-primary-500 py-3 text-sm font-bold text-white shadow shadow-primary-200 hover:bg-primary-600 transition-colors cursor-pointer"
+          onClick={onNavigate}
+        >
+          Dashboard
+        </Link>
+      ) : (
+        <>
+          <Link
+            href="/login"
+            className="flex w-full items-center justify-center rounded-xl border border-neutral-200 bg-white py-3 text-sm font-bold text-neutral-700 hover:border-primary-300 hover:text-primary-600 transition-all cursor-pointer"
+            onClick={onNavigate}
+          >
+            Masuk
+          </Link>
+          <Link
+            href="/register"
+            className="flex w-full items-center justify-center rounded-xl bg-primary-500 py-3 text-sm font-bold text-white shadow shadow-primary-200 hover:bg-primary-600 transition-colors cursor-pointer"
+            onClick={onNavigate}
+          >
+            Daftar Sekarang
+          </Link>
+        </>
+      )}
+    </li>
+  );
+}

@@ -8,6 +8,7 @@ import {
   resolveSafePostLoginDestination,
   routes,
 } from "@/lib/constants/routes";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * Lempar user yang sudah punya sesi keluar dari halaman auth.
@@ -16,7 +17,8 @@ import {
  * memang harus client-side — `redirect()` server tidak bisa melihatnya.
  *
  * Precedence guard:
- *   1. loading / belum ada user   → render children (form login/register)
+ *   1. loading                    → render skeleton sampai sesi selesai dibaca
+ *      belum ada user             → render children (form login/register)
  *   2. user ada tapi email belum  → render children (layar OTP masih di sini)
  *      terverifikasi
  *   3. user ada + email verified + profile incomplete → redirect ke /onboarding
@@ -59,6 +61,14 @@ export function RedirectIfAuthenticated({
   //
   // User belum verifikasi email juga harus tetap bisa melihat halaman auth
   // (layar OTP di-render sebagai children dari register form).
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white" aria-label="Memuat sesi">
+        <Skeleton className="h-10 w-10 rounded-full" />
+      </div>
+    );
+  }
+
   if (!loading && user && isUserPortalRole(user.role) && user.emailVerified && errorCode !== "not_found") return null;
 
   return <>{children}</>;
